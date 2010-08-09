@@ -1,0 +1,15 @@
+2010-08-09	Chris Johns <chrisj@rtems.org>
+
+	* specbuilder, specbuilder/sb-build, specbuilder/sb-crossgcc,
+	specbuilder/sb-setup, specbuilder/sb-specdump,
+	specbuilder/sb-status, specbuilder/specbuilder/.cvsignore,
+	specbuilder/specbuilder/build.py,
+	specbuilder/specbuilder/config.sub,
+	specbuilder/specbuilder/crossgcc.py,
+	specbuilder/specbuilder/darwin.py,
+	specbuilder/specbuilder/defaults.py,
+	specbuilder/specbuilder/error.py,
+	specbuilder/specbuilder/execute.py,
+	specbuilder/specbuilder/log.py, specbuilder/specbuilder/setup.py,
+	specbuilder/specbuilder/spec.py,
+	specbuilder/specbuilder/status.py: New.
