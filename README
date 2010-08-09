@@ -1,0 +1,10 @@
+RTEMS Tools
+
+The RTEMS Tools are a collection of packages, scripts and tools used by or with
+the RTEMS project to help maintain the RTEMS project or aid the users of RTEMS.
+
+If you have a script or tool you use that you think may be of use to the RTEMS
+community please post something about it the RTEMS Users List.
+
+Chris Johns
+9th August 2010
