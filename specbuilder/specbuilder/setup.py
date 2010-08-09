@@ -25,6 +25,7 @@
 # Setup a series of directories ready for building with the Spec Builder.
 #
 
+import errno
 import os
 import shutil
 
@@ -48,9 +49,8 @@ class setup:
     """Set up the various directories in a specified path"""
 
     _dirs = [ 'TARS',
-              'TARS',
               'SPECS',
-              'SOURCE',
+              'SOURCES',
               'RPMLIB',
               'BUILD',
               'TMP' ]
@@ -74,7 +74,19 @@ class setup:
 
     def make(self, path):
         for d in setup._dirs:
-            self.mkdir(os.path.join(path, d))
+            try:
+                dst = os.path.join(path, d)
+                self.mkdir(dst)
+            except os.error, oerr:
+                if oerr[0] != errno.EEXIST:
+                    raise error.general('OS error: ' + str(oerr))
+            if d == 'RPMLIB':
+                for n in ['perl.prov', 'perl.req']:
+                    sf = os.path.join(self.opts.command_path, 'specbuilder', n)
+                    df = os.path.join(dst, n)
+                    self._output('installing: ' + df)
+                    if os.path.isfile(sf):
+                        shutil.copy(sf, df)
 
 def run():
     import sys
@@ -84,7 +96,7 @@ def run():
         _notice(opts, 'RTEMS Tools, Setup Spec Builder, v%s' % (version))
         for path in opts.params():
             s = setup(path, _defaults = _defaults, opts = opts)
-            s.make()
+            s.make(path)
             del s
     except error.general, gerr:
         print gerr

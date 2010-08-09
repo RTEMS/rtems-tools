@@ -151,7 +151,7 @@ cd "%{_builddir}"''',
 }
 
 class command_line:
-    """Process the command line in a common way across all speculater commands."""
+    """Process the command line in a common way across all SpecBuilder commands."""
 
     _defaults = { 'params'   : [],
                   'warn-all' : '0',
@@ -175,8 +175,8 @@ class command_line:
                         '--warn-all' : '_warn_all',
                         '--no-clean' : '_no_clean' }
 
-    _target_triplets = { '--host'   :   '_host',
-                         '--build'  :  '_build',
+    _target_triplets = { '--host'   : '_host',
+                         '--build'  : '_build',
                          '--target' : '_target' }
 
     def __init__(self, argv):
@@ -273,7 +273,8 @@ class command_line:
                                     # make sure it is ok.
                                     #
                                     e = execute.capture_execution()
-                                    config_sub = os.path.join(self.command_path, 'config.sub')
+                                    config_sub = os.path.join(self.command_path, 
+                                                              'specbuilder', 'config.sub')
                                     exit_code, proc, output = e.shell(config_sub + ' ' + value)
                                     if exit_code == 0:
                                         value = output

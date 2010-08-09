@@ -1,5 +1,14 @@
 2010-08-09	Chris Johns <chrisj@rtems.org>
 
+	* specbuilder/perl.prov, specbuilder/perl.req: New.
+	* specbuilder/defaults.py: The config.sub path is a sub-dir of the
+	command.
+	* specbuilder/setup.py: Fix make bug. Install RPMLIB files when
+	creating the directory.
+	* specbuilder/spec.py: Add '%check'.
+
+2010-08-09	Chris Johns <chrisj@rtems.org>
+
 	* specbuilder, specbuilder/sb-build, specbuilder/sb-crossgcc,
 	specbuilder/sb-setup, specbuilder/sb-specdump,
 	specbuilder/sb-status, specbuilder/specbuilder/.cvsignore,

@@ -148,6 +148,7 @@ class file:
     _directive = [ '%description',
                    '%prep',
                    '%build',
+                   '%check',
                    '%install',
                    '%clean',
                    '%post',
