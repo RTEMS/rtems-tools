@@ -31,6 +31,7 @@ import shutil
 
 import build
 import defaults
+import execute
 import error
 import log
 

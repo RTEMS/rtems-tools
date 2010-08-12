@@ -1,5 +1,9 @@
 2010-08-13	Chris Johns <chrisj@rtems.org>
 
+	* specbuilder/specbuilder/setup.py: Add import for execute.
+
+2010-08-13	Chris Johns <chrisj@rtems.org>
+
 	* specbuilder/specbuilder/rtems.py: New. Move RTEMS specific
 	settings into the RTEMS specific file from the host specific file.
 
