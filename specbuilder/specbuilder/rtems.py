@@ -22,36 +22,20 @@
 #
 
 #
-# This code is based on what ever doco about spec files I could find and 
-# RTEMS project's spec files.
+# Any RTEMS specific overrides to make things work.
 #
 
 import pprint
-import os
-
-import execute
 
 def load():
-    uname = os.uname()
-    sysctl = '/usr/sbin/sysctl '
-    e = execute.capture_execution()
-    exit_code, proc, output = e.shell(sysctl + 'hw.ncpu')
-    if exit_code == 0:
-        smp_mflags = '-j' + output.split(' ')[1].strip()
-    else:
-        smp_mflags = ''
     defines = { 
-        '_os':                     'darwin',
-        '_host':                   uname[4] + '-apple-darwin' + uname[2],
-        '_host_vendor':            'apple',
-        '_host_os':                'darwin',
-        '_host_cpu':               uname[4],
-        '_host_alias':             '%{nil}',
-        '_host_arch':              uname[4],
-        '_usr':                    '/opt/local',
-        '_var':                    '/opt/local/var',
-        'optflags':                '-O2 -fasynchronous-unwind-tables',
-        '_smp_mflags':             smp_mflags
+        # Build readline with gdb.
+        'without_system_readline': 'without_system_readline',
+        # Work around a spec file issue.
+        'mpc_provided':            '0',
+        'mpfr_provided':           '0',
+        'gmp_provided':            '0',
+        'libelf_provided':         '0',
         }
     return defines
 

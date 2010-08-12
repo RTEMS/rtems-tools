@@ -368,10 +368,11 @@ class build:
     def make(self):
         packages = self.spec.packages()
         package = packages['main']
-        _notice(self.opts, 'package: ' + package.name() + '-' + package.version())
+        name = package.name() + '-' + package.version()
+        _notice(self.opts, 'package: ' + name)
         self.script.reset()
         self.script.append(self.spec.expand('%{___build_template}'))
-        self.script.append('echo "=> ' + package.name() + '-' + package.version() + ':"')
+        self.script.append('echo "=> ' + name + ':"')
         self.prep(package)
         self.build(package)
         self.install(package)
@@ -383,6 +384,7 @@ class build:
             sn = self.spec.expand(os.path.join('%{_builddir}', 'doit'))
             self._output('write script: ' + sn)
             self.script.write(sn)
+            _notice(self.opts, 'building: ' + name)
             self.run(sn)
         if not self.opts.no_clean():
             self.cleanup()

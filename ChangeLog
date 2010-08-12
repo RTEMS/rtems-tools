@@ -1,3 +1,24 @@
+2010-08-13	Chris Johns <chrisj@rtems.org>
+
+	* specbuilder/specbuilder/rtems.py: New. Move RTEMS specific
+	settings into the RTEMS specific file from the host specific file.
+
+	* specbuilder/specbuilder/darwin.py: Move the RTEMS specific
+	values out. Automatically determine the number of CPUs and let
+	make use them all.
+
+	* specbuilder/specbuilder/defaults.py: Add --no-smp and --rebuild
+	to the options. Post process --no-smp to set the SMP make flags to
+	nil. Add support for RTEMS specific overrides.
+
+	* specbuilder/specbuilder/build.py: Add a notice that building has
+	started. If a download happens you do not know when it has
+	finished.
+
+	* specbuilder/specbuilder/setup.py: Add --rtems to point to the
+	RTEMS source and copy the spec and diff files. Also allow the user
+	to --rebuild them.
+
 2010-08-09	Chris Johns <chrisj@rtems.org>
 
 	* specbuilder/perl.prov, specbuilder/perl.req: New.

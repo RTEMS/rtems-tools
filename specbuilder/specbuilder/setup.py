@@ -64,6 +64,41 @@ class setup:
         if not self.opts.quiet():
             log.output(text)
 
+    def _install_files(self, files, dst):
+        for src in files:
+            try:
+                name = os.path.basename(src)
+                self._output('installing: ' + name)
+                shutil.copy(src, os.path.join(dst, name))
+            except IOError, ioerr:
+                raise error.general('copy failed: ' + src + ': ' + str(ioerr))
+            except OSError, oerr:
+                 raise error.general('copy failed: ' + src + ': ' + str(oerr))
+
+    def _get_file_list(self, top, path, ext):
+        filelist = []
+        for root, dirs, files in os.walk(top):
+            if root[len(top) + 1:].startswith(path):
+                for f in files:
+                    n, e = os.path.splitext(f)
+                    if e[1:] == ext:
+                        filelist.append(os.path.join(root, f))
+        return filelist
+
+    def get_specs(self, path):
+        return self._get_file_list(path, 'rtems', 'spec')
+
+    def get_patches(self, path):
+        return self._get_file_list(path, 'patches', 'diff')
+
+    def run(self, command, shell_opts = '', cwd = None):
+        e = execute.capture_execution(log = log.default, dump = self.opts.quiet())
+        cmd = self.opts.expand('%{___build_shell} -ex ' + shell_opts + ' ' + command, self.defaults)
+        self._output('run: ' + cmd)
+        exit_code, proc, output = e.shell(cmd, cwd = cwd)
+        if exit_code != 0:
+            raise error.general('shell cmd failed: ' + cmd)
+
     def mkdir(self, path):
         if not self.opts.dry_run():
             self._output('making dir: ' + path)
@@ -81,13 +116,24 @@ class setup:
                 if oerr[0] != errno.EEXIST:
                     raise error.general('OS error: ' + str(oerr))
             if d == 'RPMLIB':
-                for n in ['perl.prov', 'perl.req']:
-                    sf = os.path.join(self.opts.command_path, 'specbuilder', n)
-                    df = os.path.join(dst, n)
-                    self._output('installing: ' + df)
-                    if os.path.isfile(sf):
-                        shutil.copy(sf, df)
+                files = []
+                for file in ['perl.prov', 'perl.req']:
+                    files.append(os.path.join(self.opts.command_path, 'specbuilder', file))
+                self._install_files(files, dst)
 
+    def build_crossrpms(self, path):
+        if 'rtems' in self.opts.opts:
+            rtemssrc = os.path.abspath(os.path.expanduser(self.opts.opts['rtems']))
+            crossrpms = os.path.join(rtemssrc, 'contrib', 'crossrpms')
+            if not os.path.isdir(crossrpms):
+                raise error.general('no crossrpms directory found under: ' + crossrpms)
+            if 'rebuild' in self.opts.opts:
+                self.run('../../bootstrap -c', '-c', crossrpms)
+                self.run('../../bootstrap', '-c', crossrpms)
+                self.run('./configure', '-c', crossrpms)
+            self._install_files(self.get_specs(crossrpms), os.path.join(path, 'SPECS'))
+            self._install_files(self.get_patches(crossrpms), os.path.join(path, 'SOURCES'))
+ 
 def run():
     import sys
     try:
@@ -97,6 +143,7 @@ def run():
         for path in opts.params():
             s = setup(path, _defaults = _defaults, opts = opts)
             s.make(path)
+            s.build_crossrpms(path)
             del s
     except error.general, gerr:
         print gerr

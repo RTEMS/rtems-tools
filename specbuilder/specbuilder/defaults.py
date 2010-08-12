@@ -158,7 +158,9 @@ class command_line:
                   'quiet'    : '0',
                   'trace'    : '0',
                   'dry-run'  : '0',
-                  'no-clean' : '0' }
+                  'no-clean' : '0',
+                  'no-smp'   : '0',
+                  'rebuild'  : '0' }
 
     _long_opts = { '--prefix'     : '_prefix',
                    '--prefixbase' : '_prefixbase',
@@ -169,11 +171,14 @@ class command_line:
                    '--usrlibrpm'  : '_usrlibrpm',
                    '--tmppath'    : '_tmppath',
                    '--log'        : '_logfile',
-                   '--url'        : '_url_base' }
+                   '--url'        : '_url_base',
+                   '--rtems'      : '_rtemssrc' }
 
     _long_true_opts = { '--trace'    : '_trace',
                         '--warn-all' : '_warn_all',
-                        '--no-clean' : '_no_clean' }
+                        '--no-clean' : '_no_clean',
+                        '--no-smp'   : '_no_smp',
+                        '--rebuild'  : '_rebuild' }
 
     _target_triplets = { '--host'   : '_host',
                          '--build'  : '_build',
@@ -203,21 +208,6 @@ class command_line:
             '\nargs: ' + str(self.args) + \
             '\nopts:\n' + _dict(self.opts)
 
-        return s
-
-    def _expand(self, s, _defaults):
-        """Simple basic expander of spec file macros."""
-        mf = re.compile(r'%{[^}]+}')
-        expanded = True
-        while expanded:
-            expanded = False
-            for m in mf.findall(s):
-                name = m[2:-1]
-                if name in _defaults:
-                    s = s.replace(m, _defaults[name])
-                    expanded = True
-                else:
-                    raise error.general('cannot process default macro: ' + m)
         return s
 
     def _process(self):
@@ -311,7 +301,24 @@ class command_line:
             i += 1
 
     def _post_process(self, _defaults):
-        pass
+        if self.no_smp():
+            _defaults['_smp_mflags'] = _defaults['nil']
+        return _defaults
+
+    def expand(self, s, _defaults):
+        """Simple basic expander of spec file macros."""
+        mf = re.compile(r'%{[^}]+}')
+        expanded = True
+        while expanded:
+            expanded = False
+            for m in mf.findall(s):
+                name = m[2:-1]
+                if name in _defaults:
+                    s = s.replace(m, _defaults[name])
+                    expanded = True
+                else:
+                    raise error.general('cannot process default macro: ' + m)
+        return s
 
     def command(self):
         return os.path.join(self.command_path, self.command_name)
@@ -331,6 +338,12 @@ class command_line:
     def no_clean(self):
         return self.opts['no-clean'] != '0'
 
+    def no_smp(self):
+        return self.opts['no-smp'] != '0'
+
+    def rebuild(self):
+        return self.opts['rebuild'] != '0'
+
     def params(self):
         return self.opts['params']
 
@@ -341,7 +354,7 @@ class command_line:
             if len(specbase) == 0:
                 specbase = '*'
             if len(specdir) == 0:
-                specdir = self._expand(defaults['_specdir'], defaults)
+                specdir = self.expand(defaults['_specdir'], defaults)
             if not os.path.isdir(specdir):
                 raise error.general('specdir is not a directory or does not exist: ' + specdir)
             files = glob.glob(os.path.join(specdir, specbase))
@@ -386,10 +399,14 @@ def load(args):
         overrides = darwin.load()
     for k in overrides:
         d[k] = overrides[k]
+    import rtems
+    overrides = rtems.load()
+    for k in overrides:
+        d[k] = overrides[k]
     o = command_line(args)
     for k in o.defaults:
         d[k] = o.defaults[k]
-    o._post_process(d)
+    d = o._post_process(d)
     return o, d
 
 if __name__ == '__main__':
