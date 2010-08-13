@@ -1,5 +1,15 @@
 2010-08-13	Chris Johns <chrisj@rtems.org>
 
+	* specbuilder/specbuilder/defaults.py: Provide a default shell.
+
+	* specbuilder/specbuilder/rtems.py: Provide a default autoconf
+	version.
+
+	* specbuilder/specbuilder/setup.py: Use the default setup shell
+	and check the version of autoconf needed.
+
+2010-08-13	Chris Johns <chrisj@rtems.org>
+
 	* specbuilder/specbuilder/setup.py: Add import for execute.
 
 2010-08-13	Chris Johns <chrisj@rtems.org>

@@ -36,6 +36,7 @@ def load():
         'mpfr_provided':           '0',
         'gmp_provided':            '0',
         'libelf_provided':         '0',
+        '__setup_autoconf':        '2.65'
         }
     return defines
 

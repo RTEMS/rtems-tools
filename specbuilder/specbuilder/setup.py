@@ -86,19 +86,32 @@ class setup:
                         filelist.append(os.path.join(root, f))
         return filelist
 
+    def run(self, command, shell_opts = '', cwd = None):
+        e = execute.capture_execution(log = log.default, dump = self.opts.quiet())
+        cmd = self.opts.expand('%{__setup_shell} -ex ' + shell_opts + ' ' + command, self.defaults)
+        self._output('run: ' + cmd)
+        exit_code, proc, output = e.shell(cmd, cwd = cwd)
+        if exit_code != 0:
+            raise error.general('shell cmd failed: ' + cmd)
+
+    def check_version(self, cmd, macro):
+        vcmd = cmd + ' --version'
+        e = execute.capture_execution()
+        exit_code, proc, output = e.shell(vcmd)
+        if exit_code != 0 and len(output) != 0:
+            raise error.general('shell cmd failed: ' + vcmd)
+        version = output.split('\n')[0].split(' ')
+        need = self.opts.expand(macro, self.defaults)
+        if version < need:
+            _notice(self.opts, 'warning: ' + cmd + ' version is invalid, need ' + need + ' or higher')
+            return False
+        return True
+
     def get_specs(self, path):
         return self._get_file_list(path, 'rtems', 'spec')
 
     def get_patches(self, path):
         return self._get_file_list(path, 'patches', 'diff')
-
-    def run(self, command, shell_opts = '', cwd = None):
-        e = execute.capture_execution(log = log.default, dump = self.opts.quiet())
-        cmd = self.opts.expand('%{___build_shell} -ex ' + shell_opts + ' ' + command, self.defaults)
-        self._output('run: ' + cmd)
-        exit_code, proc, output = e.shell(cmd, cwd = cwd)
-        if exit_code != 0:
-            raise error.general('shell cmd failed: ' + cmd)
 
     def mkdir(self, path):
         if not self.opts.dry_run():
@@ -129,9 +142,10 @@ class setup:
             if not os.path.isdir(crossrpms):
                 raise error.general('no crossrpms directory found under: ' + crossrpms)
             if 'rebuild' in self.opts.opts:
-                self.run('../../bootstrap -c', '-c', crossrpms)
-                self.run('../../bootstrap', '-c', crossrpms)
-                self.run('./configure', '-c', crossrpms)
+                if self.check_version('autoconf', '%{__setup_autoconf}'):
+                    self.run('../../bootstrap -c', '-c', crossrpms)
+                    self.run('../../bootstrap', '-c', crossrpms)
+                    self.run('./configure', '-c', crossrpms)
             self._install_files(self.get_specs(crossrpms), os.path.join(path, 'SPECS'))
             self._install_files(self.get_patches(crossrpms), os.path.join(path, 'SOURCES'))
  

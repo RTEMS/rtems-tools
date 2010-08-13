@@ -84,6 +84,7 @@ cd "%{_builddir}"''',
 '___build_template': '''#!%{___build_shell}
 %{___build_pre}
 %{nil}''',
+'___setup_shell':      '/bin/sh',
 '__aclocal':           'aclocal',
 '__ar':                'ar',
 '__arch_install_post': '%{nil}',
