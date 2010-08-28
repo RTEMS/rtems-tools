@@ -1,3 +1,9 @@
+2010-08-29	Chris Johns <chrisj@rtems.org>
+
+	* specbuilder/specbuilder/defaults.py: Add default configure
+	macro. Add --dry-run to the parsed arguments. Fix the case when
+	run on a new host that does not have default support.
+	
 2010-08-13	Chris Johns <chrisj@rtems.org>
 
 	* specbuilder/specbuilder/defaults.py: Provide a default shell.

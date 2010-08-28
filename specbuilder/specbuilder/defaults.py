@@ -148,6 +148,26 @@ cd "%{_builddir}"''',
 '_usrsrc':             '%{_usr}/src',
 '_var':                '/usr/local/var',
 '_varrun':             '%{_var}/run',
+'configure': '''
+CFLAGS="${CFLAGS:-%optflags}" ; export CFLAGS ; 
+CXXFLAGS="${CXXFLAGS:-%optflags}" ; export CXXFLAGS ; 
+FFLAGS="${FFLAGS:-%optflags}" ; export FFLAGS ; 
+./configure --build=%{_build} --host=%{_host} \
+      --target=%{_target_platform} \
+      --program-prefix=%{?_program_prefix} \
+      --prefix=%{_prefix} \
+      --exec-prefix=%{_exec_prefix} \
+      --bindir=%{_bindir} \
+      --sbindir=%{_sbindir} \
+      --sysconfdir=%{_sysconfdir} \
+      --datadir=%{_datadir} \
+      --includedir=%{_includedir} \
+      --libdir=%{_libdir} \
+      --libexecdir=%{_libexecdir} \
+      --localstatedir=%{_localstatedir} \
+      --sharedstatedir=%{_sharedstatedir} \
+      --mandir=%{_mandir} \
+      --infodir=%{_infodir}''',
 'nil':                 ''
 }
 
@@ -176,6 +196,7 @@ class command_line:
                    '--rtems'      : '_rtemssrc' }
 
     _long_true_opts = { '--trace'    : '_trace',
+                        '--dry-run'  : '_dry_run',
                         '--warn-all' : '_warn_all',
                         '--no-clean' : '_no_clean',
                         '--no-smp'   : '_no_smp',
@@ -398,12 +419,15 @@ def load(args):
     if uname[0] == 'Darwin':
         import darwin
         overrides = darwin.load()
+    if overrides is None:
+        raise error.general('no hosts defaults found; please add')
     for k in overrides:
         d[k] = overrides[k]
     import rtems
     overrides = rtems.load()
-    for k in overrides:
-        d[k] = overrides[k]
+    if overrides is not None:
+        for k in overrides:
+            d[k] = overrides[k]
     o = command_line(args)
     for k in o.defaults:
         d[k] = o.defaults[k]
