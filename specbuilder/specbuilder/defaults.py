@@ -419,6 +419,9 @@ def load(args):
     if uname[0] == 'Darwin':
         import darwin
         overrides = darwin.load()
+    elif uname[0] == 'Linux':
+        import linux 
+        overrides = linux.load()
     if overrides is None:
         raise error.general('no hosts defaults found; please add')
     for k in overrides:

@@ -1,3 +1,12 @@
+2010-08-31	Chris Johns <chrisj@rtems.org>
+
+	* specbuilder/specbuilder/linux.py: Add Linux support. Can be
+	useful on those distributions that do not support RPM
+	packages. Users should always be encouraged to use the RPM
+	packages provided by the project.
+
+	* specbuilder/specbuilder/default.py: Add Linux.
+
 2010-08-29	Chris Johns <chrisj@rtems.org>
 
 	* specbuilder/specbuilder/defaults.py: Add default configure
