@@ -22,8 +22,7 @@
 #
 
 #
-# This code is based on what ever doco about spec files I could find and 
-# RTEMS project's spec files.
+# Windows specific support and overrides.
 #
 
 import pprint
@@ -32,27 +31,35 @@ import os
 import execute
 
 def load():
-    uname = os.uname()
-    sysctl = '/usr/sbin/sysctl '
-    e = execute.capture_execution()
-    exit_code, proc, output = e.shell(sysctl + 'hw.ncpu')
-    if exit_code == 0:
-        smp_mflags = '-j' + output.split(' ')[1].strip()
+    uname = 'win32'
+    if os.environ.has_key('NUMBER_OF_PROCESSORS'):
+        ncpus = int(os.environ['NUMBER_OF_PROCESSORS'])
+    else:
+        ncpus = 0
+    if ncpus > 1:
+        smp_mflags = '-j' + str(ncpus)
     else:
         smp_mflags = ''
+    if os.environ.has_key('HOSTTYPE'):
+        hosttype = os.environ['HOSTTYPE']
+    else:
+        hosttype = 'i686'
+    system = 'mingw32'
     defines = { 
-        '_os':                     'darwin',
-        '_host':                   uname[4] + '-apple-darwin' + uname[2],
-        '_host_vendor':            'apple',
-        '_host_os':                'darwin',
-        '_host_cpu':               uname[4],
+        '_os':                     'win32',
+        '_host':                   hosttype + '-pc-' + system,
+        '_host_vendor':            'microsoft',
+        '_host_os':                'win32',
+        '_host_cpu':               hosttype,
         '_host_alias':             '%{nil}',
-        '_host_arch':              uname[4],
+        '_host_arch':              hosttype,
         '_usr':                    '/opt/local',
         '_var':                    '/opt/local/var',
         'optflags':                '-O2 -fasynchronous-unwind-tables',
         '_smp_mflags':             smp_mflags,
-        '__xz':                    '/usr/local/bin/xz',
+        '__sh':                    'sh',
+        '_buildshell':             '%{__sh}',
+        '___setup_shell':          '%{__sh}'
         }
     return defines
 

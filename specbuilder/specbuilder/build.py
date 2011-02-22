@@ -190,6 +190,8 @@ class build:
             source['compressed'] = '%{__bzip2} -dc'
         elif esl[-1:][0] == 'bz2':
             source['compressed'] = '%{__zip} -u'
+        elif esl[-1:][0] == 'xz':
+            source['compressed'] = '%{__xz} -dc'
         source['script'] = ''
         return source
 
@@ -388,6 +390,11 @@ class build:
             self.run(sn)
         if not self.opts.no_clean():
             self.cleanup()
+
+    def name(self):
+        packages = self.spec.packages()
+        package = packages['main']
+        return package.name() + '-' + package.version()
 
 def run(args):
     try:

@@ -135,6 +135,7 @@ cd "%{_builddir}"''',
 '__tar':               '/usr/bin/tar',
 '__tar_extract':       '%{__tar} -xvvf',
 '__unzip':             '/usr/bin/unzip',
+'__xz':                '/usr/bin/xz',
 '_datadir':            '%{_prefix}/share',
 '_defaultdocdir':      '%{_prefix}/share/doc',
 '_exeext':             '',
@@ -415,13 +416,17 @@ def load(args):
     """
     d = defaults
     overrides = None
-    uname = os.uname()
-    if uname[0] == 'Darwin':
-        import darwin
-        overrides = darwin.load()
-    elif uname[0] == 'Linux':
-        import linux 
-        overrides = linux.load()
+    if os.name == 'nt':
+        import windows
+        overrides = windows.load()
+    else:
+        uname = os.uname()
+        if uname[0] == 'Darwin':
+            import darwin
+            overrides = darwin.load()
+        elif uname[0] == 'Linux':
+            import linux 
+            overrides = linux.load()
     if overrides is None:
         raise error.general('no hosts defaults found; please add')
     for k in overrides:
@@ -450,4 +455,6 @@ if __name__ == '__main__':
         print ierr
         sys.exit(1)
     sys.exit(0)
+
+
 

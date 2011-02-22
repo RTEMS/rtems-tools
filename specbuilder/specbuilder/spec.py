@@ -76,7 +76,11 @@ class package:
         infos = {}
         for i in self.infos:
             il = i.lower()
-            if il.startswith(label) and il[len(label):].isdigit():
+            if il.startswith(label):
+                if il == label:
+                    il = label + '0'
+                elif not il[len(label):].isdigit():
+                    continue
                 infos[il] = self.infos[i]
         return infos
 
@@ -146,6 +150,7 @@ class file:
     """Parse a spec file."""
 
     _directive = [ '%description',
+                   '%changelog',
                    '%prep',
                    '%build',
                    '%check',
@@ -156,6 +161,7 @@ class file:
                    '%files' ]
 
     _ignore = [ re.compile('%setup'),
+                re.compile('%configure'),
                 re.compile('%doc'),
                 re.compile('%dir'),
                 re.compile('%ghost'),
@@ -609,15 +615,7 @@ class file:
                     if isvalid:
                         for d in self._directive:
                             if ls[0].strip() == d:
-                                if len(ls) == 1:
-                                    package = 'main'
-                                elif len(ls) == 2:
-                                    package = ls[1].strip()
-                                else:
-                                    if ls[1].strip() != '-n':
-                                        self._warning("unknown directive option: '" + ls[1] + "'")
-                                    package = ls[2].strip()
-                                return ('directive', ls[0].strip(), package)
+                                return ('directive', ls[0].strip(), ls[1:])
                         self._warning("unknown directive: '" + ls[0] + "'")
                         return ('data', [l])
             else:
@@ -679,11 +677,23 @@ class file:
                         break
                     self._warning("unexpected '" + r[1] + "'")
                 elif r[0] == 'directive':
-                    self._set_package(r[2])
+                    new_data = []
+                    if r[1] == '%description':
+                        new_data = [' '.join(r[2])]
+                    else:
+                        if len(r[2]) == 0:
+                            _package = 'main'
+                        elif len(r[2]) == 1:
+                            _package = r[2][0]
+                        else:
+                            if r[2][0].strip() != '-n':
+                                self._warning("unknown directive option: '" + ' '.join(r[2]) + "'")
+                            _package = r[2][1].strip()
+                        self._set_package(_package)
                     if dir and dir != r[1]:
                         self._directive_extend(dir, data)
                     dir = r[1]
-                    data = []
+                    data = new_data
                 elif r[0] == 'data':
                     for l in r[1]:
                         l = self._expand(l)

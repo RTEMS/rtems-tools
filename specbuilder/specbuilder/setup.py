@@ -88,7 +88,8 @@ class setup:
 
     def run(self, command, shell_opts = '', cwd = None):
         e = execute.capture_execution(log = log.default, dump = self.opts.quiet())
-        cmd = self.opts.expand('%{__setup_shell} -ex ' + shell_opts + ' ' + command, self.defaults)
+        cmd = self.opts.expand('%{___setup_shell} -ex ' + \
+                                   shell_opts + ' ' + command, self.defaults)
         self._output('run: ' + cmd)
         exit_code, proc, output = e.shell(cmd, cwd = cwd)
         if exit_code != 0:
@@ -96,19 +97,22 @@ class setup:
 
     def check_version(self, cmd, macro):
         vcmd = cmd + ' --version'
+        vcmd = self.opts.expand('%{___setup_shell} -e ' + vcmd, self.defaults)        
         e = execute.capture_execution()
         exit_code, proc, output = e.shell(vcmd)
         if exit_code != 0 and len(output) != 0:
             raise error.general('shell cmd failed: ' + vcmd)
-        version = output.split('\n')[0].split(' ')
+        version = output.split('\n')[0].split(' ')[-1:][0]
         need = self.opts.expand(macro, self.defaults)
         if version < need:
-            _notice(self.opts, 'warning: ' + cmd + ' version is invalid, need ' + need + ' or higher')
+            _notice(self.opts, 'warning: ' + cmd + \
+                        ' version is invalid, need ' + need + ' or higher, found ' + version)
             return False
         return True
 
     def get_specs(self, path):
-        return self._get_file_list(path, 'rtems', 'spec')
+        return self._get_file_list(path, 'autotools', 'spec') + \
+            self._get_file_list(path, 'rtems', 'spec')
 
     def get_patches(self, path):
         return self._get_file_list(path, 'patches', 'diff')
@@ -127,7 +131,7 @@ class setup:
                 dst = os.path.join(path, d)
                 self.mkdir(dst)
             except os.error, oerr:
-                if oerr[0] != errno.EEXIST:
+                if oerr[0] != errno.EEXIST and oerr[0] != 183:
                     raise error.general('OS error: ' + str(oerr))
             if d == 'RPMLIB':
                 files = []
@@ -141,7 +145,7 @@ class setup:
             crossrpms = os.path.join(rtemssrc, 'contrib', 'crossrpms')
             if not os.path.isdir(crossrpms):
                 raise error.general('no crossrpms directory found under: ' + crossrpms)
-            if 'rebuild' in self.opts.opts:
+            if self.opts.rebuild():
                 if self.check_version('autoconf', '%{__setup_autoconf}'):
                     self.run('../../bootstrap -c', '-c', crossrpms)
                     self.run('../../bootstrap', '-c', crossrpms)
@@ -173,3 +177,5 @@ def run():
 
 if __name__ == "__main__":
     run()
+
+

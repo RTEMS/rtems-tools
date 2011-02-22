@@ -72,8 +72,8 @@ class crossgcc:
             raise error.general('coping tree: ' + what + ': ' + str(err))
 
     def first_package(self, _build):
-        path = os.path.join(_build.spec.abspath('%{_tmppath}'),
-                            _build.spec.expand('crossgcc-%(%{__id_u} -n)'))
+        what = _build.spec.expand('crossgcc-%(%{__id_u} -n)-' + _build.name())
+        path = os.path.join(_build.spec.abspath('%{_tmppath}'), what)
         _build.rmdir(path)
         _build.mkdir(path)
         prefix = os.path.join(_build.spec.expand('%{_prefix}'), 'bin')
