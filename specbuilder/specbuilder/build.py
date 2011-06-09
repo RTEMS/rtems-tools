@@ -84,9 +84,12 @@ class script:
                          stat.S_IROTH | stat.S_IXOTH)
         except IOError, err:
             raise error.general('creating script: ' + name)
-        finally:
+        except:
             if s is not None:
                 s.close()
+            raise
+        if s is not None:
+            s.close()
 
 class build:
     """Build a package given a spec file."""
@@ -132,7 +135,7 @@ class build:
                 for base in url_bases:
                     if base[-1:] != '/':
                         base += '/'
-                    url_path = urlparse.urlsplit(url).path
+                    url_path = urlparse.urlsplit(url)[2]
                     slash = url_path.rfind('/')
                     if slash < 0:
                         url_file = url_path
@@ -155,9 +158,12 @@ class build:
                         if os.path.exists(local):
                             os.remove(local)
                         failed = True
-                    finally:
+                    except:
                         if _out is not None:
                             _out.close()
+                        raise
+                    if _out is not None:
+                        _out.close()
                     if _in is not None:
                         del _in
                     if not failed:

@@ -75,6 +75,9 @@ export RPM_PACKAGE_NAME RPM_PACKAGE_VERSION RPM_PACKAGE_RELEASE
 %{?buildroot:RPM_BUILD_ROOT="%{buildroot}"}
 export RPM_BUILD_ROOT
 %{?_javaclasspath:CLASSPATH="%{_javaclasspath}"; export CLASSPATH}
+%{?_targetcflags:CFLAGS_FOR_TARGET="%{_targetcflags}"}
+%{?_targetcxxflags:CXXFLAGS_FOR_TARGET="%{_targetcxxflags}"}
+export CFLAGS_FOR_TARGET
 LANG=C
 export LANG
 unset DISPLAY || :
@@ -184,17 +187,20 @@ class command_line:
                   'no-smp'   : '0',
                   'rebuild'  : '0' }
 
-    _long_opts = { '--prefix'     : '_prefix',
-                   '--prefixbase' : '_prefixbase',
-                   '--topdir'     : '_topdir',
-                   '--specdir'    : '_specdir',
-                   '--builddir'   : '_builddir',
-                   '--sourcedir'  : '_sourcedir',
-                   '--usrlibrpm'  : '_usrlibrpm',
-                   '--tmppath'    : '_tmppath',
-                   '--log'        : '_logfile',
-                   '--url'        : '_url_base',
-                   '--rtems'      : '_rtemssrc' }
+    _long_opts = { '--prefix'         : '_prefix',
+                   '--prefixbase'     : '_prefixbase',
+                   '--topdir'         : '_topdir',
+                   '--specdir'        : '_specdir',
+                   '--builddir'       : '_builddir',
+                   '--sourcedir'      : '_sourcedir',
+                   '--usrlibrpm'      : '_usrlibrpm',
+                   '--tmppath'        : '_tmppath',
+                   '--log'            : '_logfile',
+                   '--url'            : '_url_base',
+                   '--rtems'          : '_rtemssrc',
+                   '--targetcflags'   : '_targetcflags',
+                   '--targetcxxflags' : '_targetcxxflags',
+                   '--libstdcxxflags' : '_libstdcxxflags' }
 
     _long_true_opts = { '--trace'    : '_trace',
                         '--dry-run'  : '_dry_run',

@@ -42,7 +42,7 @@ def load():
         for l in output.split('\n'):
             count = l.split(':')[1].strip()
             if count > cpus:
-                cpus = count
+                cpus = int(count)
         if cpus > 0:
             smp_mflags = '-j%d' % (cpus) 
     defines = { 
@@ -57,7 +57,7 @@ def load():
         '_var':                    '/usr/var',
         'optflags':                '-O2 -fasynchronous-unwind-tables',
         '_smp_mflags':             smp_mflags,
-        '__bzip2':                 '/bin/bzip2',
+        '__bzip2':                 '/usr/bin/bzip2',
         '__gzip':                  '/bin/gzip',
         '__tar':                   '/bin/tar'
         }

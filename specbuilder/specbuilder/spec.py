@@ -717,8 +717,10 @@ class file:
                 else:
                     self._error("invalid parse state: '" + r[0] + "'")
             self._directive_extend(dir, data)
-        finally:
+        except:
             spec.close()
+            raise
+        spec.close()
 
     def define(self, name):
         if name.lower() in self.defines:

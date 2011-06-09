@@ -86,7 +86,8 @@ class crossgcc:
 
     def every_package(self, _build, path):
         self.copy(_build.spec.abspath('%{buildroot}'), path)
-        _build.cleanup()
+        if not self.opts.no_clean():
+            _build.cleanup()
 
     def last_package(self, _build, path):
         tar = os.path.join('%{_rpmdir}', self.arch + '-tools.tar.bz2')
@@ -129,8 +130,10 @@ class crossgcc:
                 if s == len(arch_specs) - 1:
                     self.last_package(b, path)
                 del b
-        finally:
+        except:
             os.environ['PATH'] = current_path
+            raise
+        os.environ['PATH'] = current_path
 
 def run():
     import sys
