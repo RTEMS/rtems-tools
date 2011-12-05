@@ -144,7 +144,9 @@ class setup:
             rtemssrc = os.path.abspath(os.path.expanduser(self.opts.opts['rtems']))
             crossrpms = os.path.join(rtemssrc, 'contrib', 'crossrpms')
             if not os.path.isdir(crossrpms):
-                raise error.general('no crossrpms directory found under: ' + crossrpms)
+                crossrpms = os.path.join(rtemssrc)
+                if not os.path.isdir(crossrpms):
+                    raise error.general('no crossrpms directory found under: ' + crossrpms)
             if self.opts.rebuild():
                 if self.check_version('autoconf', '%{__setup_autoconf}'):
                     self.run('../../bootstrap -c', '-c', crossrpms)

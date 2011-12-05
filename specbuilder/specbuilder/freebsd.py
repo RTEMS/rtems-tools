@@ -49,7 +49,7 @@ def load():
         version = version.split('-')[0]
     defines = { 
         '_os':                     'freebsd',
-        '_host':                   cpu + '-freebsd' + uname[2],
+        '_host':                   cpu + '-freebsd' + version,
         '_host_vendor':            'freebsd',
         '_host_os':                'freebsd',
         '_host_cpu':               cpu,
@@ -57,9 +57,10 @@ def load():
         '_host_arch':              cpu,
         '_usr':                    '/usr/local',
         '_var':                    '/usr/local/var',
-        'optflags':                '-O2 -fasynchronous-unwind-tables',
+        'optflags':                '-O2',
         '_smp_mflags':             smp_mflags,
         '__xz':                    '/usr/bin/xz',
+        '__make':                  '/usr/bin/gmake',
         }
     return defines
 
