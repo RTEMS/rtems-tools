@@ -430,6 +430,9 @@ def load(args):
         if uname[0] == 'Darwin':
             import darwin
             overrides = darwin.load()
+        elif uname[0] == 'FreeBSD':
+            import freebsd
+            overrides = freebsd.load()
         elif uname[0] == 'Linux':
             import linux 
             overrides = linux.load()
@@ -461,6 +464,3 @@ if __name__ == '__main__':
         print ierr
         sys.exit(1)
     sys.exit(0)
-
-
-
