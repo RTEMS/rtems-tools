@@ -57,7 +57,7 @@ def load():
         '_host_arch':              cpu,
         '_usr':                    '/usr/local',
         '_var':                    '/usr/local/var',
-        'optflags':                '-O2',
+        'optflags':                '-O2 -I/usr/local/include -L/usr/local/lib',
         '_smp_mflags':             smp_mflags,
         '__xz':                    '/usr/bin/xz',
         '__make':                  'gmake',
