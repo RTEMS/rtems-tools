@@ -50,7 +50,7 @@ def load():
     defines = { 
         '_os':                     'freebsd',
         '_host':                   cpu + '-freebsd' + version,
-        '_host_vendor':            'freebsd',
+        '_host_vendor':            'pc',
         '_host_os':                'freebsd',
         '_host_cpu':               cpu,
         '_host_alias':             '%{nil}',
@@ -60,7 +60,7 @@ def load():
         'optflags':                '-O2',
         '_smp_mflags':             smp_mflags,
         '__xz':                    '/usr/bin/xz',
-        '__make':                  '/usr/bin/gmake',
+        '__make':                  'gmake',
         }
     return defines
 

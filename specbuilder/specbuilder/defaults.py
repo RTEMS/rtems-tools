@@ -82,6 +82,8 @@ LANG=C
 export LANG
 unset DISPLAY || :
 umask 022
+# hack around make not being a macro and hard code in spec files
+alias make=%{__make}
 cd "%{_builddir}"''',
 '___build_shell': '%{?_buildshell:%{_buildshell}}%{!?_buildshell:/bin/sh}',
 '___build_template': '''#!%{___build_shell}
@@ -117,7 +119,7 @@ cd "%{_builddir}"''',
 '__ld':                '/usr/bin/ld',
 '__ldconfig':          '/sbin/ldconfig',
 '__ln_s':              'ln -s',
-'__make':              '/usr/bin/make',
+'__make':              'make',
 '__mkdir':             '/bin/mkdir',
 '__mkdir_p':           '/bin/mkdir -p',
 '__mv':                '/bin/mv',
