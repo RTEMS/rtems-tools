@@ -1,0 +1,22 @@
+RTEMS Dynamic Loader Project
+============================
+Chris Johns <chrisj@rtems.org>
+
+RTEMS Linker
+------------
+
+This package contains the RTEMS linker used to create dynamically loadable
+applications.
+
+To build download and install waf (http://code.google.com/p/waf/). Then:
+
+ $ waf configure build
+
+You will have a linker.
+
+License
+-------
+
+The linker code is licensed under the ISC license. Currently some libiberty
+code is present in the libiberty directory which is GPL. In time this code will
+be removed.
