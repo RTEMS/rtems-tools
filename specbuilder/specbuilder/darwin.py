@@ -22,7 +22,7 @@
 #
 
 #
-# This code is based on what ever doco about spec files I could find and 
+# This code is based on what ever doco about spec files I could find and
 # RTEMS project's spec files.
 #
 
@@ -40,7 +40,7 @@ def load():
         smp_mflags = '-j' + output.split(' ')[1].strip()
     else:
         smp_mflags = ''
-    defines = { 
+    defines = {
         '_os':                     'darwin',
         '_host':                   uname[4] + '-apple-darwin' + uname[2],
         '_host_vendor':            'apple',
@@ -53,6 +53,9 @@ def load():
         'optflags':                '-O2 -fasynchronous-unwind-tables',
         '_smp_mflags':             smp_mflags,
         '__xz':                    '/usr/local/bin/xz',
+        # Work around the broken sed code on BSD sed
+        #'without_gcc_std':         'True',
+        'with_zlib':               '--with-zlib=no',
         }
     return defines
 
