@@ -1,8 +1,6 @@
 #
-# $Id$
-#
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2012 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -43,7 +41,7 @@ defaults = {
 '_arch':          '%{_host_arch}',
 '_topdir':        os.getcwd(),
 '_srcrpmdir':     '%{_topdir}/SRPMS',
-'_sourcedir':     '%{_topdir}/SOURCES', 
+'_sourcedir':     '%{_topdir}/SOURCES',
 '_specdir':       '%{_topdir}/SPECS',
 '_rpmdir':        '%{_topdir}/TARS',
 '_builddir':      '%{_topdir}/BUILD/%{name}-%{version}-%{release}',
@@ -155,9 +153,9 @@ cd "%{_builddir}"''',
 '_var':                '/usr/local/var',
 '_varrun':             '%{_var}/run',
 'configure': '''
-CFLAGS="${CFLAGS:-%optflags}" ; export CFLAGS ; 
-CXXFLAGS="${CXXFLAGS:-%optflags}" ; export CXXFLAGS ; 
-FFLAGS="${FFLAGS:-%optflags}" ; export FFLAGS ; 
+CFLAGS="${CFLAGS:-%optflags}" ; export CFLAGS ;
+CXXFLAGS="${CXXFLAGS:-%optflags}" ; export CXXFLAGS ;
+FFLAGS="${FFLAGS:-%optflags}" ; export FFLAGS ;
 ./configure --build=%{_build} --host=%{_host} \
       --target=%{_target_platform} \
       --program-prefix=%{?_program_prefix} \
@@ -294,7 +292,7 @@ class command_line:
                                     # make sure it is ok.
                                     #
                                     e = execute.capture_execution()
-                                    config_sub = os.path.join(self.command_path, 
+                                    config_sub = os.path.join(self.command_path,
                                                               'specbuilder', 'config.sub')
                                     exit_code, proc, output = e.shell(config_sub + ' ' + value)
                                     if exit_code == 0:
@@ -353,7 +351,7 @@ class command_line:
 
     def command(self):
         return os.path.join(self.command_path, self.command_name)
-        
+
     def dry_run(self):
         return self.opts['dry-run'] != '0'
 
@@ -361,7 +359,7 @@ class command_line:
         return self.opts['quiet'] != '0'
 
     def trace(self):
-        return self.opts['trace'] != '0' 
+        return self.opts['trace'] != '0'
 
     def warn_all(self):
         return self.opts['warn-all'] != '0'
@@ -436,7 +434,7 @@ def load(args):
             import freebsd
             overrides = freebsd.load()
         elif uname[0] == 'Linux':
-            import linux 
+            import linux
             overrides = linux.load()
     if overrides is None:
         raise error.general('no hosts defaults found; please add')

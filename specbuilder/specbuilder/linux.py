@@ -1,8 +1,6 @@
 #
-# $Id$
-#
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2012 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -22,7 +20,7 @@
 #
 
 #
-# This code is based on what ever doco about spec files I could find and 
+# This code is based on what ever doco about spec files I could find and
 # RTEMS project's spec files.
 #
 
@@ -44,8 +42,8 @@ def load():
             if count > cpus:
                 cpus = int(count)
         if cpus > 0:
-            smp_mflags = '-j%d' % (cpus) 
-    defines = { 
+            smp_mflags = '-j%d' % (cpus)
+    defines = {
         '_os':                     'linux',
         '_host':                   uname[4] + '-linux-gnu',
         '_host_vendor':            'gnu',

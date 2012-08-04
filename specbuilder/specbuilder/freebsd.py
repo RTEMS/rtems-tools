@@ -1,8 +1,6 @@
 #
-# $Id$
-#
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2012 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -22,7 +20,7 @@
 #
 
 #
-# This code is based on what ever doco about spec files I could find and 
+# This code is based on what ever doco about spec files I could find and
 # RTEMS project's spec files.
 #
 
@@ -47,7 +45,7 @@ def load():
     version = uname[2]
     if version.find('-') > 0:
         version = version.split('-')[0]
-    defines = { 
+    defines = {
         '_os':                     'freebsd',
         '_host':                   cpu + '-freebsd' + version,
         '_host_vendor':            'pc',

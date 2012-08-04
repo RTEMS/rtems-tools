@@ -1,8 +1,6 @@
 #
-# $Id$
-#
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2012 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -36,12 +34,12 @@ class general(error):
     """Raise for a general error."""
     def __init__(self, what):
         self.set_output('error: ' + what)
-    
+
 class internal(error):
     """Raise for an internal error."""
     def __init__(self, what):
         self.set_output('internal error: ' + what)
-    
+
 if __name__ == '__main__':
     try:
         raise general('a general error')

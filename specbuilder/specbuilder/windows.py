@@ -1,8 +1,6 @@
 #
-# $Id$
-#
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2012 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -45,7 +43,7 @@ def load():
     else:
         hosttype = 'i686'
     system = 'mingw32'
-    defines = { 
+    defines = {
         '_os':                     'win32',
         '_host':                   hosttype + '-pc-' + system,
         '_host_vendor':            'microsoft',

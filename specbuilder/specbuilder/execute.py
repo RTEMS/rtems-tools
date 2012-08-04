@@ -1,8 +1,6 @@
 #
-# $Id$
-#
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2012 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -64,7 +62,7 @@ def arg_list(args):
             argstr= ''
         else:
             # We have a quoted string. Get the string before
-            # the quoted string and spltt on white space then
+            # the quoted string and splt on white space then
             # add the quoted string as an option then remove
             # the first + quoted string and try again
             front = argstr[:qs.start()]
@@ -299,7 +297,7 @@ class capture_execution(execute):
             raise error.general('output capture must be true; leave as default')
         #self.snapper.get_and_clear()
         exit_code, proc = execute.open(self, command, capture = True, shell = shell,
-                                       cwd = cwd, env = env, 
+                                       cwd = cwd, env = env,
                                        stdin = stdin, stdout = stdout, stderr = stderr)
         return (exit_code, proc, self.snapper.get_and_clear())
 
@@ -328,10 +326,10 @@ if __name__ == "__main__":
             proc.stdin.close()
             e.capture(proc)
             del proc
-        
+
     cmd_shell_test = 'if "%OS%" == "Windows_NT" (echo It is WinNT) else echo Is is not WinNT'
     sh_shell_test = 'x="me"; if [ $x = "me" ]; then echo "It was me"; else "It was him"; fi'
-    
+
     commands = {}
     commands['windows'] = {}
     commands['unix'] = {}
@@ -348,12 +346,12 @@ if __name__ == "__main__":
     commands['unix']['csubsts'] = [('date %0 "+%d %D %S"', ['-u']),
                                    ('date %0 %1', ['-u', '+%d %D %S'])]
     commands['unix']['pipe'] = ('grep', 'hello', 'hello world')
-    
+
     print arg_list('cmd a1 a2 "a3 is a string" a4')
     print arg_list('cmd b1 b2 "b3 is a string a4')
     print arg_subst(['nothing', 'xx-%0-yyy', '%1', '%2-something'],
                     ['subst0', 'subst1', 'subst2'])
-    
+
     e = execute(error_prefix = 'ERR: ', verbose = True)
     if sys.platform == "win32":
         run_tests(e, commands['windows'], False)

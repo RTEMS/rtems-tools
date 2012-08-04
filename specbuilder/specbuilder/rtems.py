@@ -1,8 +1,6 @@
 #
-# $Id$
-#
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2012 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -28,7 +26,7 @@
 import pprint
 
 def load():
-    defines = { 
+    defines = {
         # Build readline with gdb.
         'without_system_readline': 'without_system_readline',
         # Work around a spec file issue.

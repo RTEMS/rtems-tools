@@ -1,8 +1,6 @@
 #
-# $Id$
-#
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2012 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-testing'.
@@ -94,7 +92,7 @@ class log:
         # Reformat the text to have local line types.
         out = ''
         for l in text.replace(chr(13), '').splitlines():
-            out += l + os.linesep 
+            out += l + os.linesep
         for f in range(0, len(self.fhs)):
             if self.fhs[f] is not None:
                 self.fhs[f].write(out)
@@ -104,7 +102,7 @@ class log:
         for f in range(0, len(self.fhs)):
             if self.fhs[f] is not None:
                 self.fhs[f].flush()
-        
+
 if __name__ == "__main__":
     l = log(['stdout', 'log.txt'])
     for i in range(0, 10):

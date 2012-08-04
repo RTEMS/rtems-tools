@@ -1,8 +1,6 @@
 #
-# $Id$
-#
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2012 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -184,7 +182,7 @@ class build:
         #
         # Get the file. Checks the local source directory first.
         #
-        source['local'] = os.path.join(self.spec.abspath('_sourcedir'), 
+        source['local'] = os.path.join(self.spec.abspath('_sourcedir'),
                                        source['file'])
         #
         # Is the file compressed ?
@@ -366,7 +364,7 @@ class build:
         for l in _clean:
             args = l.split()
             self.script.append(' '.join(args))
-        
+
     def cleanup(self):
         buildroot = self.spec.abspath('buildroot')
         builddir = self.spec.abspath('_builddir')
