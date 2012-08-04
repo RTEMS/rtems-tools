@@ -97,7 +97,7 @@ class setup:
 
     def check_version(self, cmd, macro):
         vcmd = cmd + ' --version'
-        vcmd = self.opts.expand('%{___setup_shell} -e ' + vcmd, self.defaults)        
+        vcmd = self.opts.expand('%{___setup_shell} -e ' + vcmd, self.defaults)
         e = execute.capture_execution()
         exit_code, proc, output = e.shell(vcmd)
         if exit_code != 0 and len(output) != 0:
@@ -141,12 +141,9 @@ class setup:
 
     def build_crossrpms(self, path):
         if 'rtems' in self.opts.opts:
-            rtemssrc = os.path.abspath(os.path.expanduser(self.opts.opts['rtems']))
-            crossrpms = os.path.join(rtemssrc, 'contrib', 'crossrpms')
+            crossrpms = os.path.abspath(os.path.expanduser(self.opts.opts['rtems']))
             if not os.path.isdir(crossrpms):
-                crossrpms = os.path.join(rtemssrc)
-                if not os.path.isdir(crossrpms):
-                    raise error.general('no crossrpms directory found under: ' + crossrpms)
+                raise error.general('no crossrpms directory found under: ' + crossrpms)
             if self.opts.rebuild():
                 if self.check_version('autoconf', '%{__setup_autoconf}'):
                     self.run('../../bootstrap -c', '-c', crossrpms)
@@ -154,7 +151,7 @@ class setup:
                     self.run('./configure', '-c', crossrpms)
             self._install_files(self.get_specs(crossrpms), os.path.join(path, 'SPECS'))
             self._install_files(self.get_patches(crossrpms), os.path.join(path, 'SOURCES'))
- 
+
 def run():
     import sys
     try:
