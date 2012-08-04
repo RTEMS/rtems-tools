@@ -22,7 +22,7 @@
 #
 
 #
-# This code is based on what ever doco about spec files I could find and 
+# This code is based on what ever doco about spec files I could find and
 # RTEMS project's spec files. It parses a spec file into Python data types
 # that can be used by other software modules.
 #
@@ -61,9 +61,9 @@ class package:
         s = '\npackage: ' + self._name + \
             '\n directives:\n' + _dictlist(self.directives) + \
             '\n infos:\n' + _dictlist(self.infos)
-        
+
         return s
-            
+
     def get_info(self, info):
         if not info in self.infos:
             raise error.general('no ' + info + ' in package "' + self.name + '"')
@@ -128,7 +128,7 @@ class package:
 
     def prep(self):
         return self.find_directive('%prep')
-        
+
     def build(self):
         return self.find_directive('%build')
 
@@ -137,7 +137,7 @@ class package:
 
     def clean(self):
         return self.find_directive('%clean')
-        
+
     def post(self):
         return self.find_directive('%post')
 
@@ -279,7 +279,7 @@ class file:
         if trace_me:
             print 'ms:', macros
         return macros
-                    
+
     def _shell(self, line):
         sl = self.sf.findall(line)
         if len(sl):
@@ -387,7 +387,7 @@ class file:
         else:
             d = self._label(ls[1])
             if d not in self.defines:
-                if len(ls) == 2: 
+                if len(ls) == 2:
                     self.defines[d] = '1'
                 else:
                     self.defines[d] = ls[2].strip()
@@ -426,7 +426,7 @@ class file:
                     text.extend(r[1])
 
     def _if(self, spec, ls, isvalid):
-        
+
         global debug
 
         def add(x, y):
@@ -502,7 +502,7 @@ class file:
             if debug:
                 print '_if:  ', ifls, istrue
         return self._ifs(spec, ls, '%if', istrue, isvalid)
-            
+
     def _ifos(self, spec, ls, isvalid):
         isos = False
         if isvalid:
@@ -599,7 +599,7 @@ class file:
                 elif ls[0] == '%bcond_with':
                     if isvalid:
                         #
-                        # Check is already defined. Would be by the command line or
+                        # Check if already defined. Would be by the command line or
                         # even a host specific default.
                         #
                         if self._label('with_' + ls[1]) not in self.defines:
@@ -628,7 +628,7 @@ class file:
             if self._packages[self.package].name() == _package:
                 return
         if _package not in self._packages:
-            self._packages[_package] = package(_package, 
+            self._packages[_package] = package(_package,
                                                self.define('%{_arch}'))
         self.package = _package
 
@@ -655,7 +655,7 @@ class file:
         self.conditionals = {}
         self._packages = {}
         self.package = 'main'
-        self._packages[self.package] = package(self.package, 
+        self._packages[self.package] = package(self.package,
                                                self.define('%{_arch}'))
         self.specpath = os.path.join(self.abspath('_specdir'), name)
         if not os.path.exists(self.specpath):
