@@ -144,9 +144,9 @@ sub process_file {
 
     # here are examples of VERSION lines from the perl distribution
 
-    #FindBin.pm:$VERSION = $VERSION = sprintf("%d.%02d", q$Revision$ =~ /(\d+)\.(\d+)/);
-    #ExtUtils/Install.pm:$VERSION = substr q$Revision$, 10;
-    #CGI/Apache.pm:$VERSION = (qw$Revision$)[1];
+    #FindBin.pm:$VERSION = $VERSION = sprintf("%d.%02d", q$Revision: 1.1 $ =~ /(\d+)\.(\d+)/);
+    #ExtUtils/Install.pm:$VERSION = substr q$Revision: 1.1 $, 10;
+    #CGI/Apache.pm:$VERSION = (qw$Revision: 1.1 $)[1];
     #DynaLoader.pm:$VERSION = $VERSION = "1.03";     # avoid typo warning
     #General.pm:$Config::General::VERSION = 2.33;
     # 
