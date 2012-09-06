@@ -1,3 +1,8 @@
+2012-09-06	Chris Johns <chrisj@rtems.org>
+
+	* Discontinued.
+	Refer to the git logs.
+
 2011-06-09	Chris Johns <chrisj@rtems.org>
 
 	* specbuilder/specbuilder/build.py,
@@ -15,23 +20,23 @@
 
 	* specbuilder/specbuilder/build.py: Add xz support. Add a function
 	to return the name of a package.
-	
+
 	* specbuilder/specbuilder/crossgcc.py: Use the build name in the
 	tmp path.
-	
+
 	* specbuilder/specbuilder/darwin.py: Add xz support.
-	
+
 	* specbuilder/specbuilder/defaults.py: Add xz support. Add Windows
 	and Linux support.
-	
+
 	* specbuilder/specbuilder/setup.py: Reference the correct shell
 	opts. Use the shell setup in the version probe command. Fix the
 	version check. Add autotools to the list of spec files to
 	install.
-	
+
 	* specbuilder/specbuilder/spec.py: Add changelog and configure
 	tests. Manage sub-packages better.
-	
+
 	* specbuilder/specbuilder/version.py,
 	specbuilder/specbuilder/windows.py: New.
 
@@ -49,7 +54,7 @@
 	* specbuilder/specbuilder/defaults.py: Add default configure
 	macro. Add --dry-run to the parsed arguments. Fix the case when
 	run on a new host that does not have default support.
-	
+
 2010-08-13	Chris Johns <chrisj@rtems.org>
 
 	* specbuilder/specbuilder/defaults.py: Provide a default shell.
