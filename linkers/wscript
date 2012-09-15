@@ -27,8 +27,8 @@ def options(opt):
                    help = 'Print the commands as strings.')
 
 def configure(conf):
-    conf.check_tool("g++")
-    conf.check_tool("gcc")
+    conf.load("g++")
+    conf.load("gcc")
     conf_libiberty(conf)
     conf_libelf(conf)
 
@@ -68,7 +68,7 @@ def build(bld):
     #
     # Create each of the modules as object files each with their own
     # configurations.
-    # 
+    #
     libelf = bld_libelf(bld)
     libiberty = bld_libiberty(bld)
 
@@ -132,7 +132,7 @@ def bld_libelf(bld):
             rule   = './${SRC} > ${TGT}')
     elif sys.platform == 'win32':
         host_source += [libelf + 'mmap_win32.c']
-    
+
     bld.stlib(target = 'elf',
               features = 'c',
               uses = ['native-elf-format'],
@@ -212,7 +212,7 @@ def conf_libiberty(conf):
     conf.check(header_name='unistd.h',    features = 'c', mandatory = False)
     conf.check(header_name='vfork.h',     features = 'c', mandatory = False)
 
-    conf.check_cc(function_name='getrusage', 
+    conf.check_cc(function_name='getrusage',
                   header_name="sys/time.h sys/resource.h",
                   features = 'c', mandatory = False)
 
