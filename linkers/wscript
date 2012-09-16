@@ -98,6 +98,13 @@ def build(bld):
                 linkflags = bld.linkflags,
                 use = modules)
 
+def rebuild(ctx):
+    import waflib.Options
+    waflib.Options.commands.extend(['clean', 'build'])
+
+def tags(ctx):
+    ctx.exec_command('etags $(find . -name \*.[sSch])', shell = True)
+
 #
 # Libelf module.
 #
