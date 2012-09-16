@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2011, Chris Johns <chrisj@rtems.org> 
+ * Copyright (c) 2011, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -82,9 +82,31 @@ split_on_equals (const std::string& opt, std::string& left, std::string& right)
 void
 usage (int exit_code)
 {
-  std::cerr << "rtems-ld [-hvVdMwnS] [-e exec-prefix] [-a arch] [-c cpu] [-e entry] "
-            << "[-d define] [-u undefined] [-L path] [-l libraries] [-o output] [-b base] objects"
-            << std::endl;
+  std::cout << "rtems-ld [options] objects" << std::endl
+            << "Options and arguments:" << std::endl
+            << " -h        : help (also --help)" << std::endl
+            << " -V        : print linker version number and exit (also --version)" << std::endl
+            << " -v        : verbose (trace import parts), can be supply multiple times" << std::endl
+            << "             to increase verbosity (also --verbose)" << std::endl
+            << " -w        : generate warnings (also --warn)" << std::endl
+            << " -M        : generate map output (also --map)" << std::endl
+            << " -o file   : linker output is written to file (also --output)" << std::endl
+            << " -L path   : path to a library, add multiple for more than" << std::endl
+            << "             one path (also --lib-path)" << std::endl
+            << " -l lib    : add lib to the libraries searched, add multiple" << std::endl
+            << "             for more than one library (also --lib)" << std::endl
+            << " -n        : do not search standard libraries (also --no-stdlibs)" << std::endl
+            << " -E prefix : the RTEMS tool prefix (also --exec-prefix)" << std::endl
+            << " -a march  : machine architecture (also --march)" << std::endl
+            << " -c cpu    : machine architecture's CPU (also --mcpu)" << std::endl
+            << " -e entry  : entry point symbol (also --entry)" << std::endl
+            << " -d sym    : add the symbol definition, add multiple with" << std::endl
+            << "             more than one define (also --define)" << std::endl
+            << " -u sym    : add the undefined symbol definition, add multiple" << std::endl
+            << "             for more than one undefined symbol (also --undefined)" << std::endl
+            << " -b elf    : read the ELF file symbols as the base RTEMS kernel" << std::endl
+            << "             image (also --base)" << std::endl
+            << " -S script : linker output is a script file (also --script)" << std::endl;
   ::exit (exit_code);
 }
 
@@ -95,9 +117,9 @@ fatal_signal (int signum)
 
   rld::process::temporaries.clean_up ();
 
-  /* 
+  /*
    * Get the same signal again, this time not handled, so its normal effect
-   * occurs.  
+   * occurs.
    */
   kill (getpid (), signum);
 }
@@ -156,19 +178,19 @@ main (int argc, char* argv[])
       int opt = ::getopt_long (argc, argv, "hvwVMnSb:E:o:L:l:a:c:e:d:u:", rld_opts, NULL);
       if (opt < 0)
         break;
-    
+
       switch (opt)
       {
         case 'V':
-          std::cout << "rtems-ld (RTEMS Linker) " << rld::version () 
+          std::cout << "rtems-ld (RTEMS Linker) " << rld::version ()
                     << std::endl;
           ::exit (0);
           break;
-        
+
         case 'v':
           rld::verbose_inc ();
           break;
-        
+
         case 'M':
           map = true;
           break;
@@ -262,7 +284,7 @@ main (int argc, char* argv[])
      */
     while (argc--)
       objects.push_back (*argv++);
-    
+
     /*
      * Add the object files to the cache.
      */
@@ -361,7 +383,7 @@ main (int argc, char* argv[])
     ec = 10;
   }
   catch (std::exception e)
-  { 
+  {
     int   status;
     char* realname;
     realname = abi::__cxa_demangle (e.what(), 0, 0, &status);
@@ -374,7 +396,7 @@ main (int argc, char* argv[])
     ec = 11;
   }
   catch (...)
-  { 
+  {
     /*
      * Helps to know if this happens.
      */
