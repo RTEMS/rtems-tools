@@ -85,7 +85,7 @@ def build(bld):
                           'pkgconfig.cpp',
                           'rld-elf.cpp',
                           'rld-files.cpp',
-                          'rld-gcc.cpp',
+                          'rld-cc.cpp',
                           'rld-outputter.cpp',
                           'rld-process.cpp',
                           'rld-resolver.cpp',

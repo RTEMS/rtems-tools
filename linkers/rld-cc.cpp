@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2011, Chris Johns <chrisj@rtems.org> 
+ * Copyright (c) 2011-2012, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -19,13 +19,14 @@
 #include <fstream>
 
 #include <rld.h>
-#include <rld-gcc.h>
+#include <rld-cc.h>
 #include <rld-process.h>
 
 namespace rld
 {
-  namespace gcc
+  namespace cc
   {
+    std::string cc;
     std::string exec_prefix;
     std::string march;
     std::string mcpu;
@@ -43,10 +44,18 @@ namespace rld
     static void
     make_cc_command (rld::process::arg_container& args)
     {
-      std::string cmd = "gcc";
-      if (!exec_prefix.empty ())
-        cmd = exec_prefix + "-rtems" + rld::rtems_version () + '-' + cmd;
-      args.push_back (cmd);
+      /*
+       * Use the absolute path to CC is provided.
+       */
+      if (!cc.empty ())
+        args.push_back (cc);
+      else
+      {
+        std::string cmd = "gcc";
+        if (!exec_prefix.empty ())
+          cmd = exec_prefix + "-rtems" + rld::rtems_version () + '-' + cmd;
+        args.push_back (cmd);
+      }
       if (!march.empty ())
         args.push_back ("-march=" + march);
       if (!mcpu.empty ())
@@ -74,7 +83,7 @@ namespace rld
 
       make_cc_command (args);
       args.push_back ("-print-search-dirs");
-      
+
       rld::process::tempfile out;
       rld::process::tempfile err;
       rld::process::status   status;
@@ -103,9 +112,9 @@ namespace rld
         out.close ();
         if (rld::verbose () >= RLD_VERBOSE_DETAILS)
         {
-          std::cout << "gcc::install: " << install_path << std::endl
-                    << "gcc::programs: " << programs_path << std::endl
-                    << "gcc::libraries: " << libraries_path << std::endl;
+          std::cout << "cc::install: " << install_path << std::endl
+                    << "cc::programs: " << programs_path << std::endl
+                    << "cc::libraries: " << libraries_path << std::endl;
         }
       }
       else
@@ -121,7 +130,7 @@ namespace rld
 
       make_cc_command (args);
       args.push_back ("-print-file-name=" + name);
-      
+
       rld::process::tempfile out;
       rld::process::tempfile err;
       rld::process::status   status;
@@ -132,16 +141,16 @@ namespace rld
           (status.code == 0))
       {
         if (rld::verbose () >= RLD_VERBOSE_DETAILS)
-          out.output ("gcc", std::cout, true);
+          out.output ("cc", std::cout, true);
         out.open ();
         out.get (path);
         out.close ();
         if (rld::verbose () >= RLD_VERBOSE_DETAILS)
-          std::cout << "gcc::libpath: " << name << " -> " << path << std::endl;
+          std::cout << "cc::libpath: " << name << " -> " << path << std::endl;
       }
       else
       {
-        err.output ("gcc", std::cout);
+        err.output ("cc", std::cout);
       }
     }
 
@@ -153,7 +162,7 @@ namespace rld
     }
 
     void
-    get_standard_libs (rld::files::paths& libs, 
+    get_standard_libs (rld::files::paths& libs,
                        rld::files::paths& libpaths,
                        bool               cplusplus)
     {
@@ -168,7 +177,7 @@ namespace rld
            ++lni)
       {
         if (rld::verbose () >= RLD_VERBOSE_INFO)
-          std::cout << "gcc::stdlib: " << *lni << std::endl;
+          std::cout << "cc::stdlib: " << *lni << std::endl;
 
         std::string path;
 

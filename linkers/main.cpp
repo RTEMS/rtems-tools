@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Chris Johns <chrisj@rtems.org>
+ * Copyright (c) 2011-2012, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -37,7 +37,7 @@
 #include <getopt.h>
 
 #include <rld.h>
-#include <rld-gcc.h>
+#include <rld-cc.h>
 #include <rld-outputter.h>
 #include <rld-process.h>
 #include <rld-resolver.h>
@@ -47,7 +47,7 @@
 #endif
 
 /**
- * RTEMS Linker options. This needs to be rewritten to be like gcc where only a
+ * RTEMS Linker options. This needs to be rewritten to be like cc where only a
  * single '-' and long options is present.
  */
 static struct option rld_opts[] = {
@@ -57,17 +57,18 @@ static struct option rld_opts[] = {
   { "warn",        no_argument,            NULL,           'w' },
   { "map",         no_argument,            NULL,           'M' },
   { "output",      required_argument,      NULL,           'o' },
+  { "script",      no_argument,            NULL,           'S' },
   { "lib-path",    required_argument,      NULL,           'L' },
   { "lib",         required_argument,      NULL,           'l' },
   { "no-stdlibs",  no_argument,            NULL,           'n' },
-  { "exec-prefix", required_argument,      NULL,           'E' },
-  { "march",       required_argument,      NULL,           'a' },
-  { "mcpu",        required_argument,      NULL,           'c' },
   { "entry",       required_argument,      NULL,           'e' },
   { "define",      required_argument,      NULL,           'd' },
   { "undefined",   required_argument,      NULL,           'u' },
   { "base",        required_argument,      NULL,           'b' },
-  { "script",      no_argument,            NULL,           'S' },
+  { "cc",          required_argument,      NULL,           'C' },
+  { "exec-prefix", required_argument,      NULL,           'E' },
+  { "march",       required_argument,      NULL,           'a' },
+  { "mcpu",        required_argument,      NULL,           'c' },
   { NULL,          0,                      NULL,            0 }
 };
 
@@ -91,14 +92,12 @@ usage (int exit_code)
             << " -w        : generate warnings (also --warn)" << std::endl
             << " -M        : generate map output (also --map)" << std::endl
             << " -o file   : linker output is written to file (also --output)" << std::endl
+            << " -S script : linker output is a script file (also --script)" << std::endl
             << " -L path   : path to a library, add multiple for more than" << std::endl
             << "             one path (also --lib-path)" << std::endl
             << " -l lib    : add lib to the libraries searched, add multiple" << std::endl
             << "             for more than one library (also --lib)" << std::endl
             << " -n        : do not search standard libraries (also --no-stdlibs)" << std::endl
-            << " -E prefix : the RTEMS tool prefix (also --exec-prefix)" << std::endl
-            << " -a march  : machine architecture (also --march)" << std::endl
-            << " -c cpu    : machine architecture's CPU (also --mcpu)" << std::endl
             << " -e entry  : entry point symbol (also --entry)" << std::endl
             << " -d sym    : add the symbol definition, add multiple with" << std::endl
             << "             more than one define (also --define)" << std::endl
@@ -106,7 +105,10 @@ usage (int exit_code)
             << "             for more than one undefined symbol (also --undefined)" << std::endl
             << " -b elf    : read the ELF file symbols as the base RTEMS kernel" << std::endl
             << "             image (also --base)" << std::endl
-            << " -S script : linker output is a script file (also --script)" << std::endl;
+            << " -C file   : execute file as the target C compiler (also --cc)" << std::endl
+            << " -E prefix : the RTEMS tool prefix (also --exec-prefix)" << std::endl
+            << " -a march  : machine architecture (also --march)" << std::endl
+            << " -c cpu    : machine architecture's CPU (also --mcpu)" << std::endl;
   ::exit (exit_code);
 }
 
@@ -165,6 +167,7 @@ main (int argc, char* argv[])
     std::string         entry;
     std::string         output = "a.out";
     std::string         base_name;
+    std::string         cc_name;
     bool                script = false;
     bool                standard_libs = true;
     bool                exec_prefix_set = false;
@@ -175,7 +178,7 @@ main (int argc, char* argv[])
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvwVMnSb:E:o:L:l:a:c:e:d:u:", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvwVMnSb:E:o:L:l:a:c:e:d:u:C:", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -227,17 +230,23 @@ main (int argc, char* argv[])
           standard_libs = false;
           break;
 
+        case 'C':
+          if (exec_prefix_set == true)
+            std::cerr << "warning: exec-prefix ignored when CC provided" << std::endl;
+          rld::cc::cc = optarg;
+          break;
+
         case 'E':
           exec_prefix_set = true;
-          rld::gcc::exec_prefix = optarg;
+          rld::cc::exec_prefix = optarg;
           break;
 
         case 'a':
-          rld::gcc::march = optarg;
+          rld::cc::march = optarg;
           break;
 
         case 'c':
-          rld::gcc::mcpu = optarg;
+          rld::cc::mcpu = optarg;
           break;
 
         case 'e':
@@ -296,12 +305,13 @@ main (int argc, char* argv[])
     cache.open ();
 
     /*
-     * If the exec-prefix is not set by the command line see if it can be
-     * detected from the object file types. This must be after we have added
-     * the object files.
+     * If the full path to CC is not provided and the exec-prefix is not set by
+     * the command line see if it can be detected from the object file
+     * types. This must be after we have added the object files because they
+     * are used when detecting.
      */
-    if (!exec_prefix_set)
-      rld::gcc::exec_prefix = rld::elf::machine_type ();
+    if (rld::cc::cc.empty () && !exec_prefix_set)
+      rld::cc::exec_prefix = rld::elf::machine_type ();
 
     /*
      * If we have a base image add it.
@@ -316,7 +326,7 @@ main (int argc, char* argv[])
     /*
      * Get the standard library paths
      */
-    rld::gcc::get_standard_libpaths (libpaths);
+    rld::cc::get_standard_libpaths (libpaths);
 
     /*
      * Get the command line libraries.
@@ -327,7 +337,7 @@ main (int argc, char* argv[])
      * Are we to load standard libraries ?
      */
     if (standard_libs)
-      rld::gcc::get_standard_libs (libraries, libpaths);
+      rld::cc::get_standard_libs (libraries, libpaths);
 
     /*
      * Load the library to the cache.
