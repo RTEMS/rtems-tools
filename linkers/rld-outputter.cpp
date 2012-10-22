@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2011, Chris Johns <chrisj@rtems.org> 
+ * Copyright (c) 2011, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -40,7 +40,7 @@ namespace rld
   {
     void
     archive (const std::string&       name,
-             rld::files::object_list& dependents, 
+             rld::files::object_list& dependents,
              rld::files::cache&       cache)
     {
       if (rld::verbose () >= RLD_VERBOSE_INFO)
@@ -60,13 +60,13 @@ namespace rld
 
     void
     script (const std::string&       name,
-            rld::files::object_list& dependents, 
+            rld::files::object_list& dependents,
             rld::files::cache&       cache)
     {
       if (rld::verbose () >= RLD_VERBOSE_INFO)
         std::cout << "outputter:script: " << name << std::endl;
 
-      std::fstream out (name.c_str (), 
+      std::fstream out (name.c_str (),
                         std::ios_base::out | std::ios_base::trunc);
 
       /*
@@ -82,6 +82,10 @@ namespace rld
            ++oi)
       {
         rld::files::object& obj = *(*oi);
+
+        if (rld::verbose () >= RLD_VERBOSE_INFO)
+          std::cout << " o: " << obj.name ().full () << std::endl;
+
         out << "o:" << obj.name ().basename () << std::endl;
       }
 
@@ -91,9 +95,12 @@ namespace rld
       {
         rld::files::object&  obj = *(*oi);
         rld::symbols::table& unresolved = obj.unresolved_symbols ();
-        
+
+        if (rld::verbose () >= RLD_VERBOSE_INFO)
+          std::cout << " d: " << obj.name ().full () << std::endl;
+
         out << "o:" << obj.name ().basename () << std::endl;
-        
+
         int count = 0;
         for (rld::symbols::table::iterator ursi = unresolved.begin ();
              ursi != unresolved.begin ();
