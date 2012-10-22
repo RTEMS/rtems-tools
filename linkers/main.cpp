@@ -92,7 +92,7 @@ usage (int exit_code)
             << " -w        : generate warnings (also --warn)" << std::endl
             << " -M        : generate map output (also --map)" << std::endl
             << " -o file   : linker output is written to file (also --output)" << std::endl
-            << " -S script : linker output is a script file (also --script)" << std::endl
+            << " -S        : linker output is a script file (also --script)" << std::endl
             << " -L path   : path to a library, add multiple for more than" << std::endl
             << "             one path (also --lib-path)" << std::endl
             << " -l lib    : add lib to the libraries searched, add multiple" << std::endl
@@ -203,8 +203,8 @@ main (int argc, char* argv[])
           break;
 
         case 'o':
-          if (output.size () != 0)
-            std::cerr << "error: output already set" << std::endl;
+          if (output != "a.out")
+            std::cerr << "warning: output already set" << std::endl;
           output = optarg;
           break;
 
