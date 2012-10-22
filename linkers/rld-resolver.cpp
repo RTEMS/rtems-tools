@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2011, Chris Johns <chrisj@rtems.org> 
+ * Copyright (c) 2011, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -40,9 +40,9 @@ namespace rld
   {
     static void
     resolve (rld::files::object_list& dependents,
-             rld::files::cache&       cache, 
-             rld::symbols::table&     base_symbols, 
-             rld::symbols::table&     symbols, 
+             rld::files::cache&       cache,
+             rld::symbols::table&     base_symbols,
+             rld::symbols::table&     symbols,
              rld::files::object&      object)
     {
       static int nesting = 0;
@@ -83,7 +83,7 @@ namespace rld
         {
           esi = symbols.find (urs.name ());
           if (esi == symbols.end ())
-            throw rld::error ("symbol referenced in '" + object.name ().basename () + 
+            throw rld::error ("symbol referenced in '" + object.name ().basename () +
                               "' not found: " + urs.name (), "resolving");
           base = false;
         }
@@ -94,7 +94,7 @@ namespace rld
         {
           std::cout << "resolver:resolved : "
                     << std::setw (nesting + 1) << ' '
-                    << urs.name () 
+                    << urs.name ()
                     << " -> ";
           if (es.object())
             std::cout << es.object()->name ().basename ();
@@ -122,7 +122,7 @@ namespace rld
            oli != objects.end ();
            ++oli)
         resolve (dependents, cache, base_symbols, symbols, *(*oli));
-      
+
       --nesting;
 
       dependents.merge (objects);
@@ -130,22 +130,22 @@ namespace rld
     }
 
     void
-    resolve (rld::files::object_list& dependents, 
-             rld::files::cache&       cache, 
+    resolve (rld::files::object_list& dependents,
+             rld::files::cache&       cache,
              rld::symbols::table&     base_symbols,
              rld::symbols::table&     symbols,
              rld::symbols::table&     undefined)
     {
       rld::files::object_list objects;
       cache.get_objects (objects);
-        
+
       for (rld::files::object_list::iterator oi = objects.begin ();
            oi != objects.end ();
            ++oi)
       {
         rld::files::object& object = *(*oi);
-        if (rld::verbose ())
-          std::cout << "resolver:resolving: top: " 
+        if (rld::verbose () >= RLD_VERBOSE_INFO)
+          std::cout << "resolver:resolving: top: "
                     << object.name ().basename () << std::endl;
         resolve (dependents, cache, base_symbols, symbols, object);
       }
