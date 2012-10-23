@@ -38,6 +38,50 @@ namespace rld
 {
   namespace outputter
   {
+    const std::string
+    script_text (rld::files::object_list& dependents,
+                 rld::files::cache&       cache)
+    {
+      std::ostringstream      out;
+      rld::files::object_list objects;
+
+      cache.get_objects (objects);
+
+      objects.merge (dependents);
+      objects.unique ();
+
+      for (rld::files::object_list::iterator oi = objects.begin ();
+           oi != objects.end ();
+           ++oi)
+      {
+        rld::files::object& obj = *(*oi);
+
+        if (rld::verbose () >= RLD_VERBOSE_INFO)
+          std::cout << " o: " << obj.name ().full () << std::endl;
+
+        out << "o:" << obj.name ().basename () << std::endl;
+
+        rld::symbols::table& unresolved = obj.unresolved_symbols ();
+
+        int count = 0;
+        for (rld::symbols::table::iterator ursi = unresolved.begin ();
+             ursi != unresolved.begin ();
+             ++ursi)
+        {
+          rld::symbols::symbol& urs = (*ursi).second;
+
+          ++count;
+
+          if (rld::verbose () >= RLD_VERBOSE_INFO)
+            std::cout << " u: " << count << ':' << urs.name () << std::endl;
+
+          out << " u:" << count << ':' << urs.name () << std::endl;
+        }
+      }
+
+      return out.str ();
+    }
+
     void
     archive (const std::string&       name,
              rld::files::object_list& dependents,
@@ -74,6 +118,18 @@ namespace rld
        */
       out << "!# rls" << std::endl;
 
+      try
+      {
+        out << script_text (dependents, cache);
+      }
+      catch (...)
+      {
+        out.close ();
+      }
+
+      out.close ();
+
+#if 0
       rld::files::object_list objects;
       cache.get_objects (objects);
 
@@ -99,7 +155,7 @@ namespace rld
         if (rld::verbose () >= RLD_VERBOSE_INFO)
           std::cout << " d: " << obj.name ().full () << std::endl;
 
-        out << "o:" << obj.name ().basename () << std::endl;
+        out << "d:" << obj.name ().basename () << std::endl;
 
         int count = 0;
         for (rld::symbols::table::iterator ursi = unresolved.begin ();
@@ -108,9 +164,10 @@ namespace rld
         {
           ++count;
           rld::symbols::symbol& urs = (*ursi).second;
-          out << " d:" << count << ':' << urs.name () << std::endl;
+          out << " u:" << count << ':' << urs.name () << std::endl;
         }
       }
+#endif
     }
   }
 }
