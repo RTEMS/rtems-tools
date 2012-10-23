@@ -69,13 +69,14 @@ def build(bld):
     # Create each of the modules as object files each with their own
     # configurations.
     #
-    libelf = bld_libelf(bld)
-    libiberty = bld_libiberty(bld)
+    bld_fastlz(bld)
+    bld_libelf(bld)
+    bld_libiberty(bld)
 
     #
     # The list of modules.
     #
-    modules = ['elf', 'iberty']
+    modules = ['fastlz', 'elf', 'iberty']
 
     #
     # Build the linker.
@@ -110,6 +111,13 @@ def tags(ctx):
 #
 def conf_libelf(conf):
     pass
+
+def bld_fastlz(bld):
+    bld(target = 'fastlz',
+        features = 'c',
+        source = 'fastlz.c',
+        cflags = bld.cflags,
+        defines = ['FASTLZ_LEVEL=1'])
 
 def bld_libelf(bld):
     libelf = 'elftoolchain/libelf/'
