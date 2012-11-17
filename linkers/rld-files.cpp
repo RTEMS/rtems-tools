@@ -546,26 +546,31 @@ namespace rld
 
     archive::~archive ()
     {
+      end ();
       close ();
     }
 
     void
     archive::begin ()
     {
-      elf ().begin (name ().full (), fd ());
+      if (references () == 1)
+      {
+        elf ().begin (name ().full (), fd ());
 
-      /*
-       * Make sure it is an archive.
-       */
-      if (!elf ().is_archive ())
-        throw rld::error ("Not an archive.",
-                          "archive-begin:" + name ().full ());
+        /*
+         * Make sure it is an archive.
+         */
+        if (!elf ().is_archive ())
+          throw rld::error ("Not an archive.",
+                            "archive-begin:" + name ().full ());
+      }
     }
 
     void
     archive::end ()
     {
-      elf ().end ();
+      if (references () == 1)
+        elf ().end ();
     }
 
     bool
@@ -875,9 +880,6 @@ namespace rld
     void
     object::open ()
     {
-      if (rld::verbose () >= RLD_VERBOSE_TRACE)
-        std::cout << "object::open: " << name ().full () << std::endl;
-
       if (archive_)
         archive_->open ();
       else
@@ -887,13 +889,16 @@ namespace rld
     void
     object::close ()
     {
-      if (rld::verbose () >= RLD_VERBOSE_TRACE)
-        std::cout << "object::close: " << name ().full () << std::endl;
-
       if (archive_)
+      {
+        archive_->end ();
         archive_->close ();
+      }
       else
+      {
+        end ();
         image::close ();
+      }
     }
 
     void
@@ -1215,17 +1220,36 @@ namespace rld
     void
     cache::load_symbols (rld::symbols::table& symbols, bool local)
     {
-      for (objects::iterator oi = objects_.begin ();
-           oi != objects_.end ();
-           ++oi)
+      if (rld::verbose () >= RLD_VERBOSE_INFO)
+        std::cout << "cache:load-sym: object files: " << objects_.size ()
+                  << std::endl;
+
+      try
       {
-        object* obj = (*oi).second;
-        obj->open ();
-        obj->begin ();
-        obj->load_symbols (symbols, local);
-        obj->end ();
-        obj->close ();
+        archives_begin ();
+        for (objects::iterator oi = objects_.begin ();
+             oi != objects_.end ();
+             ++oi)
+        {
+          object* obj = (*oi).second;
+          obj->open ();
+          obj->begin ();
+          obj->load_symbols (symbols, local);
+          obj->end ();
+          obj->close ();
+        }
       }
+      catch (...)
+      {
+        archives_end ();
+        throw;
+      }
+
+      archives_end ();
+
+      if (rld::verbose () >= RLD_VERBOSE_INFO)
+        std::cout << "cache:load-sym: symbols: " << symbols.size ()
+                  << std::endl;
     }
 
     void
