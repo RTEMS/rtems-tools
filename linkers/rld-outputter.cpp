@@ -68,7 +68,7 @@ namespace rld
              ursi != unresolved.begin ();
              ++ursi)
         {
-          rld::symbols::symbol& urs = (*ursi).second;
+          rld::symbols::symbol& urs = *((*ursi).second);
 
           ++count;
 
@@ -97,6 +97,8 @@ namespace rld
            oi != dependents.end ();
            ++oi)
         objects.push_back (*oi);
+
+      objects.unique ();
 
       rld::files::archive arch (name);
       arch.create (objects);
@@ -128,46 +130,6 @@ namespace rld
       }
 
       out.close ();
-
-#if 0
-      rld::files::object_list objects;
-      cache.get_objects (objects);
-
-      for (rld::files::object_list::iterator oi = objects.begin ();
-           oi != objects.end ();
-           ++oi)
-      {
-        rld::files::object& obj = *(*oi);
-
-        if (rld::verbose () >= RLD_VERBOSE_INFO)
-          std::cout << " o: " << obj.name ().full () << std::endl;
-
-        out << "o:" << obj.name ().basename () << std::endl;
-      }
-
-      for (rld::files::object_list::iterator oi = dependents.begin ();
-           oi != dependents.end ();
-           ++oi)
-      {
-        rld::files::object&  obj = *(*oi);
-        rld::symbols::table& unresolved = obj.unresolved_symbols ();
-
-        if (rld::verbose () >= RLD_VERBOSE_INFO)
-          std::cout << " d: " << obj.name ().full () << std::endl;
-
-        out << "d:" << obj.name ().basename () << std::endl;
-
-        int count = 0;
-        for (rld::symbols::table::iterator ursi = unresolved.begin ();
-             ursi != unresolved.begin ();
-             ++ursi)
-        {
-          ++count;
-          rld::symbols::symbol& urs = (*ursi).second;
-          out << " u:" << count << ':' << urs.name () << std::endl;
-        }
-      }
-#endif
     }
   }
 }

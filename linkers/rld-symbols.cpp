@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2011, Chris Johns <chrisj@rtems.org> 
+ * Copyright (c) 2011, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -57,7 +57,7 @@ namespace rld
     }
 
     symbol::symbol (const std::string&  name,
-                    rld::files::object& object,
+                    files::object&      object,
                     const elf::elf_sym& esym)
       : name_ (name),
         object_ (&object),
@@ -104,13 +104,13 @@ namespace rld
       esym_.st_value = value;
     }
 
-    const std::string& 
+    const std::string&
     symbol::name () const
     {
       return name_;
     }
 
-    const std::string& 
+    const std::string&
     symbol::demangled () const
     {
       return demangled_;
@@ -122,25 +122,43 @@ namespace rld
       return (name_[0] == '_') && (name_[1] == 'Z');
     }
 
+    int
+    symbol::type () const
+    {
+      return GELF_ST_TYPE (esym_.st_info);
+    }
+
+    int
+    symbol::binding () const
+    {
+      return GELF_ST_BIND (esym_.st_info);
+    }
+
+    int
+    symbol::index () const
+    {
+      return esym_.st_shndx;
+    }
+
     rld::files::object*
     symbol::object () const
     {
       return object_;
     }
-    
+
     void
     symbol::set_object (rld::files::object& obj)
     {
       object_ = &obj;
     }
 
-    const elf::elf_sym& 
+    const elf::elf_sym&
     symbol::esym () const
     {
       return esym_;
     }
 
-    void 
+    void
     symbol::referenced ()
     {
       ++references_;
@@ -148,7 +166,7 @@ namespace rld
         object_->symbol_referenced ();
     }
 
-    bool 
+    bool
     symbol::operator< (const symbol& rhs) const
     {
       return name_ < rhs.name_;
@@ -207,14 +225,14 @@ namespace rld
           break;
       }
 
-      out << binding 
+      out << binding
           << ' ' << type
-          << " 0x" << std::setw (8) << std::setfill ('0') << std::hex 
-          << es.st_value 
+          << " 0x" << std::setw (8) << std::setfill ('0') << std::hex
+          << es.st_value
           << std::dec << std::setfill (' ')
           << ' ' << std::setw (7)  << es.st_size
           << ' ';
-      
+
       if (is_cplusplus ())
         out << demangled ();
       else
@@ -224,15 +242,27 @@ namespace rld
         out << "   (" << object ()->name ().basename () << ')';
     }
 
+    void
+    load (bucket& bucket_, table& table_)
+    {
+      for (bucket::iterator sbi = bucket_.begin ();
+           sbi != bucket_.end ();
+           ++sbi)
+      {
+        symbol& sym = *sbi;
+        table_[sym.name ()] = &sym;
+      }
+    }
+
     size_t
-    referenced (list& symbols)
+    referenced (pointers& symbols)
     {
       size_t used = 0;
-      for (rld::symbols::list::iterator sli = symbols.begin ();
+      for (pointers::iterator sli = symbols.begin ();
            sli != symbols.end ();
            ++sli)
       {
-        rld::symbols::symbol& sym = *(*sli);
+        symbol& sym = *(*sli);
         if (sym.references ())
           ++used;
       }
@@ -249,7 +279,7 @@ namespace rld
            si != symbols.end ();
            ++si)
       {
-        const symbol& sym = (*si).second;
+        const symbol& sym = *((*si).second);
         out << std::setw (5) << index << ' ' << sym << std::endl;
         ++index;
       }

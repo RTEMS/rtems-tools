@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2011, Chris Johns <chrisj@rtems.org> 
+ * Copyright (c) 2011, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -26,7 +26,7 @@
  * handle. A handle is the object file with the specific file descriptor
  * created when the archive or object file was opened.
  *
- * 
+ *
  */
 
 #if !defined (_RLD_FILES_H_)
@@ -67,7 +67,7 @@ namespace rld
      * Container list of object files.
      */
     typedef std::list < object* > object_list;
-    
+
     /**
      * Split a path from a string with a delimiter to the path container. Add
      * only the paths that exist and ignore those that do not.
@@ -78,8 +78,8 @@ namespace rld
     /**
      * Make a path by joining the parts with required separator.
      */
-    void path_join (const std::string& path_, 
-                    const std::string& file_, 
+    void path_join (const std::string& path_,
+                    const std::string& file_,
                     std::string& joined);
 
     /**
@@ -91,7 +91,7 @@ namespace rld
      * Check the path is a directory.
      */
     bool check_directory (const std::string& path);
-    
+
     /**
      * Find the file given a container of paths and file names.
      *
@@ -99,7 +99,7 @@ namespace rld
      * @param name The name of the file to search for.
      * @param search_paths The container of paths to search.
      */
-    void find_file (std::string&       path, 
+    void find_file (std::string&       path,
                     const std::string& name,
                     paths&             search_paths);
 
@@ -323,15 +323,9 @@ namespace rld
       virtual int fd () const;
 
       /**
-       * The libelf reference. The ELF image could be in an archive container
-       * so set container to true to get the archive's reference.
+       * The ELF reference.
        */
-      virtual rld::elf::elf* elf (bool archive = false);
-
-      /**
-       * Set the libelf reference.
-       */
-      void set_elf (rld::elf::elf* elf);
+      elf::file& elf ();
 
       /**
        * A symbol in the image has been referenced.
@@ -353,21 +347,33 @@ namespace rld
       }
 
       /**
-       * Is the archive open ?
+       * Is the image open ?
        *
-       * @retval true The archive is open.
-       * @retval false The archive is not open.
+       * @retval true The image is open.
+       * @retval false The image is not open.
        */
       bool is_open () const {
         return fd () != -1;
       }
 
+      /**
+       * Is the image writable ?
+       *
+       * @retval true The image is writeable.
+       * @retval false The image is not writeable.
+       */
+      bool is_writeable () const {
+        return writeable;
+      }
+
     private:
+
       file      name_;       //< The name of the file.
       int       references_; //< The number of handles open.
       int       fd_;         //< The file descriptor of the archive.
-      elf::elf* elf_;        //< The libelf reference.
+      elf::file elf_;        //< The libelf reference.
       int       symbol_refs; //< The number of symbols references made.
+      bool      writeable;   //< The image is writable.
     };
 
     /**
@@ -396,6 +402,16 @@ namespace rld
       virtual ~archive ();
 
       /**
+       * Begin the ELF session.
+       */
+      void begin ();
+
+      /**
+       * End the ELF session.
+       */
+      void end ();
+
+      /**
        * Match the archive name.
        *
        * @param name The name of the archive to check.
@@ -413,7 +429,7 @@ namespace rld
        * Load objects.
        */
       void load_objects (objects& objs);
-      
+
       /**
        * Get the name.
        */
@@ -431,6 +447,7 @@ namespace rld
       void create (object_list& objects);
 
     private:
+
       /**
        * Read header.
        */
@@ -441,7 +458,7 @@ namespace rld
        */
       void add_object (objects&    objs,
                        const char* name,
-                       off_t       offset, 
+                       off_t       offset,
                        size_t      size);
 
       /**
@@ -528,7 +545,7 @@ namespace rld
       /**
        * Get the string from the string table.
        */
-      std::string get_string (int section, size_t offset);
+//      std::string get_string (int section, size_t offset);
 
       /**
        * References to the image.
@@ -546,12 +563,6 @@ namespace rld
       virtual int fd () const;
 
       /**
-       * The libelf reference. The ELF image could be in an archive container
-       * so set container to true to get the archive's reference.
-       */
-      virtual elf::elf* elf (bool archive = false);
-
-      /**
        * A symbol in the image has been referenced.
        */
       virtual void symbol_referenced ();
@@ -562,6 +573,7 @@ namespace rld
        */
       archive* get_archive ();
 
+#if 0
       /**
        * Number of sections in the object file.
        */
@@ -571,6 +583,7 @@ namespace rld
        * Section string index.
        */
       int section_strings () const;
+#endif
 
       /**
        * Return the unresolved symbol table for this object file.
@@ -580,14 +593,13 @@ namespace rld
       /**
        * Return the list external symbols.
        */
-      rld::symbols::list& external_symbols ();
+      rld::symbols::pointers& external_symbols ();
 
     private:
-      archive*            archive_;   //< Points to the archive if part of an
-                                      //  archive.
-      elf::elf_ehdr       ehdr;       //< The ELF header.
-      rld::symbols::table unresolved; //< This object's unresolved symbols.
-      rld::symbols::list  externals;  //< This object's external symbols.
+      archive*               archive_;   //< Points to the archive if part of
+                                         //  an archive.
+      rld::symbols::table    unresolved; //< This object's unresolved symbols.
+      rld::symbols::pointers externals;  //< This object's external symbols.
 
       /**
        * Cannot copy via a copy constructor.
@@ -644,22 +656,22 @@ namespace rld
       void add_libraries (paths& paths__);
 
       /**
-       * Being an ELF session on an archive.
+       * Being a session on an archive.
        */
       void archive_begin (const std::string& path);
 
       /**
-       * End an ELF session on an archive.
+       * End a session on an archive.
        */
       void archive_end (const std::string& path);
 
       /**
-       * Being ELF sessions on all archives.
+       * Being sessions on all archives.
        */
       void archives_begin ();
 
       /**
-       * End the archive elf sessions.
+       * End the archive sessions.
        */
       void archives_end ();
 
@@ -667,13 +679,13 @@ namespace rld
        * Collect the object names and add them to the cache.
        */
       void collect_object_files ();
-      
+
       /**
        * Collect the object file names by verifing the paths to the files are
        * valid or read the object file names contained in any archives.
        */
       void collect_object_files (const std::string& path);
-      
+
       /**
        * Load the symbols into the symbol table.
        *
@@ -691,12 +703,12 @@ namespace rld
        * Get the archives.
        */
       archives& get_archives ();
- 
+
       /**
        * Get the objects inlcuding those in archives.
        */
       objects& get_objects ();
- 
+
       /**
        * Get the added objects. Does not include the ones in th archives.
        */

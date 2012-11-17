@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2011, Chris Johns <chrisj@rtems.org> 
+ * Copyright (c) 2011, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -36,15 +36,18 @@ namespace rld
     /**
      * Hide the types from libelf we use.
      */
-    typedef ::GElf_Word elf_word;
-    typedef ::GElf_Addr elf_addr;
-    typedef ::GElf_Sym  elf_sym;
-    typedef ::Elf_Kind  elf_kind;
-    typedef ::Elf_Scn   elf_scn;
-    typedef ::GElf_Shdr elf_shdr;
-    typedef ::GElf_Ehdr elf_ehdr;
-    typedef ::Elf_Data  elf_data;
-    typedef ::Elf       elf;
+    typedef ::GElf_Word  elf_word;
+    typedef ::GElf_Xword elf_xword;
+    typedef ::GElf_Addr  elf_addr;
+    typedef ::GElf_Off   elf_off;
+    typedef ::GElf_Sym   elf_sym;
+    typedef ::Elf_Kind   elf_kind;
+    typedef ::Elf_Scn    elf_scn;
+    typedef ::GElf_Ehdr  elf_ehdr;
+    typedef ::GElf_Shdr  elf_shdr;
+    typedef ::GElf_Phdr  elf_phdr;
+    typedef ::Elf_Data   elf_data;
+    typedef ::Elf        elf;
   }
 }
 

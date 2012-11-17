@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2011, Chris Johns <chrisj@rtems.org> 
+ * Copyright (c) 2011, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -45,7 +45,7 @@ namespace rld
     scan_decimal (const uint8_t* string, size_t len)
     {
       uint64_t value = 0;
-      
+
       while (len && (*string != ' '))
       {
         value *= 10;
@@ -104,7 +104,7 @@ namespace rld
         joined = path_ + RLD_PATH_SEPARATOR + file_;
       else if ((path_[path_.size () - 1] == RLD_PATH_SEPARATOR) &&
                (file_[0] == RLD_PATH_SEPARATOR))
-        joined = path_ + &file_[1];        
+        joined = path_ + &file_[1];
       else
         joined = path_ + file_;
     }
@@ -147,7 +147,7 @@ namespace rld
                 const std::string& oname,
                 off_t              offset,
                 size_t             size)
-      : aname_ (aname), 
+      : aname_ (aname),
         oname_ (oname),
         offset_ (offset),
         size_ (size)
@@ -246,8 +246,8 @@ namespace rld
         return aname_;
       return oname_;
     }
-    
-    const std::string 
+
+    const std::string
     file::full () const
     {
       std::string f;
@@ -297,8 +297,7 @@ namespace rld
     image::image (file& name)
       : name_ (name),
         references_ (0),
-        fd_ (-1),
-        elf_ (0)
+        fd_ (-1)
     {
     }
 
@@ -306,15 +305,14 @@ namespace rld
       : name_ (path, is_object),
         references_ (0),
         fd_ (-1),
-        elf_ (0),
-        symbol_refs (0)
+        symbol_refs (0),
+        writeable (false)
     {
     }
 
     image::image ()
       : references_ (0),
         fd_ (-1),
-        elf_ (0),
         symbol_refs (0)
     {
     }
@@ -335,25 +333,33 @@ namespace rld
     }
 
     void
-    image::open (bool writable)
+    image::open (bool writeable_)
     {
       const std::string path = name_.path ();
 
       if (path.empty ())
-        throw rld::error ("No file name", "open" + path);
+        throw rld::error ("No file name", "open:" + path);
 
       if (rld::verbose () >= RLD_VERBOSE_DETAILS)
         std::cout << "image::open: " << name (). full ()
+                  << " writable:" << (char*) (writeable_ ? "yes" : "no")
                   << " refs:" << references_ + 1 << std::endl;
 
       if (fd_ < 0)
       {
-        if (writable)
+        writeable = writeable_;
+
+        if (writeable)
           fd_ = ::open (path.c_str (), OPEN_FLAGS | O_RDWR | O_CREAT | O_TRUNC, CREATE_MODE);
         else
           fd_ = ::open (path.c_str (), OPEN_FLAGS | O_RDONLY);
         if (fd_ < 0)
           throw rld::error (::strerror (errno), "open:" + path);
+      }
+      else
+      {
+        if (writeable_ != writeable)
+          throw rld::error ("Cannot change write status", "open:" + path);
       }
 
       ++references_;
@@ -385,7 +391,7 @@ namespace rld
         throw rld::error (strerror (errno), "read:" + name ().path ());
       return rsize;
     }
- 
+
     ssize_t
     image::write (const void* buffer, size_t size)
     {
@@ -394,28 +400,28 @@ namespace rld
         throw rld::error (strerror (errno), "write:" + name ().path ());
       return wsize;
     }
- 
+
     void
     image::seek (off_t offset)
     {
       if (::lseek (fd (), name_.offset () + offset, SEEK_SET) < 0)
         throw rld::error (strerror (errno), "lseek:" + name ().path ());
     }
- 
+
     bool
     image::seek_read (off_t offset, uint8_t* buffer, size_t size)
     {
       seek (offset);
       return size == (size_t) read (buffer, size);
     }
- 
+
     bool
     image::seek_write (off_t offset, const void* buffer, size_t size)
     {
       seek (offset);
       return size == (size_t) write (buffer, size);
     }
- 
+
     const file&
     image::name () const
     {
@@ -423,33 +429,27 @@ namespace rld
     }
 
     int
-    image::references () const 
+    image::references () const
     {
       return references_;
     }
 
     size_t
-    image::size () const 
+    image::size () const
     {
       return name ().size ();
     }
 
     int
-    image::fd () const 
+    image::fd () const
     {
       return fd_;
     }
 
-    rld::elf::elf*
-    image::elf (bool )
+    rld::elf::file&
+    image::elf ()
     {
       return elf_;
-    }
-
-    void
-    image::set_elf (rld::elf::elf* elf)
-    {
-      elf_ = elf;
     }
 
     void
@@ -457,7 +457,7 @@ namespace rld
     {
       ++symbol_refs;
     }
-    
+
     int
     image::symbol_references () const
     {
@@ -474,6 +474,10 @@ namespace rld
         buffer = new uint8_t[COPY_FILE_BUFFER_SIZE];
         while (size)
         {
+          /*
+           * @fixme the reading and writing are not POSIX; sigints could split them.
+           */
+
           size_t l = size < COPY_FILE_BUFFER_SIZE ? size : COPY_FILE_BUFFER_SIZE;
           ssize_t r = ::read (in.fd (), buffer, l);
 
@@ -545,6 +549,25 @@ namespace rld
       close ();
     }
 
+    void
+    archive::begin ()
+    {
+      elf ().begin (name ().full (), fd ());
+
+      /*
+       * Make sure it is an archive.
+       */
+      if (!elf ().is_archive ())
+        throw rld::error ("Not an archive.",
+                          "archive-begin:" + name ().full ());
+    }
+
+    void
+    archive::end ()
+    {
+      elf ().end ();
+    }
+
     bool
     archive::is (const std::string& path) const
     {
@@ -580,8 +603,8 @@ namespace rld
         /*
          * The archive file headers are always aligned to an even address.
          */
-        size = 
-          (scan_decimal (&header[rld_archive_size], 
+        size =
+          (scan_decimal (&header[rld_archive_size],
                          rld_archive_size_size) + 1) & ~1;
 
         /*
@@ -625,15 +648,15 @@ namespace rld
                 off_t off = offset;
                 while (extended_file_names == 0)
                 {
-                  size_t esize = 
+                  size_t esize =
                     (scan_decimal (&header[rld_archive_size],
                                    rld_archive_size_size) + 1) & ~1;
                   off += esize + rld_archive_fhdr_size;
-                    
+
                   if (!read_header (off, &header[0]))
                     throw rld::error ("No GNU extended file name section found",
                                       "get-names:" + name ().path ());
-              
+
                   if ((header[0] == '/') && (header[1] == '/'))
                   {
                     extended_file_names = off + rld_archive_fhdr_size;
@@ -693,7 +716,7 @@ namespace rld
           (header[rld_archive_magic + 1] != 0x0a))
         throw rld::error ("Invalid header magic numbers at " +
                           rld::to_string (offset), "read-header:" + name ().path ());
-      
+
       return true;
     }
 
@@ -725,7 +748,7 @@ namespace rld
         uint8_t header[rld_archive_fhdr_size];
 
         memset (header, ' ', sizeof (header));
-        
+
         size_t len = name.length ();
         if (len > rld_archive_fname_size)
           len = rld_archive_fname_size;
@@ -756,7 +779,7 @@ namespace rld
          * GNU extended filenames.
          */
         std::string extended_file_names;
-        
+
         for (object_list::iterator oi = objects.begin ();
              oi != objects.end ();
              ++oi)
@@ -818,7 +841,7 @@ namespace rld
         close ();
         throw;
       }
-      
+
       close ();
     }
 
@@ -877,16 +900,34 @@ namespace rld
     object::begin ()
     {
       /*
-       * Begin an ELF session and get the ELF header.
+       * Begin a session.
        */
-      rld::elf::begin (*this);
-      rld::elf::get_header (*this, ehdr);
+      if (archive_)
+        elf ().begin (name ().full (), archive_->elf(), name ().offset ());
+      else
+        elf ().begin (name ().full (), fd ());
+
+      /*
+       * Cannot be an archive.
+       */
+      if (elf ().is_archive ())
+        throw rld::error ("Is an archive not an object file.",
+                          "object-begin:" + name ().full ());
+
+      /*
+       * We only support executable or relocatable ELF files.
+       */
+      if (!elf ().is_executable () && !elf ().is_relocatable ())
+        throw rld::error ("Invalid ELF type (only ET_EXEC/ET_REL supported).",
+                          "object-begin:" + name ().full ());
+
+      elf::check_file (elf ());
     }
 
     void
     object::end ()
     {
-      rld::elf::end (*this);
+      elf ().end ();
     }
 
     void
@@ -894,17 +935,58 @@ namespace rld
     {
       if (rld::verbose () >= RLD_VERBOSE_DETAILS)
         std::cout << "object:load-sym: " << name ().full () << std::endl;
-      rld::elf::load_symbols (symbols, *this, local);
+
+      rld::symbols::pointers syms;
+
+      elf ().get_symbols (syms, false, local);
+
+      if (rld::verbose () >= RLD_VERBOSE_DETAILS)
+        std::cout << "object:load-sym: exported: total "
+                  << syms.size () << std::endl;
+
+      for (symbols::pointers::iterator si = syms.begin ();
+           si != syms.end ();
+           ++si)
+      {
+        symbols::symbol& sym = *(*si);
+
+        if (rld::verbose () >= RLD_VERBOSE_DETAILS)
+        {
+          std::cout << "object:load-sym: exported: ";
+          sym.output (std::cout);
+          std::cout << std::endl;
+        }
+
+        sym.set_object (*this);
+        symbols[sym.name ()] = &sym;
+        externals.push_back (&sym);
+      }
+
+      elf ().get_symbols (syms, true);
+
+      if (rld::verbose () >= RLD_VERBOSE_DETAILS)
+        std::cout << "object:load-sym: unresolved: total "
+                  << syms.size () << std::endl;
+
+      for (symbols::pointers::iterator si = syms.begin ();
+           si != syms.end ();
+           ++si)
+      {
+        symbols::symbol& sym = *(*si);
+
+        if (rld::verbose () >= RLD_VERBOSE_DETAILS)
+        {
+          std::cout << "object:load-sym: unresolved: ";
+          sym.output (std::cout);
+          std::cout << std::endl;
+        }
+
+        unresolved[sym.name ()] = &sym;
+      }
     }
 
-    std::string
-    object::get_string (int section, size_t offset)
-    {
-      return rld::elf::get_string (*this, section, offset);
-    }
-    
     int
-    object::references () const 
+    object::references () const
     {
       if (archive_)
         return archive_->references ();
@@ -912,7 +994,7 @@ namespace rld
     }
 
     size_t
-    object::size () const 
+    object::size () const
     {
       if (archive_)
         return archive_->size ();
@@ -920,19 +1002,11 @@ namespace rld
     }
 
     int
-    object::fd () const 
+    object::fd () const
     {
       if (archive_)
         return archive_->fd ();
       return image::fd ();
-    }
-
-    rld::elf::elf* 
-    object::elf (bool archive__)
-    {
-      if (archive__ && archive_)
-        return archive_->elf ();
-      return image::elf ();
     }
 
     void
@@ -942,13 +1016,14 @@ namespace rld
       if (archive_)
         archive_->symbol_referenced ();
     }
-    
+
     archive*
     object::get_archive ()
     {
       return archive_;
     }
 
+#if 0
     int
     object::sections () const
     {
@@ -960,6 +1035,7 @@ namespace rld
     {
       return ehdr.e_shstrndx;
     }
+#endif
 
     rld::symbols::table&
     object::unresolved_symbols ()
@@ -967,7 +1043,7 @@ namespace rld
       return unresolved;
     }
 
-    rld::symbols::list&
+    rld::symbols::pointers&
     object::external_symbols ()
     {
       return externals;
@@ -1047,7 +1123,7 @@ namespace rld
           if (rld::verbose () >= RLD_VERBOSE_TRACE)
             std::cout << "cache:archive-begin: " << path << std::endl;
           ar->open ();
-          rld::elf::begin (*ar);
+          ar->begin ();
         }
       }
     }
@@ -1063,7 +1139,7 @@ namespace rld
         {
           if (rld::verbose () >= RLD_VERBOSE_TRACE)
             std::cout << "cache:archive-end: " << path << std::endl;
-          rld::elf::end (*ar);
+          ar->end ();
           ar->close ();
         }
       }
@@ -1082,7 +1158,7 @@ namespace rld
       for (archives::iterator ai = archives_.begin (); ai != archives_.end (); ++ai)
         archive_end (((*ai).second)->path ());
     }
-    
+
     void
     cache::collect_object_files ()
     {
@@ -1173,7 +1249,7 @@ namespace rld
     {
       return archives_;
     }
- 
+
     objects&
     cache::get_objects ()
     {

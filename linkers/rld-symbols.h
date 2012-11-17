@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2011, Chris Johns <chrisj@rtems.org> 
+ * Copyright (c) 2011, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -58,27 +58,27 @@ namespace rld
       /**
        * Construct an exported symbol with a object file.
        */
-      symbol (const std::string&  name, 
-              rld::files::object& object,
+      symbol (const std::string&  name,
+              files::object&      object,
               const elf::elf_sym& esym);
 
       /**
        * Construct an unresolved symbol with no object file.
        */
       symbol (const std::string& name, const elf::elf_sym& esym);
-      
+
       /**
        * Construct a linker symbol that is internally created.
        */
       symbol (const std::string&  name,
               const elf::elf_addr value);
-      
+
       /**
        * Construct a linker symbol that is internally created.
        */
-      symbol (const char*        name,
-              rld::elf::elf_addr value = 0);
-      
+      symbol (const char*   name,
+              elf::elf_addr value = 0);
+
       /**
        * The symbol's name.
        */
@@ -95,20 +95,35 @@ namespace rld
       bool is_cplusplus () const;
 
       /**
+       * The symbol's type.
+       */
+      int type () const;
+
+      /**
+       * The symbol's binding, ie local, weak, or global.
+       */
+      int binding () const;
+
+      /**
+       * The synbol's section index.
+       */
+      int index () const;
+
+      /**
        * The symbol's object file name.
        */
-      rld::files::object* object () const;
+      files::object* object () const;
 
       /**
        * Set the symbol's object file name. Used when resolving unresolved
        * symbols.
        */
-      void set_object (rld::files::object& obj);
+      void set_object (files::object& obj);
 
       /**
        * The ELF symbol.
        */
-      const ::GElf_Sym& esym () const;
+      const elf::elf_sym& esym () const;
 
       /**
        * Return the number of references.
@@ -133,28 +148,39 @@ namespace rld
       void output (std::ostream& out) const;
 
     private:
-      std::string         name_;       //< The name of the symbol.
-      std::string         demangled_;  //< If a C++ symbol the demangled name.
-      rld::files::object* object_;     //< The object file containing the
-                                       //  symbol.
-      ::GElf_Sym          esym_;       //< The ELF symbol.
-      int                 references_; //< The number of times if it referenced.
+
+      std::string    name_;       //< The name of the symbol.
+      std::string    demangled_;  //< If a C++ symbol the demangled name.
+      files::object* object_;     //< The object file containing the symbol.
+      elf::elf_sym   esym_;       //< The ELF symbol.
+      int            references_; //< The number of times if it referenced.
     };
 
     /**
-     * List of symbol references.
+     * Container of symbols. A bucket of symbols.
      */
-    typedef std::list < symbol* > list;
+    typedef std::list < symbol > bucket;
 
     /**
-     * A symbols table is a map container of symbols.
+     * References to symbols. Should always point to symbols held in a bucket.
      */
-    typedef std::map < std::string, symbol > table;
+    typedef std::list < symbol* > pointers;
 
     /**
-     * Given a list of symbols return how many are referenced.
+     * A symbols table is a map container of symbols. Should always point to
+     * symbols held in a bucket.
      */
-    size_t referenced (list& symbols);
+    typedef std::map < std::string, symbol* > table;
+
+    /**
+     * Load a table from a buckey.
+     */
+    void load (bucket& bucket_, table& table_);
+
+    /**
+     * Given a container of symbols return how many are referenced.
+     */
+    size_t referenced (pointers& symbols);
 
     /**
      * Output the symbol table.
@@ -166,7 +192,8 @@ namespace rld
 /**
  * Output stream operator.
  */
-static inline std::ostream& operator<< (std::ostream& out, const rld::symbols::symbol& sym) {
+static inline std::ostream& operator<< (std::ostream&               out,
+                                        const rld::symbols::symbol& sym) {
   sym.output (out);
   return out;
 }

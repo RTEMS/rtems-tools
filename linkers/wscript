@@ -60,7 +60,7 @@ def build(bld):
     # Build flags.
     #
     bld.warningflags = ['-Wall', '-Wextra', '-pedantic']
-    bld.optflags = ['-O2']
+    bld.optflags = [] #['-O2']
     bld.cflags = ['-pipe', '-g'] + bld.optflags
     bld.cxxflags = ['-pipe', '-g'] + bld.optflags
     bld.linkflags = ['-g']
@@ -79,19 +79,35 @@ def build(bld):
     modules = ['fastlz', 'elf', 'iberty']
 
     #
+    # RLD source.
+    #
+    rld_source = ['rld-elf.cpp',
+                  'rld-files.cpp',
+                  'rld-cc.cpp',
+                  'rld-outputter.cpp',
+                  'rld-process.cpp',
+                  'rld-resolver.cpp',
+                  'rld-symbols.cpp',
+                  'rld.cpp']
+
+    #
     # Build the linker.
     #
     bld.program(target = 'rtems-ld',
-                source = ['main.cpp',
-                          'pkgconfig.cpp',
-                          'rld-elf.cpp',
-                          'rld-files.cpp',
-                          'rld-cc.cpp',
-                          'rld-outputter.cpp',
-                          'rld-process.cpp',
-                          'rld-resolver.cpp',
-                          'rld-symbols.cpp',
-                          'rld.cpp'],
+                source = ['rtems-ld.cpp',
+                          'pkgconfig.cpp'] + rld_source,
+                defines = ['HAVE_CONFIG_H=1', 'RTEMS_VERSION=' + bld.env.RTEMS_VERSION],
+                includes = ['.'] + bld.includes,
+                cflags = bld.cflags + bld.warningflags,
+                cxxflags = bld.cxxflags + bld.warningflags,
+                linkflags = bld.linkflags,
+                use = modules)
+
+    #
+    # Build the symbols.
+    #
+    bld.program(target = 'rtems-syms',
+                source = ['rtems-syms.cpp'] + rld_source,
                 defines = ['HAVE_CONFIG_H=1', 'RTEMS_VERSION=' + bld.env.RTEMS_VERSION],
                 includes = ['.'] + bld.includes,
                 cflags = bld.cflags + bld.warningflags,

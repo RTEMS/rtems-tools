@@ -54,7 +54,7 @@ namespace rld
        * unresolved symbol's object file to the file that resolves the
        * symbol. Record each object file that is found and when all unresolved
        * symbols in this object file have been found iterate over the found
-       * object files resolving them. The 'usr' is the unresolved symbol and
+       * object files resolving them. The 'urs' is the unresolved symbol and
        * 'es' is the exported symbol.
        */
 
@@ -66,18 +66,25 @@ namespace rld
                   << object.name ().basename ()
                   << ", unresolved: "
                   << unresolved.size ()
-                  << ((*unresolved.begin ()).second.object () ? " (resolved)" : "")
+                  << (((*unresolved.begin ()).second)->object () ? " (resolved)" : "")
                   << std::endl;
 
       rld::files::object_list objects;
 
       for (rld::symbols::table::iterator ursi = unresolved.begin ();
-           (ursi != unresolved.end ()) && !(*ursi).second.object ();
+           (ursi != unresolved.end ()) && !((*ursi).second)->object ();
            ++ursi)
       {
-        rld::symbols::symbol&         urs = (*ursi).second;
+        rld::symbols::symbol&         urs = *((*ursi).second);
         rld::symbols::table::iterator esi = base_symbols.find (urs.name ());
         bool                          base = true;
+
+        if (rld::verbose () >= RLD_VERBOSE_INFO)
+        {
+          std::cout << "resolver:resolve  : "
+                    << std::setw (nesting + 1) << ' '
+                    << urs.name () << std::endl;
+        }
 
         if (esi == base_symbols.end ())
         {
@@ -88,7 +95,7 @@ namespace rld
           base = false;
         }
 
-        rld::symbols::symbol& es = (*esi).second;
+        rld::symbols::symbol& es = *((*esi).second);
 
         if (rld::verbose () >= RLD_VERBOSE_INFO)
         {

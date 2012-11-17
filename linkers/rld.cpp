@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2011, Chris Johns <chrisj@rtems.org> 
+ * Copyright (c) 2011, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -64,7 +64,7 @@ namespace rld
    * The output passed on the command line.
    */
   static std::string output;
-  
+
   void
   verbose_inc ()
   {
@@ -116,7 +116,7 @@ namespace rld
     std::cout << "Archive files    : " << cache.archive_count () << std::endl;
     std::cout << "Object files     : " << cache.object_count () << std::endl;
     std::cout << "Exported symbols : " << symbols.size () << std::endl;
-    
+
     std::cout << "Archives:" << std::endl;
     cache.output_archive_files (std::cout);
     std::cout << "Objects:" << std::endl;
@@ -136,9 +136,9 @@ namespace rld
          oli != objects.end ();
          ++oli)
     {
-      rld::files::object& object = *(*oli);
-      rld::symbols::list& externals = object.external_symbols ();
-      
+      rld::files::object&     object = *(*oli);
+      rld::symbols::pointers& externals = object.external_symbols ();
+
       if (rld::symbols::referenced (externals) != externals.size ())
       {
         if (first)
@@ -149,7 +149,7 @@ namespace rld
 
         std::cout << ' ' << object.name ().basename () << std::endl;
 
-        for (rld::symbols::list::iterator sli = externals.begin ();
+        for (rld::symbols::pointers::iterator sli = externals.begin ();
              sli != externals.end ();
              ++sli)
         {
