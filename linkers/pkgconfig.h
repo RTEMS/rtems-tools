@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2011, Chris Johns <chrisj@rtems.org> 
+ * Copyright (c) 2011, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -24,7 +24,7 @@ namespace pkgconfig
 {
   /**
    * A simple class to parse a pkgconfig file as used in RTEMS. The RTEMS use
-   * if simple and basically provides a simplified method to manage the various
+   * is simple and basically provides a simplified method to manage the various
    * flags used to build and link modules for a specific BSP.
    */
   class package
@@ -57,7 +57,7 @@ namespace pkgconfig
   private:
     table defines;  ///< The defines.
     table fields;   ///< The fields.
-    
+
   };
 
 }
