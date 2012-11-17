@@ -705,22 +705,5 @@ namespace rld
                           "elf:check_file: " + file.name ());
     }
 
-#if 0
-    void
-    load_symbols (rld::symbols::table& symbols,
-                  rld::files::object&  object,
-                  bool                 local,
-                  bool                 weak,
-                  bool                 global)
-    {
-      sections sections;
-      get_section_headers (object, sections, SHT_SYMTAB);
-      for (sections::iterator si = sections.begin ();
-           si != sections.end ();
-           ++si)
-        load_symbol_table (symbols, object, *si, local, weak, global);
-    }
-#endif
-
   }
 }
