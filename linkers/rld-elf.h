@@ -298,6 +298,18 @@ namespace rld
                         bool                    global = true);
 
       /**
+       * Set the ELF header. Must be writable.
+       *
+       * @param type The type of ELF file, ie executable, relocatable etc.
+       * @param machinetype The type of machine code present in the ELF file.
+       * @param datatype The data type, ie LSB or MSB.
+       */
+      void set_header (elf_half      type,
+                       int           class_,
+                       elf_half      machinetype,
+                       unsigned char datatype);
+
+      /**
        * Get the ELF reference.
        */
       elf* get_elf ();
@@ -344,6 +356,20 @@ namespace rld
       void check_writable (const char* where) const;
 
       /**
+       * Check if the ELF header is valid. Throw an exception if not.
+       *
+       * @param where Where the check is performed.
+       */
+      void check_ehdr (const char* where) const;
+
+      /**
+       * Check if the ELF program header is valid. Throw an exception if not.
+       *
+       * @param where Where the check is performed.
+       */
+      void check_phdr (const char* where) const;
+
+      /**
        * Generate libelf error.
        *
        * @param where Where the error is generated.
@@ -359,8 +385,8 @@ namespace rld
       unsigned int         oclass;     //< The object class.
       const char*          ident_str;  //< The ELF file's ident string.
       size_t               ident_size; //< The size of the ident.
-      elf_ehdr             ehdr;       //< The ELF header.
-      elf_phdr             phdr;       //< The ELF program header.
+      elf_ehdr*            ehdr;       //< The ELF header.
+      elf_phdr*            phdr;       //< The ELF program header.
       std::string          stab;       //< The string table.
       sections             secs;       //< The sections.
       rld::symbols::bucket symbols;    //< The symbols. All tables point here.

@@ -517,7 +517,7 @@ namespace rld
       /**
        * Open the object file.
        */
-      virtual void open ();
+      virtual void open (bool writable = false);
 
       /**
        * Close the object.

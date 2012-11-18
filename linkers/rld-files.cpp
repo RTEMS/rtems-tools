@@ -878,12 +878,16 @@ namespace rld
     }
 
     void
-    object::open ()
+    object::open (bool writable)
     {
       if (archive_)
+      {
+        if (writable)
+          throw rld_error_at ("object files in archives are not writable");
         archive_->open ();
+      }
       else
-        image::open ();
+        image::open (writable);
     }
 
     void

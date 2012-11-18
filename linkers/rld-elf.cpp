@@ -211,10 +211,10 @@ namespace rld
         elf_ (0),
         oclass (0),
         ident_str (0),
-        ident_size (0)
+        ident_size (0),
+        ehdr (0),
+        phdr (0)
     {
-      memset (&ehdr, 0, sizeof (ehdr));
-      memset (&phdr, 0, sizeof (phdr));
     }
 
     file::~file ()
@@ -347,8 +347,23 @@ namespace rld
       oclass = 0;
       ident_str = 0;
       ident_size = 0;
-      memset (&ehdr, 0, sizeof (ehdr));
-      memset (&phdr, 0, sizeof (phdr));
+
+      if (!writable)
+      {
+        if (ehdr)
+        {
+          delete ehdr;
+          ehdr = 0;
+        }
+        if (phdr)
+        {
+          delete phdr;
+          phdr = 0;
+        }
+      }
+
+      writable = false;
+
       stab.clear ();
       secs.clear ();
     }
@@ -358,22 +373,25 @@ namespace rld
     {
       check ("get_header");
 
-      if (::gelf_getehdr (elf_, &ehdr) == NULL)
+      if (!writable && !ehdr)
+        ehdr = new elf_ehdr;
+
+      if (::gelf_getehdr (elf_, ehdr) == NULL)
         error ("get-header");
     }
 
     unsigned int
     file::machinetype () const
     {
-      check ("machinetype");
-      return ehdr.e_machine;
+      check_ehdr ("machinetype");
+      return ehdr->e_machine;
     }
 
     unsigned int
     file::type () const
     {
-      check ("type");
-      return ehdr.e_type;
+      check_ehdr ("type");
+      return ehdr->e_type;
     }
 
     unsigned int
@@ -402,22 +420,22 @@ namespace rld
     bool
     file::is_executable () const
     {
-      check ("is_executable");
-      return ehdr.e_type != ET_REL;
+      check_ehdr ("is_executable");
+      return ehdr->e_type != ET_REL;
     }
 
     bool
     file::is_relocatable() const
     {
-      check ("is_relocatable");
-      return ehdr.e_type == ET_REL;
+      check_ehdr ("is_relocatable");
+      return ehdr->e_type == ET_REL;
     }
 
     int
     file::section_count () const
     {
-      check ("section_count");
-      return ehdr.e_shnum;
+      check_ehdr ("section_count");
+      return ehdr->e_shnum;
     }
 
     void
@@ -549,8 +567,8 @@ namespace rld
     int
     file::strings_section () const
     {
-      check ("strings_sections");
-      return ehdr.e_shstrndx;
+      check_ehdr ("strings_sections");
+      return ehdr->e_shstrndx;
     }
 
     std::string
@@ -573,20 +591,25 @@ namespace rld
       return s;
     }
 
-#if 0
     void
-    file::set_header (xxx)
+    file::set_header (elf_half      type,
+                      int           class_,
+                      elf_half      machinetype,
+                      unsigned char datatype)
     {
-      elf_ehdr* ehdr_ = ::gelf_newehdr (elf_);
+      check_writable ("set_header");
 
-      if (ehdr == NULL)
+      ehdr = (elf_ehdr*) ::gelf_newehdr (elf_, class_);
+
+      if (ehdr == 0)
         error ("set-header");
 
-      ehdr->xx = xx;
+      ehdr->e_type = type;
+      ehdr->e_machine = machinetype;
+      ehdr->e_ident[EI_DATA] = datatype;
 
-      ::gelf_flagphdr (elf_, ELF_C_SET , ELF_F_DIRTY);
+      //::gelf_flagphdr (elf_, ELF_C_SET , ELF_F_DIRTY);
     }
-#endif
 
     elf*
     file::get_elf ()
@@ -612,7 +635,29 @@ namespace rld
       if (!elf_ || (fd_ < 0))
       {
         std::string w = where;
-        throw rld::error ("no elf file or header", "elf:file:" + w);
+        throw rld::error ("no elf file or file descriptor", "elf:file:" + w);
+      }
+    }
+
+    void
+    file::check_ehdr (const char* where) const
+    {
+      check (where);
+      if (!ehdr)
+      {
+        std::string w = where;
+        throw rld::error ("no elf header", "elf:file:" + w);
+      }
+    }
+
+    void
+    file::check_phdr (const char* where) const
+    {
+      check (where);
+      if (!phdr)
+      {
+        std::string w = where;
+        throw rld::error ("no elf program header", "elf:file:" + w);
       }
     }
 

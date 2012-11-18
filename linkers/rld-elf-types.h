@@ -36,6 +36,7 @@ namespace rld
     /**
      * Hide the types from libelf we use.
      */
+    typedef ::GElf_Half  elf_half;
     typedef ::GElf_Word  elf_word;
     typedef ::GElf_Xword elf_xword;
     typedef ::GElf_Addr  elf_addr;
