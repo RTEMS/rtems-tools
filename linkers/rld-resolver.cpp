@@ -39,11 +39,12 @@ namespace rld
   namespace resolver
   {
     static void
-    resolve (rld::files::object_list& dependents,
-             rld::files::cache&       cache,
-             rld::symbols::table&     base_symbols,
-             rld::symbols::table&     symbols,
-             rld::files::object&      object)
+    resolve_symbols (rld::files::object_list& dependents,
+                     rld::files::cache&       cache,
+                     rld::symbols::table&     base_symbols,
+                     rld::symbols::table&     symbols,
+                     rld::symbols::table&     unresolved,
+                     const std::string&       name)
     {
       static int nesting = 0;
 
@@ -58,15 +59,12 @@ namespace rld
        * 'es' is the exported symbol.
        */
 
-      rld::symbols::table& unresolved = object.unresolved_symbols ();
-
       if (rld::verbose () >= RLD_VERBOSE_INFO)
         std::cout << "resolver:resolving: "
                   << std::setw (nesting - 1) << ' '
-                  << object.name ().basename ()
+                  << name
                   << ", unresolved: "
                   << unresolved.size ()
-                  << (((*unresolved.begin ()).second)->object () ? " (resolved)" : "")
                   << std::endl;
 
       rld::files::object_list objects;
@@ -90,7 +88,7 @@ namespace rld
         {
           esi = symbols.find (urs.name ());
           if (esi == symbols.end ())
-            throw rld::error ("symbol referenced in '" + object.name ().basename () +
+            throw rld::error ("symbol referenced in '" + name +
                               "' not found: " + urs.name (), "resolving");
           base = false;
         }
@@ -128,7 +126,15 @@ namespace rld
       for (rld::files::object_list::iterator oli = objects.begin ();
            oli != objects.end ();
            ++oli)
-        resolve (dependents, cache, base_symbols, symbols, *(*oli));
+      {
+        rld::files::object& object = *(*oli);
+        if (rld::verbose () >= RLD_VERBOSE_INFO)
+          std::cout << "resolver:resolving:    : "
+                    << object.name ().basename () << std::endl;
+        resolve_symbols (dependents, cache, base_symbols, symbols,
+                         object.unresolved_symbols (),
+                         object.name ().basename ());
+      }
 
       --nesting;
 
@@ -146,6 +152,16 @@ namespace rld
       rld::files::object_list objects;
       cache.get_objects (objects);
 
+      /*
+       * First resolve any undefined symbols that are forced by the linker or
+       * the user.
+       */
+      resolver::resolve_symbols (dependents, cache, base_symbols, symbols,
+                                 undefined, "undefines");
+
+      /*
+       * Resolve the symbols in the object files.
+       */
       for (rld::files::object_list::iterator oi = objects.begin ();
            oi != objects.end ();
            ++oi)
@@ -154,7 +170,9 @@ namespace rld
         if (rld::verbose () >= RLD_VERBOSE_INFO)
           std::cout << "resolver:resolving: top: "
                     << object.name ().basename () << std::endl;
-        resolve (dependents, cache, base_symbols, symbols, object);
+        resolver::resolve_symbols (dependents, cache, base_symbols, symbols,
+                                   object.unresolved_symbols (),
+                                   object.name ().basename ());
       }
     }
   }
