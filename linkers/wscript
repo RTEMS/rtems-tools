@@ -20,6 +20,10 @@ def options(opt):
                    default = '4.11',
                    dest='rtems_version',
                    help = 'Set the RTEMS version')
+    opt.add_option('--c-opts',
+                   default = '-O2',
+                   dest='c_opts',
+                   help = 'Set build options, default: -O2.')
     opt.add_option('--show-commands',
                    action = 'store_true',
                    default = False,
@@ -37,6 +41,7 @@ def configure(conf):
                   features = 'c', mandatory = False)
     conf.write_config_header('config.h')
 
+    conf.env.C_OPTS = conf.options.c_opts.split(',')
     conf.env.RTEMS_VERSION = conf.options.rtems_version
 
     if conf.options.show_commands:
@@ -60,7 +65,7 @@ def build(bld):
     # Build flags.
     #
     bld.warningflags = ['-Wall', '-Wextra', '-pedantic']
-    bld.optflags = [] #['-O2']
+    bld.optflags = bld.env.C_OPTS
     bld.cflags = ['-pipe', '-g'] + bld.optflags
     bld.cxxflags = ['-pipe', '-g'] + bld.optflags
     bld.linkflags = ['-g']
