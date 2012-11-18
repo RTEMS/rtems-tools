@@ -76,7 +76,7 @@ __attribute__ ((mode (SI)));
 typedef __char_ptr32 *__char_ptr_char_ptr32
 __attribute__ ((mode (SI)));
 
-/* Return a 32 bit pointer to an array of 32 bit pointers 
+/* Return a 32 bit pointer to an array of 32 bit pointers
    given a 64 bit pointer to an array of 64 bit pointers.  */
 
 static __char_ptr_char_ptr32
@@ -260,7 +260,7 @@ pex_wait (struct pex_obj *obj, pid_t pid, int *status, struct pex_time *time)
 
 	  pt.user_seconds = r2.ru_utime.tv_sec - r1.ru_utime.tv_sec;
 	  pt.user_microseconds = r2.ru_utime.tv_usec - r1.ru_utime.tv_usec;
-	  if (pt.user_microseconds < 0)
+	  if ((int) pt.user_microseconds < 0)
 	    {
 	      --pt.user_seconds;
 	      pt.user_microseconds += 1000000;
@@ -268,7 +268,7 @@ pex_wait (struct pex_obj *obj, pid_t pid, int *status, struct pex_time *time)
 
 	  pt.system_seconds = r2.ru_stime.tv_sec - r1.ru_stime.tv_sec;
 	  pt.system_microseconds = r2.ru_stime.tv_usec - r1.ru_stime.tv_usec;
-	  if (pt.system_microseconds < 0)
+	  if ((int) pt.system_microseconds < 0)
 	    {
 	      --pt.system_seconds;
 	      pt.system_microseconds += 1000000;
