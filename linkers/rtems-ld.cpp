@@ -339,7 +339,8 @@ main (int argc, char* argv[])
     /*
      * Get the standard library paths
      */
-    rld::cc::get_standard_libpaths (libpaths);
+    if (standard_libs)
+      rld::cc::get_standard_libpaths (libpaths);
 
     /*
      * Get the command line libraries.
