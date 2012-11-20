@@ -69,8 +69,36 @@ namespace rld
     typedef std::list < object* > object_list;
 
     /**
+     * Return the basename of the file name.
+     *
+     * @param name The full file name.
+     * @return std::string The basename of the file.
+     */
+    std::string basename (const std::string& name);
+
+    /**
+     * Return the dirname of the file name.
+     *
+     * @param name The full file name.
+     * @return std::string The dirname of the file.
+     */
+    std::string dirname (const std::string& name);
+
+    /**
+     * Return the extension of the file name.
+     *
+     * @param name The full file name.
+     * @return std::string The extension of the file.
+     */
+    std::string extension (const std::string& name);
+
+    /**
      * Split a path from a string with a delimiter to the path container. Add
      * only the paths that exist and ignore those that do not.
+     *
+     * @param path The paths as a single string delimited by the path
+     *             separator.
+     * @param paths The split path paths.
      */
     void path_split (const std::string& path,
                      rld::files::paths& paths);
@@ -359,11 +387,11 @@ namespace rld
       /**
        * Is the image writable ?
        *
-       * @retval true The image is writeable.
-       * @retval false The image is not writeable.
+       * @retval true The image is writable.
+       * @retval false The image is not writable.
        */
-      bool is_writeable () const {
-        return writeable;
+      bool is_writable () const {
+        return writable;
       }
 
     private:
@@ -373,7 +401,7 @@ namespace rld
       int       fd_;         //< The file descriptor of the archive.
       elf::file elf_;        //< The libelf reference.
       int       symbol_refs; //< The number of symbols references made.
-      bool      writeable;   //< The image is writable.
+      bool      writable;    //< The image is writable.
     };
 
     /**
@@ -543,11 +571,6 @@ namespace rld
       void load_symbols (rld::symbols::table& symbols, bool local = false);
 
       /**
-       * Get the string from the string table.
-       */
-//      std::string get_string (int section, size_t offset);
-
-      /**
        * References to the image.
        */
       virtual int references () const;
@@ -572,18 +595,6 @@ namespace rld
        * not contained in an archive.
        */
       archive* get_archive ();
-
-#if 0
-      /**
-       * Number of sections in the object file.
-       */
-      int sections () const;
-
-      /**
-       * Section string index.
-       */
-      int section_strings () const;
-#endif
 
       /**
        * Return the unresolved symbol table for this object file.

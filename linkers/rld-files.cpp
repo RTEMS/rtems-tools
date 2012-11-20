@@ -79,6 +79,24 @@ namespace rld
       return name;
     }
 
+    std::string
+    dirname (const std::string& name)
+    {
+      size_t b = name.find_last_of (RLD_PATH_SEPARATOR);
+      if (b != std::string::npos)
+        return name.substr (0, b - 1);
+      return name;
+    }
+
+    std::string
+    extension (const std::string& name)
+    {
+      size_t b = name.find_last_of ('.');
+      if (b != std::string::npos)
+        return name.substr (b);
+      return name;
+    }
+
     void
     path_split (const std::string& path, rld::files::paths& paths)
     {
@@ -306,7 +324,7 @@ namespace rld
         references_ (0),
         fd_ (-1),
         symbol_refs (0),
-        writeable (false)
+        writable (false)
     {
     }
 
@@ -333,7 +351,7 @@ namespace rld
     }
 
     void
-    image::open (bool writeable_)
+    image::open (bool writable_)
     {
       const std::string path = name_.path ();
 
@@ -342,14 +360,14 @@ namespace rld
 
       if (rld::verbose () >= RLD_VERBOSE_DETAILS)
         std::cout << "image::open: " << name (). full ()
-                  << " writable:" << (char*) (writeable_ ? "yes" : "no")
+                  << " writable:" << (char*) (writable_ ? "yes" : "no")
                   << " refs:" << references_ + 1 << std::endl;
 
       if (fd_ < 0)
       {
-        writeable = writeable_;
+        writable = writable_;
 
-        if (writeable)
+        if (writable)
           fd_ = ::open (path.c_str (), OPEN_FLAGS | O_RDWR | O_CREAT | O_TRUNC, CREATE_MODE);
         else
           fd_ = ::open (path.c_str (), OPEN_FLAGS | O_RDONLY);
@@ -358,7 +376,7 @@ namespace rld
       }
       else
       {
-        if (writeable_ != writeable)
+        if (writable_ != writable)
           throw rld::error ("Cannot change write status", "open:" + path);
       }
 
@@ -914,7 +932,7 @@ namespace rld
       if (archive_)
         elf ().begin (name ().full (), archive_->elf(), name ().offset ());
       else
-        elf ().begin (name ().full (), fd ());
+        elf ().begin (name ().full (), fd (), is_writable ());
 
       /*
        * Cannot be an archive.
@@ -926,11 +944,13 @@ namespace rld
       /*
        * We only support executable or relocatable ELF files.
        */
-      if (!elf ().is_executable () && !elf ().is_relocatable ())
-        throw rld::error ("Invalid ELF type (only ET_EXEC/ET_REL supported).",
-                          "object-begin:" + name ().full ());
-
-      elf::check_file (elf ());
+      if (!is_writable ())
+      {
+        if (!elf ().is_executable () && !elf ().is_relocatable ())
+          throw rld::error ("Invalid ELF type (only ET_EXEC/ET_REL supported).",
+                            "object-begin:" + name ().full ());
+        elf::check_file (elf ());
+      }
     }
 
     void
@@ -1365,24 +1385,24 @@ namespace rld
     find_libraries (paths& libraries, paths& libpaths, paths& libs)
     {
       if (rld::verbose () >= RLD_VERBOSE_INFO)
-        std::cout << "Finding libraries:" << std::endl;
+        std::cout << "Finding libraries:." << std::endl;
       libraries.clear ();
       for (paths::size_type l = 0; l < libs.size (); ++l)
       {
         std::string lib = "lib" + libs[l] + ".a";
         if (rld::verbose () >= RLD_VERBOSE_DETAILS)
-          std::cout << "searching: " << lib << std::endl;
+          std::cout << " searching: " << lib << std::endl;
         bool found = false;
         for (paths::size_type p = 0; p < libpaths.size (); ++p)
         {
           std::string plib;
           path_join (libpaths[p], lib, plib);
           if (rld::verbose () >= RLD_VERBOSE_DETAILS)
-              std::cout << "checking: " << plib << std::endl;
+              std::cout << " checking: " << plib << std::endl;
           if (check_file (plib))
           {
             if (rld::verbose () >= RLD_VERBOSE_INFO)
-              std::cout << "found: " << plib << std::endl;
+              std::cout << " found: " << plib << std::endl;
             libraries.push_back (plib);
             found = true;
             break;

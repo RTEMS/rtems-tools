@@ -39,6 +39,7 @@ namespace rld
     typedef ::GElf_Half  elf_half;
     typedef ::GElf_Word  elf_word;
     typedef ::GElf_Xword elf_xword;
+    typedef ::Elf_Type   elf_type;
     typedef ::GElf_Addr  elf_addr;
     typedef ::GElf_Off   elf_off;
     typedef ::GElf_Sym   elf_sym;

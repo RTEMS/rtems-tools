@@ -82,6 +82,58 @@ namespace rld
       return out.str ();
     }
 
+    const std::string
+    metadata_object (const std::string&       name,
+                     rld::files::object_list& dependents,
+                     rld::files::cache&       cache)
+    {
+      const std::string script = script_text (dependents, cache);
+
+      std::string ext = files::extension (name);
+      std::string mdname =
+        name.substr (0, name.length () - ext.length ()) + "-metadata.o";
+
+      if (rld::verbose () >= RLD_VERBOSE_INFO)
+        std::cout << "metadata: " << mdname << std::endl;
+
+      files::object metadata (mdname);
+
+      metadata.open (true);
+      metadata.begin ();
+
+      elf::file& elf = metadata.elf ();
+
+      std::cout << "class: " << elf::object_class () << std::endl;
+
+      elf.set_header (ET_EXEC,
+                      elf::object_class (),
+                      elf::object_datatype (),
+                      elf::object_machine_type ());
+
+      elf::section md (elf,
+                       elf.section_count () + 1,
+                       ".rtemsmd",
+                       SHT_STRTAB,
+                       1,
+                       0,
+                       0,
+                       0,
+                       script.length ());
+
+      md.add_data (ELF_T_BYTE,
+                   1,
+                   script.length (),
+                   (void*) script.c_str ());
+
+      elf.add (md);
+      elf.write ();
+
+      metadata.end ();
+      metadata.close ();
+
+      return mdname;
+    }
+
     void
     archive (const std::string&       name,
              rld::files::object_list& dependents,
@@ -90,7 +142,11 @@ namespace rld
       if (rld::verbose () >= RLD_VERBOSE_INFO)
         std::cout << "outputter:archive: " << name << std::endl;
 
-      rld::files::object_list objects;
+      std::string metadata = metadata_object (name,
+                                              dependents,
+                                              cache);
+
+      files::object_list objects;
       cache.get_objects (objects);
 
       for (rld::files::object_list::iterator oi = dependents.begin ();

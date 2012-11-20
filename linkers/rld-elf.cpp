@@ -45,8 +45,8 @@ namespace rld
      * header of and all header must match. We cannot mix object module types.
      */
     static unsigned int elf_object_class = ELFCLASSNONE;
-    static unsigned int elf_object_data = ELFDATANONE;
     static unsigned int elf_object_machinetype = EM_NONE;
+    static unsigned int elf_object_datatype = ELFDATANONE;
 
     /**
      * A single place to initialise the libelf library. This must be called
@@ -62,6 +62,53 @@ namespace rld
           libelf_error ("initialisation");
         libelf_initialised = true;
       }
+    }
+
+    section::section (file&              file_,
+                      int                index_,
+                      const std::string& name_,
+                      elf_word           type,
+                      elf_xword          alignment,
+                      elf_xword          flags,
+                      elf_addr           addr,
+                      elf_off            offset,
+                      elf_xword          size,
+                      elf_word           link,
+                      elf_word           info,
+                      elf_xword          entry_size)
+      : file_ (&file_),
+        index_ (index_),
+        name_ (name_),
+        scn (0),
+        data_ (0)
+    {
+      if (!file_.is_writable ())
+        throw rld::error ("not writable",
+                          "elf:section" + file_.name () + " (" + name_ + ')');
+
+      scn = ::elf_newscn (file_.get_elf ());
+      if (!scn)
+        libelf_error ("elf_newscn: " + name_ + " (" + file_.name () + ')');
+
+      if (::gelf_getshdr(scn, &shdr) == 0)
+        libelf_error ("gelf_getshdr: " + name_ + " (" + file_.name () + ')');
+
+      shdr.sh_name = 0;
+      shdr.sh_type = type;
+      shdr.sh_flags = flags;
+      shdr.sh_addr = addr;
+      shdr.sh_offset = offset;
+      shdr.sh_size = size;
+      shdr.sh_link = link;
+      shdr.sh_info = info;
+      shdr.sh_addralign = alignment;
+      shdr.sh_entsize = entry_size;
+
+      if (type == SHT_NOBITS)
+        add_data (ELF_T_BYTE, alignment, size);
+
+      if (!gelf_update_shdr (scn, &shdr))
+        libelf_error ("gelf_update_shdr: " + name_ + " (" + file_.name () + ')');
     }
 
     section::section (file& file_, int index_)
@@ -82,7 +129,7 @@ namespace rld
       if (shdr.sh_type != SHT_NULL)
       {
         name_ = file_.get_string (shdr.sh_name);
-        data_ = ::elf_getdata (scn, NULL);
+        data_ = ::elf_getdata (scn, 0);
         if (!data_)
           libelf_error ("elf_getdata: " + name_ + '(' + file_.name () + ')');
       }
@@ -107,87 +154,111 @@ namespace rld
       memset (&shdr, 0, sizeof (shdr));
     }
 
+    void
+    section::add_data (elf_type  type,
+                       elf_xword alignment,
+                       elf_xword size,
+                       void*     buffer,
+                       elf_off   offset)
+    {
+      check_writable ("add_data");
+
+      data_ = ::elf_newdata(scn);
+      if (!data_)
+        libelf_error ("elf_newdata: " + name_ + " (" + file_->name () + ')');
+
+      data_->d_type = type;
+      data_->d_off = offset;
+      data_->d_size = size;
+      data_->d_align = alignment;
+      data_->d_version = EV_CURRENT;
+      data_->d_buf = buffer;
+
+      if (!gelf_update_shdr (scn, &shdr))
+        libelf_error ("gelf_update_shdr: " + name_ + " (" + file_->name () + ')');
+    }
+
     int
     section::index () const
     {
-      check ();
+      check ("index");
       return index_;
     }
 
     const std::string&
     section::name () const
     {
-      check ();
+      check ("name");
       return name_;
     }
 
     elf_data*
     section::data ()
     {
-      check ();
+      check ("data");
       return data_;
     }
 
     elf_word
     section::type () const
     {
-      check ();
+      check ("type");
       return shdr.sh_type;
     }
 
     elf_xword
     section::flags () const
     {
-      check ();
+      check ("flags");
       return shdr.sh_flags;
     }
 
     elf_addr
     section::address () const
     {
-      check ();
+      check ("address");
       return shdr.sh_addr;
     }
 
     elf_xword
     section::alignment () const
     {
-      check ();
+      check ("alignment");
       return shdr.sh_addralign;
     }
 
     elf_off
     section::offset () const
     {
-      check ();
+      check ("offset");
       return shdr.sh_offset;
     }
 
     elf_word
     section::link () const
     {
-      check ();
+      check ("link");
       return shdr.sh_link;
     }
 
     elf_word
     section::info () const
     {
-      check ();
+      check ("info");
       return shdr.sh_info;
     }
 
     elf_xword
     section::size () const
     {
-      check ();
+      check ("size");
       return shdr.sh_size;
     }
 
     elf_xword
     section::entry_size () const
     {
-      check ();
+      check ("entry_size");
       return shdr.sh_entsize;
     }
 
@@ -198,10 +269,62 @@ namespace rld
     }
 
     void
-    section::check () const
+    section::set_name (unsigned int index)
     {
-      if (!file_ || (index_ < 0))
-        throw rld::error ("Invalid section.", "section:check:");
+      check_writable ("set_name");
+      shdr.sh_name = index;
+      if (!gelf_update_shdr (scn, &shdr))
+        libelf_error ("gelf_update_shdr: " + name_ + " (" + file_->name () + ')');
+    }
+
+    void
+    section::check (const char* where) const
+    {
+      if (!file_ || (index_ < 0) || !scn)
+      {
+        std::string w = where;
+        throw rld::error ("Section not initialised.", "section:check:" + w);
+      }
+    }
+
+    void
+    section::check_writable (const char* where) const
+    {
+      check (where);
+      if (!file_->is_writable ())
+      {
+        std::string w = where;
+        throw rld::error ("File is read-only.", "section:check:");
+      }
+    }
+
+    program_header::program_header ()
+    {
+      memset (&phdr, 0, sizeof (phdr));
+    }
+
+    program_header::~program_header ()
+    {
+    }
+
+    void
+    program_header::set (elf_word type,
+                         elf_word flags,
+                         elf_off offset,
+                         elf_xword filesz,
+                         elf_xword memsz,
+                         elf_xword align,
+                         elf_addr vaddr,
+                         elf_addr paddr)
+    {
+      phdr.p_type = type;
+      phdr.p_flags = flags;
+      phdr.p_offset = offset;
+      phdr.p_vaddr = vaddr;
+      phdr.p_paddr = paddr;
+      phdr.p_filesz = filesz;
+      phdr.p_memsz = memsz;
+      phdr.p_align = align;
     }
 
     file::file ()
@@ -325,7 +448,7 @@ namespace rld
       writable = writable_;
       elf_ = elf__;
 
-      if (!archive)
+      if (!archive && !writable)
         load_header ();
     }
 
@@ -338,46 +461,112 @@ namespace rld
           std::cout << "libelf::end: " << elf_
                     << ' ' << name_ << std::endl;
         ::elf_end (elf_);
+        elf_ = 0;
       }
 
-      fd_ = -1;
-      name_.clear ();
-      archive = false;
-      elf_ = 0;
-      oclass = 0;
-      ident_str = 0;
-      ident_size = 0;
-
-      if (!writable)
+      if (fd_ >= 0)
       {
-        if (ehdr)
+        if (!writable)
         {
-          delete ehdr;
-          ehdr = 0;
+          if (ehdr)
+          {
+            delete ehdr;
+            ehdr = 0;
+          }
+          if (phdr)
+          {
+            delete phdr;
+            phdr = 0;
+          }
         }
-        if (phdr)
-        {
-          delete phdr;
-          phdr = 0;
-        }
+
+        fd_ = -1;
+        name_.clear ();
+        archive = false;
+        elf_ = 0;
+        oclass = 0;
+        ident_str = 0;
+        ident_size = 0;
+        writable = false;
+        secs.clear ();
+      }
+    }
+
+    void
+    file::write ()
+    {
+      check_writable ("write");
+
+      std::string shstrtab;
+
+      for (section_table::iterator sti = secs.begin ();
+           sti != secs.end ();
+           ++sti)
+      {
+        section& sec = (*sti).second;
+        int added_at = shstrtab.size ();
+        shstrtab += '\0' + sec.name ();
+        sec.set_name (added_at + 1);
       }
 
-      writable = false;
+      unsigned int shstrtab_name = shstrtab.size () + 1;
 
-      stab.clear ();
-      secs.clear ();
+      /*
+       * Done this way to clang happy on darwin.
+       */
+      shstrtab += '\0';
+      shstrtab += ".shstrtab";
+
+      /*
+       * Create the string table section.
+       */
+      section shstrsec (*this,
+                        secs.size () + 1,          /* index */
+                        ".shstrtab",               /* name */
+                        SHT_STRTAB,                /* type */
+                        1,                         /* alignment */
+                        SHF_STRINGS | SHF_ALLOC,   /* flags */
+                        0,                         /* address */
+                        0,                         /* offset */
+                        shstrtab.size ());         /* size */
+
+      shstrsec.add_data (ELF_T_BYTE,
+                         1,
+                         shstrtab.size (),
+                         (void*) shstrtab.c_str ());
+
+      shstrsec.set_name (shstrtab_name);
+
+      ::elf_setshstrndx (elf_, shstrsec.index ());
+      ::elf_flagehdr (elf_, ELF_C_SET, ELF_F_DIRTY);
+
+      if (elf_update (elf_, ELF_C_NULL) < 0)
+        libelf_error ("elf_update:layout: " + name_);
+
+      ::elf_flagphdr (elf_, ELF_C_SET, ELF_F_DIRTY);
+
+      if (::elf_update (elf_, ELF_C_WRITE) < 0)
+        libelf_error ("elf_update:write: " + name_);
     }
 
     void
     file::load_header ()
     {
-      check ("get_header");
+      check ("load_header");
 
-      if (!writable && !ehdr)
-        ehdr = new elf_ehdr;
+      if (!ehdr)
+      {
+        if (!writable)
+          ehdr = new elf_ehdr;
+        else
+        {
+          throw rld::error ("No ELF header; set the header first",
+                            "elf:file:load_header: " + name_);
+        }
+      }
 
-      if (::gelf_getehdr (elf_, ehdr) == NULL)
-        error ("get-header");
+      if (::gelf_getehdr (elf_, ehdr) == 0)
+        error ("gelf_getehdr");
     }
 
     unsigned int
@@ -445,7 +634,10 @@ namespace rld
       {
         check ("load_sections_headers");
         for (int sn = 0; sn < section_count (); ++sn)
-          secs.push_back (section (*this, sn));
+        {
+          section sec = section (*this, sn);
+          secs[sec.name ()] = sec;
+        }
       }
     }
 
@@ -454,12 +646,13 @@ namespace rld
     {
       load_sections ();
       filtered_secs.clear ();
-      for (sections::iterator si = secs.begin ();
+      for (section_table::iterator si = secs.begin ();
            si != secs.end ();
            ++si)
       {
-        if ((type == 0) || ((*si).type () == type))
-          filtered_secs.push_back (*si);
+        section& sec = (*si).second;
+        if ((type == 0) || (sec.type () == type))
+          filtered_secs.push_back (&sec);
       }
     }
 
@@ -476,7 +669,7 @@ namespace rld
              si != symbol_secs.end ();
              ++si)
         {
-          section& sec = *si;
+          section& sec = *(*si);
           int      syms = sec.entries ();
 
           for (int s = 0; s < syms; ++s)
@@ -599,16 +792,38 @@ namespace rld
     {
       check_writable ("set_header");
 
-      ehdr = (elf_ehdr*) ::gelf_newehdr (elf_, class_);
+      if (ehdr)
+          throw rld::error ("ELF header already set",
+                            "elf:file:set_header: " + name_);
 
+      ehdr = (elf_ehdr*) ::gelf_newehdr (elf_, class_);
       if (ehdr == 0)
-        error ("set-header");
+        error ("gelf_newehdr");
+
+      if (::gelf_getehdr (elf_, ehdr) == 0)
+        error ("gelf_getehdr");
 
       ehdr->e_type = type;
       ehdr->e_machine = machinetype;
+      ehdr->e_flags = 0;
       ehdr->e_ident[EI_DATA] = datatype;
+      ehdr->e_version = EV_CURRENT;
 
-      //::gelf_flagphdr (elf_, ELF_C_SET , ELF_F_DIRTY);
+      ::elf_flagphdr (elf_, ELF_C_SET , ELF_F_DIRTY);
+    }
+
+    void
+    file::add (section& sec)
+    {
+      check_writable ("add");
+      secs[sec.name ()] = sec;
+    }
+
+    void
+    file::add (program_header& phdr)
+    {
+      check_writable ("add");
+      phdrs.push_back (phdr);
     }
 
     elf*
@@ -719,9 +934,28 @@ namespace rld
       throw rld::error (what, "machine-type");
     }
 
-    const std::string machine_type ()
+    const std::string
+    machine_type ()
     {
       return machine_type (elf_object_machinetype);
+    }
+
+    unsigned int
+    object_class ()
+    {
+      return elf_object_class;
+    }
+
+    unsigned int
+    object_machine_type ()
+    {
+      return elf_object_machinetype;
+    }
+
+    unsigned int
+    object_datatype ()
+    {
+      return elf_object_datatype;
     }
 
     void
@@ -743,9 +977,9 @@ namespace rld
         throw rld::error ("Mixed classes not allowed (32bit/64bit).",
                           "elf:check_file: " + file.name ());
 
-      if (elf_object_data == ELFDATANONE)
-        elf_object_data = file.data_type ();
-      else if (elf_object_data != file.data_type ())
+      if (elf_object_datatype == ELFDATANONE)
+        elf_object_datatype = file.data_type ();
+      else if (elf_object_datatype != file.data_type ())
         throw rld::error ("Mixed data types not allowed (LSB/MSB).",
                           "elf:check_file: " + file.name ());
     }
