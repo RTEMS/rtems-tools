@@ -240,7 +240,7 @@ namespace rld
       const std::string& oname () const;
 
       /**
-       * The object's offset in the archive.
+       * The object's offset in the archive or on disk.
        */
       off_t offset () const;
 
@@ -253,7 +253,7 @@ namespace rld
       std::string aname_;  //< The archive name.
       std::string oname_;  //< The object name.
       off_t       offset_; //< The object's offset in the archive.
-      size_t      size_;   //< The object's size in teh archive.
+      size_t      size_;   //< The object's size in the archive or on disk.
     };
 
     /**
@@ -308,7 +308,7 @@ namespace rld
       /**
        * Read a block from the file.
        */
-      virtual ssize_t read (uint8_t* buffer, size_t size);
+      virtual ssize_t read (void* buffer, size_t size);
 
       /**
        * Write a block from the file.
@@ -778,6 +778,15 @@ namespace rld
       objects  objects_;  //< The object files.
       bool     opened;    //< The cache is open.
     };
+
+    /**
+     * Copy the in file to the out file.
+     *
+     * @param in The input file.
+     * @param out The output file.
+     * @param size The amount to copy. If 0 the whole on in is copied.
+     */
+    void copy_file (image& in, image& out, size_t size = 0);
 
     /**
      * Find the libraries given the list of libraries as bare name which

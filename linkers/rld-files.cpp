@@ -402,21 +402,41 @@ namespace rld
     }
 
     ssize_t
-    image::read (uint8_t* buffer, size_t size)
+    image::read (void* buffer_, size_t size)
     {
-      ssize_t rsize = ::read (fd (), buffer, size);
-      if (rsize < 0)
-        throw rld::error (strerror (errno), "read:" + name ().path ());
-      return rsize;
+      uint8_t* buffer = static_cast <uint8_t*> (buffer_);
+      size_t   have_read = 0;
+      size_t   to_read = size;
+      while (have_read < size)
+      {
+        ssize_t rsize = ::read (fd (), buffer, to_read);
+        if (rsize < 0)
+          throw rld::error (strerror (errno), "read:" + name ().path ());
+        if (rsize == 0)
+          break;
+        have_read += rsize;
+        to_read -= rsize;
+        buffer += rsize;
+      }
+      return have_read;
     }
 
     ssize_t
-    image::write (const void* buffer, size_t size)
+    image::write (const void* buffer_, size_t size)
     {
-      ssize_t wsize = ::write (fd (), buffer, size);
-      if (wsize < 0)
-        throw rld::error (strerror (errno), "write:" + name ().path ());
-      return wsize;
+      const uint8_t* buffer = static_cast <const uint8_t*>  (buffer_);
+      size_t         have_written = 0;
+      size_t         to_write = size;
+      while (have_written < size)
+      {
+        ssize_t wsize = ::write (fd (), buffer, to_write);
+        if (wsize < 0)
+          throw rld::error (strerror (errno), "write:" + name ().path ());
+        have_written += wsize;
+        to_write -= wsize;
+        buffer += wsize;
+      }
+      return have_written;
     }
 
     void
@@ -487,6 +507,10 @@ namespace rld
     {
       #define COPY_FILE_BUFFER_SIZE (8 * 1024)
       uint8_t* buffer = 0;
+
+      if (size == 0)
+        size = in.name ().size ();
+
       try
       {
         buffer = new uint8_t[COPY_FILE_BUFFER_SIZE];
@@ -792,6 +816,10 @@ namespace rld
     void
     archive::create (object_list& objects)
     {
+      if (rld::verbose () >= RLD_VERBOSE_INFO)
+        std::cout << "archive::create: " << name ().full ()
+                  << ", objects: " << objects.size () << std::endl;
+
       open (true);
 
       try
@@ -838,7 +866,7 @@ namespace rld
 
             if (oname.length () > rld_archive_fname_size)
             {
-              size_t pos = extended_file_names.find_first_of (oname + '\n');
+              size_t pos = extended_file_names.find (oname + '\n');
               if (pos == std::string::npos)
                 throw rld_error_at ("extended file name not found");
               std::ostringstream oss;
@@ -848,7 +876,7 @@ namespace rld
 
             write_header (oname, 0, 0, 0, 0666, obj.name ().size ());
             obj.seek (0);
-            copy_file (obj, *this, obj.name ().size ());
+            copy_file (obj, *this);
           }
           catch (...)
           {
@@ -1051,20 +1079,6 @@ namespace rld
     {
       return archive_;
     }
-
-#if 0
-    int
-    object::sections () const
-    {
-      return ehdr.e_shnum;
-    }
-
-    int
-    object::section_strings () const
-    {
-      return ehdr.e_shstrndx;
-    }
-#endif
 
     rld::symbols::table&
     object::unresolved_symbols ()
