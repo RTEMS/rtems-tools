@@ -71,7 +71,7 @@ namespace rld
        * Construct a linker symbol that is internally created.
        */
       symbol (const std::string&  name,
-              const elf::elf_addr value);
+              const elf::elf_addr value = 0);
 
       /**
        * Construct a linker symbol that is internally created.
