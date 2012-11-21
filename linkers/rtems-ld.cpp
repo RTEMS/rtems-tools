@@ -297,6 +297,12 @@ main (int argc, char* argv[])
       objects.push_back (*argv++);
 
     /*
+     * The 'entry' point symbol needs to be added to the undefines so it is
+     * resolved.
+     */
+    undefines.push_back (rld::symbols::symbol (entry));
+
+    /*
      * Load the symbol table with the defined symbols from the defines bucket.
      */
     rld::symbols::load (defines, symbols);
