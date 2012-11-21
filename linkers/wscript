@@ -166,6 +166,7 @@ def bld_libelf(bld):
             source = common + 'native-elf-format',
             name = 'native-elf-format',
             rule   = './${SRC} > ${TGT}')
+        bld.add_group ()
     elif sys.platform == 'win32':
         host_source += [libelf + 'mmap_win32.c']
 
