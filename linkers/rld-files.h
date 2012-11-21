@@ -723,7 +723,7 @@ namespace rld
       /**
        * Get the added objects. Does not include the ones in th archives.
        */
-      void get_objects (object_list& list);
+      void get_objects (object_list& list) const;
 
       /**
        * Get the paths.

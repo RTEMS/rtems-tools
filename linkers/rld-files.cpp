@@ -1319,14 +1319,14 @@ namespace rld
     }
 
     void
-    cache::get_objects (object_list& list)
+    cache::get_objects (object_list& list) const
     {
       list.clear ();
-      for (paths::iterator pi = paths_.begin ();
+      for (paths::const_iterator pi = paths_.begin ();
            pi != paths_.end ();
            ++pi)
       {
-        objects::iterator oi = objects_.find (*pi);
+        objects::const_iterator oi = objects_.find (*pi);
         if (oi == objects_.end ())
           throw rld_error_at ("path not found in objects");
         list.push_back ((*oi).second);
