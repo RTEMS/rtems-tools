@@ -140,7 +140,9 @@ main (int argc, char* argv[])
     std::string         cc_name;
     bool                standard_libs = false;
     bool                exec_prefix_set = false;
+#if HAVE_WARNINGS
     bool                warnings = false;
+#endif
 
     libpaths.push_back (".");
 
@@ -163,7 +165,9 @@ main (int argc, char* argv[])
           break;
 
         case 'w':
+#if HAVE_WARNINGS
           warnings = true;
+#endif
           break;
 
         case 'l':
