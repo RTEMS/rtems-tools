@@ -44,49 +44,57 @@ namespace rld
     /**
      * Output the object file list as a string.
      *
+     * @param entry The name of the entry point symbol.
      * @param dependents The list of dependent object files
      * @param cache The file cache for the link. Includes the object list
      *              the user requested.
      * @return std::string The list as a text string.
      */
-    std::string script_text (rld::files::object_list& dependents,
-                             rld::files::cache&       cache);
+    std::string script_text (const std::string&        entry,
+                             const files::object_list& dependents,
+                             const files::cache&       cache);
     /**
      * Output the object files as an archive format file with the metadata as
      * the first ELF file.
      *
      * @param name The name of the archive.
+     * @param entry The name of the entry point symbol.
      * @param dependents The list of dependent object files
      * @param cache The file cache for the link. Includes the object list
      *              the user requested.
      */
-    void archive (const std::string&       name,
-                  rld::files::object_list& dependents,
-                  rld::files::cache&       cache);
+    void archive (const std::string&        name,
+                  const std::string&        entry,
+                  const files::object_list& dependents,
+                  const files::cache&       cache);
 
     /**
      * Output the object file list as a script.
      *
      * @param name The name of the script.
+     * @param entry The name of the entry point symbol.
      * @param dependents The list of dependent object files
      * @param cache The file cache for the link. Includes the object list
      *              the user requested.
      */
-    void script (const std::string&       name,
-                 rld::files::object_list& dependents,
-                 rld::files::cache&       cache);
+    void script (const std::string&        name,
+                 const std::string&        entry,
+                 const files::object_list& dependents,
+                 const files::cache&       cache);
 
     /**
      * Output the object files as a compressed list of files.
      *
      * @param name The name of the script.
+     * @param entry The name of the entry point symbol.
      * @param dependents The list of dependent object files
      * @param cache The file cache for the link. Includes the object list
      *              the user requested.
      */
-    void application (const std::string&  name,
-                      files::object_list& dependents,
-                      files::cache&       cache);
+    void application (const std::string&        name,
+                      const std::string&        entry,
+                      const files::object_list& dependents,
+                      const files::cache&       cache);
 
   }
 }

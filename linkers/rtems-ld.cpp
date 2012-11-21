@@ -166,7 +166,7 @@ main (int argc, char* argv[])
     rld::symbols::table  base_symbols;
     rld::symbols::table  symbols;
     rld::symbols::table  undefined;
-    std::string          entry;
+    std::string          entry = "rtems";
     std::string          output = "a.out";
     std::string          base_name;
     std::string          cc_name;
@@ -388,13 +388,13 @@ main (int argc, char* argv[])
       switch (output_type)
       {
         case rld::outputter::ot_script:
-          rld::outputter::script (output, dependents, cache);
+          rld::outputter::script (output, entry, dependents, cache);
           break;
         case rld::outputter::ot_archive:
-          rld::outputter::archive (output, dependents, cache);
+          rld::outputter::archive (output, entry, dependents, cache);
           break;
         case rld::outputter::ot_application:
-          rld::outputter::application (output, dependents, cache);
+          rld::outputter::application (output, entry, dependents, cache);
           break;
         default:
           throw rld::error ("invalid output type", "output");

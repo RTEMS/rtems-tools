@@ -41,20 +41,22 @@ namespace rld
   namespace outputter
   {
     const std::string
-    script_text (files::object_list& dependents,
-                 files::cache&       cache)
+    script_text (const std::string&        entry,
+                 const files::object_list& dependents,
+                 const files::cache&       cache)
     {
       std::ostringstream out;
       files::object_list objects;
-
-      /*
-       * The merge removes them from the dependent list.
-       */
       files::object_list dep_copy (dependents);
 
       cache.get_objects (objects);
       objects.merge (dep_copy);
       objects.unique ();
+
+      if (rld::verbose () >= RLD_VERBOSE_INFO)
+        std::cout << " e: " << entry << std::endl;
+
+      out << "e: " << entry << std::endl;
 
       for (files::object_list::iterator oi = objects.begin ();
            oi != objects.end ();
@@ -89,14 +91,15 @@ namespace rld
     }
 
     void
-    metadata_object (files::object&      metadata,
-                     files::object_list& dependents,
-                     files::cache&       cache)
+    metadata_object (files::object&            metadata,
+                     const std::string&        entry,
+                     const files::object_list& dependents,
+                     const files::cache&       cache)
     {
       if (rld::verbose () >= RLD_VERBOSE_INFO)
         std::cout << "metadata: " << metadata.name ().full () << std::endl;
 
-      const std::string script = script_text (dependents, cache);
+      const std::string script = script_text (entry, dependents, cache);
 
       metadata.open (true);
       metadata.begin ();
@@ -131,9 +134,10 @@ namespace rld
     }
 
     void
-    archive (const std::string&  name,
-             files::object_list& dependents,
-             files::cache&       cache)
+    archive (const std::string&        name,
+             const std::string&        entry,
+             const files::object_list& dependents,
+             const files::cache&       cache)
     {
       if (rld::verbose () >= RLD_VERBOSE_INFO)
         std::cout << "outputter:archive: " << name
@@ -145,11 +149,8 @@ namespace rld
 
       files::object metadata (mdname);
 
-      metadata_object (metadata, dependents, cache);
+      metadata_object (metadata, entry, dependents, cache);
 
-      /*
-       * The merge removes them from the dependent list.
-       */
       files::object_list dep_copy (dependents);
       files::object_list objects;
 
@@ -163,9 +164,10 @@ namespace rld
     }
 
     void
-    script (const std::string&  name,
-            files::object_list& dependents,
-            files::cache&       cache)
+    script (const std::string&        name,
+            const std::string&        entry,
+            const files::object_list& dependents,
+            const files::cache&       cache)
     {
       if (rld::verbose () >= RLD_VERBOSE_INFO)
         std::cout << "outputter:script: " << name << std::endl;
@@ -180,7 +182,7 @@ namespace rld
 
       try
       {
-        out << script_text (dependents, cache);
+        out << script_text (entry, dependents, cache);
       }
       catch (...)
       {
@@ -246,9 +248,10 @@ namespace rld
     }
 
     void
-    application (const std::string&  name,
-                 files::object_list& dependents,
-                 files::cache&       cache)
+    application (const std::string&        name,
+                 const std::string&        entry,
+                 const files::object_list& dependents,
+                 const files::cache&       cache)
     {
       if (rld::verbose () >= RLD_VERBOSE_INFO)
         std::cout << "outputter:application: " << name << std::endl;
@@ -259,10 +262,10 @@ namespace rld
       std::string        script;
       files::image       app (name);
 
-      header = "RTEMS-APP,00000000,01.00.00,LZ77,00000000\n";
+      header = "RAP,00000000,01.00.00,LZ77,00000000\n";
       header += '\0';
 
-      script = script_text (dependents, cache);
+      script = script_text (entry, dependents, cache);
 
       cache.get_objects (objects);
       objects.merge (dep_copy);
