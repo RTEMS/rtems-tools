@@ -32,6 +32,16 @@ namespace rld
   namespace outputter
   {
     /**
+     * The types of output.
+     */
+    enum type
+    {
+      ot_script,
+      ot_archive,
+      ot_application
+    };
+
+    /**
      * Output the object file list as a string.
      *
      * @param dependents The list of dependent object files
@@ -42,7 +52,8 @@ namespace rld
     std::string script_text (rld::files::object_list& dependents,
                              rld::files::cache&       cache);
     /**
-     * Output the object file list as a script.
+     * Output the object files as an archive format file with the metadata as
+     * the first ELF file.
      *
      * @param name The name of the archive.
      * @param dependents The list of dependent object files
@@ -64,6 +75,19 @@ namespace rld
     void script (const std::string&       name,
                  rld::files::object_list& dependents,
                  rld::files::cache&       cache);
+
+    /**
+     * Output the object files as a compressed list of files.
+     *
+     * @param name The name of the script.
+     * @param dependents The list of dependent object files
+     * @param cache The file cache for the link. Includes the object list
+     *              the user requested.
+     */
+    void application (const std::string&  name,
+                      files::object_list& dependents,
+                      files::cache&       cache);
+
   }
 }
 

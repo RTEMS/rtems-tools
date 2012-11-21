@@ -170,7 +170,7 @@ main (int argc, char* argv[])
     std::string          output = "a.out";
     std::string          base_name;
     std::string          cc_name;
-    bool                 script = false;
+    rld::outputter::type output_type = rld::outputter::ot_application;
     bool                 standard_libs = true;
     bool                 exec_prefix_set = false;
     bool                 map = false;
@@ -211,7 +211,7 @@ main (int argc, char* argv[])
           break;
 
         case 'S':
-          script = true;
+          output_type = rld::outputter::ot_script;
           break;
 
         case 'l':
@@ -385,10 +385,20 @@ main (int argc, char* argv[])
       /**
        * Output the file.
        */
-      if (script)
-        rld::outputter::script (output, dependents, cache);
-      else
-        rld::outputter::archive (output, dependents, cache);
+      switch (output_type)
+      {
+        case rld::outputter::ot_script:
+          rld::outputter::script (output, dependents, cache);
+          break;
+        case rld::outputter::ot_archive:
+          rld::outputter::archive (output, dependents, cache);
+          break;
+        case rld::outputter::ot_application:
+          rld::outputter::application (output, dependents, cache);
+          break;
+        default:
+          throw rld::error ("invalid output type", "output");
+      }
 
       /**
        * Check for warnings.
