@@ -43,7 +43,8 @@ namespace rld
     const std::string
     script_text (const std::string&        entry,
                  const files::object_list& dependents,
-                 const files::cache&       cache)
+                 const files::cache&       cache,
+                 bool                      not_in_archive)
     {
       std::ostringstream out;
       files::object_list objects;
@@ -63,11 +64,22 @@ namespace rld
            ++oi)
       {
         files::object& obj = *(*oi);
+        std::string    name = obj.name ().basename ();
+
+        if (not_in_archive)
+        {
+          size_t pos = name.find (':');
+          if (pos != std::string::npos)
+            name[pos] = '_';
+          pos = name.find ('@');
+          if (pos != std::string::npos)
+            name = name.substr (0, pos);
+        }
 
         if (rld::verbose () >= RLD_VERBOSE_INFO)
-          std::cout << " o: " << obj.name ().full () << std::endl;
+          std::cout << " o: " << name << std::endl;
 
-        out << "o:" << obj.name ().basename () << std::endl;
+        out << "o:" << name << std::endl;
 
         symbols::table& unresolved = obj.unresolved_symbols ();
 
@@ -99,7 +111,7 @@ namespace rld
       if (rld::verbose () >= RLD_VERBOSE_INFO)
         std::cout << "metadata: " << metadata.name ().full () << std::endl;
 
-      const std::string script = script_text (entry, dependents, cache);
+      const std::string script = script_text (entry, dependents, cache, true);
 
       metadata.open (true);
       metadata.begin ();
@@ -182,7 +194,7 @@ namespace rld
 
       try
       {
-        out << script_text (entry, dependents, cache);
+        out << script_text (entry, dependents, cache, false);
       }
       catch (...)
       {
@@ -265,7 +277,7 @@ namespace rld
       header = "RAP,00000000,01.00.00,LZ77,00000000\n";
       header += '\0';
 
-      script = script_text (entry, dependents, cache);
+      script = script_text (entry, dependents, cache, true);
 
       cache.get_objects (objects);
       objects.merge (dep_copy);
