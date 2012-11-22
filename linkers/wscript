@@ -89,6 +89,7 @@ def build(bld):
     rld_source = ['rld-elf.cpp',
                   'rld-files.cpp',
                   'rld-cc.cpp',
+                  'rld-compression.cpp',
                   'rld-outputter.cpp',
                   'rld-process.cpp',
                   'rld-resolver.cpp',

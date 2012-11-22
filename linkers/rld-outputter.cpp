@@ -33,8 +33,7 @@
 #include <string.h>
 
 #include <rld.h>
-
-#include "fastlz.h"
+#include <rld-compression.h>
 
 namespace rld
 {
@@ -205,60 +204,6 @@ namespace rld
       out.close ();
     }
 
-    /**
-     * Append the output data to the output buffer and if full compress and
-     * write to the output file. If the output buffer is 0 flush the output
-     * buffer.
-     */
-    static void
-    app_write_output (files::image&  out,
-                      const uint8_t* out_buffer,
-                      const size_t   out_buffer_size,
-                      size_t&        out_buffer_level,
-                      const void*    output_,
-                      size_t         outputting,
-                      uint8_t*       compress_buffer,
-                      size_t&        out_total)
-    {
-      const uint8_t* output = static_cast <const uint8_t*> (output_);
-
-      while (outputting)
-      {
-        if (output)
-        {
-          size_t appending;
-
-          if (outputting > (out_buffer_size - out_buffer_level))
-            appending = out_buffer_size - out_buffer_level;
-          else
-            appending = outputting;
-
-          ::memcpy ((void*) (out_buffer + out_buffer_level),
-                    output,
-                    appending);
-
-          out_buffer_level += appending;
-          outputting -= appending;
-        }
-        else
-        {
-          outputting = 0;
-        }
-
-        if (!output || (out_buffer_level >= out_buffer_size))
-        {
-          int writing =
-            ::fastlz_compress (out_buffer, out_buffer_level, compress_buffer);
-
-          out.write (compress_buffer, writing);
-
-          out_total += writing;
-
-          out_buffer_level = 0;
-        }
-      }
-    }
-
     void
     application (const std::string&        name,
                  const std::string&        entry,
@@ -286,30 +231,17 @@ namespace rld
       app.open (true);
       app.write (header.c_str (), header.size ());
 
-      #define INPUT_BUFFER_SIZE  (64 * 1024)
-      #define OUTPUT_BUFFER_SIZE (128 * 1024)
-      #define FASTLZ_BUFFER_SIZE (OUTPUT_BUFFER_SIZE + ((int) (OUTPUT_BUFFER_SIZE * 0.10)))
+      #define APP_BUFFER_SIZE  (128 * 1024)
 
-      uint8_t* in_buffer = 0;
-      uint8_t* out_buffer = 0;
-      uint8_t* compress_buffer = 0;
-      size_t   out_level = 0;
-      size_t   in_total = 0;
-      size_t   out_total = 0;
+      compress::compressor compressor (app, APP_BUFFER_SIZE);
+
+      uint8_t* buffer = 0;
 
       try
       {
-        in_buffer = new uint8_t[INPUT_BUFFER_SIZE];
-        out_buffer = new uint8_t[OUTPUT_BUFFER_SIZE];
-        compress_buffer = new uint8_t[FASTLZ_BUFFER_SIZE];
+        buffer = new uint8_t[APP_BUFFER_SIZE];
 
-        app_write_output (app,
-                          out_buffer, OUTPUT_BUFFER_SIZE, out_level,
-                          script.c_str (), script.size (),
-                          compress_buffer,
-                          out_total);
-
-        in_total += script.size ();
+        compressor.write (script.c_str (), script.size ());
 
         for (files::object_list::iterator oi = objects.begin ();
              oi != objects.end ();
@@ -328,18 +260,11 @@ namespace rld
             while (in_size)
             {
               size_t reading =
-                in_size < INPUT_BUFFER_SIZE ? in_size : INPUT_BUFFER_SIZE;
+                in_size < APP_BUFFER_SIZE ? in_size : APP_BUFFER_SIZE;
 
-              obj.read (in_buffer, reading);
+              obj.read (buffer, reading);
 
-              app_write_output (app,
-                                out_buffer, OUTPUT_BUFFER_SIZE, out_level,
-                                in_buffer, reading,
-                                compress_buffer,
-                                out_total);
-
-              in_size -= reading;
-              in_total += reading;
+              compressor.write (buffer, reading);
             }
           }
           catch (...)
@@ -353,30 +278,23 @@ namespace rld
       }
       catch (...)
       {
-        delete [] in_buffer;
-        delete [] out_buffer;
-        delete [] compress_buffer;
+        delete [] buffer;
         throw;
       }
 
-      app_write_output (app,
-                        out_buffer, OUTPUT_BUFFER_SIZE, out_level,
-                        0, out_level,
-                        compress_buffer,
-                        out_total);
+      compressor.flush ();
 
       app.close ();
 
-      delete [] in_buffer;
-      delete [] out_buffer;
-      delete [] compress_buffer;
+      delete [] buffer;
 
       if (rld::verbose () >= RLD_VERBOSE_INFO)
       {
-        int pcent = (out_total * 100) / in_total;
-        int premand = (((out_total * 1000) + 500) / in_total) % 10;
+        int pcent = (compressor.compressed () * 100) / compressor.transferred ();
+        int premand = (((compressor.compressed () * 1000) + 500) /
+                       compressor.transferred ()) % 10;
         std::cout << "outputter:application: objects: " << objects.size ()
-                  << ", size: " << out_total
+                  << ", size: " << compressor.compressed ()
                   << ", compression: " << pcent << '.' << premand << '%'
                   << std::endl;
       }
