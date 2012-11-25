@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2011, Chris Johns <chrisj@rtems.org> 
+ * Copyright (c) 2011, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -70,7 +70,8 @@ namespace rld
 #define RLD_VERBOSE_INFO       (1)
 #define RLD_VERBOSE_DETAILS    (2)
 #define RLD_VERBOSE_TRACE      (3)
-#define RLD_VERBOSE_FULL_DEBUG (4)
+#define RLD_VERBOSE_TRACE_SYMS (4)
+#define RLD_VERBOSE_FULL_DEBUG (5)
 
 namespace rld
 {
