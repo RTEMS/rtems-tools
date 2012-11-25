@@ -40,7 +40,8 @@ namespace rld
     class file;
 
     /**
-     * An ELF Section.
+     * An ELF Section. The current implementation only supports a single data
+     * descriptor with a section.
      */
     class section
     {
