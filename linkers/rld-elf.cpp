@@ -372,19 +372,19 @@ namespace rld
                  off_t              offset_)
     {
       if (fd__ < 0)
-        throw rld::error ("no file descriptor", "elf:file:begin");
+        throw rld::error ("No file descriptor", "elf:file:begin");
 
       /*
        * Begin's are not nesting.
        */
       if (elf_ || (fd_ >= 0))
-        throw rld::error ("already called", "elf:file:begin");
+        throw rld::error ("Already called", "elf:file:begin");
 
       /*
        * Cannot write directly into archive. Create a file then archive it.
        */
       if (archive_ && writable_)
-        throw rld::error ("cannot write into archives directly",
+        throw rld::error ("Cannot write into archives directly",
                           "elf:file:begin");
 
       libelf_initialise ();
@@ -418,7 +418,8 @@ namespace rld
        */
 
       if (archive_ && (ek != ELF_K_ELF))
-        throw rld::error ("File format in archive not ELF", "elf:file:begin: " + name__);
+        throw rld::error ("File format in archive not ELF",
+                          "elf:file:begin: " + name__);
       else
       {
         if (ek == ELF_K_AR)
@@ -449,7 +450,10 @@ namespace rld
       elf_ = elf__;
 
       if (!archive && !writable)
+      {
         load_header ();
+        load_sections ();
+      }
     }
 
     void
@@ -635,7 +639,7 @@ namespace rld
         check ("load_sections_headers");
         for (int sn = 0; sn < section_count (); ++sn)
         {
-          section sec = section (*this, sn);
+          section sec (*this, sn);
           secs[sec.name ()] = sec;
         }
       }
@@ -685,9 +689,9 @@ namespace rld
             {
               symbols::symbol sym (name, esym);
 
-              if (rld::verbose () >= RLD_VERBOSE_TRACE)
+              if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
               {
-                std::cout << "elf::symbol: ";
+                std::cout << "elf:symbol: ";
                 sym.output (std::cout);
                 std::cout << std::endl;
               }
@@ -850,7 +854,7 @@ namespace rld
       if (!elf_ || (fd_ < 0))
       {
         std::string w = where;
-        throw rld::error ("no elf file or file descriptor", "elf:file:" + w);
+        throw rld::error ("No ELF file or file descriptor", "elf:file:" + w);
       }
     }
 
