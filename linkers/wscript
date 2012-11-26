@@ -94,6 +94,7 @@ def build(bld):
                   'rld-process.cpp',
                   'rld-resolver.cpp',
                   'rld-symbols.cpp',
+                  'rld-rap.cpp',
                   'rld.cpp']
 
     #
