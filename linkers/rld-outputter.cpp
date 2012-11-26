@@ -33,7 +33,7 @@
 #include <string.h>
 
 #include <rld.h>
-#include <rld-compression.h>
+#include <rld-rap.h>
 
 namespace rld
 {
@@ -41,6 +41,7 @@ namespace rld
   {
     const std::string
     script_text (const std::string&        entry,
+                 const std::string&        exit,
                  const files::object_list& dependents,
                  const files::cache&       cache,
                  bool                      not_in_archive)
@@ -54,9 +55,16 @@ namespace rld
       objects.unique ();
 
       if (rld::verbose () >= RLD_VERBOSE_INFO)
-        std::cout << " e: " << entry << std::endl;
+        std::cout << " E: " << entry << std::endl;
 
-      out << "e: " << entry << std::endl;
+      out << "E: " << entry << std::endl;
+
+      if (!exit.empty ())
+      {
+        if (rld::verbose () >= RLD_VERBOSE_INFO)
+          std::cout << " e: " << exit << std::endl;
+        out << "e: " << exit << std::endl;
+      }
 
       for (files::object_list::iterator oi = objects.begin ();
            oi != objects.end ();
@@ -104,13 +112,15 @@ namespace rld
     void
     metadata_object (files::object&            metadata,
                      const std::string&        entry,
+                     const std::string&        exit,
                      const files::object_list& dependents,
                      const files::cache&       cache)
     {
       if (rld::verbose () >= RLD_VERBOSE_INFO)
         std::cout << "metadata: " << metadata.name ().full () << std::endl;
 
-      const std::string script = script_text (entry, dependents, cache, true);
+      const std::string script =
+        script_text (entry, exit, dependents, cache, true);
 
       metadata.open (true);
       metadata.begin ();
@@ -147,6 +157,7 @@ namespace rld
     void
     archive (const std::string&        name,
              const std::string&        entry,
+             const std::string&        exit,
              const files::object_list& dependents,
              const files::cache&       cache)
     {
@@ -160,7 +171,7 @@ namespace rld
 
       files::object metadata (mdname);
 
-      metadata_object (metadata, entry, dependents, cache);
+      metadata_object (metadata, entry, exit, dependents, cache);
 
       files::object_list dep_copy (dependents);
       files::object_list objects;
@@ -177,6 +188,7 @@ namespace rld
     void
     script (const std::string&        name,
             const std::string&        entry,
+            const std::string&        exit,
             const files::object_list& dependents,
             const files::cache&       cache)
     {
@@ -193,7 +205,7 @@ namespace rld
 
       try
       {
-        out << script_text (entry, dependents, cache, false);
+        out << script_text (entry, exit, dependents, cache, false);
       }
       catch (...)
       {
@@ -205,10 +217,11 @@ namespace rld
     }
 
     void
-    application (const std::string&        name,
-                 const std::string&        entry,
-                 const files::object_list& dependents,
-                 const files::cache&       cache)
+    elf_application (const std::string&        name,
+                     const std::string&        entry,
+                     const std::string&        exit,
+                     const files::object_list& dependents,
+                     const files::cache&       cache)
     {
       if (rld::verbose () >= RLD_VERBOSE_INFO)
         std::cout << "outputter:application: " << name << std::endl;
@@ -219,10 +232,10 @@ namespace rld
       std::string        script;
       files::image       app (name);
 
-      header = "RAP,00000000,01.00.00,LZ77,00000000\n";
+      header = "RELF,00000000,0001,none,00000000\n";
       header += '\0';
 
-      script = script_text (entry, dependents, cache, true);
+      script = script_text (entry, exit, dependents, cache, true);
 
       cache.get_objects (objects);
       objects.merge (dep_copy);
@@ -233,15 +246,11 @@ namespace rld
 
       #define APP_BUFFER_SIZE  (128 * 1024)
 
-      compress::compressor compressor (app, APP_BUFFER_SIZE);
-
       uint8_t* buffer = 0;
 
       try
       {
         buffer = new uint8_t[APP_BUFFER_SIZE];
-
-        compressor.write (script.c_str (), script.size ());
 
         for (files::object_list::iterator oi = objects.begin ();
              oi != objects.end ();
@@ -262,9 +271,9 @@ namespace rld
               size_t reading =
                 in_size < APP_BUFFER_SIZE ? in_size : APP_BUFFER_SIZE;
 
-              obj.read (buffer, reading);
+              app.write (buffer, obj.read (buffer, reading));
 
-              compressor.write (buffer, reading);
+              in_size -= reading;
             }
           }
           catch (...)
@@ -279,25 +288,55 @@ namespace rld
       catch (...)
       {
         delete [] buffer;
+        app.close ();
         throw;
       }
 
-      compressor.flush ();
-
-      app.close ();
-
       delete [] buffer;
 
+      app.close ();
+    }
+
+    void
+    application (const std::string&        name,
+                 const std::string&        entry,
+                 const std::string&        exit,
+                 const files::object_list& dependents,
+                 const files::cache&       cache,
+                 const symbols::table&     symbols)
+    {
       if (rld::verbose () >= RLD_VERBOSE_INFO)
+        std::cout << "outputter:application: " << name << std::endl;
+
+      files::object_list dep_copy (dependents);
+      files::object_list objects;
+      std::string        header;
+      std::string        script;
+      files::image       app (name);
+
+      header = "RAP,00000000,0001,LZ77,00000000\n";
+      header += '\0';
+
+      script = script_text (entry, exit, dependents, cache, true);
+
+      cache.get_objects (objects);
+      objects.merge (dep_copy);
+      objects.unique ();
+
+      app.open (true);
+      app.write (header.c_str (), header.size ());
+
+      try
       {
-        int pcent = (compressor.compressed () * 100) / compressor.transferred ();
-        int premand = (((compressor.compressed () * 1000) + 500) /
-                       compressor.transferred ()) % 10;
-        std::cout << "outputter:application: objects: " << objects.size ()
-                  << ", size: " << compressor.compressed ()
-                  << ", compression: " << pcent << '.' << premand << '%'
-                  << std::endl;
+        rap::write (app, script, objects, symbols);
       }
+      catch (...)
+      {
+        app.close ();
+        throw;
+      }
+
+      app.close ();
     }
 
   }

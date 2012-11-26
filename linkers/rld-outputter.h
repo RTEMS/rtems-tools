@@ -32,25 +32,17 @@ namespace rld
   namespace outputter
   {
     /**
-     * The types of output.
-     */
-    enum type
-    {
-      ot_script,
-      ot_archive,
-      ot_application
-    };
-
-    /**
      * Output the object file list as a string.
      *
      * @param entry The name of the entry point symbol.
+     * @param exit The name of the exit point symbol.
      * @param dependents The list of dependent object files
      * @param cache The file cache for the link. Includes the object list
      *              the user requested.
      * @return std::string The list as a text string.
      */
     std::string script_text (const std::string&        entry,
+                             const std::string&        exit,
                              const files::object_list& dependents,
                              const files::cache&       cache);
     /**
@@ -59,12 +51,14 @@ namespace rld
      *
      * @param name The name of the archive.
      * @param entry The name of the entry point symbol.
+     * @param exit The name of the exit point symbol.
      * @param dependents The list of dependent object files
      * @param cache The file cache for the link. Includes the object list
      *              the user requested.
      */
     void archive (const std::string&        name,
                   const std::string&        entry,
+                  const std::string&        exit,
                   const files::object_list& dependents,
                   const files::cache&       cache);
 
@@ -73,28 +67,49 @@ namespace rld
      *
      * @param name The name of the script.
      * @param entry The name of the entry point symbol.
+     * @param exit The name of the exit point symbol.
      * @param dependents The list of dependent object files
      * @param cache The file cache for the link. Includes the object list
      *              the user requested.
      */
     void script (const std::string&        name,
                  const std::string&        entry,
+                 const std::string&        exit,
                  const files::object_list& dependents,
                  const files::cache&       cache);
 
     /**
-     * Output the object files as a compressed list of files.
+     * Output the object files in an archive with the metadata.
      *
      * @param name The name of the script.
      * @param entry The name of the entry point symbol.
+     * @param exit The name of the exit point symbol.
+     * @param dependents The list of dependent object files
+     * @param cache The file cache for the link. Includes the object list
+     *              the user requested.
+     */
+    void elf_application (const std::string&        name,
+                          const std::string&        entry,
+                          const std::string&        exit,
+                          const files::object_list& dependents,
+                          const files::cache&       cache);
+
+    /**
+     * Output the object files in an archive with the metadata.
+     *
+     * @param name The name of the script.
+     * @param entry The name of the entry point symbol.
+     * @param exit The name of the exit point symbol.
      * @param dependents The list of dependent object files
      * @param cache The file cache for the link. Includes the object list
      *              the user requested.
      */
     void application (const std::string&        name,
                       const std::string&        entry,
+                      const std::string&        exit,
                       const files::object_list& dependents,
-                      const files::cache&       cache);
+                      const files::cache&       cache,
+                      const symbols::table&     symbols);
 
   }
 }
