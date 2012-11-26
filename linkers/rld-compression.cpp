@@ -106,6 +106,47 @@ namespace rld
     }
 
     void
+    compressor::write (files::image& input, off_t offset, size_t length)
+    {
+      input.seek (offset);
+
+      while (length)
+      {
+        size_t appending;
+
+        if (length > (size - level))
+          appending = size - level;
+        else
+          appending = length;
+
+        input.read ((void*) (buffer + level), appending);
+
+        level += appending;
+        length -= appending;
+        total += appending;
+
+        if (level >= size)
+        {
+          if (compress)
+          {
+            int writing =
+              ::fastlz_compress (buffer, level, io);
+
+            image.write (io, writing);
+
+            total_compressed += writing;
+          }
+          else
+          {
+            image.write (buffer, length);
+          }
+
+          level = 0;
+        }
+      }
+    }
+
+    void
     compressor::flush ()
     {
       if (level)
