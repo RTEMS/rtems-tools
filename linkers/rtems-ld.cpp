@@ -57,7 +57,7 @@ static struct option rld_opts[] = {
   { "warn",        no_argument,            NULL,           'w' },
   { "map",         no_argument,            NULL,           'M' },
   { "output",      required_argument,      NULL,           'o' },
-  { "script",      no_argument,            NULL,           'S' },
+  { "out-format",  required_argument,      NULL,           'O' },
   { "lib-path",    required_argument,      NULL,           'L' },
   { "lib",         required_argument,      NULL,           'l' },
   { "no-stdlibs",  no_argument,            NULL,           'n' },
@@ -92,7 +92,7 @@ usage (int exit_code)
             << " -w        : generate warnings (also --warn)" << std::endl
             << " -M        : generate map output (also --map)" << std::endl
             << " -o file   : linker output is written to file (also --output)" << std::endl
-            << " -S        : linker output is a script file (also --script)" << std::endl
+            << " -O format : linker output format, default is 'rap' (also --out-format)" << std::endl
             << " -L path   : path to a library, add multiple for more than" << std::endl
             << "             one path (also --lib-path)" << std::endl
             << " -l lib    : add lib to the libraries searched, add multiple" << std::endl
@@ -108,7 +108,12 @@ usage (int exit_code)
             << " -C file   : execute file as the target C compiler (also --cc)" << std::endl
             << " -E prefix : the RTEMS tool prefix (also --exec-prefix)" << std::endl
             << " -a march  : machine architecture (also --march)" << std::endl
-            << " -c cpu    : machine architecture's CPU (also --mcpu)" << std::endl;
+            << " -c cpu    : machine architecture's CPU (also --mcpu)" << std::endl
+            << "Output Formats:" << std::endl
+            << " rap     - RTEMS application (LZ77, single image)" << std::endl
+            << " elf     - ELF application (script, ELF files)" << std::endl
+            << " script  - Script format (list of object files)" << std::endl
+            << " archive - Archive format (collection of ELF files)" << std::endl;
   ::exit (exit_code);
 }
 
@@ -167,10 +172,11 @@ main (int argc, char* argv[])
     rld::symbols::table  symbols;
     rld::symbols::table  undefined;
     std::string          entry = "rtems";
+    std::string          exit;
     std::string          output = "a.out";
     std::string          base_name;
     std::string          cc_name;
-    rld::outputter::type output_type = rld::outputter::ot_application;
+    std::string          output_type = "rap";
     bool                 standard_libs = true;
     bool                 exec_prefix_set = false;
     bool                 map = false;
@@ -180,7 +186,7 @@ main (int argc, char* argv[])
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvwVMnSb:E:o:L:l:a:c:e:d:u:C:", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvwVMnb:E:o:O:L:l:a:c:e:d:u:C:", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -210,8 +216,8 @@ main (int argc, char* argv[])
           output = optarg;
           break;
 
-        case 'S':
-          output_type = rld::outputter::ot_script;
+        case 'O':
+          output_type = optarg;
           break;
 
         case 'l':
@@ -290,6 +296,15 @@ main (int argc, char* argv[])
       throw rld::error ("no object files", "options");
 
     /*
+     * Check the output format is valid.
+     */
+    if ((output_type != "rap") &&
+        (output_type != "elf") &&
+        (output_type != "script") &&
+        (output_type != "archive"))
+      throw rld::error ("invalid output format", "options");
+
+    /*
      * Load the remaining command line arguments into the cache as object
      * files.
      */
@@ -337,6 +352,8 @@ main (int argc, char* argv[])
      */
     if (base_name.length ())
     {
+      if (rld::verbose ())
+        std::cout << "base-image: " << base_name << std::endl;
       base.open ();
       base.add (base_name);
       base.load_symbols (base_symbols, true);
@@ -365,55 +382,76 @@ main (int argc, char* argv[])
     cache.add_libraries (libraries);
 
     /*
-     * Load the symbol table.
+     * Begin the archive session. This opens the archives and leaves them open
+     * while we the symbol table is being used. The symbols reference object
+     * files and the object files may reference archives and it is assumed they
+     * are open and available. It is also assumed the number of library
+     * archives being managed is less than the maximum file handles this
+     * process can have open at any one time. If this is not the case this
+     * approach would need to be reconsidered and the overhead of opening and
+     * closing archives added.
      */
-    cache.load_symbols (symbols);
-
-    /*
-     * Map ?
-     */
-    if (map)
+    try
     {
-      if (base_name.length ())
-        rld::map (base, base_symbols);
-      rld::map (cache, symbols);
-    }
+      cache.archives_begin ();
 
-    if (cache.path_count ())
-    {
       /*
-       * This structure allows us to add different operations with the same
-       * structure.
+       * Load the symbol table.
        */
-      rld::files::object_list dependents;
-      rld::resolver::resolve (dependents, cache, base_symbols, symbols, undefined);
+      cache.load_symbols (symbols);
 
-      /**
-       * Output the file.
+      /*
+       * Map ?
        */
-      switch (output_type)
+      if (map)
       {
-        case rld::outputter::ot_script:
-          rld::outputter::script (output, entry, dependents, cache);
-          break;
-        case rld::outputter::ot_archive:
-          rld::outputter::archive (output, entry, dependents, cache);
-          break;
-        case rld::outputter::ot_application:
-          rld::outputter::application (output, entry, dependents, cache);
-          break;
-        default:
-          throw rld::error ("invalid output type", "output");
+        if (base_name.length ())
+          rld::map (base, base_symbols);
+        rld::map (cache, symbols);
       }
 
-      /**
-       * Check for warnings.
-       */
-      if (warnings)
+      if (cache.path_count ())
       {
-        rld::warn_unused_externals (dependents);
+        /*
+         * This structure allows us to add different operations with the same
+         * structure.
+         */
+        rld::files::object_list dependents;
+        rld::resolver::resolve (dependents, cache,
+                                base_symbols, symbols, undefined);
+
+        /**
+         * Output the file.
+         */
+        if (output_type == "script")
+          rld::outputter::script (output, entry, exit, dependents, cache);
+        else if (output_type == "archive")
+          rld::outputter::archive (output, entry, exit, dependents, cache);
+        else if (output_type == "elf")
+          rld::outputter::elf_application (output, entry, exit,
+                                           dependents, cache);
+        else if (output_type == "rap")
+          rld::outputter::application (output, entry, exit,
+                                       dependents, cache, symbols);
+        else
+          throw rld::error ("invalid output type", "output");
+
+        /**
+         * Check for warnings.
+         */
+        if (warnings)
+        {
+          rld::warn_unused_externals (dependents);
+        }
       }
     }
+    catch (...)
+    {
+      cache.archives_end ();
+      throw;
+    }
+
+    cache.archives_end ();
   }
   catch (rld::error re)
   {
