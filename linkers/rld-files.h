@@ -101,7 +101,7 @@ namespace rld
      * @param paths The split path paths.
      */
     void path_split (const std::string& path,
-                     rld::files::paths& paths);
+                     paths&             paths);
 
     /**
      * Make a path by joining the parts with required separator.
@@ -511,6 +511,45 @@ namespace rld
     };
 
     /**
+     * The sections attributes. We extract what we want because the
+     * elf::section class requires the image be left open as references are
+     * alive. We extract and keep the data we need to create the image.
+     */
+    struct section
+    {
+      const std::string name;      //< The name of the section.
+      const uint32_t    type;      //< The type of section.
+      const size_t      size;      //< The size of the section.
+      const uint32_t    alignment; //< The alignment of the section.
+      const uint32_t    link;      //< The ELF link field.
+      const uint32_t    info;      //< The ELF info field.
+      const uint32_t    flags;     //< The ELF flags.
+      const off_t       offset;    //< The ELF file offset.
+
+      /**
+       * Construct from an ELF section.
+       */
+      section (const elf::section& es);
+
+    private:
+      /**
+       * The default constructor is not allowed due to all elements being
+       * const.
+       */
+      section ();
+    };
+
+    /**
+     * A container of sections.
+     */
+    typedef std::list < section > sections;
+
+    /**
+     * Sum the sizes of a container of sections.
+     */
+    size_t sum_sizes (const sections& secs);
+
+    /**
      * The object file cab be in an archive or a file.
      */
     class object:
@@ -553,14 +592,20 @@ namespace rld
       virtual void close ();
 
       /**
-       * Begin the ELF session.
+       * Begin the object file session.
        */
       void begin ();
 
       /**
-       * End the ELF session.
+       * End the object file session.
        */
       void end ();
+
+      /**
+       * If valid returns true the begin has been called and the object has
+       * been validated as being in a suitable format.
+       */
+      bool valid () const;
 
       /**
        * Load the symbols into the symbols table.
@@ -568,7 +613,7 @@ namespace rld
        * @param symbols The symbol table to load.
        * @param local Include local symbols. The default is not to.
        */
-      void load_symbols (rld::symbols::table& symbols, bool local = false);
+      void load_symbols (symbols::table& symbols, bool local = false);
 
       /**
        * References to the image.
@@ -599,18 +644,47 @@ namespace rld
       /**
        * Return the unresolved symbol table for this object file.
        */
-      rld::symbols::table& unresolved_symbols ();
+      symbols::table& unresolved_symbols ();
 
       /**
        * Return the list external symbols.
        */
-      rld::symbols::pointers& external_symbols ();
+      symbols::pointers& external_symbols ();
+
+      /**
+       * Return a container sections that match the requested type and
+       * flags. The filtered section container is not cleared so any matching
+       * sections are appended.
+       *
+       * @param filter_secs The container of the matching sections.
+       * @param type The section type. Must match. If 0 matches any.
+       * @param flags_in The sections flags that must be set. This is a
+       *                 mask. If 0 matches any.
+       * @param flags_out The sections flags that must be clear. This is a
+       *                 mask. If 0 this value is ignored.
+       */
+      void get_sections (sections& filtered_secs,
+                         uint32_t  type = 0,
+                         uint64_t  flags_in = 0,
+                         uint64_t  flags_out = 0);
+
+      /**
+       * Return a container sections that match the requested name. The
+       * filtered section container is not cleared so any matching sections are
+       * appended.
+       *
+       * @param filter_secs The container of the matching sections.
+       * @param name The name of the section.
+       */
+      void get_sections (sections& filtered_secs, const std::string& name);
 
     private:
-      archive*               archive_;   //< Points to the archive if part of
-                                         //  an archive.
-      rld::symbols::table    unresolved; //< This object's unresolved symbols.
-      rld::symbols::pointers externals;  //< This object's external symbols.
+      archive*          archive_;   //< Points to the archive if part of an
+                                    //  archive.
+      bool              valid_;     //< If true begin has run and finished.
+      symbols::table    unresolved; //< This object's unresolved symbols.
+      symbols::pointers externals;  //< This object's external symbols.
+      sections          secs;       //< The sections.
 
       /**
        * Cannot copy via a copy constructor.
@@ -703,7 +777,7 @@ namespace rld
        * @param symbols The symbol table to load.
        * @param local Include local symbols. The default is not to.
        */
-      void load_symbols (rld::symbols::table& symbols, bool locals = false);
+      void load_symbols (symbols::table& symbols, bool locals = false);
 
       /**
        * Output the unresolved symbol table to the output stream.

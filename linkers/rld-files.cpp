@@ -315,7 +315,9 @@ namespace rld
     image::image (file& name)
       : name_ (name),
         references_ (0),
-        fd_ (-1)
+        fd_ (-1),
+        symbol_refs (0),
+        writable (false)
     {
     }
 
@@ -331,7 +333,8 @@ namespace rld
     image::image ()
       : references_ (0),
         fd_ (-1),
-        symbol_refs (0)
+        symbol_refs (0),
+        writable (false)
     {
     }
 
@@ -359,9 +362,10 @@ namespace rld
         throw rld::error ("No file name", "open:" + path);
 
       if (rld::verbose () >= RLD_VERBOSE_DETAILS)
-        std::cout << "image::open: " << name (). full ()
+        std::cout << "image::open:  " << name (). full ()
+                  << " refs:" << references_ + 1
                   << " writable:" << (char*) (writable_ ? "yes" : "no")
-                  << " refs:" << references_ + 1 << std::endl;
+                  << std::endl;
 
       if (fd_ < 0)
       {
@@ -896,9 +900,40 @@ namespace rld
       close ();
     }
 
+    section::section (const elf::section& es)
+      : name (es.name ()),
+        type (es.type ()),
+        size (es.size ()),
+        alignment (es.alignment ()),
+        link (es.link ()),
+        info (es.info ()),
+        flags (es.flags ()),
+        offset (es.offset ()){
+    }
+
+    size_t
+    sum_sizes (const sections& secs)
+    {
+      size_t size = 0;
+
+      for (sections::const_iterator si = secs.begin ();
+           si != secs.end ();
+           ++si)
+      {
+        const section& sec = *si;
+
+        if ((size % sec.alignment) != 0)
+          size -= (size % sec.alignment) + sec.alignment;
+        size += sec.size;
+      }
+
+      return size;
+    }
+
     object::object (archive& archive_, file& name_)
       : image (name_),
-        archive_ (&archive_)
+        archive_ (&archive_),
+        valid_ (false)
     {
       if (!name ().is_valid ())
         throw rld_error_at ("name is empty");
@@ -906,14 +941,16 @@ namespace rld
 
     object::object (const std::string& path)
       : image (path),
-        archive_ (0)
+        archive_ (0),
+        valid_ (false)
     {
       if (!name ().is_valid ())
         throw rld_error_at ("name is empty");
     }
 
     object::object ()
-      : archive_ (0)
+      : archive_ (0),
+        valid_ (false)
     {
     }
 
@@ -957,6 +994,11 @@ namespace rld
       /*
        * Begin a session.
        */
+
+      if (rld::verbose () >= RLD_VERBOSE_TRACE)
+        std::cout << "object:begin: " << name ().full () << " in-archive:"
+                  << ((char*) (archive_ ? "yes" : "no")) << std::endl;
+
       if (archive_)
         elf ().begin (name ().full (), archive_->elf(), name ().offset ());
       else
@@ -977,14 +1019,47 @@ namespace rld
         if (!elf ().is_executable () && !elf ().is_relocatable ())
           throw rld::error ("Invalid ELF type (only ET_EXEC/ET_REL supported).",
                             "object-begin:" + name ().full ());
+
         elf::check_file (elf ());
+
+        /**
+         * We assume the ELF file is invariant over the linking process.
+         */
+
+        if (secs.empty ())
+        {
+          elf::sections elf_secs;
+
+          elf ().get_sections (elf_secs, 0);
+
+          for (elf::sections::const_iterator esi = elf_secs.begin ();
+               esi != elf_secs.end ();
+               ++esi)
+          {
+            secs.push_back (section (*(*esi)));
+          }
+        }
       }
+
+      /*
+       * This is a valid object file. The file format checks out.
+       */
+      valid_ = true;
     }
 
     void
     object::end ()
     {
+      if (rld::verbose () >= RLD_VERBOSE_TRACE)
+        std::cout << "object:end: " << name ().full () << std::endl;
+
       elf ().end ();
+    }
+
+    bool
+    object::valid () const
+    {
+      return valid_;
     }
 
     void
@@ -1007,7 +1082,7 @@ namespace rld
       {
         symbols::symbol& sym = *(*si);
 
-        if (rld::verbose () >= RLD_VERBOSE_DETAILS)
+        if (rld::verbose () >= RLD_VERBOSE_TRACE_SYMS)
         {
           std::cout << "object:load-sym: exported: ";
           sym.output (std::cout);
@@ -1031,7 +1106,7 @@ namespace rld
       {
         symbols::symbol& sym = *(*si);
 
-        if (rld::verbose () >= RLD_VERBOSE_DETAILS)
+        if (rld::verbose () >= RLD_VERBOSE_TRACE_SYMS)
         {
           std::cout << "object:load-sym: unresolved: ";
           sym.output (std::cout);
@@ -1090,6 +1165,44 @@ namespace rld
     object::external_symbols ()
     {
       return externals;
+    }
+
+    void
+    object::get_sections (sections& filtered_secs,
+                          uint32_t  type,
+                          uint64_t  flags_in,
+                          uint64_t  flags_out)
+    {
+      for (sections::const_iterator si = secs.begin ();
+           si != secs.end ();
+           ++si)
+      {
+        const section& sec = *si;
+        if ((type == 0) || (type == sec.type))
+        {
+          if ((flags_in == 0) ||
+              (((sec.flags & flags_in) == flags_in) &&
+               ((sec.flags & flags_out) == 0)))
+          {
+            filtered_secs.push_back (sec);
+          }
+        }
+      }
+    }
+
+    void
+    object::get_sections (sections& filtered_secs, const std::string& matching_name)
+    {
+      for (sections::const_iterator si = secs.begin ();
+           si != secs.end ();
+           ++si)
+      {
+        const section& sec = *si;
+        if (sec.name == matching_name)
+        {
+          filtered_secs.push_back (sec);
+        }
+      }
     }
 
     cache::cache ()
@@ -1218,10 +1331,10 @@ namespace rld
       {
         try
         {
-          archives_[path] = ar;
           ar->open ();
           ar->load_objects (objects_);
           ar->close ();
+          archives_[path] = ar;
         }
         catch (...)
         {
@@ -1262,28 +1375,17 @@ namespace rld
         std::cout << "cache:load-sym: object files: " << objects_.size ()
                   << std::endl;
 
-      try
+      for (objects::iterator oi = objects_.begin ();
+           oi != objects_.end ();
+           ++oi)
       {
-        archives_begin ();
-        for (objects::iterator oi = objects_.begin ();
-             oi != objects_.end ();
-             ++oi)
-        {
-          object* obj = (*oi).second;
-          obj->open ();
-          obj->begin ();
-          obj->load_symbols (symbols, local);
-          obj->end ();
-          obj->close ();
-        }
+        object* obj = (*oi).second;
+        obj->open ();
+        obj->begin ();
+        obj->load_symbols (symbols, local);
+        obj->end ();
+        obj->close ();
       }
-      catch (...)
-      {
-        archives_end ();
-        throw;
-      }
-
-      archives_end ();
 
       if (rld::verbose () >= RLD_VERBOSE_INFO)
         std::cout << "cache:load-sym: symbols: " << symbols.size ()
