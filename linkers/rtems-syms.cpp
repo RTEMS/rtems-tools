@@ -277,11 +277,31 @@ main (int argc, char* argv[])
     cache.add_libraries (libraries);
 
     /*
-     * Load the symbol table.
+     * Begin the archive session. This opens the archives and leaves them open
+     * while we the symbol table is being used. The symbols reference object
+     * files and the object files may reference archives and it is assumed they
+     * are open and available. It is also assumed the number of library
+     * archives being managed is less than the maximum file handles this
+     * process can have open at any one time. If this is not the case this
+     * approach would need to be reconsidered and the overhead of opening and
+     * closing archives added.
      */
-    cache.load_symbols (symbols);
+    try
+    {
+      /*
+       * Load the symbol table.
+       */
+      cache.load_symbols (symbols);
 
-    rld::map (cache, symbols);
+      rld::map (cache, symbols);
+    }
+    catch (...)
+    {
+      cache.archives_end ();
+      throw;
+    }
+
+    cache.archives_end ();
   }
   catch (rld::error re)
   {
