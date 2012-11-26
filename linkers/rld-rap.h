@@ -33,6 +33,21 @@ namespace rld
   {
     /**
      * Write a RAP format file.
+     *
+     * The symbol table is provided to allow incremental linking at some point
+     * in the future. I suspect this will also require extra options being
+     * added to control symbol visibility in the RAP file. For example an
+     * "application" may be self contained and does not need to export any
+     * symbols therefore no symbols are added and the only ones are part of the
+     * relocation records to bind to base image symbols. Another case is the
+     * need for an application to export symbols because it is using dlopen to
+     * load modules. Here the symbols maybe 'all' or it could be a user
+     * maintained list that are exported.
+     *
+     * @param app The application image to write too.
+     * @param metadata The application metadata.
+     * @param objects The list of object files in the application.
+     * @param symbols The symbol table used to create the application.
      */
     void write (files::image&             app,
                 const std::string&        metadata,

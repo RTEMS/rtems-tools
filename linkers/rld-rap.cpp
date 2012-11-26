@@ -44,7 +44,7 @@ namespace rld
     struct object
     {
       files::object&  obj;          //< The object file.
-      files::sections text;         //< All execitable code.
+      files::sections text;         //< All executable code.
       files::sections const_;       //< All read only data.
       files::sections ctor;         //< The static constructor table.
       files::sections dtor;         //< The static destructor table.
@@ -64,15 +64,15 @@ namespace rld
       uint32_t        data_off;     //< The data section file offset.
       uint32_t        data_size;    //< The data section size.
       uint32_t        bss_size;     //< The bss section size.
-      uint32_t        symtab_off;   //< The symbols sectuint32 fioffset.
-      uint32_t        symtab_size;  //< The symbol section size.
-      uint32_t        strtab_off;   //< The string section file offset.
-      uint32_t        strtab_size;  //< The string section size.
-      uint32_t        relocs_off;   //< The reloc section file offset.
-      uint32_t        relocs_size;  //< The reloc section size.
+      uint32_t        symtab_off;   //< The symbols section file offset.
+      uint32_t        symtab_size;  //< The symbols section size.
+      uint32_t        strtab_off;   //< The strings section file offset.
+      uint32_t        strtab_size;  //< The strings section size.
+      uint32_t        relocs_off;   //< The reloc's section file offset.
+      uint32_t        relocs_size;  //< The reloc's section size.
 
       /**
-       * The constructor. Need to have an object file.
+       * The constructor. Need to have an object file to create.
        */
       object (files::object& obj);
 
@@ -137,6 +137,14 @@ namespace rld
       uint32_t relocs_size; //< The relocations size.
     };
 
+    /**
+     * Output helper function to report the sections in an object file.
+     * This is useful when seeing the flags in the sections.
+     *
+     * @param name The name of the section group in the RAP file.
+     * @param size The total of the section size's in the group.
+     * @param secs The container of sections in the group.
+     */
     void
     output (const char* name, size_t size, const files::sections& secs)
     {
@@ -308,7 +316,7 @@ namespace rld
 
         if (!app_obj.valid ())
           throw rld::error ("Not valid: " + app_obj.name ().full (),
-                            "rap::load-sections");
+                            "rap::layout");
 
         objs.push_back (object (app_obj));
       }
@@ -363,7 +371,7 @@ namespace rld
       {
         uint32_t total = (text_size + data_size + data_size + bss_size +
                           symtab_size + strtab_size + relocs_size);
-        std::cout << "rap:image:layout: total:" << total
+        std::cout << "rap::layout: total:" << total
                   << " text:" << text_size
                   << " data:" << data_size
                   << " bss:" << bss_size
@@ -378,13 +386,20 @@ namespace rld
     image::write (compress::compressor& comp, const std::string& metadata)
     {
       /*
-       * Start with the number of object files to load.
+       * Start with the number of object files to load and the memory foot in
+       * the target so it can be allocated first then add the metadata size and
+       * then the metadata.
        */
-      comp << metadata.size ()
-           << objs.size ()
+      comp << objs.size ()
            << text_size
            << data_size
-           << bss_size;
+           << bss_size
+           << metadata.size ()
+           << metadata;
+
+      /*
+       * Add each object file in the list.
+       */
 
       for (objects::iterator oi = objs.begin ();
            oi != objs.end ();
