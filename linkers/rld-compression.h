@@ -138,12 +138,6 @@ static inline rld::compress::compressor& operator<< (rld::compress::compressor& 
 }
 
 static inline rld::compress::compressor& operator<< (rld::compress::compressor& comp,
-                                                     const size_t               value) {
-  comp << (uint32_t) value;
-  return comp;
-}
-
-static inline rld::compress::compressor& operator<< (rld::compress::compressor& comp,
                                                      const std::string&         str) {
   comp.write (str.c_str (), str.size ());
   return comp;
