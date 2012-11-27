@@ -386,15 +386,19 @@ namespace rld
     image::write (compress::compressor& comp, const std::string& metadata)
     {
       /*
-       * Start with the number of object files to load and the memory foot in
-       * the target so it can be allocated first then add the metadata size and
-       * then the metadata.
+       * Start with the machine type so the target can check the applicatiion
+       * is ok and can be loaded. for the number of object files to load and the memory
+       * foot in the target so it can be allocated first then add the metadata
+       * size and then the metadata.
        */
-      comp << objs.size ()
+      comp << elf::object_machine_type ()
+           << elf::object_datatype ()
+           << elf::object_class ()
+           << (uint32_t) objs.size ()
            << text_size
            << data_size
            << bss_size
-           << metadata.size ()
+           << (uint32_t) metadata.size ()
            << metadata;
 
       /*
