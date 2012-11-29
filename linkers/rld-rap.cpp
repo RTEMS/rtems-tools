@@ -26,6 +26,7 @@
 #include "config.h"
 #endif
 
+#include <algorithm>
 #include <list>
 #include <iomanip>
 
@@ -38,38 +39,113 @@ namespace rld
   namespace rap
   {
     /**
+     * The sections of interest in a RAP file.
+     */
+    enum sections
+    {
+      rap_text = 0,
+      rap_const = 1,
+      rap_ctor = 2,
+      rap_dtor = 3,
+      rap_data = 4,
+      rap_bss = 5,
+      rap_secs = 6
+    };
+
+    /**
+     * The names of the RAP sections.
+     */
+    static const char* section_names[rap_secs] =
+    {
+      ".text",
+      ".const",
+      ".ctor",
+      ".dtor",
+      ".data",
+      ".bss"
+    };
+
+    /**
+     * The RAP section data.
+     */
+    struct section
+    {
+      std::string name;   //< The name of the section.
+      uint32_t    size;   //< The size of the section.
+      uint32_t    offset; //< The offset of the section.
+      uint32_t    align;  //< The alignment of the section.
+
+      /**
+       * Operator to add up section data.
+       */
+      section& operator += (const section& sec);
+
+      /**
+       * Default constructor.
+       */
+      section ();
+    };
+
+    /**
+     * A symbol. This matches the symbol structure 'rtems_rtl_obj_sym_t' in the
+     * target code.
+     */
+    struct external
+    {
+      /**
+       * Size of an external in the RAP file.
+       */
+      static const uint32_t rap_size = sizeof (uint32_t) * 3;
+
+      const uint32_t name;  //< The string table's name index.
+      const sections sec;   //< The section the symbols belongs to.
+      const uint32_t value; //< The offset from the section base.
+      const uint32_t data;  //< The ELF st.info field.
+
+      /**
+       * The default constructor.
+       */
+      external (const uint32_t name,
+                const sections sec,
+                const uint32_t value,
+                const uint32_t info);
+
+      /**
+       * Copy constructor.
+       */
+      external (const external& orig);
+
+    };
+
+    /**
+     * A container of externals.
+     */
+    typedef std::list < external > externals;
+
+    /**
      * The specific data for each object we need to collect to create the RAP
      * format file.
      */
     struct object
     {
-      files::object&  obj;          //< The object file.
-      files::sections text;         //< All executable code.
-      files::sections const_;       //< All read only data.
-      files::sections ctor;         //< The static constructor table.
-      files::sections dtor;         //< The static destructor table.
-      files::sections data;         //< All initialised read/write data.
-      files::sections bss;          //< All uninitialised read/write data
-      files::sections relocs;       //< All relocation records.
-      files::sections symtab;       //< All exported symbols.
-      files::sections strtab;       //< All exported strings.
-      uint32_t        text_off;     //< The text section file offset.
-      uint32_t        text_size;    //< The text section size.
-      uint32_t        const_off;    //< The const section file offset.
-      uint32_t        const_size;   //< The const section size.
-      uint32_t        ctor_off;     //< The ctor section file offset.
-      uint32_t        ctor_size;    //< The ctor section size.
-      uint32_t        dtor_off;     //< The dtor section file offset.
-      uint32_t        dtor_size;    //< The dtor section size.
-      uint32_t        data_off;     //< The data section file offset.
-      uint32_t        data_size;    //< The data section size.
-      uint32_t        bss_size;     //< The bss section size.
-      uint32_t        symtab_off;   //< The symbols section file offset.
-      uint32_t        symtab_size;  //< The symbols section size.
-      uint32_t        strtab_off;   //< The strings section file offset.
-      uint32_t        strtab_size;  //< The strings section size.
-      uint32_t        relocs_off;   //< The reloc's section file offset.
-      uint32_t        relocs_size;  //< The reloc's section size.
+
+      files::object&  obj;            //< The object file.
+      files::sections text;           //< All executable code.
+      files::sections const_;         //< All read only data.
+      files::sections ctor;           //< The static constructor table.
+      files::sections dtor;           //< The static destructor table.
+      files::sections data;           //< All initialised read/write data.
+      files::sections bss;            //< All uninitialised read/write data
+      files::sections relocs;         //< All relocation records.
+      files::sections symtab;         //< All exported symbols.
+      files::sections strtab;         //< All exported strings.
+      section         secs[rap_secs]; //< The sections of interest.
+      uint32_t        symtab_off;     //< The symbols section file offset.
+      uint32_t        symtab_size;    //< The symbols section size.
+      uint32_t        strtab_off;     //< The strings section file offset.
+      uint32_t        strtab_size;    //< The strings section size.
+      uint32_t        relocs_off;     //< The reloc's section file offset.
+      uint32_t        relocs_size;    //< The reloc's section size.
 
       /**
        * The constructor. Need to have an object file to create.
@@ -80,6 +156,11 @@ namespace rld
        * The copy constructor.
        */
       object (const object& orig);
+
+      /**
+       * Find the section type that matches the section index.
+       */
+      sections find (const uint32_t index) const;
 
     private:
       /**
@@ -99,11 +180,6 @@ namespace rld
     class image
     {
     public:
-      /**
-       * The text section.
-       */
-      typedef std::vector < uint8_t > bytes;
-
       /**
        * Construct the image.
        */
@@ -128,13 +204,12 @@ namespace rld
 
     private:
 
-      objects  objs;        //< The RAP objects
-      uint32_t text_size;   //< The text size.
-      uint32_t data_size;   //< The data size.
-      uint32_t bss_size;    //< The size of the .bss region of the image.
-      uint32_t symtab_size; //< The symbols size.
-      uint32_t strtab_size; //< The strings size.
-      uint32_t relocs_size; //< The relocations size.
+      objects     objs;           //< The RAP objects
+      section     secs[rap_secs]; //< The sections of interest.
+      externals   externs;        //< The symbols in the image
+      uint32_t    symtab_size;    //< The size of the symbols.
+      std::string strtab;         //< The strings table.
+      uint32_t    relocs_size;    //< The relocations size.
     };
 
     /**
@@ -190,19 +265,64 @@ namespace rld
       }
     }
 
+    section::section ()
+      : size (0),
+        offset (0),
+        align (0)
+    {
+    }
+
+    section&
+    section::operator += (const section& sec)
+    {
+      if (sec.size)
+      {
+        if (align == 0)
+          align = sec.align;
+        else if (align != sec.align)
+          throw rld::error ("Alignments do not match for section '" + name + "'",
+                            "rap::section");
+
+        if (size && (align == 0))
+          throw rld::error ("Invalid alignment '" + name + "'",
+                            "rap::section");
+
+        size += sec.size;
+        offset = sec.offset + sec.size;
+
+        uint32_t mask = (1 << (align - 1)) - 1;
+
+        if (offset & mask)
+        {
+          offset &= ~mask;
+          offset += (1 << align);
+        }
+      }
+
+      return *this;
+    }
+
+    external::external (const uint32_t name,
+                        const sections sec,
+                        const uint32_t value,
+                        const uint32_t data)
+      : name (name),
+        sec (sec),
+        value (value),
+        data (data)
+    {
+    }
+
+    external::external (const external& orig)
+      : name (orig.name),
+        sec (orig.sec),
+        value (orig.value),
+        data (orig.data)
+    {
+    }
+
     object::object (files::object& obj)
       : obj (obj),
-        text_off (0),
-        text_size (0),
-        const_off (0),
-        const_size (0),
-        ctor_off (0),
-        ctor_size (0),
-        dtor_off (0),
-        dtor_size (0),
-        data_off (0),
-        data_size (0),
-        bss_size (0),
         symtab_off (0),
         symtab_size (0),
         strtab_off (0),
@@ -210,6 +330,12 @@ namespace rld
         relocs_off (0),
         relocs_size (0)
     {
+      /*
+       * Set up the names of the sections.
+       */
+      for (int s = 0; s < rap_secs; ++s)
+        secs[s].name = section_names[s];
+
       /*
        * Get from the object file the various sections we need to format a
        * memory layout.
@@ -236,11 +362,30 @@ namespace rld
         obj.get_sections (relocs, ".rela" + sec.name);
       }
 
-      text_size = files::sum_sizes (text);
-      const_size = files::sum_sizes (const_);
-      ctor_size = files::sum_sizes (ctor);
-      dtor_size = files::sum_sizes (dtor);
-      data_size = files::sum_sizes (data);
+      secs[rap_text].size = files::sum_sizes (text);
+      if (!text.empty ())
+        secs[rap_text].align = (*text.begin ()).alignment;
+
+      secs[rap_const].size = files::sum_sizes (const_);
+      if (!const_.empty ())
+        secs[rap_const].align = (*const_.begin ()).alignment;
+
+      secs[rap_ctor].size = files::sum_sizes (ctor);
+      if (!ctor.empty ())
+        secs[rap_ctor].align = (*ctor.begin ()).alignment;
+
+      secs[rap_dtor].size = files::sum_sizes (dtor);
+      if (!dtor.empty ())
+        secs[rap_dtor].align = (*dtor.begin ()).alignment;
+
+      secs[rap_data].size = files::sum_sizes (data);
+      if (!data.empty ())
+        secs[rap_data].align = (*data.begin ()).alignment;
+
+      secs[rap_bss].size = files::sum_sizes (bss);
+      if (!bss.empty ())
+        secs[rap_bss].align = (*bss.begin ()).alignment;
+
       symtab_size = files::sum_sizes (symtab);
       strtab_size = files::sum_sizes (strtab);
       relocs_size = files::sum_sizes (relocs);
@@ -248,13 +393,13 @@ namespace rld
       if (rld::verbose () >= RLD_VERBOSE_TRACE)
       {
         std::cout << "rap:object: " << obj.name ().full () << std::endl;
-        output ("text", text_size, text);
-        output ("const", const_size, const_);
-        output ("ctor", ctor_size, ctor);
-        output ("dtor", dtor_size, dtor);
-        output ("data", data_size, data);
-        if (bss_size)
-          std::cout << bss_size << std::endl;
+        output ("text", secs[rap_text].size, text);
+        output ("const", secs[rap_const].size, const_);
+        output ("ctor", secs[rap_ctor].size, ctor);
+        output ("dtor", secs[rap_dtor].size, dtor);
+        output ("data", secs[rap_data].size, data);
+        if (secs[rap_bss].size)
+          std::cout << " bss: size: " << secs[rap_bss].size << std::endl;
         output ("relocs", relocs_size, relocs);
         output ("symtab", symtab_size, symtab);
         output ("strtab", strtab_size, strtab);
@@ -272,17 +417,6 @@ namespace rld
         relocs (orig.relocs),
         symtab (orig.symtab),
         strtab (orig.strtab),
-        text_off (orig.text_off),
-        text_size (orig.text_size),
-        const_off (orig.const_off),
-        const_size (orig.const_size),
-        ctor_off (orig.ctor_off),
-        ctor_size (orig.ctor_size),
-        dtor_off (orig.dtor_off),
-        dtor_size (orig.dtor_size),
-        data_off (orig.data_off),
-        data_size (orig.data_size),
-        bss_size (orig.bss_size),
         symtab_off (orig.symtab_off),
         symtab_size (orig.symtab_size),
         strtab_off (orig.strtab_off),
@@ -290,16 +424,52 @@ namespace rld
         relocs_off (orig.relocs_off),
         relocs_size (orig.relocs_size)
     {
+      for (int s = 0; s < rap_secs; ++s)
+        secs[s] = orig.secs[s];
+    }
+
+    sections
+    object::find (const uint32_t index) const
+    {
+      const files::section* sec;
+
+      sec = files::find (text, index);
+      if (sec)
+        return rap_text;
+
+      sec = files::find (const_, index);
+      if (sec)
+        return rap_const;
+
+      sec = files::find (ctor, index);
+      if (sec)
+        return rap_ctor;
+
+      sec = files::find (dtor, index);
+      if (sec)
+        return rap_dtor;
+
+      sec = files::find (data, index);
+      if (sec)
+        return rap_data;
+
+      sec = files::find (bss, index);
+      if (sec)
+        return rap_bss;
+
+      throw rld::error ("Section index not found: " + obj.name ().full (),
+                        "rap::object");
     }
 
     image::image ()
-      : text_size (0),
-        data_size (0),
-        bss_size (0),
-        symtab_size (0),
-        strtab_size (0),
+      : symtab_size (0),
         relocs_size (0)
     {
+      /*
+       * Set up the names of the sections.
+       */
+      for (int s = 0; s < rap_secs; ++s)
+        secs[s].name = section_names[s];
     }
 
     void
@@ -321,64 +491,127 @@ namespace rld
         objs.push_back (object (app_obj));
       }
 
-      text_size = 0;
-      data_size = 0;
-      bss_size = 0;
+      for (int s = 0; s < rap_secs; ++s)
+      {
+        secs[s].size = 0;
+        secs[s].offset = 0;
+        secs[s].align = 0;
+      }
 
       for (objects::iterator oi = objs.begin ();
            oi != objs.end ();
            ++oi)
       {
         object& obj = *oi;
-        obj.text_off = text_size;
-        text_size += obj.text_size;
-        obj.data_off = data_size;
-        data_size += obj.data_size;
-        bss_size += obj.bss_size;
-        symtab_size += obj.symtab_size;
-        strtab_size += obj.strtab_size;
+
+        secs[rap_text] += obj.secs[rap_text];
+        secs[rap_const] += obj.secs[rap_const];
+        secs[rap_ctor] += obj.secs[rap_ctor];
+        secs[rap_dtor] += obj.secs[rap_dtor];
+        secs[rap_data] += obj.secs[rap_data];
+        secs[rap_bss] += obj.secs[rap_bss];
+
+        symtab_size = 0;
+        strtab.clear ();
+
+        uint32_t sym_count = 0;
+
+        symbols::pointers& esyms = obj.obj.external_symbols ();
+        for (symbols::pointers::const_iterator ei = esyms.begin ();
+             ei != esyms.end ();
+             ++ei, ++sym_count)
+        {
+          const symbols::symbol& sym = *(*ei);
+
+          if ((sym.type () == STT_OBJECT) || (sym.type () == STT_FUNC))
+          {
+            if ((sym.binding () == STB_GLOBAL) || (sym.binding () == STB_WEAK))
+            {
+              externs.push_back (external (sym_count,
+                                           obj.find (sym.index ()),
+                                           sym.value (),
+                                           sym.info ()));
+              symtab_size += external::rap_size;
+              strtab += sym.name ();
+              strtab += '\0';
+            }
+          }
+        }
+
         relocs_size += obj.relocs_size;
-      }
-
-      for (objects::iterator oi = objs.begin ();
-           oi != objs.end ();
-           ++oi)
-      {
-        object& obj = *oi;
-        obj.const_off = text_size;
-        text_size += obj.const_size;
-      }
-
-      for (objects::iterator oi = objs.begin ();
-           oi != objs.end ();
-           ++oi)
-      {
-        object& obj = *oi;
-        obj.ctor_off = text_size;
-        text_size += obj.ctor_size;
-      }
-
-      for (objects::iterator oi = objs.begin ();
-           oi != objs.end ();
-           ++oi)
-      {
-        object& obj = *oi;
-        obj.dtor_off = text_size;
-        text_size += obj.dtor_size;
       }
 
       if (rld::verbose () >= RLD_VERBOSE_INFO)
       {
-        uint32_t total = (text_size + data_size + data_size + bss_size +
-                          symtab_size + strtab_size + relocs_size);
+        uint32_t total = (secs[rap_text].size + secs[rap_data].size +
+                          secs[rap_data].size + secs[rap_bss].size +
+                          symtab_size + strtab.size() + relocs_size);
         std::cout << "rap::layout: total:" << total
-                  << " text:" << text_size
-                  << " data:" << data_size
-                  << " bss:" << bss_size
-                  << " symbols:" << symtab_size
-                  << " strings:" << strtab_size
+                  << " text:" << secs[rap_text].size
+                  << " const:" << secs[rap_const].size
+                  << " ctor:" << secs[rap_ctor].size
+                  << " dtor:" << secs[rap_dtor].size
+                  << " data:" << secs[rap_data].size
+                  << " bss:" << secs[rap_bss].size
+                  << " symbols:" << symtab_size << " (" << externs.size () << ')'
+                  << " strings:" << strtab.size ()
                   << " relocs:" << relocs_size
                   << std::endl;
+      }
+    }
+
+    /**
+     * Helper for for_each to write out the various sections.
+     */
+    class section_writer:
+      public std::unary_function < object, void >
+    {
+    public:
+
+      section_writer (image&                img,
+                      compress::compressor& comp,
+                      sections              sec);
+
+      void operator () (object& obj);
+
+    private:
+
+      image&                img;
+      compress::compressor& comp;
+      sections              sec;
+    };
+
+    section_writer::section_writer (image&                img,
+                                    compress::compressor& comp,
+                                    sections              sec)
+      : img (img),
+        comp (comp),
+        sec (sec)
+    {
+    }
+
+    void
+    section_writer::operator () (object& obj)
+    {
+      switch (sec)
+      {
+        case rap_text:
+          img.write (comp, obj.obj, obj.text);
+          break;
+        case rap_const:
+          img.write (comp, obj.obj, obj.const_);
+          break;
+        case rap_ctor:
+          img.write (comp, obj.obj, obj.ctor);
+          break;
+        case rap_dtor:
+          img.write (comp, obj.obj, obj.dtor);
+          break;
+        case rap_data:
+          img.write (comp, obj.obj, obj.data);
+          break;
+          default:
+            break;
       }
     }
 
@@ -393,56 +626,44 @@ namespace rld
        */
       comp << elf::object_machine_type ()
            << elf::object_datatype ()
-           << elf::object_class ()
-           << (uint32_t) objs.size ()
-           << text_size
-           << data_size
-           << bss_size
+           << elf::object_class ();
+
+      for (int s = 0; s < rap_secs; ++s)
+        comp << secs[s].size
+             << secs[s].align
+             << secs[s].offset;
+
+      comp << symtab_size
+           << (uint32_t) strtab.size ()
            << (uint32_t) metadata.size ()
            << metadata;
 
       /*
-       * Add each object file in the list.
+       * Output the sections from each object file.
        */
 
-      for (objects::iterator oi = objs.begin ();
-           oi != objs.end ();
-           ++oi)
+      std::for_each (objs.begin (), objs.end (),
+                     section_writer (*this, comp, rap_text));
+      std::for_each (objs.begin (), objs.end (),
+                     section_writer (*this, comp, rap_const));
+      std::for_each (objs.begin (), objs.end (),
+                     section_writer (*this, comp, rap_ctor));
+      std::for_each (objs.begin (), objs.end (),
+                     section_writer (*this, comp, rap_dtor));
+      std::for_each (objs.begin (), objs.end (),
+                     section_writer (*this, comp, rap_data));
+
+      for (externals::const_iterator ei = externs.begin ();
+           ei != externs.end ();
+           ++ei)
       {
-        object& obj = *oi;
-
-        comp << obj.text_size
-             << obj.ctor_size
-             << obj.dtor_size
-             << obj.data_size
-             << obj.symtab_size
-             << obj.strtab_size
-             << obj.relocs_size;
-
-        obj.obj.open ();
-
-        try
-        {
-          obj.obj.begin ();
-
-          write (comp, obj.obj, obj.text);
-          write (comp, obj.obj, obj.const_);
-          write (comp, obj.obj, obj.ctor);
-          write (comp, obj.obj, obj.dtor);
-          write (comp, obj.obj, obj.data);
-          write (comp, obj.obj, obj.symtab);
-          write (comp, obj.obj, obj.strtab);
-
-          obj.obj.end ();
-        }
-        catch (...)
-        {
-          obj.obj.close ();
-          throw;
-        }
-
-        obj.obj.close ();
+        const external& ext = *ei;
+        comp << (uint32_t) ((ext.sec << 16) | ext.data)
+             << ext.name
+             << ext.value;
       }
+
+      comp << strtab;
     }
 
     void
@@ -450,13 +671,28 @@ namespace rld
                   files::object&         obj,
                   const files::sections& secs)
     {
-      for (files::sections::const_iterator si = secs.begin ();
-           si != secs.end ();
-           ++si)
+      obj.open ();
+
+      try
       {
-        const files::section& sec = *si;
-        comp.write (obj, sec.offset, sec.size);
+        obj.begin ();
+        for (files::sections::const_iterator si = secs.begin ();
+             si != secs.end ();
+             ++si)
+        {
+          const files::section& sec = *si;
+          comp.write (obj, sec.offset, sec.size);
+        }
+
+        obj.end ();
       }
+      catch (...)
+      {
+        obj.close ();
+        throw;
+      }
+
+      obj.close ();
     }
 
     void
@@ -466,7 +702,7 @@ namespace rld
            const symbols::table&     /* symbols */) /* Add back for incremental
                                                      * linking */
     {
-      compress::compressor compressor (app, 128 * 1024);
+      compress::compressor compressor (app, 2 * 1024);
       image                rap;
 
       rap.layout (app_objects);
