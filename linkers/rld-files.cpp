@@ -902,6 +902,7 @@ namespace rld
 
     section::section (const elf::section& es)
       : name (es.name ()),
+        index (es.index ()),
         type (es.type ()),
         size (es.size ()),
         alignment (es.alignment ()),
@@ -928,6 +929,22 @@ namespace rld
       }
 
       return size;
+    }
+
+    const section*
+    find (const sections& secs, const int index)
+    {
+      for (sections::const_iterator si = secs.begin ();
+           si != secs.end ();
+           ++si)
+      {
+        const section& sec = *si;
+
+        if (index == sec.index)
+          return &sec;
+      }
+
+      return 0;
     }
 
     object::object (archive& archive_, file& name_)

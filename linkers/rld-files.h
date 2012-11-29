@@ -518,6 +518,7 @@ namespace rld
     struct section
     {
       const std::string name;      //< The name of the section.
+      const int         index;     //< The section's index in the object file.
       const uint32_t    type;      //< The type of section.
       const size_t      size;      //< The size of the section.
       const uint32_t    alignment; //< The alignment of the section.
@@ -548,6 +549,11 @@ namespace rld
      * Sum the sizes of a container of sections.
      */
     size_t sum_sizes (const sections& secs);
+
+    /**
+     * Find the section that matches the index in the sections provided.
+     */
+    const section* find (const sections& secs, const int index);
 
     /**
      * The object file cab be in an archive or a file.
