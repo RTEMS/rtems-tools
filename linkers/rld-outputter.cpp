@@ -315,7 +315,6 @@ namespace rld
       files::image       app (name);
 
       header = "RAP,00000000,0001,LZ77,00000000\n";
-      header += '\0';
 
       script = script_text (entry, exit, dependents, cache, true);
 
