@@ -110,6 +110,16 @@ namespace rld
       int index () const;
 
       /**
+       * The value of the symbol.
+       */
+      elf::elf_addr value () const;
+
+      /**
+       * The data of the symbol.
+       */
+      uint32_t info () const;
+
+      /**
        * The symbol's object file name.
        */
       files::object* object () const;

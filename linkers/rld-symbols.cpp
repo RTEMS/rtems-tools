@@ -140,6 +140,18 @@ namespace rld
       return esym_.st_shndx;
     }
 
+    elf::elf_addr
+    symbol::value () const
+    {
+      return esym_.st_value;
+    }
+
+    uint32_t
+    symbol::info () const
+    {
+      return esym_.st_info;
+    }
+
     rld::files::object*
     symbol::object () const
     {
