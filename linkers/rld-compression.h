@@ -93,6 +93,14 @@ namespace rld
       size_t compressed () const;
 
     private:
+
+      /**
+       * Output the block of data to the output file with the block header.
+       *
+       * @param forced If true output the buffer.
+       */
+      void output (bool forced = false);
+
       files::image& image;            //< The image to read or write to or from.
       size_t        size;             //< The size of the buffer.
       bool          compress;         //< If true compress the data.
@@ -114,7 +122,7 @@ namespace rld
       uint8_t bytes[sizeof (T)];
       T       v = value;
       int     b = sizeof (T) - 1;
-      while (b > 0)
+      while (b >= 0)
       {
         bytes[b--] = (uint8_t) v;
         v >>= 8;
