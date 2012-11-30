@@ -193,7 +193,9 @@ namespace rld
       /**
        * Write the compressed output file.
        */
-      void write (compress::compressor& comp, const std::string& metadata);
+      void write (compress::compressor& comp,
+                  const std::string&    init,
+                  const std::string&    fini);
 
       /**
        * Write the sections to the compressed output file.
@@ -541,7 +543,7 @@ namespace rld
         relocs_size += obj.relocs_size;
       }
 
-      if (rld::verbose () >= RLD_VERBOSE_INFO)
+      if (1 || rld::verbose () >= RLD_VERBOSE_INFO)
       {
         uint32_t total = (secs[rap_text].size + secs[rap_data].size +
                           secs[rap_data].size + secs[rap_bss].size +
@@ -616,27 +618,38 @@ namespace rld
     }
 
     void
-    image::write (compress::compressor& comp, const std::string& metadata)
+    image::write (compress::compressor& comp,
+                  const std::string&    init,
+                  const std::string&    fini)
     {
       /*
        * Start with the machine type so the target can check the applicatiion
-       * is ok and can be loaded. for the number of object files to load and the memory
-       * foot in the target so it can be allocated first then add the metadata
-       * size and then the metadata.
+       * is ok and can be loaded. Add the init and fini labels to the string
+       * table and add the references to the string table next. Follow this
+       * with the section details then the string table and symbol table then
+       * finally the relocation records.
        */
+
       comp << elf::object_machine_type ()
            << elf::object_datatype ()
            << elf::object_class ();
+
+      comp << (uint32_t) strtab.size ();
+      strtab += init;
+      strtab += '\0';
+
+      comp << (uint32_t) strtab.size ();
+      strtab += fini;
+      strtab += '\0';
+
+      comp << symtab_size
+           << (uint32_t) strtab.size ()
+           << (uint32_t) 0;
 
       for (int s = 0; s < rap_secs; ++s)
         comp << secs[s].size
              << secs[s].align
              << secs[s].offset;
-
-      comp << symtab_size
-           << (uint32_t) strtab.size ()
-           << (uint32_t) metadata.size ()
-           << metadata;
 
       /*
        * Output the sections from each object file.
@@ -653,6 +666,8 @@ namespace rld
       std::for_each (objs.begin (), objs.end (),
                      section_writer (*this, comp, rap_data));
 
+      comp << strtab;
+
       for (externals::const_iterator ei = externs.begin ();
            ei != externs.end ();
            ++ei)
@@ -662,8 +677,6 @@ namespace rld
              << ext.name
              << ext.value;
       }
-
-      comp << strtab;
     }
 
     void
@@ -697,7 +710,8 @@ namespace rld
 
     void
     write (files::image&             app,
-           const std::string&        metadata,
+           const std::string&        init,
+           const std::string&        fini,
            const files::object_list& app_objects,
            const symbols::table&     /* symbols */) /* Add back for incremental
                                                      * linking */
@@ -706,7 +720,7 @@ namespace rld
       image                rap;
 
       rap.layout (app_objects);
-      rap.write (compressor, metadata);
+      rap.write (compressor, init, fini);
 
       compressor.flush ();
 

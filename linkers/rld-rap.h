@@ -45,12 +45,14 @@ namespace rld
      * maintained list that are exported.
      *
      * @param app The application image to write too.
-     * @param metadata The application metadata.
+     * @param init The application's initialisation entry point.
+     * @param exit The application's finish entry point .
      * @param objects The list of object files in the application.
      * @param symbols The symbol table used to create the application.
      */
     void write (files::image&             app,
-                const std::string&        metadata,
+                const std::string&        init,
+                const std::string&        fini,
                 const files::object_list& objects,
                 const symbols::table&     symbols);
   }

@@ -311,12 +311,9 @@ namespace rld
       files::object_list dep_copy (dependents);
       files::object_list objects;
       std::string        header;
-      std::string        script;
       files::image       app (name);
 
       header = "RAP,00000000,0001,LZ77,00000000\n";
-
-      script = script_text (entry, exit, dependents, cache, true);
 
       cache.get_objects (objects);
       objects.merge (dep_copy);
@@ -327,7 +324,7 @@ namespace rld
 
       try
       {
-        rap::write (app, script, objects, symbols);
+        rap::write (app, entry, exit, objects, symbols);
       }
       catch (...)
       {
