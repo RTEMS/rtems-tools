@@ -543,7 +543,7 @@ namespace rld
         relocs_size += obj.relocs_size;
       }
 
-      if (1 || rld::verbose () >= RLD_VERBOSE_INFO)
+      if (rld::verbose () >= RLD_VERBOSE_INFO)
       {
         uint32_t total = (secs[rap_text].size + secs[rap_data].size +
                           secs[rap_data].size + secs[rap_bss].size +
