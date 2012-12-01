@@ -529,7 +529,7 @@ namespace rld
           {
             if ((sym.binding () == STB_GLOBAL) || (sym.binding () == STB_WEAK))
             {
-              externs.push_back (external (sym_count,
+              externs.push_back (external (strtab.size () + 2,
                                            obj.find (sym.index ()),
                                            sym.value (),
                                            sym.info ()));
