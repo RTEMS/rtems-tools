@@ -64,6 +64,57 @@ namespace rld
       }
     }
 
+    relocation::relocation (const symbols::symbol& sym,
+                            elf_addr               offset,
+                            elf_xword              info,
+                            elf_sxword             addend)
+      : sym (&sym),
+        offset_ (offset),
+        info_ (info),
+        addend_ (addend)
+    {
+    }
+
+    relocation::relocation ()
+      : sym (0),
+        offset_ (0),
+        info_ (0),
+        addend_ (0)
+    {
+    }
+
+    std::string
+    relocation::name () const
+    {
+      if (sym)
+        return sym->name ();
+      return "";
+    }
+
+    elf_addr
+    relocation::offset () const
+    {
+      return offset_;
+    }
+
+    uint32_t
+    relocation::type () const
+    {
+      return GELF_R_TYPE (info_);
+    }
+
+    elf_xword
+    relocation::info () const
+    {
+      return info_;
+    }
+
+    elf_sxword
+    relocation::addend () const
+    {
+      return addend_;
+    }
+
     section::section (file&              file_,
                       int                index_,
                       const std::string& name_,
@@ -80,7 +131,8 @@ namespace rld
         index_ (index_),
         name_ (name_),
         scn (0),
-        data_ (0)
+        data_ (0),
+        rela (false)
     {
       if (!file_.is_writable ())
         throw rld::error ("not writable",
@@ -115,7 +167,8 @@ namespace rld
       : file_ (&file_),
         index_ (index_),
         scn (0),
-        data_ (0)
+        data_ (0),
+        rela (false)
     {
       memset (&shdr, 0, sizeof (shdr));
 
@@ -141,7 +194,9 @@ namespace rld
         name_ (orig.name_),
         scn (orig.scn),
         shdr (orig.shdr),
-        data_ (orig.data_)
+        data_ (orig.data_),
+        rela (orig.rela),
+        relocs (orig.relocs)
     {
     }
 
@@ -149,7 +204,8 @@ namespace rld
       : file_ (0),
         index_ (-1),
         scn (0),
-        data_ (0)
+        data_ (0),
+        rela (false)
     {
       memset (&shdr, 0, sizeof (shdr));
     }
@@ -268,6 +324,12 @@ namespace rld
       return size () / entry_size ();
     }
 
+    bool
+    section::get_reloc_type () const
+    {
+      return rela;
+    }
+
     void
     section::set_name (unsigned int index)
     {
@@ -275,6 +337,24 @@ namespace rld
       shdr.sh_name = index;
       if (!gelf_update_shdr (scn, &shdr))
         libelf_error ("gelf_update_shdr: " + name_ + " (" + file_->name () + ')');
+    }
+
+    void
+    section::set_reloc_type (bool rela_)
+    {
+      rela = rela_;
+    }
+
+    void
+    section::add (const relocation& reloc)
+    {
+      relocs.push_back (reloc);
+    }
+
+    const relocations&
+    section::get_relocations () const
+    {
+      return relocs;
     }
 
     void
@@ -660,11 +740,38 @@ namespace rld
       }
     }
 
+    section&
+    file::get_section (int index)
+    {
+      load_sections ();
+      for (section_table::iterator si = secs.begin ();
+           si != secs.end ();
+           ++si)
+      {
+        section& sec = (*si).second;
+        if (index == sec.index ())
+          return sec;
+      }
+
+      throw rld::error ("section index '" + rld::to_string (index) + "'not found",
+                        "elf:file:get_section: " + name_);
+    }
+
+    int
+    file::strings_section () const
+    {
+      check_ehdr ("strings_sections");
+      return ehdr->e_shstrndx;
+    }
+
     void
     file::load_symbols ()
     {
       if (symbols.empty ())
       {
+        if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+          std::cout << "elf:symbol: " << name () << std::endl;
+
         sections symbol_secs;
 
         get_sections (symbol_secs, SHT_SYMTAB);
@@ -683,21 +790,17 @@ namespace rld
             if (!::gelf_getsym (sec.data (), s, &esym))
              error ("gelf_getsym");
 
-            std::string name = get_string (sec.link (), esym.st_name);
+            std::string     name = get_string (sec.link (), esym.st_name);
+            symbols::symbol sym (s, name, esym);
 
-            if (!name.empty ())
+            if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
             {
-              symbols::symbol sym (name, esym);
-
-              if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
-              {
-                std::cout << "elf:symbol: ";
-                sym.output (std::cout);
-                std::cout << std::endl;
-              }
-
-              symbols.push_back (sym);
+              std::cout << "elf:symbol: ";
+              sym.output (std::cout);
+              std::cout << std::endl;
             }
+
+            symbols.push_back (sym);
           }
         }
       }
@@ -740,7 +843,9 @@ namespace rld
          */
         bool add = false;
 
-        if ((stype == STT_NOTYPE) && (sym.index () == SHN_UNDEF))
+        if ((stype == STT_NOTYPE) &&
+            (sbind == STB_GLOBAL) &&
+            (sym.section_index () == SHN_UNDEF))
         {
           if (unresolved)
             add = true;
@@ -761,11 +866,95 @@ namespace rld
       }
     }
 
-    int
-    file::strings_section () const
+    const symbols::symbol&
+    file::get_symbol (const int index) const
     {
-      check_ehdr ("strings_sections");
-      return ehdr->e_shstrndx;
+      for (symbols::bucket::const_iterator si = symbols.begin ();
+           si != symbols.end ();
+           ++si)
+      {
+        const symbols::symbol& sym = *si;
+        if (index == sym.index ())
+          return sym;
+      }
+
+      throw rld::error ("symbol index '" + rld::to_string (index) + "' not found",
+                        "elf:file:get_symbol: " + name_);
+    }
+
+    void
+    file::load_relocations ()
+    {
+      if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+        std::cout << "elf:reloc: " << name () << std::endl;
+
+      sections rel_secs;
+
+      get_sections (rel_secs, SHT_REL);
+      get_sections (rel_secs, SHT_RELA);
+
+      for (sections::iterator si = rel_secs.begin ();
+           si != rel_secs.end ();
+           ++si)
+      {
+        section& sec = *(*si);
+        section& targetsec = get_section (sec.info ());
+        int      rels = sec.entries ();
+        bool     rela = sec.type () == SHT_RELA;
+
+        targetsec.set_reloc_type (rela);
+
+        if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+          std::cout << "elf:reloc: " << sec.name ()
+                    << " -> " << targetsec.name ()
+                    << std::endl;
+
+        for (int r = 0; r < rels; ++r)
+        {
+          if (rela)
+          {
+            elf_rela erela;
+
+            if (!::gelf_getrela (sec.data (), r, &erela))
+              error ("gelf_getrela");
+
+            if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+              std::cout << "elf:reloc: rela: offset: " << erela.r_offset
+                        << " sym:" << GELF_R_SYM (erela.r_info)
+                        << " type:" << GELF_R_TYPE (erela.r_info)
+                        << " addend:" << erela.r_addend
+                        << std::endl;
+
+            const symbols::symbol& sym = get_symbol (GELF_R_SYM (erela.r_info));
+
+            relocation reloc (sym,
+                              erela.r_offset,
+                              erela.r_info,
+                              erela.r_addend);
+
+            targetsec.add (reloc);
+          }
+          else
+          {
+            elf_rel erel;
+
+            if (!::gelf_getrel (sec.data (), r, &erel))
+              error ("gelf_getrel");
+
+            if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+              std::cout << "elf:reloc: rel: offset: " << erel.r_offset
+                        << " sym:" << GELF_R_SYM (erel.r_info)
+                        << " type:" << GELF_R_TYPE (erel.r_info)
+                        << std::endl;
+
+            const symbols::symbol& sym = get_symbol (erel.r_info);
+
+            relocation reloc (sym, erel.r_offset, erel.r_info);
+
+            targetsec.add (reloc);
+          }
+        }
+      }
     }
 
     std::string

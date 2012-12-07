@@ -36,20 +36,23 @@ namespace rld
     /**
      * Hide the types from libelf we use.
      */
-    typedef ::GElf_Half  elf_half;
-    typedef ::GElf_Word  elf_word;
-    typedef ::GElf_Xword elf_xword;
-    typedef ::Elf_Type   elf_type;
-    typedef ::GElf_Addr  elf_addr;
-    typedef ::GElf_Off   elf_off;
-    typedef ::GElf_Sym   elf_sym;
-    typedef ::Elf_Kind   elf_kind;
-    typedef ::Elf_Scn    elf_scn;
-    typedef ::GElf_Ehdr  elf_ehdr;
-    typedef ::GElf_Shdr  elf_shdr;
-    typedef ::GElf_Phdr  elf_phdr;
-    typedef ::Elf_Data   elf_data;
-    typedef ::Elf        elf;
+    typedef ::GElf_Half   elf_half;
+    typedef ::GElf_Word   elf_word;
+    typedef ::GElf_Xword  elf_xword;
+    typedef ::GElf_Sxword elf_sxword;
+    typedef ::Elf_Type    elf_type;
+    typedef ::GElf_Addr   elf_addr;
+    typedef ::GElf_Off    elf_off;
+    typedef ::GElf_Sym    elf_sym;
+    typedef ::Elf_Kind    elf_kind;
+    typedef ::Elf_Scn     elf_scn;
+    typedef ::GElf_Ehdr   elf_ehdr;
+    typedef ::GElf_Shdr   elf_shdr;
+    typedef ::GElf_Phdr   elf_phdr;
+    typedef ::Elf_Data    elf_data;
+    typedef ::GElf_Rel    elf_rel;
+    typedef ::GElf_Rela   elf_rela;
+    typedef ::Elf         elf;
   }
 }
 

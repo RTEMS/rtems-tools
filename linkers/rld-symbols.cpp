@@ -50,43 +50,46 @@ namespace rld
     }
 
     symbol::symbol ()
-      : object_ (0),
+      : index_ (-1),
+        object_ (0),
         references_ (0)
     {
       memset (&esym_, 0, sizeof (esym_));
     }
 
-    symbol::symbol (const std::string&  name,
+    symbol::symbol (int                 index,
+                    const std::string&  name,
                     files::object&      object,
                     const elf::elf_sym& esym)
-      : name_ (name),
+      : index_ (index),
+        name_ (name),
         object_ (&object),
         esym_ (esym),
         references_ (0)
     {
       if (!object_)
         throw rld_error_at ("object pointer is 0");
-      if (name_.empty ())
-        throw rld_error_at ("name is empty in " + object.name ().full ());
       if (is_cplusplus ())
         denamgle_name (name_, demangled_);
     }
 
-    symbol::symbol (const std::string& name, const elf::elf_sym& esym)
-      : name_ (name),
+    symbol::symbol (int                 index,
+                    const std::string&  name,
+                    const elf::elf_sym& esym)
+      : index_ (index),
+        name_ (name),
         object_ (0),
         esym_ (esym),
         references_ (0)
     {
-      if (name_.empty ())
-        throw rld_error_at ("name is empty");
       if (is_cplusplus ())
         denamgle_name (name_, demangled_);
     }
 
     symbol::symbol (const std::string&  name,
                     const elf::elf_addr value)
-      : name_ (name),
+      : index_ (-1),
+        name_ (name),
         object_ (0),
         references_ (0)
     {
@@ -96,12 +99,19 @@ namespace rld
 
     symbol::symbol (const char*         name,
                     const elf::elf_addr value)
-      : name_ (name),
+      : index_ (-1),
+        name_ (name),
         object_ (0),
         references_ (0)
     {
       memset (&esym_, 0, sizeof (esym_));
       esym_.st_value = value;
+    }
+
+    int
+    symbol::index () const
+    {
+      return index_;
     }
 
     const std::string&
@@ -135,7 +145,7 @@ namespace rld
     }
 
     int
-    symbol::index () const
+    symbol::section_index () const
     {
       return esym_.st_shndx;
     }
@@ -237,7 +247,8 @@ namespace rld
           break;
       }
 
-      out << binding
+      out << std::setw (4) << index_
+          << ' ' << binding
           << ' ' << type
           << " 0x" << std::setw (8) << std::setfill ('0') << std::hex
           << es.st_value

@@ -58,14 +58,15 @@ namespace rld
       /**
        * Construct an exported symbol with a object file.
        */
-      symbol (const std::string&  name,
+      symbol (int                 index,
+              const std::string&  name,
               files::object&      object,
               const elf::elf_sym& esym);
 
       /**
-       * Construct an unresolved symbol with no object file.
+       * Construct a symbol with no object file and an ELF index.
        */
-      symbol (const std::string& name, const elf::elf_sym& esym);
+      symbol (int index, const std::string& name, const elf::elf_sym& esym);
 
       /**
        * Construct a linker symbol that is internally created.
@@ -78,6 +79,11 @@ namespace rld
        */
       symbol (const char*   name,
               elf::elf_addr value = 0);
+
+      /**
+       * The symbol's index in the symtab section of the ELF file.
+       */
+      int index () const;
 
       /**
        * The symbol's name.
@@ -105,9 +111,9 @@ namespace rld
       int binding () const;
 
       /**
-       * The synbol's section index.
+       * The symbol's section index.
        */
-      int index () const;
+      int section_index () const;
 
       /**
        * The value of the symbol.
@@ -159,6 +165,7 @@ namespace rld
 
     private:
 
+      int            index_;      //< The symbol's index in the ELF file.
       std::string    name_;       //< The name of the symbol.
       std::string    demangled_;  //< If a C++ symbol the demangled name.
       files::object* object_;     //< The object file containing the symbol.

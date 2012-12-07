@@ -27,6 +27,7 @@
 
 #include <list>
 #include <map>
+#include <vector>
 
 #include <rld.h>
 
@@ -38,6 +39,66 @@ namespace rld
      * Forward decl.
      */
     class file;
+
+    /**
+     * A relocation record.
+     */
+    class relocation
+    {
+    public:
+      /**
+       * Construct a relocation record.
+       *
+       * @param offset The offset in the section the relocation applies to.
+       * @param info The relocation info.
+       * @param addend The constant addend value.
+       */
+      relocation (const symbols::symbol& sym,
+                  elf_addr               offset,
+                  elf_xword              info,
+                  elf_sxword             addend = 0);
+
+      /**
+       * Default constructor.
+       */
+      relocation ();
+
+      /**
+       * The name of the symbol.
+       */
+      std::string name () const;
+
+      /**
+       * The offset.
+       */
+      elf_addr offset () const;
+
+      /**
+       * The type of the relocation record.
+       */
+      uint32_t type () const;
+
+      /**
+       * The info.
+       */
+      elf_xword info () const;
+
+      /**
+       * The constant addend.
+       */
+      elf_sxword addend () const;
+
+    private:
+      const symbols::symbol* sym;     //< The symbol reference.
+      elf_addr               offset_;  //< The offset in the section.
+      elf_xword              info_;    //< The record's information.
+      elf_sxword             addend_;  //< The constant addend value.
+    };
+
+    /**
+     * A container of relocation records.
+     */
+    typedef std::vector < relocation > relocations;
 
     /**
      * An ELF Section. The current implementation only supports a single data
@@ -233,10 +294,36 @@ namespace rld
       int entries () const;
 
       /**
+       * Return true if the relocation record have an addend field.
+       *
+       * @retval true The relocation record have the addend field.
+       */
+      bool get_reloc_type () const;
+
+      /**
        * Set the name index if writable. This is normally done
        * automatically when adding the section to the file.
        */
       void set_name (unsigned int index);
+
+      /**
+       * Set the type of relocation records.
+       *
+       * @param rela If true the records are rela type.
+       */
+      void set_reloc_type (bool rela);
+
+      /**
+       * Add a relocation.
+       *
+       * @param reloc The relocation record to add.
+       */
+      void add (const relocation& reloc);
+
+      /**
+       * Get the relocations.
+       */
+      const relocations& get_relocations () const;
 
     private:
 
@@ -260,6 +347,8 @@ namespace rld
       elf_scn*    scn;    //< ELF private section data.
       elf_shdr    shdr;   //< The section header.
       elf_data*   data_;  //< The section's data.
+      bool        rela;   //< The type of relocation records.
+      relocations relocs; //< The relocation records.
     };
 
     /**
@@ -318,7 +407,7 @@ namespace rld
      */
     typedef std::list < program_header > program_headers;
 
-     /**
+    /**
      * An ELF file.
      */
     class file
@@ -427,6 +516,14 @@ namespace rld
       void get_sections (sections& filtered_secs, unsigned int type);
 
       /**
+       * Return the section with given index.
+       *
+       * @param index The section's index to look for.
+       * @retval section The section matching the index.
+       */
+      section& get_section (int index);
+
+      /**
        * Return the index of the string section.
        */
       int strings_section () const;
@@ -470,6 +567,21 @@ namespace rld
                         bool                    local = false,
                         bool                    weak = true,
                         bool                    global = true);
+
+      /**
+       * Get the symbol by index in the symtabl section.
+       */
+      const symbols::symbol& get_symbol (const int index) const;
+
+      /**
+       * Load the relocation records.
+       */
+      void load_relocations ();
+
+      /**
+       * Clear the relocation records.
+       */
+      void clear_relocations ();
 
       /**
        * Set the ELF header. Must be writable.

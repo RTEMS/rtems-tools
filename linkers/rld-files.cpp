@@ -18,6 +18,8 @@
 #include "config.h"
 #endif
 
+#include <algorithm>
+
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -413,7 +415,7 @@ namespace rld
       size_t   to_read = size;
       while (have_read < size)
       {
-        ssize_t rsize = ::read (fd (), buffer, to_read);
+        const ssize_t rsize = ::read (fd (), buffer, to_read);
         if (rsize < 0)
           throw rld::error (strerror (errno), "read:" + name ().path ());
         if (rsize == 0)
@@ -428,12 +430,12 @@ namespace rld
     ssize_t
     image::write (const void* buffer_, size_t size)
     {
-      const uint8_t* buffer = static_cast <const uint8_t*>  (buffer_);
+      const uint8_t* buffer = static_cast <const uint8_t*> (buffer_);
       size_t         have_written = 0;
       size_t         to_write = size;
       while (have_written < size)
       {
-        ssize_t wsize = ::write (fd (), buffer, to_write);
+        const ssize_t wsize = ::write (fd (), buffer, to_write);
         if (wsize < 0)
           throw rld::error (strerror (errno), "write:" + name ().path ());
         have_written += wsize;
@@ -900,6 +902,15 @@ namespace rld
       close ();
     }
 
+    relocation::relocation (const elf::relocation& er)
+      : name (er.name ()),
+        offset (er.offset ()),
+        type (er.type ()),
+        info (er.info ()),
+        addend (er.addend ())
+    {
+    }
+
     section::section (const elf::section& es)
       : name (es.name ()),
         index (es.index ()),
@@ -909,7 +920,23 @@ namespace rld
         link (es.link ()),
         info (es.info ()),
         flags (es.flags ()),
-        offset (es.offset ()){
+        offset (es.offset ()),
+        rela (es.get_reloc_type ())
+    {
+      load_relocations (es);
+    }
+
+    void
+    section::load_relocations (const elf::section& es)
+    {
+      rela = es.get_reloc_type ();
+      const elf::relocations& es_relocs = es.get_relocations ();
+      for (elf::relocations::const_iterator ri = es_relocs.begin ();
+           ri != es_relocs.end ();
+           ++ri)
+      {
+        relocs.push_back (relocation (*ri));
+      }
     }
 
     size_t
@@ -1131,6 +1158,24 @@ namespace rld
         }
 
         unresolved[sym.name ()] = &sym;
+      }
+    }
+
+    void
+    object::load_relocations ()
+    {
+      if (rld::verbose () >= RLD_VERBOSE_DETAILS)
+        std::cout << "object:load-relocs: " << name ().full () << std::endl;
+
+      elf ().load_relocations ();
+
+      for (sections::iterator si = secs.begin ();
+           si != secs.end ();
+           ++si)
+      {
+        section&            sec = *si;
+        const elf::section& elf_sec = elf ().get_section (sec.index);
+        sec.load_relocations (elf_sec);
       }
     }
 

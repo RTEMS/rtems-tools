@@ -511,6 +511,37 @@ namespace rld
     };
 
     /**
+     * A relocation record. We extract what we want because the elf::section
+     * class requires the image be left open as references are alive. We
+     * extract and keep the data we need to create the image.
+     */
+    struct relocation
+    {
+      const std::string name;      //< The name of the symbol.
+      const uint32_t    offset;    //< The section offset.
+      const uint32_t    type;      //< The type of relocation record.
+      const uint32_t    info;      //< The ELF info field.
+      const int32_t     addend;    //< The constant addend.
+
+      /**
+       * Construct from an ELF relocation record.
+       */
+      relocation (const elf::relocation& er);
+
+    private:
+      /**
+       * The default constructor is not allowed due to all elements being
+       * const.
+       */
+      relocation ();
+    };
+
+    /**
+     * A container of relocations.
+     */
+    typedef std::list < relocation > relocations;
+
+    /**
      * The sections attributes. We extract what we want because the
      * elf::section class requires the image be left open as references are
      * alive. We extract and keep the data we need to create the image.
@@ -526,11 +557,22 @@ namespace rld
       const uint32_t    info;      //< The ELF info field.
       const uint32_t    flags;     //< The ELF flags.
       const off_t       offset;    //< The ELF file offset.
+      bool              rela;      //< Relocation records have the addend field.
+      relocations       relocs;    //< The sections relocations.
 
       /**
        * Construct from an ELF section.
+       *
+       * @param es The ELF section to load the object file section from.
        */
       section (const elf::section& es);
+
+      /**
+       * Load the ELF relocations.
+       *
+       * @param es The ELF section to load the relocations from.
+       */
+      void load_relocations (const elf::section& es);
 
     private:
       /**
@@ -620,6 +662,11 @@ namespace rld
        * @param local Include local symbols. The default is not to.
        */
       void load_symbols (symbols::table& symbols, bool local = false);
+
+      /**
+       * Load the relocations.
+       */
+      void load_relocations ();
 
       /**
        * References to the image.
