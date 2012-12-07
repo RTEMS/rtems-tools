@@ -31,6 +31,10 @@ def options(opt):
                    help = 'Print the commands as strings.')
 
 def configure(conf):
+    try:
+        conf.load("doxygen", tooldir = 'waf-tools')
+    except:
+        pass
     conf.load("g++")
     conf.load("gcc")
     conf_libiberty(conf)
@@ -51,6 +55,15 @@ def configure(conf):
     conf.env.SHOW_COMMANDS = show_commands
 
 def build(bld):
+    #
+    # Build the doxygen documentation.
+    #
+    if bld.cmd == 'doxy':
+        bld(features = 'doxygen',
+            doxyfile = 'rtl-host.conf',
+            doxy_tar = 'rtl-host-docs.tar.bz2')
+        return
+
     if bld.env.SHOW_COMMANDS == 'yes':
         output_command_line()
 
@@ -317,3 +330,11 @@ def output_command_line():
         return '' # no output on empty strings
 
     Task.__str__ = display
+
+#
+# The doxy command.
+#
+from waflib import Build
+class doxy(Build.BuildContext):
+    fun = 'build'
+    cmd = 'doxy'
