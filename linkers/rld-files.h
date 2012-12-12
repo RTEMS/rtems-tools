@@ -517,11 +517,14 @@ namespace rld
      */
     struct relocation
     {
-      const std::string name;      //< The name of the symbol.
       const uint32_t    offset;    //< The section offset.
       const uint32_t    type;      //< The type of relocation record.
       const uint32_t    info;      //< The ELF info field.
       const int32_t     addend;    //< The constant addend.
+      const std::string symname;   //< The name of the symbol.
+      const uint32_t    symtype;   //< The type of symbol.
+      const int         symsect;   //< The symbol's section symbol.
+      const uint32_t    symvalue;  //< The symbol's value.
 
       /**
        * Construct from an ELF relocation record.

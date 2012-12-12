@@ -64,11 +64,6 @@ namespace rld
       relocation ();
 
       /**
-       * The name of the symbol.
-       */
-      std::string name () const;
-
-      /**
        * The offset.
        */
       elf_addr offset () const;
@@ -87,6 +82,11 @@ namespace rld
        * The constant addend.
        */
       elf_sxword addend () const;
+
+      /**
+       * Return the symbol.
+       */
+      const symbols::symbol& symbol () const;
 
     private:
       const symbols::symbol* sym;     //< The symbol reference.

@@ -66,25 +66,38 @@ namespace rld
     };
 
     /**
-     * RAP relocation record.
+     * RAP relocation record. This one does not have const fields.
      */
     struct relocation
     {
-      std::string name;    //< The symbol name if there is one.
-      uint32_t    offset;  //< The offset in the section to apply the fixup.
-      uint32_t    info;    //< The ELF info record.
-      uint32_t    addend;  //< The ELF constant addend.
+      uint32_t    offset;   //< The offset in the section to apply the fixup.
+      uint32_t    info;     //< The ELF info record.
+      uint32_t    addend;   //< The ELF constant addend.
+      std::string symname;  //< The symbol name if there is one.
+      uint32_t    symtype;  //< The type of symbol.
+      int         symsect;  //< The symbol's RAP section.
+      uint32_t    symvalue; //< The symbol's default value.
 
       /**
-       * Construct the relocation.
+       * Construct the relocation using the file relocation, the offset of the
+       * section in the target RAP section and the RAP section of the symbol.
        */
-      relocation (const files::relocation& reloc, uint32_t offset = 0);
+      relocation (const files::relocation& reloc,
+                  const uint32_t           offset = 0,
+                  const int                symsect = 0);
     };
 
     /**
      * Relocation records.
      */
     typedef std::list < relocation > relocations;
+
+    /**
+     * Map of object file section offsets keyed by the object file section
+     * index. This is used when adding the external symbols so the symbol's
+     * value can be adjusted by the offset of the section in the RAP section.
+     */
+    typedef std::map < int, uint32_t > osections;
 
     /**
      * The RAP section data.
@@ -97,6 +110,7 @@ namespace rld
       uint32_t    align;  //< The alignment of the section.
       bool        rela;   //< The relocation record has an addend field.
       relocations relocs; //< The relocations for this section.
+      osections   osecs;  //< The object section index.
 
       /**
        * Operator to add up section data.
@@ -182,12 +196,6 @@ namespace rld
       files::sections symtab;         //< All exported symbols.
       files::sections strtab;         //< All exported strings.
       section         secs[rap_secs]; //< The sections of interest.
-      uint32_t        symtab_off;     //< The symbols section file offset.
-      uint32_t        symtab_size;    //< The symbols section size.
-      uint32_t        strtab_off;     //< The strings section file offset.
-      uint32_t        strtab_size;    //< The strings section size.
-      uint32_t        relocs_off;     //< The reloc's section file offset.
-      uint32_t        relocs_size;    //< The reloc's section size.
 
       /**
        * The constructor. Need to have an object file to create.
@@ -203,6 +211,17 @@ namespace rld
        * Find the section type that matches the section index.
        */
       sections find (const uint32_t index) const;
+
+      /**
+       * The total number of relocations in the object file.
+       */
+      uint32_t get_relocations () const;
+
+      /**
+       * The total number of relocations for a specific RAP section in the
+       * object file.
+       */
+      uint32_t get_relocations (int sec) const;
 
     private:
       /**
@@ -239,7 +258,7 @@ namespace rld
        *
        * @param obj The object file to collection the symbol from.
        */
-      void collect_symbols (const object& obj);
+      void collect_symbols (object& obj);
 
       /**
        * Write the compressed output file.
@@ -265,15 +284,61 @@ namespace rld
        */
       void write_relocations (compress::compressor& comp);
 
+      /**
+       * The total number of relocations for a specific RAP section in the
+       * image.
+       */
+      uint32_t get_relocations (int sec) const;
+
+      /**
+       * Clear the image values.
+       */
+      void clear ();
+
+      /**
+       * Update the section values.
+       *
+       * @param index The RAP section index to update.
+       * @param sec The object's RAP section.
+       */
+      void update_section (int index, const section& sec);
+
     private:
 
-      objects     objs;           //< The RAP objects
-      section     secs[rap_secs]; //< The sections of interest.
-      externals   externs;        //< The symbols in the image
-      uint32_t    symtab_size;    //< The size of the symbols.
-      std::string strtab;         //< The strings table.
-      uint32_t    relocs_size;    //< The relocations size.
+      objects     objs;                //< The RAP objects
+      uint32_t    sec_size[rap_secs];  //< The sections of interest.
+      uint32_t    sec_align[rap_secs]; //< The sections of interest.
+      bool        sec_rela[rap_secs];  //< The sections of interest.
+      externals   externs;             //< The symbols in the image
+      uint32_t    symtab_size;         //< The size of the symbols.
+      std::string strtab;              //< The strings table.
+      uint32_t    relocs_size;         //< The relocations size.
     };
+
+    /**
+     * Update the offset taking into account the alignment.
+     *
+     * @param offset The current offset.
+     * @param size The size to move the offset by.
+     * @param alignment The alignment of the offset.
+     * @return uint32_t The new aligned offset.
+     */
+    uint32_t align_offset (uint32_t offset, uint32_t size, uint32_t alignment)
+    {
+      offset += size;
+
+      if (alignment > 1)
+      {
+        uint32_t mask = alignment - 1;
+        if (offset & mask)
+        {
+          offset &= ~mask;
+          offset += alignment;
+        }
+      }
+
+      return offset;
+    }
 
     /**
      * Output helper function to report the sections in an object file.
@@ -329,18 +394,24 @@ namespace rld
       }
     }
 
-    relocation::relocation (const files::relocation& reloc, uint32_t offset)
-      : name (reloc.name),
-        offset (offset + reloc.offset),
+    relocation::relocation (const files::relocation& reloc,
+                            const uint32_t           offset,
+                            const int                symsect)
+      : offset (reloc.offset + offset),
         info (reloc.info),
-        addend (reloc.info)
+        addend (reloc.addend),
+        symname (reloc.symname),
+        symtype (reloc.symtype),
+        symsect (symsect),
+        symvalue (reloc.symvalue)
     {
     }
 
     section::section ()
       : size (0),
         offset (0),
-        align (0)
+        align (0),
+        rela (false)
     {
     }
 
@@ -350,6 +421,7 @@ namespace rld
       size = 0;
       offset = 0;
       align = 0;
+      rela = false;
     }
 
     section&
@@ -370,6 +442,8 @@ namespace rld
         size += sec.size;
       }
 
+      rela = sec.rela;
+
       return *this;
     }
 
@@ -386,25 +460,7 @@ namespace rld
     void
     section::set_offset (const section& sec)
     {
-      offset = sec.offset + sec.size;
-
-      if (align > 1)
-      {
-        uint32_t mask = align - 1;
-        if (offset & mask)
-        {
-          offset &= ~mask;
-          offset += align;
-        }
-      }
-
-      for (relocations::iterator ri = relocs.begin ();
-           ri != relocs.end ();
-           ++ri)
-      {
-        relocation& reloc = *ri;
-        reloc.offset += offset;
-      }
+      offset = align_offset (sec.offset, sec.size, align);
     }
 
     void
@@ -418,36 +474,86 @@ namespace rld
     }
 
     /**
-     * Helper for for_each to get the relocations.
+     * Helper for for_each to merge the related object sections into the RAP
+     * section.
      */
-    class section_relocs:
+    class section_merge:
       public std::unary_function < const files::section, void >
     {
     public:
 
-      section_relocs (section& sec);
+      section_merge (object& obj, section& sec);
 
       void operator () (const files::section& fsec);
 
     private:
 
+      object&  obj;
       section& sec;
     };
 
-    section_relocs::section_relocs (section& sec)
-      : sec (sec)
+    section_merge::section_merge (object& obj, section& sec)
+      : obj (obj),
+        sec (sec)
     {
+      sec.align = 0;
+      sec.offset = 0;
+      sec.size = 0;
+      sec.rela = false;
     }
 
     void
-    section_relocs::operator () (const files::section& fsec)
+    section_merge::operator () (const files::section& fsec)
     {
-      for (files::relocations::const_iterator ri = fsec.relocs.begin ();
-           ri != fsec.relocs.end ();
-           ++ri)
+      if (sec.align == 0)
+        sec.align = fsec.alignment;
+      else if (sec.align != fsec.alignment)
+        throw rld::error ("Alignments do not match for section '" + sec.name + "'",
+                          "rap::section");
+
+      uint32_t offset = align_offset (sec.size, 0, sec.align);
+
+      if (1 || rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+        std::cout << "rap:section-merge: relocs=" << fsec.relocs.size ()
+                  << " offset=" << offset
+                  << " fsec.name=" << fsec.name
+                  << " fsec.size=" << fsec.size
+                  << " fsec.alignment=" << fsec.alignment
+                  << "  " << obj.obj.name ().full ()  << std::endl;
+
+      /*
+       * Add the object file's section offset to the map. This is needed
+       * to adjust the external symbol offsets.
+       */
+      sec.osecs[fsec.index] = offset;
+
+      uint32_t rc = 0;
+
+      for (files::relocations::const_iterator fri = fsec.relocs.begin ();
+           fri != fsec.relocs.end ();
+           ++fri, ++rc)
       {
-        sec.relocs.push_back (relocation (*ri, sec.offset));
+        const files::relocation& freloc = *fri;
+
+        if (1 || rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+          std::cout << " " << std::setw (2) << sec.relocs.size ()
+                    << '/' << std::setw (2) << rc
+                    << std::hex << ": reloc.info=0x" << freloc.info << std::dec
+                    << " reloc.offset=" << freloc.offset
+                    << " reloc.addend=" << freloc.addend
+                    << " reloc.symtype=" << freloc.symtype
+                    << std::endl;
+
+        if (freloc.symtype == STT_NOTYPE)
+          sec.relocs.push_back (relocation (freloc, offset));
+        else
+          sec.relocs.push_back (relocation (freloc,
+                                            offset,
+                                            obj.find (freloc.symsect)));
       }
+
+      sec.rela = fsec.rela;
+      sec.size = offset + fsec.size;
     }
 
     external::external (const uint32_t name,
@@ -470,13 +576,7 @@ namespace rld
     }
 
     object::object (files::object& obj)
-      : obj (obj),
-        symtab_off (0),
-        symtab_size (0),
-        strtab_off (0),
-        strtab_size (0),
-        relocs_off (0),
-        relocs_size (0)
+      : obj (obj)
     {
       /*
        * Set up the names of the sections.
@@ -485,8 +585,9 @@ namespace rld
         secs[s].name = section_names[s];
 
       /*
-       * Get the relocation records. Setting the offset will update them.
-       * section.
+       * Get the relocation records. Collect the various section types from the
+       * object file into the RAP sections. Merge those sections into the RAP
+       * sections.
        */
 
       obj.open ();
@@ -495,18 +596,14 @@ namespace rld
         obj.begin ();
         obj.load_relocations ();
         obj.end ();
-        obj.close ();
       }
       catch (...)
       {
         obj.close ();
         throw;
       }
+      obj.close ();
 
-      /*
-       * Get from the object file the various sections we need to format a
-       * memory layout.
-       */
       obj.get_sections (text,   SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR);
       obj.get_sections (const_, SHT_PROGBITS, SHF_ALLOC | SHF_MERGE, SHF_WRITE | SHF_EXECINSTR);
       obj.get_sections (ctor,   ".ctors");
@@ -516,33 +613,20 @@ namespace rld
       obj.get_sections (symtab, SHT_SYMTAB);
       obj.get_sections (strtab, ".strtab");
 
-      secs[rap_text].update (text);
-      secs[rap_const].update (const_);
-      secs[rap_ctor].update (ctor);
-      secs[rap_dtor].update (dtor);
-      secs[rap_data].update (data);
-      secs[rap_bss].update (bss);
-
       std::for_each (text.begin (), text.end (),
-                     section_relocs (secs[rap_text]));
+                     section_merge (*this, secs[rap_text]));
       std::for_each (const_.begin (), const_.end (),
-                     section_relocs (secs[rap_const]));
+                     section_merge (*this, secs[rap_const]));
       std::for_each (ctor.begin (), ctor.end (),
-                     section_relocs (secs[rap_ctor]));
+                     section_merge (*this, secs[rap_ctor]));
       std::for_each (dtor.begin (), dtor.end (),
-                     section_relocs (secs[rap_dtor]));
+                     section_merge (*this, secs[rap_dtor]));
       std::for_each (data.begin (), data.end (),
-                     section_relocs (secs[rap_data]));
+                     section_merge (*this, secs[rap_data]));
       std::for_each (bss.begin (), bss.end (),
-                     section_relocs (secs[rap_bss]));
+                     section_merge (*this, secs[rap_bss]));
 
-      symtab_size = files::sum_sizes (symtab);
-      strtab_size = files::sum_sizes (strtab);
-      relocs_size = 0;
-      for (int s = 0; s < rap_secs; ++s)
-        relocs_size += secs[s].relocs.size ();
-
-      if (rld::verbose () >= RLD_VERBOSE_TRACE)
+      if (1 || rld::verbose () >= RLD_VERBOSE_TRACE)
       {
         std::cout << "rap:object: " << obj.name ().full () << std::endl;
         output ("text", secs[rap_text].size, text);
@@ -552,10 +636,6 @@ namespace rld
         output ("data", secs[rap_data].size, data);
         if (secs[rap_bss].size)
           std::cout << " bss: size: " << secs[rap_bss].size << std::endl;
-        output ("symtab", symtab_size, symtab);
-        output ("strtab", strtab_size, strtab);
-        if (relocs_size)
-          std::cout << " relocs: size: " << relocs_size << std::endl;
       }
     }
 
@@ -568,13 +648,7 @@ namespace rld
         data (orig.data),
         bss (orig.bss),
         symtab (orig.symtab),
-        strtab (orig.strtab),
-        symtab_off (orig.symtab_off),
-        symtab_size (orig.symtab_size),
-        strtab_off (orig.strtab_off),
-        strtab_size (orig.strtab_size),
-        relocs_off (orig.relocs_off),
-        relocs_size (orig.relocs_size)
+        strtab (orig.strtab)
     {
       for (int s = 0; s < rap_secs; ++s)
         secs[s] = orig.secs[s];
@@ -613,20 +687,34 @@ namespace rld
                         "' not found: " + obj.name ().full (), "rap::object");
     }
 
-    image::image ()
-      : symtab_size (0),
-        relocs_size (0)
+    uint32_t
+    object::get_relocations () const
     {
-      /*
-       * Set up the names of the sections.
-       */
+      uint32_t relocs = 0;
       for (int s = 0; s < rap_secs; ++s)
-        secs[s].name = section_names[s];
+        relocs += secs[s].relocs.size ();
+      return relocs;
+    }
+
+    uint32_t
+    object::get_relocations (int sec) const
+    {
+      if ((sec < 0) || (sec >= rap_secs))
+        throw rld::error ("Invalid section index '" + rld::to_string (index),
+                          "rap::relocations");
+      return secs[sec].relocs.size ();
+    }
+
+    image::image ()
+    {
+      clear ();
     }
 
     void
     image::layout (const files::object_list& app_objects)
     {
+      clear ();
+
       /*
        * Create the local objects which contain the layout information.
        */
@@ -643,12 +731,6 @@ namespace rld
         objs.push_back (object (app_obj));
       }
 
-      for (int s = 0; s < rap_secs; ++s)
-        secs[s].clear ();
-
-      symtab_size = 0;
-      strtab.clear ();
-
       for (objects::iterator oi = objs.begin (), poi = objs.begin ();
            oi != objs.end ();
            ++oi)
@@ -663,35 +745,32 @@ namespace rld
         if (oi != objs.begin ())
         {
           object& pobj = *poi;
-          for (int s = 1; s < rap_secs; ++s)
+          for (int s = 0; s < rap_secs; ++s)
             obj.secs[s].set_offset (pobj.secs[s]);
           ++poi;
         }
 
         for (int s = 0; s < rap_secs; ++s)
-          secs[s] += obj.secs[s];
+          update_section (s, obj.secs[s]);
 
         collect_symbols (obj);
 
-        relocs_size += obj.relocs_size;
+        relocs_size += obj.get_relocations ();
       }
-
-      for (int s = 1; s < rap_secs; ++s)
-        secs[s].set_offset (secs[s - 1]);
 
       if (1 || rld::verbose () >= RLD_VERBOSE_INFO)
       {
-        uint32_t total = (secs[rap_text].size + secs[rap_data].size +
-                          secs[rap_data].size + secs[rap_bss].size +
+        uint32_t total = (sec_size[rap_text] + sec_size[rap_data] +
+                          sec_size[rap_data] + sec_size[rap_bss] +
                           symtab_size + strtab.size() + relocs_size);
         std::cout << "rap::layout: total:" << total
-                  << " text:" << secs[rap_text].size << " (" << secs[rap_text].offset
-                  << ") const:" << secs[rap_const].size << " (" << secs[rap_const].offset
-                  << ") ctor:" << secs[rap_ctor].size << " (" << secs[rap_ctor].offset
-                  << ") dtor:" << secs[rap_dtor].size << " (" << secs[rap_dtor].offset
-                  << ") data:" << secs[rap_data].size << " (" << secs[rap_data].offset
-                  << ") bss:" << secs[rap_bss].size << " (" << secs[rap_bss].offset
-                  << ") symbols:" << symtab_size << " (" << externs.size () << ')'
+                  << " text:" << sec_size[rap_text]
+                  << " const:" << sec_size[rap_const]
+                  << " ctor:" << sec_size[rap_ctor]
+                  << " dtor:" << sec_size[rap_dtor]
+                  << " data:" << sec_size[rap_data]
+                  << " bss:" << sec_size[rap_bss]
+                  << " symbols:" << symtab_size << " (" << externs.size () << ')'
                   << " strings:" << strtab.size ()
                   << " relocs:" << relocs_size
                   << std::endl;
@@ -699,7 +778,7 @@ namespace rld
     }
 
     void
-    image::collect_symbols (const object& obj)
+    image::collect_symbols (object& obj)
     {
       symbols::pointers& esyms = obj.obj.external_symbols ();
       for (symbols::pointers::const_iterator ei = esyms.begin ();
@@ -712,10 +791,21 @@ namespace rld
         {
           if ((sym.binding () == STB_GLOBAL) || (sym.binding () == STB_WEAK))
           {
+            int      symsec = sym.section_index ();
+            sections rap_sec = obj.find (symsec);
+            section& sec = obj.secs[rap_sec];
+
+            /*
+             * The '+ 2' is for the end of string nul and the delimiting nul.
+             *
+             * The symbol's value is the symbols value plus the offset of the
+             * object file's section offset in the RAP section.
+             */
             externs.push_back (external (strtab.size () + 2,
-                                         obj.find (sym.section_index ()),
-                                         sym.value (),
+                                         rap_sec,
+                                         sec.osecs[symsec] + sym.value (),
                                          sym.info ()));
+
             symtab_size += external::rap_size;
             strtab += sym.name ();
             strtab += '\0';
@@ -757,6 +847,9 @@ namespace rld
     void
     section_writer::operator () (object& obj)
     {
+      if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+        std::cout << "rap:writing: " << section_names[sec] << std::endl;
+
       switch (sec)
       {
         case rap_text:
@@ -809,9 +902,8 @@ namespace rld
            << (uint32_t) 0;
 
       for (int s = 0; s < rap_secs; ++s)
-        comp << secs[s].size
-             << secs[s].align
-             << secs[s].offset;
+        comp << sec_size[s]
+             << sec_align[s];
 
       /*
        * Output the sections from each object file.
@@ -839,18 +931,45 @@ namespace rld
                   files::object&         obj,
                   const files::sections& secs)
     {
+      uint32_t offset = 0;
+      uint32_t size = 0;
+
       obj.open ();
 
       try
       {
         obj.begin ();
+
+        if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+          std::cout << "rap:write sections: " << obj.name ().full () << std::endl;
+
         for (files::sections::const_iterator si = secs.begin ();
              si != secs.end ();
              ++si)
         {
           const files::section& sec = *si;
+          uint32_t              unaligned_offset = offset + size;
+
+          offset = align_offset (offset, size, sec.alignment);
+
+          if (offset != unaligned_offset)
+          {
+            char ee = '\xee';
+            for (uint32_t p = 0; p < (offset - unaligned_offset); ++p)
+              comp.write (&ee, 1);
+          }
+
           comp.write (obj, sec.offset, sec.size);
+
+        if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+          std::cout << " offset=" << offset
+                    << " padding=" << (offset - unaligned_offset)  << std::endl;
+
+          size = sec.size;
         }
+
+        if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+          std::cout << " -- size=" << offset << std::endl;
 
         obj.end ();
       }
@@ -880,44 +999,170 @@ namespace rld
     void
     image::write_relocations (compress::compressor& comp)
     {
-      for (objects::iterator oi = objs.begin ();
-           oi != objs.end ();
-           ++oi)
+      for (int s = 0; s < rap_secs; ++s)
       {
-        object& obj = *oi;
-        for (int s = 0; s < rap_secs; ++s)
+        uint32_t count = get_relocations (s);
+        uint32_t sr = 0;
+        uint32_t header;
+
+        if (1 || rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+          std::cout << "rep:relocation: section:" << section_names[s]
+                    << " relocs=" << count
+                    << std::endl;
+
+        header = count;
+        header |= sec_rela[s] ? (1UL << 31) : 0;
+
+        comp << header;
+
+        for (objects::iterator oi = objs.begin ();
+             oi != objs.end ();
+             ++oi)
         {
+          object&      obj = *oi;
           section&     sec = obj.secs[s];
           relocations& relocs = sec.relocs;
-          uint32_t     header =  relocs.size ();
+          uint32_t     rc = 0;
 
-          header |= sec.rela ? (1 << 31) : 0;
-
-          comp << header;
+          if (1 || rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+            std::cout << " relocs=" << sec.relocs.size ()
+                      << " sec.offset=" << sec.offset
+                      << " sec.size=" << sec.size
+                      << " sec.align=" << sec.align
+                      << "  " << obj.obj.name ().full ()  << std::endl;
 
           for (relocations::const_iterator ri = relocs.begin ();
                ri != relocs.end ();
-               ++ri)
+               ++ri, ++sr, ++rc)
           {
             const relocation& reloc = *ri;
-            std::size_t       size = strtab.find (reloc.name);
             uint32_t          info = GELF_R_TYPE (reloc.info);
+            uint32_t          offset;
+            uint32_t          addend = reloc.addend;
+            bool              write_addend = sec.rela;
+            bool              write_symname = false;
 
-            if (size)
-              info |= size << 8;
+            offset = sec.offset + reloc.offset;
+
+            if (reloc.symtype == STT_SECTION)
+            {
+              /*
+               * Bit 31 clear, bits 30:8 RAP section index.
+               */
+              info |= reloc.symsect << 8;
+
+              addend += obj.secs[reloc.symsect].offset + reloc.symvalue;
+
+              write_addend = true;
+
+              if (1 || rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+                std::cout << "  " << std::setw (2) << sr << '/' << std::setw (2) << rc
+                          <<":  rsym: sect=" << section_names[reloc.symsect]
+                          << " sec.offset=" << obj.secs[reloc.symsect].offset
+                          << " reloc.symsect=" << reloc.symsect
+                          << " reloc.symvalue=" << reloc.symvalue
+                          << " reloc.addend=" << reloc.addend
+                          << " addend=" << addend
+                          << std::endl;
+            }
             else
-              info |= (1 << 31) | (reloc.name.size () << 8);
+            {
+              /*
+               * Bit 31 must be set. Bit 30 determines the type of string and
+               * bits 29:8 the strtab offset or the size of the appended
+               * string.
+               */
 
-            comp << info << reloc.offset;
+              info |= 1 << 31;
 
-            if (sec.rela)
-              comp << reloc.addend;
+              std::size_t size = strtab.find (reloc.symname);
 
-            if (!size)
-              comp << reloc.name;
+              if (size == std::string::npos)
+              {
+                /*
+                 * Bit 30 clear, the size of the symbol name.
+                 */
+                info |= reloc.symname.size () << 8;
+                write_symname = true;
+              }
+              else
+              {
+                /*
+                 * Bit 30 set, the offset in the strtab.
+                 */
+                info |= (1 << 30) | (size << 8);
+              }
+            }
+
+            if (1 || rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+            {
+              std::cout << "  " << std::setw (2) << sr << '/'
+                        << std::setw (2) << rc
+                        << std::hex << ": reloc: info=0x" << info << std::dec
+                        << " offset=" << offset;
+              if (write_addend)
+                std::cout << " addend=" << addend;
+              if (write_symname)
+                std::cout << " symname=" << reloc.symname;
+              std::cout << std::hex
+                        << "  reloc.info=0x" << reloc.info << std::dec
+                        << " reloc.offset=" << reloc.offset
+                        << " reloc.symtype=" << reloc.symtype
+                        << std::endl;
+            }
+
+            comp << info << offset;
+
+            if (write_addend)
+              comp << addend;
+
+            if (write_symname)
+              comp << reloc.symname;
           }
         }
       }
+    }
+
+    uint32_t
+    image::get_relocations (int sec) const
+    {
+      if ((sec < 0) || (sec >= rap_secs))
+        throw rld::error ("Invalid section index '" + rld::to_string (index),
+                          "rap::image::relocations");
+
+      uint32_t relocs = 0;
+
+      for (objects::const_iterator oi = objs.begin ();
+           oi != objs.end ();
+           ++oi)
+      {
+        const object& obj = *oi;
+        relocs += obj.get_relocations (sec);
+      }
+
+      return relocs;
+    }
+
+    void
+    image::clear ()
+    {
+      for (int s = 0; s < rap_secs; ++s)
+      {
+        sec_size[s] = 0;
+        sec_align[s] = 0;
+        sec_rela[s] = false;
+      }
+      symtab_size = 0;
+      strtab.clear ();
+      relocs_size = 0;
+    }
+
+    void
+    image::update_section (int index, const section& sec)
+    {
+      sec_size[index] += sec.size;
+      sec_align[index] = sec.align;
+      sec_rela[index] = sec.rela;
     }
 
     void

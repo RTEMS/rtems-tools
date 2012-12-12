@@ -903,11 +903,14 @@ namespace rld
     }
 
     relocation::relocation (const elf::relocation& er)
-      : name (er.name ()),
-        offset (er.offset ()),
+      : offset (er.offset ()),
         type (er.type ()),
         info (er.info ()),
-        addend (er.addend ())
+        addend (er.addend ()),
+        symname (er.symbol ().name ()),
+        symtype (er.symbol ().type ()),
+        symsect (er.symbol ().section_index ()),
+        symvalue (er.symbol ().value ())
     {
     }
 
@@ -923,13 +926,11 @@ namespace rld
         offset (es.offset ()),
         rela (es.get_reloc_type ())
     {
-      load_relocations (es);
     }
 
     void
     section::load_relocations (const elf::section& es)
     {
-      rela = es.get_reloc_type ();
       const elf::relocations& es_relocs = es.get_relocations ();
       for (elf::relocations::const_iterator ri = es_relocs.begin ();
            ri != es_relocs.end ();
@@ -937,6 +938,7 @@ namespace rld
       {
         relocs.push_back (relocation (*ri));
       }
+      rela = es.get_reloc_type ();
     }
 
     size_t

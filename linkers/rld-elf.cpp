@@ -83,14 +83,6 @@ namespace rld
     {
     }
 
-    std::string
-    relocation::name () const
-    {
-      if (sym)
-        return sym->name ();
-      return "";
-    }
-
     elf_addr
     relocation::offset () const
     {
@@ -113,6 +105,14 @@ namespace rld
     relocation::addend () const
     {
       return addend_;
+    }
+
+    const symbols::symbol&
+    relocation::symbol () const
+    {
+      if (sym)
+        return *sym;
+      throw rld::error ("no symbol", "elf:relocation");
     }
 
     section::section (file&              file_,
@@ -924,6 +924,12 @@ namespace rld
                         << " type:" << GELF_R_TYPE (erela.r_info)
                         << " addend:" << erela.r_addend
                         << std::endl;
+
+            /*
+             * The target section is updated with the fix up, and symbol
+             * section indicates the section offset being referenced by the
+             * fixup.
+             */
 
             const symbols::symbol& sym = get_symbol (GELF_R_SYM (erela.r_info));
 
