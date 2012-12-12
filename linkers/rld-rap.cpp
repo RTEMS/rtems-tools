@@ -803,7 +803,7 @@ namespace rld
              */
             externs.push_back (external (strtab.size () + 2,
                                          rap_sec,
-                                         sec.osecs[symsec] + sym.value (),
+                                         sec.offset + sec.osecs[symsec] + sym.value (),
                                          sym.info ()));
 
             symtab_size += external::rap_size;
