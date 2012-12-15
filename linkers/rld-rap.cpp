@@ -165,7 +165,7 @@ namespace rld
       external (const uint32_t name,
                 const sections sec,
                 const uint32_t value,
-                const uint32_t info);
+                const uint32_t data);
 
       /**
        * Copy constructor.
@@ -268,11 +268,19 @@ namespace rld
                   const std::string&    fini);
 
       /**
-       * Write the sections to the compressed output file.
+       * Write the sections to the compressed output file. The file sections
+       * are used to ensure the alignment. The offset is used to ensure the
+       * alignment of the first section of the object when it is written.
+       *
+       * @param comp The compressor.
+       * @param obj The object file the sections are part of.
+       * @param secs The container of file sections to write.
+       * @param offset The current offset in the RAP section.
        */
       void write (compress::compressor&  comp,
                   files::object&         obj,
-                  const files::sections& secs);
+                  const files::sections& secs,
+                  uint32_t&              offset);
 
       /**
        * Write the external symbols.
@@ -429,11 +437,8 @@ namespace rld
     {
       if (sec.size)
       {
-        if (align == 0)
+        if (align < sec.align)
           align = sec.align;
-        else if (align != sec.align)
-          throw rld::error ("Alignments do not match for section '" + name + "'",
-                            "rap::section");
 
         if (size && (align == 0))
           throw rld::error ("Invalid alignment '" + name + "'",
@@ -450,11 +455,8 @@ namespace rld
     void
     section::set_alignment (const section& sec)
     {
-      if (align == 0)
+      if (align < sec.align)
         align = sec.align;
-      else if (align != sec.align)
-        throw rld::error ("Alignments do not match for section '" + name + "'",
-                          "rap::section");
     }
 
     void
@@ -505,15 +507,12 @@ namespace rld
     void
     section_merge::operator () (const files::section& fsec)
     {
-      if (sec.align == 0)
+      if (sec.align < fsec.alignment)
         sec.align = fsec.alignment;
-      else if (sec.align != fsec.alignment)
-        throw rld::error ("Alignments do not match for section '" + sec.name + "'",
-                          "rap::section");
 
       uint32_t offset = align_offset (sec.size, 0, sec.align);
 
-      if (1 || rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+      if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
         std::cout << "rap:section-merge: relocs=" << fsec.relocs.size ()
                   << " offset=" << offset
                   << " fsec.name=" << fsec.name
@@ -535,13 +534,14 @@ namespace rld
       {
         const files::relocation& freloc = *fri;
 
-        if (1 || rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+        if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
           std::cout << " " << std::setw (2) << sec.relocs.size ()
                     << '/' << std::setw (2) << rc
                     << std::hex << ": reloc.info=0x" << freloc.info << std::dec
                     << " reloc.offset=" << freloc.offset
                     << " reloc.addend=" << freloc.addend
                     << " reloc.symtype=" << freloc.symtype
+                    << " reloc.symsect=" << freloc.symsect
                     << std::endl;
 
         if (freloc.symtype == STT_NOTYPE)
@@ -626,7 +626,7 @@ namespace rld
       std::for_each (bss.begin (), bss.end (),
                      section_merge (*this, secs[rap_bss]));
 
-      if (1 || rld::verbose () >= RLD_VERBOSE_TRACE)
+      if (rld::verbose () >= RLD_VERBOSE_TRACE)
       {
         std::cout << "rap:object: " << obj.name ().full () << std::endl;
         output ("text", secs[rap_text].size, text);
@@ -758,7 +758,7 @@ namespace rld
         relocs_size += obj.get_relocations ();
       }
 
-      if (1 || rld::verbose () >= RLD_VERBOSE_INFO)
+      if (rld::verbose () >= RLD_VERBOSE_INFO)
       {
         uint32_t total = (sec_size[rap_text] + sec_size[rap_data] +
                           sec_size[rap_data] + sec_size[rap_bss] +
@@ -833,6 +833,7 @@ namespace rld
       image&                img;
       compress::compressor& comp;
       sections              sec;
+      uint32_t              offset;
     };
 
     section_writer::section_writer (image&                img,
@@ -840,7 +841,8 @@ namespace rld
                                     sections              sec)
       : img (img),
         comp (comp),
-        sec (sec)
+        sec (sec),
+        offset (0)
     {
     }
 
@@ -853,22 +855,22 @@ namespace rld
       switch (sec)
       {
         case rap_text:
-          img.write (comp, obj.obj, obj.text);
+          img.write (comp, obj.obj, obj.text, offset);
           break;
         case rap_const:
-          img.write (comp, obj.obj, obj.const_);
+          img.write (comp, obj.obj, obj.const_, offset);
           break;
         case rap_ctor:
-          img.write (comp, obj.obj, obj.ctor);
+          img.write (comp, obj.obj, obj.ctor, offset);
           break;
         case rap_dtor:
-          img.write (comp, obj.obj, obj.dtor);
+          img.write (comp, obj.obj, obj.dtor, offset);
           break;
         case rap_data:
-          img.write (comp, obj.obj, obj.data);
+          img.write (comp, obj.obj, obj.data, offset);
           break;
-          default:
-            break;
+        default:
+          break;
       }
     }
 
@@ -929,9 +931,9 @@ namespace rld
     void
     image::write (compress::compressor&  comp,
                   files::object&         obj,
-                  const files::sections& secs)
+                  const files::sections& secs,
+                  uint32_t&              offset)
     {
-      uint32_t offset = 0;
       uint32_t size = 0;
 
       obj.open ();
@@ -961,15 +963,20 @@ namespace rld
 
           comp.write (obj, sec.offset, sec.size);
 
-        if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
-          std::cout << " offset=" << offset
-                    << " padding=" << (offset - unaligned_offset)  << std::endl;
+          if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+            std::cout << " sec: " << sec.name
+                      << " size=" << sec.size
+                      << " offset=" << offset
+                      << " align=" << sec.alignment
+                      << " padding=" << (offset - unaligned_offset)  << std::endl;
 
           size = sec.size;
         }
 
+        offset += size;
+
         if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
-          std::cout << " -- size=" << offset << std::endl;
+          std::cout << " total size=" << offset << std::endl;
 
         obj.end ();
       }
@@ -990,6 +997,18 @@ namespace rld
            ++ei)
       {
         const external& ext = *ei;
+
+        if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+          std::cout << "rap:externs: name=" << &strtab[ext.name - 2] << " (" << ext.name << ')'
+                    << " section=" << section_names[ext.sec]
+                    << " data=" << ext.data
+                    << " value=0x" << std::hex << ext.value << std::dec
+                    << std::endl;
+
+        if ((ext.data & 0xffff0000) != 0)
+          throw rld::error ("Data value has data in bits higher than 15",
+                            "rap::write-externs");
+
         comp << (uint32_t) ((ext.sec << 16) | ext.data)
              << ext.name
              << ext.value;
@@ -1005,9 +1024,10 @@ namespace rld
         uint32_t sr = 0;
         uint32_t header;
 
-        if (1 || rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
-          std::cout << "rep:relocation: section:" << section_names[s]
+        if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+          std::cout << "rap:relocation: section:" << section_names[s]
                     << " relocs=" << count
+                    << " rela=" << (char*) (sec_rela[s] ? "yes" : "no")
                     << std::endl;
 
         header = count;
@@ -1024,7 +1044,7 @@ namespace rld
           relocations& relocs = sec.relocs;
           uint32_t     rc = 0;
 
-          if (1 || rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+          if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
             std::cout << " relocs=" << sec.relocs.size ()
                       << " sec.offset=" << sec.offset
                       << " sec.size=" << sec.size
@@ -1055,7 +1075,7 @@ namespace rld
 
               write_addend = true;
 
-              if (1 || rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+              if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
                 std::cout << "  " << std::setw (2) << sr << '/' << std::setw (2) << rc
                           <<":  rsym: sect=" << section_names[reloc.symsect]
                           << " sec.offset=" << obj.secs[reloc.symsect].offset
@@ -1094,7 +1114,7 @@ namespace rld
               }
             }
 
-            if (1 || rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+            if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
             {
               std::cout << "  " << std::setw (2) << sr << '/'
                         << std::setw (2) << rc
@@ -1160,6 +1180,7 @@ namespace rld
     void
     image::update_section (int index, const section& sec)
     {
+      sec_size[index] = align_offset (sec_size[index], 0, sec.align);
       sec_size[index] += sec.size;
       sec_align[index] = sec.align;
       sec_rela[index] = sec.rela;

@@ -88,8 +88,7 @@ namespace rld
         {
           esi = symbols.find (urs.name ());
           if (esi == symbols.end ())
-            throw rld::error ("symbol referenced in '" + name +
-                              "' not found: " + urs.name (), "resolving");
+            throw rld::error ("symbol not found: " + urs.name (), name);
           base = false;
         }
 

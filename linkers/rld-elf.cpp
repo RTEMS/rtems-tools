@@ -186,6 +186,13 @@ namespace rld
         if (!data_)
           libelf_error ("elf_getdata: " + name_ + '(' + file_.name () + ')');
       }
+
+      if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+        std::cout << "elf::section: " << name ()
+                  << " size=" << size ()
+                  << " align=" << shdr.sh_addralign
+                  << " flags=0x" << std::hex << flags () << std::dec
+                  << std::endl;
     }
 
     section::section (const section& orig)
@@ -729,7 +736,6 @@ namespace rld
     file::get_sections (sections& filtered_secs, unsigned int type)
     {
       load_sections ();
-      filtered_secs.clear ();
       for (section_table::iterator si = secs.begin ();
            si != secs.end ();
            ++si)
@@ -794,11 +800,7 @@ namespace rld
             symbols::symbol sym (s, name, esym);
 
             if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
-            {
-              std::cout << "elf:symbol: ";
-              sym.output (std::cout);
-              std::cout << std::endl;
-            }
+              std::cout << "elf:symbol: " << sym << std::endl;
 
             symbols.push_back (sym);
           }
@@ -953,7 +955,7 @@ namespace rld
                         << " type:" << GELF_R_TYPE (erel.r_info)
                         << std::endl;
 
-            const symbols::symbol& sym = get_symbol (erel.r_info);
+            const symbols::symbol& sym = get_symbol (GELF_R_SYM (erel.r_info));
 
             relocation reloc (sym, erel.r_offset, erel.r_info);
 
