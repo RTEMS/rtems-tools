@@ -605,7 +605,8 @@ namespace rld
       obj.close ();
 
       obj.get_sections (text,   SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR);
-      obj.get_sections (const_, SHT_PROGBITS, SHF_ALLOC | SHF_MERGE, SHF_WRITE | SHF_EXECINSTR);
+      obj.get_sections (const_, SHT_PROGBITS, SHF_ALLOC, SHF_WRITE | SHF_EXECINSTR);
+      obj.get_sections (ctor,   ".ctors");
       obj.get_sections (ctor,   ".ctors");
       obj.get_sections (dtor,   ".dtors");
       obj.get_sections (data,   SHT_PROGBITS, SHF_ALLOC | SHF_WRITE);
