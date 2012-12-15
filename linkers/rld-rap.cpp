@@ -626,7 +626,7 @@ namespace rld
       std::for_each (bss.begin (), bss.end (),
                      section_merge (*this, secs[rap_bss]));
 
-      if (rld::verbose () >= RLD_VERBOSE_TRACE)
+      if (rld::verbose () >= RLD_VERBOSE_DETAILS)
       {
         std::cout << "rap:object: " << obj.name ().full () << std::endl;
         output ("text", secs[rap_text].size, text);

@@ -188,9 +188,10 @@ namespace rld
       }
 
       if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
-        std::cout << "elf::section: " << name ()
+        std::cout << "elf::section: index=" << index ()
+                  << " name='" << name () << "'"
                   << " size=" << size ()
-                  << " align=" << shdr.sh_addralign
+                  << " align=" << alignment ()
                   << " flags=0x" << std::hex << flags () << std::dec
                   << std::endl;
     }
@@ -815,7 +816,7 @@ namespace rld
                        bool               weak,
                        bool               global)
     {
-      if (rld::verbose () >= RLD_VERBOSE_DETAILS)
+      if (rld::verbose () >= RLD_VERBOSE_TRACE_SYMS)
         std::cout << "elf:get-syms: unresolved:" << unresolved
                   << " local:" << local
                   << " weak:" << weak

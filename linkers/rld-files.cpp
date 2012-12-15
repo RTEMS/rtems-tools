@@ -363,7 +363,7 @@ namespace rld
       if (path.empty ())
         throw rld::error ("No file name", "open:" + path);
 
-      if (rld::verbose () >= RLD_VERBOSE_DETAILS)
+      if (rld::verbose () >= RLD_VERBOSE_TRACE)
         std::cout << "image::open:  " << name (). full ()
                   << " refs:" << references_ + 1
                   << " writable:" << (char*) (writable_ ? "yes" : "no")
@@ -394,7 +394,7 @@ namespace rld
     {
       if (references_ > 0)
       {
-        if (rld::verbose () >= RLD_VERBOSE_DETAILS)
+        if (rld::verbose () >= RLD_VERBOSE_TRACE)
           std::cout << "image::close: " << name ().full ()
                     << " refs:" << references_ << std::endl;
 
@@ -1111,14 +1111,14 @@ namespace rld
     void
     object::load_symbols (rld::symbols::table& symbols, bool local)
     {
-      if (rld::verbose () >= RLD_VERBOSE_DETAILS)
+      if (rld::verbose () >= RLD_VERBOSE_TRACE)
         std::cout << "object:load-sym: " << name ().full () << std::endl;
 
       rld::symbols::pointers syms;
 
       elf ().get_symbols (syms, false, local);
 
-      if (rld::verbose () >= RLD_VERBOSE_DETAILS)
+      if (rld::verbose () >= RLD_VERBOSE_TRACE)
         std::cout << "object:load-sym: exported: total "
                   << syms.size () << std::endl;
 
@@ -1142,7 +1142,7 @@ namespace rld
 
       elf ().get_symbols (syms, true);
 
-      if (rld::verbose () >= RLD_VERBOSE_DETAILS)
+      if (rld::verbose () >= RLD_VERBOSE_TRACE)
         std::cout << "object:load-sym: unresolved: total "
                   << syms.size () << std::endl;
 
@@ -1166,7 +1166,7 @@ namespace rld
     void
     object::load_relocations ()
     {
-      if (rld::verbose () >= RLD_VERBOSE_DETAILS)
+      if (rld::verbose () >= RLD_VERBOSE_TRACE)
         std::cout << "object:load-relocs: " << name ().full () << std::endl;
 
       elf ().load_relocations ();

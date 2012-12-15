@@ -250,7 +250,7 @@ namespace rld
       out << std::setw (4) << index_
           << ' ' << binding
           << ' ' << type
-          << ' ' << std::setw(2) <<  es.st_shndx
+          << ' ' << std::setw(6) << es.st_shndx
           << " 0x" << std::setw (8) << std::setfill ('0') << std::hex
           << es.st_value
           << std::dec << std::setfill (' ')
