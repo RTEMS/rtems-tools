@@ -363,7 +363,7 @@ namespace rld
       if (path.empty ())
         throw rld::error ("No file name", "open:" + path);
 
-      if (rld::verbose () >= RLD_VERBOSE_TRACE)
+      if (rld::verbose () >= RLD_VERBOSE_TRACE_FILE)
         std::cout << "image::open:  " << name (). full ()
                   << " refs:" << references_ + 1
                   << " writable:" << (char*) (writable_ ? "yes" : "no")
@@ -394,7 +394,7 @@ namespace rld
     {
       if (references_ > 0)
       {
-        if (rld::verbose () >= RLD_VERBOSE_TRACE)
+        if (rld::verbose () >= RLD_VERBOSE_TRACE_FILE)
           std::cout << "image::close: " << name ().full ()
                     << " refs:" << references_ << std::endl;
 
@@ -822,7 +822,7 @@ namespace rld
     void
     archive::create (object_list& objects)
     {
-      if (rld::verbose () >= RLD_VERBOSE_INFO)
+      if (rld::verbose () >= RLD_VERBOSE_DETAILS)
         std::cout << "archive::create: " << name ().full ()
                   << ", objects: " << objects.size () << std::endl;
 
@@ -1041,7 +1041,7 @@ namespace rld
        * Begin a session.
        */
 
-      if (rld::verbose () >= RLD_VERBOSE_TRACE)
+      if (rld::verbose () >= RLD_VERBOSE_TRACE_FILE)
         std::cout << "object:begin: " << name ().full () << " in-archive:"
                   << ((char*) (archive_ ? "yes" : "no")) << std::endl;
 
@@ -1096,7 +1096,7 @@ namespace rld
     void
     object::end ()
     {
-      if (rld::verbose () >= RLD_VERBOSE_TRACE)
+      if (rld::verbose () >= RLD_VERBOSE_TRACE_FILE)
         std::cout << "object:end: " << name ().full () << std::endl;
 
       elf ().end ();
@@ -1111,14 +1111,14 @@ namespace rld
     void
     object::load_symbols (rld::symbols::table& symbols, bool local)
     {
-      if (rld::verbose () >= RLD_VERBOSE_TRACE)
+      if (rld::verbose () >= RLD_VERBOSE_TRACE_SYMS)
         std::cout << "object:load-sym: " << name ().full () << std::endl;
 
       rld::symbols::pointers syms;
 
       elf ().get_symbols (syms, false, local);
 
-      if (rld::verbose () >= RLD_VERBOSE_TRACE)
+      if (rld::verbose () >= RLD_VERBOSE_TRACE_SYMS)
         std::cout << "object:load-sym: exported: total "
                   << syms.size () << std::endl;
 
@@ -1129,11 +1129,7 @@ namespace rld
         symbols::symbol& sym = *(*si);
 
         if (rld::verbose () >= RLD_VERBOSE_TRACE_SYMS)
-        {
-          std::cout << "object:load-sym: exported: ";
-          sym.output (std::cout);
-          std::cout << std::endl;
-        }
+          std::cout << "object:load-sym: exported: " << sym << std::endl;
 
         sym.set_object (*this);
         symbols[sym.name ()] = &sym;
@@ -1142,7 +1138,7 @@ namespace rld
 
       elf ().get_symbols (syms, true);
 
-      if (rld::verbose () >= RLD_VERBOSE_TRACE)
+      if (rld::verbose () >= RLD_VERBOSE_TRACE_SYMS)
         std::cout << "object:load-sym: unresolved: total "
                   << syms.size () << std::endl;
 
@@ -1267,6 +1263,22 @@ namespace rld
           filtered_secs.push_back (sec);
         }
       }
+    }
+
+    const section&
+    object::get_section (int index) const
+    {
+      for (sections::const_iterator si = secs.begin ();
+           si != secs.end ();
+           ++si)
+      {
+        const section& sec = *si;
+        if (sec.index == index)
+          return sec;
+      }
+
+      throw rld::error ("Section index '" + rld::to_string (index) +
+                        "' not found: " + name ().full (), "object::get-section");
     }
 
     cache::cache ()

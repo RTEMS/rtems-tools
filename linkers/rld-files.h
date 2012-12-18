@@ -734,6 +734,13 @@ namespace rld
        */
       void get_sections (sections& filtered_secs, const std::string& name);
 
+      /**
+       * Get a section given an index number.
+       *
+       * @param index The section index to search for.
+       */
+      const section& get_section (int index) const;
+
     private:
       archive*          archive_;   //< Points to the archive if part of an
                                     //  archive.
