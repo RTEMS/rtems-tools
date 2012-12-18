@@ -83,8 +83,10 @@ namespace rld
 
         ::memcpy ((void*) (buffer + level), data, appending);
 
+        data += appending;
         level += appending;
         length -= appending;
+        total += appending;
 
         output ();
       }
@@ -108,6 +110,7 @@ namespace rld
 
         level += appending;
         length -= appending;
+        total += appending;
 
         output ();
       }
@@ -136,12 +139,14 @@ namespace rld
     {
       if ((forced && level) || (level >= size))
       {
-        total += level;
-
         if (compress)
         {
           int     writing = ::fastlz_compress (buffer, level, io);
           uint8_t header[2];
+
+          if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+            std::cout << "rtl: comp: offset=" << total_compressed
+                      << " block-size=" << writing << std::endl;
 
           header[0] = writing >> 8;
           header[1] = writing;
