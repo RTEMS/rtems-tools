@@ -71,7 +71,8 @@ namespace rld
 #define RLD_VERBOSE_DETAILS    (2)
 #define RLD_VERBOSE_TRACE      (3)
 #define RLD_VERBOSE_TRACE_SYMS (4)
-#define RLD_VERBOSE_FULL_DEBUG (5)
+#define RLD_VERBOSE_TRACE_FILE (5)
+#define RLD_VERBOSE_FULL_DEBUG (6)
 
 namespace rld
 {
