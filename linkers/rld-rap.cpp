@@ -82,9 +82,7 @@ namespace rld
        * Construct the relocation using the file relocation, the offset of the
        * section in the target RAP section and the RAP section of the symbol.
        */
-      relocation (const files::relocation& reloc,
-                  const uint32_t           offset = 0,
-                  const int                symsect = 0);
+      relocation (const files::relocation& reloc, const uint32_t offset);
     };
 
     /**
@@ -250,8 +248,12 @@ namespace rld
        * Load the layout data from the object files.
        *
        * @param app_objects The object files in the application.
+       * @param init The initialisation entry point label.
+       * @param fini The finish entry point label.
        */
-      void layout (const files::object_list& app_objects);
+      void layout (const files::object_list& app_objects,
+                   const std::string&        init,
+                   const std::string&        fini);
 
       /**
        * Collection the symbols from the object file.
@@ -262,10 +264,10 @@ namespace rld
 
       /**
        * Write the compressed output file.
+       *
+       * @param comp The compressor.
        */
-      void write (compress::compressor& comp,
-                  const std::string&    init,
-                  const std::string&    fini);
+      void write (compress::compressor& comp);
 
       /**
        * Write the sections to the compressed output file. The file sections
@@ -321,6 +323,8 @@ namespace rld
       uint32_t    symtab_size;         //< The size of the symbols.
       std::string strtab;              //< The strings table.
       uint32_t    relocs_size;         //< The relocations size.
+      uint32_t    init_off;            //< The strtab offset to the init label.
+      uint32_t    fini_off;            //< The strtab offset to the fini label.
     };
 
     /**
@@ -403,14 +407,13 @@ namespace rld
     }
 
     relocation::relocation (const files::relocation& reloc,
-                            const uint32_t           offset,
-                            const int                symsect)
+                            const uint32_t           offset)
       : offset (reloc.offset + offset),
         info (reloc.info),
         addend (reloc.addend),
         symname (reloc.symname),
         symtype (reloc.symtype),
-        symsect (symsect),
+        symsect (reloc.symsect),
         symvalue (reloc.symvalue)
     {
     }
@@ -507,18 +510,28 @@ namespace rld
     void
     section_merge::operator () (const files::section& fsec)
     {
+      /*
+       * The RAP section alignment is the largest of all sections that are
+       * being merged. This object file section however can aligned at its
+       * specific alignment. You see this with .const sections which can be say
+       * 4 .eh_frame and 1 for strings.
+       */
       if (sec.align < fsec.alignment)
         sec.align = fsec.alignment;
 
-      uint32_t offset = align_offset (sec.size, 0, sec.align);
+      /*
+       * Align the size up to the next alignment boundary and use that as the
+       * offset for this object file section.
+       */
+      uint32_t offset = align_offset (sec.size, 0, fsec.alignment);
 
       if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
-        std::cout << "rap:section-merge: relocs=" << fsec.relocs.size ()
+        std::cout << "rap:section-merge: " << fsec.name
+                  << " relocs=" << fsec.relocs.size ()
                   << " offset=" << offset
-                  << " fsec.name=" << fsec.name
                   << " fsec.size=" << fsec.size
                   << " fsec.alignment=" << fsec.alignment
-                  << "  " << obj.obj.name ().full ()  << std::endl;
+                  << " " << obj.obj.name ().full ()  << std::endl;
 
       /*
        * Add the object file's section offset to the map. This is needed
@@ -544,12 +557,7 @@ namespace rld
                     << " reloc.symsect=" << freloc.symsect
                     << std::endl;
 
-        if (freloc.symtype == STT_NOTYPE)
-          sec.relocs.push_back (relocation (freloc, offset));
-        else
-          sec.relocs.push_back (relocation (freloc,
-                                            offset,
-                                            obj.find (freloc.symsect)));
+        sec.relocs.push_back (relocation (freloc, offset));
       }
 
       sec.rela = fsec.rela;
@@ -606,7 +614,6 @@ namespace rld
 
       obj.get_sections (text,   SHT_PROGBITS, SHF_ALLOC | SHF_EXECINSTR);
       obj.get_sections (const_, SHT_PROGBITS, SHF_ALLOC, SHF_WRITE | SHF_EXECINSTR);
-      obj.get_sections (ctor,   ".ctors");
       obj.get_sections (ctor,   ".ctors");
       obj.get_sections (dtor,   ".dtors");
       obj.get_sections (data,   SHT_PROGBITS, SHF_ALLOC | SHF_WRITE);
@@ -712,7 +719,9 @@ namespace rld
     }
 
     void
-    image::layout (const files::object_list& app_objects)
+    image::layout (const files::object_list& app_objects,
+                   const std::string&        init,
+                   const std::string&        fini)
     {
       clear ();
 
@@ -759,6 +768,14 @@ namespace rld
         relocs_size += obj.get_relocations ();
       }
 
+      init_off = strtab.size () + 1;
+      strtab += '\0';
+      strtab += init;
+
+      fini_off = strtab.size () + 1;
+      strtab += '\0';
+      strtab += fini;
+
       if (rld::verbose () >= RLD_VERBOSE_INFO)
       {
         uint32_t total = (sec_size[rap_text] + sec_size[rap_data] +
@@ -772,7 +789,7 @@ namespace rld
                   << " data:" << sec_size[rap_data]
                   << " bss:" << sec_size[rap_bss]
                   << " symbols:" << symtab_size << " (" << externs.size () << ')'
-                  << " strings:" << strtab.size ()
+                  << " strings:" << strtab.size () + 1
                   << " relocs:" << relocs_size
                   << std::endl;
       }
@@ -792,9 +809,22 @@ namespace rld
         {
           if ((sym.binding () == STB_GLOBAL) || (sym.binding () == STB_WEAK))
           {
-            int      symsec = sym.section_index ();
-            sections rap_sec = obj.find (symsec);
-            section& sec = obj.secs[rap_sec];
+            int         symsec = sym.section_index ();
+            sections    rap_sec = obj.find (symsec);
+            section&    sec = obj.secs[rap_sec];
+            std::size_t name;
+
+            /*
+             * See if the name is already in the string table.
+             */
+            name = strtab.find (sym.name ());
+
+            if (name == std::string::npos)
+            {
+              name = strtab.size () + 1;
+              strtab += '\0';
+              strtab += sym.name ();
+            }
 
             /*
              * The '+ 2' is for the end of string nul and the delimiting nul.
@@ -802,14 +832,13 @@ namespace rld
              * The symbol's value is the symbols value plus the offset of the
              * object file's section offset in the RAP section.
              */
-            externs.push_back (external (strtab.size () + 2,
+            externs.push_back (external (name,
                                          rap_sec,
-                                         sec.offset + sec.osecs[symsec] + sym.value (),
+                                         sec.offset + sec.osecs[symsec] +
+                                         sym.value (),
                                          sym.info ()));
 
             symtab_size += external::rap_size;
-            strtab += sym.name ();
-            strtab += '\0';
           }
         }
       }
@@ -845,6 +874,9 @@ namespace rld
         sec (sec),
         offset (0)
     {
+      if (rld::verbose () >= RLD_VERBOSE_INFO)
+        std::cout << "rap:output: " << section_names[sec]
+                  << '=' << comp.transferred () << std::endl;
     }
 
     void
@@ -876,9 +908,7 @@ namespace rld
     }
 
     void
-    image::write (compress::compressor& comp,
-                  const std::string&    init,
-                  const std::string&    fini)
+    image::write (compress::compressor& comp)
     {
       /*
        * Start with the machine type so the target can check the applicatiion
@@ -888,22 +918,30 @@ namespace rld
        * finally the relocation records.
        */
 
+      if (rld::verbose () >= RLD_VERBOSE_INFO)
+        std::cout << "rap:output: machine=" << comp.transferred () << std::endl;
+
       comp << elf::object_machine_type ()
            << elf::object_datatype ()
            << elf::object_class ();
 
-      comp << (uint32_t) strtab.size ();
-      strtab += init;
-      strtab += '\0';
+      /*
+       * The init and fini label offsets. Then the symbol table and string
+       * table sizes.
+       */
 
-      comp << (uint32_t) strtab.size ();
-      strtab += fini;
-      strtab += '\0';
+      if (rld::verbose () >= RLD_VERBOSE_INFO)
+        std::cout << "rap:output: header=" << comp.transferred () << std::endl;
 
-      comp << symtab_size
-           << (uint32_t) strtab.size ()
+      comp << init_off
+           << fini_off
+           << symtab_size
+           << (uint32_t) strtab.size () + 1
            << (uint32_t) 0;
 
+      /*
+       * The sections.
+       */
       for (int s = 0; s < rap_secs; ++s)
         comp << sec_size[s]
              << sec_align[s];
@@ -911,7 +949,6 @@ namespace rld
       /*
        * Output the sections from each object file.
        */
-
       std::for_each (objs.begin (), objs.end (),
                      section_writer (*this, comp, rap_text));
       std::for_each (objs.begin (), objs.end (),
@@ -923,9 +960,20 @@ namespace rld
       std::for_each (objs.begin (), objs.end (),
                      section_writer (*this, comp, rap_data));
 
+      if (rld::verbose () >= RLD_VERBOSE_INFO)
+        std::cout << "rap:output: strtab=" << comp.transferred () << std::endl;
+
+      strtab += '\0';
       comp << strtab;
 
+      if (rld::verbose () >= RLD_VERBOSE_INFO)
+        std::cout << "rap:output: symbols=" << comp.transferred () << std::endl;
+
       write_externals (comp);
+
+      if (rld::verbose () >= RLD_VERBOSE_INFO)
+        std::cout << "rap:output: relocs=" << comp.transferred () << std::endl;
+
       write_relocations (comp);
     }
 
@@ -965,7 +1013,7 @@ namespace rld
           comp.write (obj, sec.offset, sec.size);
 
           if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
-            std::cout << " sec: " << sec.name
+            std::cout << " sec: " << sec.index << ' ' << sec.name
                       << " size=" << sec.size
                       << " offset=" << offset
                       << " align=" << sec.alignment
@@ -993,14 +1041,16 @@ namespace rld
     void
     image::write_externals (compress::compressor& comp)
     {
+      int count = 0;
       for (externals::const_iterator ei = externs.begin ();
            ei != externs.end ();
-           ++ei)
+           ++ei, ++count)
       {
         const external& ext = *ei;
 
         if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
-          std::cout << "rap:externs: name=" << &strtab[ext.name - 2] << " (" << ext.name << ')'
+          std::cout << "rap:externs: " << count
+                    << " name=" << &strtab[ext.name] << " (" << ext.name << ')'
                     << " section=" << section_names[ext.sec]
                     << " data=" << ext.data
                     << " value=0x" << std::hex << ext.value << std::dec
@@ -1025,7 +1075,7 @@ namespace rld
         uint32_t sr = 0;
         uint32_t header;
 
-        if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+        if (rld::verbose () >= RLD_VERBOSE_TRACE)
           std::cout << "rap:relocation: section:" << section_names[s]
                     << " relocs=" << count
                     << " rela=" << (char*) (sec_rela[s] ? "yes" : "no")
@@ -1045,7 +1095,7 @@ namespace rld
           relocations& relocs = sec.relocs;
           uint32_t     rc = 0;
 
-          if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+          if (rld::verbose () >= RLD_VERBOSE_TRACE)
             std::cout << " relocs=" << sec.relocs.size ()
                       << " sec.offset=" << sec.offset
                       << " sec.size=" << sec.size
@@ -1067,19 +1117,24 @@ namespace rld
 
             if (reloc.symtype == STT_SECTION)
             {
+              int rap_symsect = obj.find (reloc.symsect);
+
               /*
                * Bit 31 clear, bits 30:8 RAP section index.
                */
-              info |= reloc.symsect << 8;
+              info |= rap_symsect << 8;
 
-              addend += obj.secs[reloc.symsect].offset + reloc.symvalue;
+              addend += obj.secs[rap_symsect].osecs[reloc.symsect] + reloc.symvalue;
 
               write_addend = true;
 
-              if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
-                std::cout << "  " << std::setw (2) << sr << '/' << std::setw (2) << rc
-                          <<":  rsym: sect=" << section_names[reloc.symsect]
-                          << " sec.offset=" << obj.secs[reloc.symsect].offset
+              if (rld::verbose () >= RLD_VERBOSE_TRACE)
+                std::cout << "  " << std::setw (2) << sr
+                          << '/' << std::setw (2) << rc
+                          <<":  rsym: sect=" << section_names[rap_symsect]
+                          << " rap_symsect=" << rap_symsect
+                          << " sec.osecs=" << obj.secs[rap_symsect].osecs[reloc.symsect]
+                          << " (" << obj.obj.get_section (reloc.symsect).name << ')'
                           << " reloc.symsect=" << reloc.symsect
                           << " reloc.symvalue=" << reloc.symvalue
                           << " reloc.addend=" << reloc.addend
@@ -1115,7 +1170,7 @@ namespace rld
               }
             }
 
-            if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+            if (rld::verbose () >= RLD_VERBOSE_TRACE)
             {
               std::cout << "  " << std::setw (2) << sr << '/'
                         << std::setw (2) << rc
@@ -1126,7 +1181,7 @@ namespace rld
               if (write_symname)
                 std::cout << " symname=" << reloc.symname;
               std::cout << std::hex
-                        << "  reloc.info=0x" << reloc.info << std::dec
+                        << " reloc.info=0x" << reloc.info << std::dec
                         << " reloc.offset=" << reloc.offset
                         << " reloc.symtype=" << reloc.symtype
                         << std::endl;
@@ -1176,6 +1231,8 @@ namespace rld
       symtab_size = 0;
       strtab.clear ();
       relocs_size = 0;
+      init_off = 0;
+      fini_off = 0;
     }
 
     void
@@ -1198,8 +1255,8 @@ namespace rld
       compress::compressor compressor (app, 2 * 1024);
       image                rap;
 
-      rap.layout (app_objects);
-      rap.write (compressor, init, fini);
+      rap.layout (app_objects, init, fini);
+      rap.write (compressor);
 
       compressor.flush ();
 
