@@ -469,7 +469,7 @@ main (int argc, char* argv[])
     ::free (realname);
     const std::type_info &ti = typeid (e);
     realname = abi::__cxa_demangle (ti.name(), 0, 0, &status);
-    std::cerr << realname << "] " << e.what () << std::endl;
+    std::cerr << realname << "] " << e.what () << std::endl << std::flush;
     ::free (realname);
     ec = 11;
   }
@@ -478,7 +478,7 @@ main (int argc, char* argv[])
     /*
      * Helps to know if this happens.
      */
-    std::cout << "error: unhandled exception" << std::endl;
+    std::cerr << "error: unhandled exception" << std::endl;
     ec = 12;
   }
 
