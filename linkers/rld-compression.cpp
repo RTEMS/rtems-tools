@@ -246,7 +246,7 @@ namespace rld
 
           total_compressed += 2 + block_size;
 
-          if (1 || rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+          if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
             std::cout << "rtl: decomp: block-size=" << block_size << std::endl;
 
           image.read (io, block_size);
