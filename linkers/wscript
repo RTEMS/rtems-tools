@@ -135,6 +135,18 @@ def build(bld):
                 linkflags = bld.linkflags,
                 use = modules)
 
+    #
+    # Build the RAP utility.
+    #
+    bld.program(target = 'rtems-rap',
+                source = ['rtems-rapper.cpp'] + rld_source,
+                defines = ['HAVE_CONFIG_H=1', 'RTEMS_VERSION=' + bld.env.RTEMS_VERSION],
+                includes = ['.'] + bld.includes,
+                cflags = bld.cflags + bld.warningflags,
+                cxxflags = bld.cxxflags + bld.warningflags,
+                linkflags = bld.linkflags,
+                use = modules)
+
 def rebuild(ctx):
     import waflib.Options
     waflib.Options.commands.extend(['clean', 'build'])
