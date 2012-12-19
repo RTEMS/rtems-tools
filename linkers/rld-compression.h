@@ -42,10 +42,12 @@ namespace rld
        *
        * @param image The image to read or write to.
        * @param size The size of the input and output buffers.
+       * @param out The compressor is compressing.
        * @param compress Set to false to disable compression.
        */
       compressor (files::image& image,
                   size_t        size,
+                  bool          out = true,
                   bool          compress = true);
 
       /**
@@ -79,6 +81,24 @@ namespace rld
       void flush ();
 
       /**
+       * Read the compressed data into the input buffer and return the section
+       * requested.
+       *
+       * @param data Write the decompressed data here.
+       * @param length The mount of data in bytes to read.
+       */
+      void read (void* data, size_t length);
+
+      /**
+       * Read the decompressed data writing it to the image.
+       *
+       * @param output The output image.
+       * @param offset The output image offset to write from.
+       * @param length The mount of data in bytes to read.
+       */
+      void read (files::image& output_, off_t offset, size_t length);
+
+      /**
        * The amount of uncompressed data transferred.
        *
        * @param return size_t The amount of data tranferred.
@@ -101,8 +121,14 @@ namespace rld
        */
       void output (bool forced = false);
 
+      /**
+       * Input a block of compressed data and decompress it.
+       */
+      void input ();
+
       files::image& image;            //< The image to read or write to or from.
       size_t        size;             //< The size of the buffer.
+      bool          out;              //< If true the it is compression.
       bool          compress;         //< If true compress the data.
       uint8_t*      buffer;           //< The decompressed buffer
       uint8_t*      io;               //< The I/O buffer.

@@ -43,9 +43,11 @@ namespace rld
   {
     compressor::compressor (files::image& image,
                             size_t        size,
+                            bool          out,
                             bool          compress)
       : image (image),
         size (size),
+        out (out),
         compress (compress),
         buffer (0),
         io (0),
@@ -70,6 +72,9 @@ namespace rld
     void
     compressor::write (const void* data_, size_t length)
     {
+      if (!out)
+        throw rld::error ("Write on read-only", "compression");
+
       const uint8_t* data = static_cast <const uint8_t*> (data_);
 
       while (length)
@@ -95,6 +100,9 @@ namespace rld
     void
     compressor::write (files::image& input, off_t offset, size_t length)
     {
+      if (!out)
+        throw rld::error ("Write on read-only", "compression");
+
       input.seek (offset);
 
       while (length)
@@ -113,6 +121,61 @@ namespace rld
         total += appending;
 
         output ();
+      }
+    }
+
+    void
+    compressor::read (void* data_, size_t length)
+    {
+      if (out)
+        throw rld::error ("Read on write-only", "compression");
+
+      uint8_t* data = static_cast <uint8_t*> (data_);
+
+      while (length)
+      {
+        input ();
+
+        size_t appending;
+
+        if (length > level)
+          appending = level;
+        else
+          appending = length;
+
+        ::memcpy (data, buffer, appending);
+
+        data += appending;
+        level -= appending;
+        length -= appending;
+        total += appending;
+      }
+    }
+
+    void
+    compressor::read (files::image& output_, off_t offset, size_t length)
+    {
+      if (out)
+        throw rld::error ("Read on write-only", "compression");
+
+      output_.seek (offset);
+
+      while (length)
+      {
+        input ();
+
+        size_t appending;
+
+        if (length > level)
+          appending = level;
+        else
+          appending = length;
+
+        output_.write (buffer, appending);
+
+        level -= appending;
+        length -= appending;
+        total += appending;
       }
     }
 
@@ -137,7 +200,7 @@ namespace rld
     void
     compressor::output (bool forced)
     {
-      if ((forced && level) || (level >= size))
+      if (out && ((forced && level) || (level >= size)))
       {
         if (compress)
         {
@@ -162,6 +225,39 @@ namespace rld
         }
 
         level = 0;
+      }
+    }
+
+    void
+    compressor::input ()
+    {
+      if (!out && (level == 0))
+      {
+        if (compress)
+        {
+          uint8_t header[2];
+
+          image.read (header, 2);
+
+          uint32_t block_size = (((uint32_t) header[0]) << 8) | (uint32_t) header[1];
+
+          if (block_size == 0)
+            throw rld::error ("Block size is invalid (0)", "compression");
+
+          total_compressed += 2 + block_size;
+
+          if (1 || rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+            std::cout << "rtl: decomp: block-size=" << block_size << std::endl;
+
+          image.read (io, block_size);
+
+          level = ::fastlz_decompress (io, block_size, buffer, size);
+        }
+        else
+        {
+          image.read (buffer, size);
+          level = size;
+        }
       }
     }
 
