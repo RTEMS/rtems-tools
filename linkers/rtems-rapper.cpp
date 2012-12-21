@@ -261,11 +261,10 @@ namespace rap
           if ((reloc.info & RAP_RELOC_STRING_EMBED) == 0)
           {
             size_t symname_size = (reloc.info & ~(3 << 30)) >> 8;
-            reloc.symname.resize (symname_size + 1);
+            reloc.symname.resize (symname_size);
             size_t symname_read = comp.read ((void*) reloc.symname.c_str (), symname_size);
             if (symname_read != symname_size)
               throw rld::error ("Reading reloc symbol name failed", "rapper");
-            reloc.symname[symname_size] = '\0';
           }
         }
 
