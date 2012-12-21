@@ -26,7 +26,9 @@
 #include "config.h"
 #endif
 
+#include <iomanip>
 #include <iostream>
+#include <vector>
 
 #include <cxxabi.h>
 #include <signal.h>
@@ -40,168 +42,692 @@
 #include <rld-compression.h>
 #include <rld-files.h>
 #include <rld-process.h>
+#include <rld-rap.h>
 
 #ifndef HAVE_KILL
 #define kill(p,s) raise(s)
 #endif
 
-#define RAP_
 /**
- * A class to manage a RAP file.
+ * RTEMS Application.
  */
-class rap
+namespace rap
 {
-public:
   /**
-   * Open a RAP file and read the header.
+   * A relocation record.
    */
-  rap (const std::string& name);
-
-  /**
-   * Close the RAP file.
-   */
-  ~rap ();
-
-  /**
-   * Parse header.
-   */
-  void parse_header ();
-
-  /**
-   * Expand the image.
-   */
-  void expand ();
-
-  /**
-   * The name.
-   */
-  const std::string name () const;
-
-private:
-
-  rld::files::image image;
-  std::string       header;
-  size_t            rhdr_len;
-  uint32_t          rhdr_length;
-  uint32_t          rhdr_version;
-  std::string       rhdr_compression;
-  uint32_t          rhdr_checksum;
-};
-
-rap::rap (const std::string& name)
-  : image (name),
-    rhdr_len (0),
-    rhdr_length (0),
-    rhdr_version (0),
-    rhdr_checksum (0)
-{
-  image.open ();
-  parse_header ();
-}
-
-rap::~rap ()
-{
-  image.close ();
-}
-
-void
-rap::parse_header ()
-{
-  std::string name = image.name ().full ();
-
-  char rhdr[64];
-
-  image.seek_read (0, (uint8_t*) rhdr, 64);
-
-  if ((rhdr[0] != 'R') || (rhdr[1] != 'A') || (rhdr[2] != 'P') || (rhdr[3] != ','))
-    throw rld::error ("Invalid RAP file", "open: " + name);
-
-  char* sptr = rhdr + 4;
-  char* eptr;
-
-  rhdr_length = ::strtoul (sptr, &eptr, 10);
-
-  if (*eptr != ',')
-    throw rld::error ("Cannot parse RAP header", "open: " + name);
-
-  sptr = eptr + 1;
-
-  rhdr_version = ::strtoul (sptr, &eptr, 10);
-
-  if (*eptr != ',')
-    throw rld::error ("Cannot parse RAP header", "open: " + name);
-
-  sptr = eptr + 1;
-
-  if ((sptr[0] == 'N') &&
-      (sptr[1] == 'O') &&
-      (sptr[2] == 'N') &&
-      (sptr[3] == 'E'))
+  struct relocation
   {
-    rhdr_compression = "NONE";
-    eptr = sptr + 4;
-  }
-  else if ((sptr[0] == 'L') &&
-           (sptr[1] == 'Z') &&
-           (sptr[2] == '7') &&
-           (sptr[3] == '7'))
+    uint32_t    info;
+    uint32_t    offset;
+    uint32_t    addend;
+    std::string symname;
+    off_t       rap_off;
+
+    relocation ();
+  };
+
+  typedef std::vector < relocation > relocations;
+
+  /**
+   * A RAP section.
+   */
+  struct section
   {
-    rhdr_compression = "LZ77";
-    eptr = sptr + 4;
+    std::string name;
+    uint32_t    size;
+    uint32_t    alignment;
+    uint8_t*    data;
+    uint32_t    relocs_size;
+    relocations relocs;
+    bool        rela;
+    off_t       rap_off;
+
+    section ();
+    ~section ();
+
+    void load_data (rld::compress::compressor& comp);
+    void load_relocs (rld::compress::compressor& comp);
+  };
+
+  /**
+   * A RAP file.
+   */
+  struct file
+  {
+    enum {
+      rap_comp_buffer = 2 * 1024
+    };
+
+    std::string header;
+    size_t      rhdr_len;
+    uint32_t    rhdr_length;
+    uint32_t    rhdr_version;
+    std::string rhdr_compression;
+    uint32_t    rhdr_checksum;
+
+    off_t       machine_rap_off;
+    uint32_t    machinetype;
+    uint32_t    datatype;
+    uint32_t    class_;
+
+    off_t       layout_rap_off;
+    std::string init;
+    uint32_t    init_off;
+    std::string fini;
+    uint32_t    fini_off;
+
+    off_t       strtab_rap_off;
+    uint32_t    strtab_size;
+    uint8_t*    strtab;
+
+    off_t       symtab_rap_off;
+    uint32_t    symtab_size;
+    uint8_t*    symtab;
+
+    off_t       relocs_rap_off;
+    uint32_t    relocs_size; /* not used */
+
+    section     secs[rld::rap::rap_secs];
+
+    /**
+     * Open a RAP file and read the header.
+     */
+    file (const std::string& name, bool warnings);
+
+    /**
+     * Close the RAP file.
+     */
+    ~file ();
+
+    /**
+     * Parse header.
+     */
+    void parse_header ();
+
+    /**
+     * Load the file.
+     */
+    void load ();
+
+    /**
+     * Expand the image.
+     */
+    void expand ();
+
+    /**
+     * The name.
+     */
+    const std::string name () const;
+
+    /**
+     * The number of symbols in the symbol table.
+     */
+    int symbols () const;
+
+    /**
+     * Return a symbol given an index.
+     */
+    void symbol (int       index,
+                 uint32_t& data,
+                 uint32_t& name,
+                 uint32_t& value) const;
+
+    /**
+     * Return the string from the string table.
+     */
+    const char* string (int index);
+
+  private:
+
+    bool              warnings;
+    rld::files::image image;
+  };
+
+  template < typename T > T
+  get_value (const uint8_t* data)
+  {
+    T v = 0;
+    for (size_t b = 0; b < sizeof (T); ++b)
+    {
+      v <<= 8;
+      v |= (T) data[b];
+    }
+    return v;
   }
-  else
-    throw rld::error ("Cannot parse RAP header", "open: " + name);
 
-  if (*eptr != ',')
-    throw rld::error ("Cannot parse RAP header", "open: " + name);
+  relocation::relocation ()
+    : info (0),
+      offset (0),
+      addend (0),
+      rap_off (0)
+  {
+  }
 
-  sptr = eptr + 1;
+  section::section ()
+    : size (0),
+      alignment (0),
+      data (0),
+      relocs_size (0),
+      relocs (0),
+      rela (false),
+      rap_off (0)
+  {
+  }
 
-  rhdr_checksum = strtoul (sptr, &eptr, 16);
+  section::~section ()
+  {
+    if (data)
+      delete [] data;
+  }
 
-  if (*eptr != '\n')
-    throw rld::error ("Cannot parse RAP header", "open: " + name);
+  void
+  section::load_data (rld::compress::compressor& comp)
+  {
+    rap_off = comp.offset ();
+    if (size)
+    {
+      data = new uint8_t[size];
+      if (comp.read (data, size) != size)
+        throw rld::error ("Reading section data failed", "rapper");
+    }
+  }
 
-  rhdr_len = eptr - rhdr + 1;
+  void
+  section::load_relocs (rld::compress::compressor& comp)
+  {
+    uint32_t header;
+    comp >> header;
 
-  header.insert (0, rhdr, rhdr_len);
+    rela = header & RAP_RELOC_RELA ? true : false;
+    relocs_size = header & ~RAP_RELOC_RELA;
 
-  image.seek (rhdr_len);
+    if (relocs_size)
+    {
+      for (uint32_t r = 0; r < relocs_size; ++r)
+      {
+        relocation reloc;
+
+        reloc.rap_off = comp.offset ();
+
+        comp >> reloc.info
+             >> reloc.offset;
+
+        if (((reloc.info & RAP_RELOC_STRING) == 0) || rela)
+          comp >> reloc.addend;
+
+        if ((reloc.info & RAP_RELOC_STRING) != 0)
+        {
+          if ((reloc.info & RAP_RELOC_STRING_EMBED) == 0)
+          {
+            size_t symname_size = (reloc.info & ~(3 << 30)) >> 8;
+            reloc.symname.resize (symname_size + 1);
+            size_t symname_read = comp.read ((void*) reloc.symname.c_str (), symname_size);
+            if (symname_read != symname_size)
+              throw rld::error ("Reading reloc symbol name failed", "rapper");
+            reloc.symname[symname_size] = '\0';
+          }
+        }
+
+        relocs.push_back (reloc);
+      }
+    }
+  }
+
+  file::file (const std::string& name, bool warnings)
+    : rhdr_len (0),
+      rhdr_length (0),
+      rhdr_version (0),
+      rhdr_checksum (0),
+      machine_rap_off (0),
+      machinetype (0),
+      datatype (0),
+      class_ (0),
+      layout_rap_off (0),
+      init_off (0),
+      fini_off (0),
+      strtab_rap_off (0),
+      strtab_size (0),
+      strtab (0),
+      symtab_rap_off (0),
+      symtab_size (0),
+      symtab (0),
+      relocs_rap_off (0),
+      relocs_size (0),
+      warnings (warnings),
+      image (name)
+  {
+    for (int s = 0; s < rld::rap::rap_secs; ++s)
+      secs[s].name = rld::rap::section_name (s);
+    image.open ();
+    parse_header ();
+  }
+
+  file::~file ()
+  {
+    image.close ();
+
+    if (symtab)
+      delete [] symtab;
+    if (strtab)
+      delete [] strtab;
+  }
+
+  void
+  file::parse_header ()
+  {
+    std::string name = image.name ().full ();
+
+    char rhdr[64];
+
+    image.seek_read (0, (uint8_t*) rhdr, 64);
+
+    if ((rhdr[0] != 'R') || (rhdr[1] != 'A') || (rhdr[2] != 'P') || (rhdr[3] != ','))
+      throw rld::error ("Invalid RAP file", "open: " + name);
+
+    char* sptr = rhdr + 4;
+    char* eptr;
+
+    rhdr_length = ::strtoul (sptr, &eptr, 10);
+
+    if (*eptr != ',')
+      throw rld::error ("Cannot parse RAP header", "open: " + name);
+
+    sptr = eptr + 1;
+
+    rhdr_version = ::strtoul (sptr, &eptr, 10);
+
+    if (*eptr != ',')
+      throw rld::error ("Cannot parse RAP header", "open: " + name);
+
+    sptr = eptr + 1;
+
+    if ((sptr[0] == 'N') &&
+        (sptr[1] == 'O') &&
+        (sptr[2] == 'N') &&
+        (sptr[3] == 'E'))
+    {
+      rhdr_compression = "NONE";
+      eptr = sptr + 4;
+    }
+    else if ((sptr[0] == 'L') &&
+             (sptr[1] == 'Z') &&
+             (sptr[2] == '7') &&
+             (sptr[3] == '7'))
+    {
+      rhdr_compression = "LZ77";
+      eptr = sptr + 4;
+    }
+    else
+      throw rld::error ("Cannot parse RAP header", "open: " + name);
+
+    if (*eptr != ',')
+      throw rld::error ("Cannot parse RAP header", "open: " + name);
+
+    sptr = eptr + 1;
+
+    rhdr_checksum = strtoul (sptr, &eptr, 16);
+
+    if (*eptr != '\n')
+      throw rld::error ("Cannot parse RAP header", "open: " + name);
+
+    rhdr_len = eptr - rhdr + 1;
+
+    if (warnings && (rhdr_length != image.size ()))
+      std::cout << " warning: header length does not match file size: header="
+                << rhdr_length
+                << " file-size=" << image.size ()
+                << std::endl;
+
+    header.insert (0, rhdr, rhdr_len);
+
+    image.seek (rhdr_len);
+  }
+
+  void
+  file::load ()
+  {
+    image.seek (rhdr_len);
+
+    rld::compress::compressor comp (image, rap_comp_buffer, false);
+
+    /*
+     * uint32_t: machinetype
+     * uint32_t: datatype
+     * uint32_t: class
+     */
+    machine_rap_off = comp.offset ();
+    comp >> machinetype
+         >> datatype
+         >> class_;
+
+    /*
+     * uint32_t: init
+     * uint32_t: fini
+     * uint32_t: symtab_size
+     * uint32_t: strtab_size
+     * uint32_t: relocs_size
+     */
+    layout_rap_off = comp.offset ();
+    comp >> init_off
+         >> fini_off
+         >> symtab_size
+         >> strtab_size
+         >> relocs_size;
+
+    /*
+     * uint32_t: text_size
+     * uint32_t: text_alignment
+     * uint32_t: const_size
+     * uint32_t: const_alignment
+     * uint32_t: ctor_size
+     * uint32_t: ctor_alignment
+     * uint32_t: dtor_size
+     * uint32_t: dtor_alignment
+     * uint32_t: data_size
+     * uint32_t: data_alignment
+     * uint32_t: bss_size
+     * uint32_t: bss_alignment
+     */
+    for (int s = 0; s < rld::rap::rap_secs; ++s)
+      comp >> secs[s].size
+           >> secs[s].alignment;
+
+    /*
+     * Load sections.
+     */
+    for (int s = 0; s < rld::rap::rap_secs; ++s)
+      if (s != rld::rap::rap_bss)
+        secs[s].load_data (comp);
+
+    /*
+     * Load the string table.
+     */
+    strtab_rap_off = comp.offset ();
+    if (strtab_size)
+    {
+      strtab = new uint8_t[strtab_size];
+      if (comp.read (strtab, strtab_size) != strtab_size)
+        throw rld::error ("Reading string table failed", "rapper");
+    }
+
+    /*
+     * Load the symbol table.
+     */
+    symtab_rap_off = comp.offset ();
+    if (symtab_size)
+    {
+      symtab = new uint8_t[symtab_size];
+      if (comp.read (symtab, symtab_size) != symtab_size)
+        throw rld::error ("Reading symbol table failed", "rapper");
+    }
+
+    /*
+     * Load the relocation tables.
+     */
+    relocs_rap_off = comp.offset ();
+    for (int s = 0; s < rld::rap::rap_secs; ++s)
+      secs[s].load_relocs (comp);
+  }
+
+  void
+  file::expand ()
+  {
+    std::string name = image.name ().full ();
+    std::string extension = rld::files::extension (image.name ().full ());
+
+    name = name.substr (0, name.size () - extension.size ()) + ".xrap";
+
+    image.seek (rhdr_len);
+
+    rld::compress::compressor comp (image, rap_comp_buffer, false);
+    rld::files::image         out (name);
+
+    out.open (true);
+    out.seek (0);
+    while (true)
+    {
+      if (comp.read (out, rap_comp_buffer) != rap_comp_buffer)
+        break;
+    }
+    out.close ();
+  }
+
+  const std::string
+  file::name () const
+  {
+    return image.name ().full ();
+  }
+
+  int
+  file::symbols () const
+  {
+    return symtab_size / (3 * sizeof (uint32_t));
+  }
+
+  void
+  file::symbol (int index, uint32_t& data, uint32_t& name, uint32_t& value) const
+  {
+    if (index < symbols ())
+    {
+      uint8_t* sym = symtab + (index * 3 * sizeof (uint32_t));
+      data  = get_value < uint32_t > (sym);
+      name  = get_value < uint32_t > (sym + (1 * sizeof (uint32_t)));
+      value = get_value < uint32_t > (symtab + (2 * sizeof (uint32_t)));
+    }
+  }
+
+  const char*
+  file::string (int index)
+  {
+    std::string name = image.name ().full ();
+
+    if (strtab_size == 0)
+      throw rld::error ("No string table", "string: " + name);
+
+    uint32_t offset = 0;
+    int count = 0;
+    while (offset < strtab_size)
+    {
+      if (count++ == index)
+        return (const char*) &strtab[offset];
+      offset = ::strlen ((const char*) &strtab[offset]) + 1;
+    }
+
+    throw rld::error ("Invalid string index", "string: " + name);
+  }
 }
 
 void
-rap::expand ()
+rap_show (rld::files::paths& raps,
+          bool               warnings,
+          bool               show_header,
+          bool               show_machine,
+          bool               show_layout,
+          bool               show_strings,
+          bool               show_symbols,
+          bool               show_relocs)
 {
-  std::string name = image.name ().full ();
-  std::string extension = rld::files::extension (image.name ().full ());
+  for (rld::files::paths::iterator pi = raps.begin();
+       pi != raps.end();
+       ++pi)
+  {
+    std::cout  << *pi << ':' << std::endl;
 
-  name = name.substr (0, name.size () - extension.size ()) + ".xrap";
+    rap::file r (*pi, warnings);
 
-  image.seek (rhdr_len);
+    try
+    {
+      r.load ();
+    }
+    catch (rld::error re)
+    {
+      std::cout << " error: "
+                << re.where << ": " << re.what
+                << std::endl
+                << " warning: file read failed, some data may be corrupt or not present."
+                << std::endl;
+    }
 
-  rld::compress::compressor comp (image, 2 * 1024, false);
-  rld::files::image         out (name);
+    if (show_header)
+    {
+      std::cout << "  Header:" << std::endl
+                << "          string: " << r.header
+                << "          length: " << r.rhdr_len << std::endl
+                << "         version: " << r.rhdr_version << std::endl
+                << "     compression: " << r.rhdr_compression << std::endl
+                << std::hex << std::setfill ('0')
+                << "        checksum: " << std::setw (8) << r.rhdr_checksum << std::endl
+                << std::dec << std::setfill(' ');
+    }
 
-  out.open (true);
-  comp.read (out, 0, image.size () - rhdr_len);
-  out.close ();
-}
+    if (show_machine)
+    {
+      std::cout << "  Machine: 0x"
+                << std::hex << std::setfill ('0')
+                << std::setw (8) << r.machine_rap_off
+                << std::setfill (' ') << std::dec
+                << " (" << r.machine_rap_off << ')' << std::endl
+                << "     machinetype: "<< r.machinetype << std::endl
+                << "        datatype: "<< r.datatype << std::endl
+                << "           class: "<< r.class_ << std::endl;
+    }
 
-const std::string
-rap::name () const
-{
-  return image.name ().full ();
+    if (show_layout)
+    {
+      std::cout << "  Layout: 0x"
+                << std::hex << std::setfill ('0')
+                << std::setw (8) << r.layout_rap_off
+                << std::setfill (' ') << std::dec
+                << " (" << r.layout_rap_off << ')' << std::endl
+                << std::setw (18) << "  "
+                << "  size  align offset    " << std::endl
+                << std::setw (16) << "strtab" << ": "
+                << std::setw (6) << r.strtab_size << std::endl
+                << std::setw (16) << "symtab" << ": "
+                << std::setw (6) << r.symtab_size << std::endl;
+      for (int s = 0; s < rld::rap::rap_secs; ++s)
+      {
+        std::cout << std::setw (16) << rld::rap::section_name (s)
+                  << ": " << std::setw (6) << r.secs[s].size
+                  << std::setw (7)  << r.secs[s].alignment;
+        if (s != rld::rap::rap_bss)
+          std::cout << std::hex << std::setfill ('0')
+                    << " 0x" << std::setw (8) << r.secs[s].rap_off
+                    << std::setfill (' ') << std::dec
+                    << " (" << r.secs[s].rap_off << ')';
+        std::cout << std::endl;
+      }
+    }
+
+    if (show_strings)
+    {
+      if (r.strtab_size)
+      {
+        std::cout << "  Strings: 0x"
+                  << std::hex << std::setfill ('0')
+                  << std::setw (8) << r.strtab_rap_off
+                  << std::setfill (' ') << std::dec
+                  << " (" << r.strtab_rap_off << ')' << std::endl;
+        uint32_t offset = 0;
+        int count = 0;
+        while (offset < r.strtab_size)
+        {
+          std::cout << std::setw (16) << count++ << ": "
+                    << (char*) &r.strtab[offset] << std::endl;
+          offset += ::strlen ((char*) &r.strtab[offset]) + 1;
+        }
+      }
+      else
+      {
+        std::cout << std::setw (16) << " "
+                  << "No string table found." << std::endl;
+      }
+    }
+
+    if (show_symbols)
+    {
+      std::cout << "  Symbols: 0x"
+                << std::hex << std::setfill ('0')
+                << std::setw (8) << r.symtab_rap_off
+                << std::setfill (' ') << std::dec
+                << " (" << r.symtab_rap_off << ')' << std::endl;
+      if (r.symtab_size)
+      {
+        std::cout << std::setw (18) << "  "
+                  << "  data section  value      name" << std::endl;
+        for (int s = 0; s < r.symbols (); ++s)
+        {
+          uint32_t data;
+          uint32_t name;
+          uint32_t value;
+          r.symbol (s, data, name, value);
+          std::cout << std::setw (16) << s << ": "
+                    << std::hex << std::setfill ('0')
+                    << "0x" << std::setw (4) << (data & 0xffff)
+                    << std::dec << std::setfill (' ')
+                    << " " << std::setw (8) << rld::rap::section_name (data >> 16)
+                    << std::hex << std::setfill ('0')
+                    << " 0x" << std::setw(8) << value
+                    << " " << &r.strtab[name]
+                    << std::dec << std::setfill (' ')
+                    << std::endl;
+        }
+      }
+      else
+      {
+        std::cout << std::setw (16) << " "
+                  << "No symbol table found." << std::endl;
+      }
+    }
+
+    if (show_relocs)
+    {
+      std::cout << "  Relocations: 0x"
+                << std::hex << std::setfill ('0')
+                << std::setw (8) << r.relocs_rap_off
+                << std::setfill (' ') << std::dec
+                << " (" << r.relocs_rap_off << ')' << std::endl;
+      for (int s = 0; s < rld::rap::rap_secs; ++s)
+      {
+        if (r.secs[s].relocs.size ())
+        {
+          std::cout << std::setw (16) << r.secs[s].name
+                    << ": info       offset     addend     symbol name" << std::endl;
+          for (size_t f = 0; f < r.secs[s].relocs.size (); ++f)
+          {
+            rap::relocation& reloc = r.secs[s].relocs[f];
+            std::cout << std::setw (16) << s << ": "
+                      << std::hex << std::setfill ('0')
+                      << "0x" << std::setw (8) << reloc.info
+                      << " 0x" << std::setw (8) << reloc.offset
+                      << " 0x" << std::setw(8) << reloc.addend
+                      << std::dec << std::setfill (' ')
+                      << " " << reloc.symname
+                      << std::endl;
+          }
+        }
+      }
+    }
+    else
+    {
+      std::cout << std::setw (16) << " "
+                << "No relocation table found." << std::endl;
+    }
+
+  }
+
 }
 
 void
-rap_expander (rld::files::paths& raps)
+rap_expander (rld::files::paths& raps, bool warnings)
 {
   std::cout << "Expanding .... " << std::endl;
   for (rld::files::paths::iterator pi = raps.begin();
        pi != raps.end();
        ++pi)
   {
-    rap r (*pi);
+    rap::file r (*pi, warnings);
     std::cout << ' ' << r.name () << std::endl;
     r.expand ();
   }
@@ -214,7 +740,14 @@ static struct option rld_opts[] = {
   { "help",        no_argument,            NULL,           'h' },
   { "version",     no_argument,            NULL,           'V' },
   { "verbose",     no_argument,            NULL,           'v' },
-  { "warn",        no_argument,            NULL,           'w' },
+  { "no-warn",     no_argument,            NULL,           'n' },
+  { "all",         no_argument,            NULL,           'a' },
+  { "header",      no_argument,            NULL,           'H' },
+  { "machine",     no_argument,            NULL,           'm' },
+  { "layout",      no_argument,            NULL,           'l' },
+  { "strings",     no_argument,            NULL,           's' },
+  { "symbols",     no_argument,            NULL,           'S' },
+  { "relocs",      no_argument,            NULL,           'r' },
   { "expand",      no_argument,            NULL,           'x' },
   { NULL,          0,                      NULL,            0 }
 };
@@ -228,7 +761,14 @@ usage (int exit_code)
             << " -V        : print linker version number and exit (also --version)" << std::endl
             << " -v        : verbose (trace import parts), can be supply multiple times" << std::endl
             << "             to increase verbosity (also --verbose)" << std::endl
-            << " -w        : generate warnings (also --warn)" << std::endl
+            << " -n        : no warnings (also --no-warn)" << std::endl
+            << " -a        : show all (also --all)" << std::endl
+            << " -H        : show header (also --header)" << std::endl
+            << " -m        : show machine details (also --machine)" << std::endl
+            << " -l        : show layout (also --layout)" << std::endl
+            << " -s        : show strings (also --strings)" << std::endl
+            << " -S        : show symbols (also --symbols)" << std::endl
+            << " -r        : show relocations (also --relocs)" << std::endl
             << " -x        : expand (also --expand)" << std::endl;
   ::exit (exit_code);
 }
@@ -277,14 +817,19 @@ main (int argc, char* argv[])
   try
   {
     rld::files::paths raps;
+    bool              warnings = true;
+    bool              show = false;
+    bool              show_header = false;
+    bool              show_machine = false;
+    bool              show_layout = false;
+    bool              show_strings = false;
+    bool              show_symbols = false;
+    bool              show_relocs = false;
     bool              expand = false;
-#if HAVE_WARNINGS
-    bool              warnings = false;
-#endif
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvwVx", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvVnaHlsSrx", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -300,22 +845,57 @@ main (int argc, char* argv[])
           rld::verbose_inc ();
           break;
 
-        case 'w':
-#if HAVE_WARNINGS
-          warnings = true;
-#endif
+        case 'n':
+          warnings = false;
           break;
 
-        case '?':
-          usage (3);
+        case 'a':
+          show = true;
+          show_header = true;
+          show_machine = true;
+          show_layout = true;
+          show_strings = true;
+          show_symbols = true;
+          show_relocs = true;
           break;
 
-        case 'h':
-          usage (0);
+        case 'H':
+          show = true;
+          show_header = true;
+          break;
+
+        case 'm':
+          show = true;
+          show_machine = true;
+          break;
+
+        case 'l':
+          show = true;
+          show_layout = true;
+          break;
+
+        case 's':
+          show = true;
+          show_strings = true;
+          break;
+
+        case 'S':
+          show = true;
+          show_symbols = true;
+          break;
+
+        case 'r':
+          show = true;
+          show_relocs = true;
           break;
 
         case 'x':
           expand = true;
+          break;
+
+        case '?':
+        case 'h':
+          usage (0);
           break;
       }
     }
@@ -323,7 +903,7 @@ main (int argc, char* argv[])
     argc -= optind;
     argv += optind;
 
-    std::cout << "RTEMS RAP " << rld::version () << std::endl;
+    std::cout << "RTEMS RAP " << rld::version () << std::endl << std::endl;
 
     /*
      * If there are no RAP files so there is nothing to do.
@@ -337,8 +917,18 @@ main (int argc, char* argv[])
     while (argc--)
       raps.push_back (*argv++);
 
+    if (show)
+      rap_show (raps,
+                warnings,
+                show_header,
+                show_machine,
+                show_layout,
+                show_strings,
+                show_symbols,
+                show_relocs);
+
     if (expand)
-      rap_expander (raps);
+      rap_expander (raps, warnings);
   }
   catch (rld::error re)
   {
