@@ -87,7 +87,7 @@ namespace rld
        * @param data Write the decompressed data here.
        * @param length The mount of data in bytes to read.
        */
-      void read (void* data, size_t length);
+      size_t read (void* data, size_t length);
 
       /**
        * Read the decompressed data writing it to the image.
@@ -96,7 +96,15 @@ namespace rld
        * @param offset The output image offset to write from.
        * @param length The mount of data in bytes to read.
        */
-      void read (files::image& output_, off_t offset, size_t length);
+      size_t read (files::image& output_, off_t offset, size_t length);
+
+      /**
+       * Read the decompressed data writing it to the image.
+       *
+       * @param output The output image.
+       * @param length The mount of data in bytes to read.
+       */
+      size_t read (files::image& output_, size_t length);
 
       /**
        * The amount of uncompressed data transferred.
@@ -111,6 +119,11 @@ namespace rld
        * @param return size_t The amount of compressed data tranferred.
        */
       size_t compressed () const;
+
+      /**
+       * The current offset in the stream.
+       */
+      off_t offset () const;
 
     private:
 
@@ -140,7 +153,7 @@ namespace rld
     };
 
     /**
-     * Compressor template function for writing data to the compressor..
+     * Compressor template function for writing data to the compressor.
      */
     template < typename T >
     void write (compressor& comp, const T value)
@@ -154,6 +167,24 @@ namespace rld
         v >>= 8;
       }
       comp.write (bytes, sizeof (T));
+    }
+
+    /**
+     * Compressor template function for reading data from the compressor.
+     */
+    template < typename T >
+    T read (compressor& comp)
+    {
+      uint8_t  bytes[sizeof (T)];
+      T        v = 0;
+      uint32_t b = 0;
+      if (comp.read (bytes, sizeof (T)) != sizeof (T))
+        throw rld::error ("Reading of value failed", "compression");
+      while (b < sizeof (T))
+      {
+        v = (v << 8) | ((T) bytes[b++]);
+      }
+      return v;
     }
 
   }
@@ -174,6 +205,18 @@ static inline rld::compress::compressor& operator<< (rld::compress::compressor& 
 static inline rld::compress::compressor& operator<< (rld::compress::compressor& comp,
                                                      const std::string&         str) {
   comp.write (str.c_str (), str.size ());
+  return comp;
+}
+
+static inline rld::compress::compressor& operator>> (rld::compress::compressor& comp,
+                                                     uint64_t&                  value) {
+  value = rld::compress::read < uint64_t > (comp);
+  return comp;
+}
+
+static inline rld::compress::compressor& operator>> (rld::compress::compressor& comp,
+                                                     uint32_t&                  value) {
+  value = rld::compress::read < uint32_t > (comp);
   return comp;
 }
 
