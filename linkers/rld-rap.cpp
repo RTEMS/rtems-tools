@@ -39,20 +39,6 @@ namespace rld
   namespace rap
   {
     /**
-     * The sections of interest in a RAP file.
-     */
-    enum sections
-    {
-      rap_text = 0,
-      rap_const = 1,
-      rap_ctor = 2,
-      rap_dtor = 3,
-      rap_data = 4,
-      rap_bss = 5,
-      rap_secs = 6
-    };
-
-    /**
      * The names of the RAP sections.
      */
     static const char* section_names[rap_secs] =
@@ -326,6 +312,15 @@ namespace rld
       uint32_t    init_off;            //< The strtab offset to the init label.
       uint32_t    fini_off;            //< The strtab offset to the fini label.
     };
+
+    const char*
+    section_name (int sec)
+    {
+      if (sec < rap_secs)
+        return section_names[sec];
+      throw rld::error ("Invalid section '" + rld::to_string (sec) + "'",
+                        "rap::section-name");
+    }
 
     /**
      * Update the offset taking into account the alignment.
@@ -1082,7 +1077,7 @@ namespace rld
                     << std::endl;
 
         header = count;
-        header |= sec_rela[s] ? (1UL << 31) : 0;
+        header |= sec_rela[s] ? RAP_RELOC_RELA : 0;
 
         comp << header;
 
@@ -1149,7 +1144,7 @@ namespace rld
                * string.
                */
 
-              info |= 1 << 31;
+              info |= RAP_RELOC_STRING;
 
               std::size_t size = strtab.find (reloc.symname);
 
@@ -1166,7 +1161,7 @@ namespace rld
                 /*
                  * Bit 30 set, the offset in the strtab.
                  */
-                info |= (1 << 30) | (size << 8);
+                info |= RAP_RELOC_STRING_EMBED | (size << 8);
               }
             }
 
@@ -1252,6 +1247,11 @@ namespace rld
            const symbols::table&     /* symbols */) /* Add back for incremental
                                                      * linking */
     {
+      std::string header;
+
+      header = "RAP,00000000,0001,LZ77,00000000\n";
+      app.write (header.c_str (), header.size ());
+
       compress::compressor compressor (app, 2 * 1024);
       image                rap;
 
@@ -1259,6 +1259,16 @@ namespace rld
       rap.write (compressor);
 
       compressor.flush ();
+
+      std::ostringstream length;
+
+      length << std::setfill ('0') << std::setw (8)
+             << header.size () + compressor.compressed ();
+
+      header.replace (4, 8, length.str ());
+
+      app.seek (0);
+      app.write (header.c_str (), header.size ());
 
       if (rld::verbose () >= RLD_VERBOSE_INFO)
       {

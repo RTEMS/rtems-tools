@@ -310,17 +310,13 @@ namespace rld
 
       files::object_list dep_copy (dependents);
       files::object_list objects;
-      std::string        header;
       files::image       app (name);
-
-      header = "RAP,00000000,0001,LZ77,00000000\n";
 
       cache.get_objects (objects);
       objects.merge (dep_copy);
       objects.unique ();
 
       app.open (true);
-      app.write (header.c_str (), header.size ());
 
       try
       {

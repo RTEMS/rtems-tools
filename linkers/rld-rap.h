@@ -32,6 +32,32 @@ namespace rld
   namespace rap
   {
     /**
+     * The RAP relocation bit masks.
+     */
+    #define RAP_RELOC_RELA         (1UL << 31)
+    #define RAP_RELOC_STRING       (1UL << 31)
+    #define RAP_RELOC_STRING_EMBED (1UL << 30)
+
+    /**
+     * The sections of interest in a RAP file.
+     */
+    enum sections
+    {
+      rap_text = 0,
+      rap_const = 1,
+      rap_ctor = 2,
+      rap_dtor = 3,
+      rap_data = 4,
+      rap_bss = 5,
+      rap_secs = 6
+    };
+
+    /**
+     * Return the name of a section.
+     */
+    const char* section_name (int sec);
+
+    /**
      * Write a RAP format file.
      *
      * The symbol table is provided to allow incremental linking at some point
