@@ -846,7 +846,7 @@ static struct option rld_opts[] = {
   { "strings",     no_argument,            NULL,           's' },
   { "symbols",     no_argument,            NULL,           'S' },
   { "relocs",      no_argument,            NULL,           'r' },
-  { "map",         no_argument,            NULL,           'm' },
+  { "overlay",     no_argument,            NULL,           'o' },
   { "expand",      no_argument,            NULL,           'x' },
   { NULL,          0,                      NULL,            0 }
 };
