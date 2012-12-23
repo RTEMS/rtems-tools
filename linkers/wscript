@@ -111,6 +111,11 @@ def build(bld):
                   'rld.cpp']
 
     #
+    # RTEMS Utilities.
+    #
+    rtems_utils = ['rtems-utils.cpp']
+
+    #
     # Build the linker.
     #
     bld.program(target = 'rtems-ld',
@@ -139,7 +144,7 @@ def build(bld):
     # Build the RAP utility.
     #
     bld.program(target = 'rtems-rap',
-                source = ['rtems-rapper.cpp'] + rld_source,
+                source = ['rtems-rapper.cpp'] + rld_source + rtems_utils,
                 defines = ['HAVE_CONFIG_H=1', 'RTEMS_VERSION=' + bld.env.RTEMS_VERSION],
                 includes = ['.'] + bld.includes,
                 cflags = bld.cflags + bld.warningflags,
