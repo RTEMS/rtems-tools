@@ -44,6 +44,8 @@
 #include <rld-process.h>
 #include <rld-rap.h>
 
+#include <rtems-utils.h>
+
 #ifndef HAVE_KILL
 #define kill(p,s) raise(s)
 #endif
@@ -65,6 +67,8 @@ namespace rap
     off_t       rap_off;
 
     relocation ();
+
+    void output ();
   };
 
   typedef std::vector < relocation > relocations;
@@ -202,6 +206,17 @@ namespace rap
       addend (0),
       rap_off (0)
   {
+  }
+
+  void
+  relocation::output ()
+  {
+    std::cout << std::hex << std::setfill ('0')
+              << "0x" << std::setw (8) << info
+              << " 0x" << std::setw (8) << offset
+              << " 0x" << std::setw(8) << addend
+              << std::dec << std::setfill (' ')
+              << " " << symname;
   }
 
   section::section ()
@@ -687,6 +702,7 @@ rap_show (rld::files::paths& raps,
                 << std::setw (8) << r.relocs_rap_off
                 << std::setfill (' ') << std::dec
                 << " (" << r.relocs_rap_off << ')' << std::endl;
+      int count = 0;
       for (int s = 0; s < rld::rap::rap_secs; ++s)
       {
         if (r.secs[s].relocs.size ())
@@ -696,14 +712,9 @@ rap_show (rld::files::paths& raps,
           for (size_t f = 0; f < r.secs[s].relocs.size (); ++f)
           {
             rap::relocation& reloc = r.secs[s].relocs[f];
-            std::cout << std::setw (16) << s << ": "
-                      << std::hex << std::setfill ('0')
-                      << "0x" << std::setw (8) << reloc.info
-                      << " 0x" << std::setw (8) << reloc.offset
-                      << " 0x" << std::setw(8) << reloc.addend
-                      << std::dec << std::setfill (' ')
-                      << " " << reloc.symname
-                      << std::endl;
+            std::cout << std::setw (16) << count++ << ": ";
+            reloc.output ();
+            std::cout << std::endl;
           }
         }
       }
@@ -716,6 +727,94 @@ rap_show (rld::files::paths& raps,
 
   }
 
+}
+
+void
+rap_overlay (rld::files::paths& raps, bool warnings)
+{
+  std::cout << "Overlay .... " << std::endl;
+  for (rld::files::paths::iterator pi = raps.begin();
+       pi != raps.end();
+       ++pi)
+  {
+    rap::file r (*pi, warnings);
+    std::cout << r.name () << std::endl;
+
+    r.load ();
+
+    for (int s = 0; s < rld::rap::rap_secs; ++s)
+    {
+      rap::section& sec = r.secs[s];
+
+      if (sec.size && sec.data)
+      {
+        std::cout << rld::rap::section_name (s) << ':' << std::endl;
+
+        size_t   line_length = 16;
+        uint32_t offset = 0;
+        size_t   reloc = 0;
+
+        while (offset < sec.size)
+        {
+          size_t length = sec.size - offset;
+
+          if (reloc < sec.relocs.size ())
+            length = sec.relocs[reloc].offset - offset;
+
+          if ((offset + length) < sec.size)
+          {
+            length += line_length;
+            length -= length % line_length;
+          }
+
+          rtems::utils::dump (sec.data + offset,
+                              length,
+                              sizeof (uint8_t),
+                              false,
+                              line_length,
+                              offset);
+
+          const int          indent = 8;
+          std::ostringstream line;
+
+          line << std::setw (indent) << ' ';
+
+          while ((reloc < sec.relocs.size ()) &&
+                 (sec.relocs[reloc].offset >= offset) &&
+                 (sec.relocs[reloc].offset < (offset + length)))
+          {
+            int spaces = ((((sec.relocs[reloc].offset + 1) % line_length) * 3) +
+                          indent - 1);
+
+            spaces -= line.str ().size ();
+
+            line << std::setw (spaces) << " ^" << reloc
+                 << ':' << std::hex << sec.relocs[reloc].offset << std::dec;
+
+            ++reloc;
+          }
+
+          std::cout << line.str () << std::endl;
+
+          offset += length;
+        }
+
+        if (sec.relocs.size ())
+        {
+          int count = 0;
+          std::cout << "     info       offset     addend     symbol name" << std::endl;
+          for (size_t f = 0; f < r.secs[s].relocs.size (); ++f)
+          {
+            rap::relocation& reloc = r.secs[s].relocs[f];
+            std::cout << std::setw (4) << count++ << ' ';
+            reloc.output ();
+            std::cout << std::endl;
+          }
+        }
+
+      }
+    }
+  }
 }
 
 void
@@ -747,6 +846,7 @@ static struct option rld_opts[] = {
   { "strings",     no_argument,            NULL,           's' },
   { "symbols",     no_argument,            NULL,           'S' },
   { "relocs",      no_argument,            NULL,           'r' },
+  { "map",         no_argument,            NULL,           'm' },
   { "expand",      no_argument,            NULL,           'x' },
   { NULL,          0,                      NULL,            0 }
 };
@@ -768,6 +868,7 @@ usage (int exit_code)
             << " -s        : show strings (also --strings)" << std::endl
             << " -S        : show symbols (also --symbols)" << std::endl
             << " -r        : show relocations (also --relocs)" << std::endl
+            << " -o        : linkage overlay (also --overlay)" << std::endl
             << " -x        : expand (also --expand)" << std::endl;
   ::exit (exit_code);
 }
@@ -824,11 +925,12 @@ main (int argc, char* argv[])
     bool              show_strings = false;
     bool              show_symbols = false;
     bool              show_relocs = false;
+    bool              overlay = false;
     bool              expand = false;
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvVnaHlsSrx", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvVnaHlsSrox", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -888,6 +990,10 @@ main (int argc, char* argv[])
           show_relocs = true;
           break;
 
+        case 'o':
+          overlay = true;
+          break;
+
         case 'x':
           expand = true;
           break;
@@ -925,6 +1031,9 @@ main (int argc, char* argv[])
                 show_strings,
                 show_symbols,
                 show_relocs);
+
+    if (overlay)
+      rap_overlay (raps, warnings);
 
     if (expand)
       rap_expander (raps, warnings);
