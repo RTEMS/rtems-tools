@@ -207,6 +207,11 @@ namespace rld
        */
       uint32_t get_relocations (int sec) const;
 
+      /**
+       * Output the object file details..
+       */
+      void output ();
+
     private:
       /**
        * No default constructor allowed.
@@ -351,26 +356,28 @@ namespace rld
      * Output helper function to report the sections in an object file.
      * This is useful when seeing the flags in the sections.
      *
-     * @param name The name of the section group in the RAP file.
-     * @param size The total of the section size's in the group.
-     * @param secs The container of sections in the group.
+     * @param sec The RAP section to output.
+     * @param secs The container of sections in the group from the object file.
      */
     void
-    output (const char* name, size_t size, const files::sections& secs)
+    output (section& sec, const files::sections& osecs)
     {
-      if (size)
+      if (sec.size)
       {
-        std::cout << ' ' << name << ": size: " << size << std::endl;
+        std::cout << ' ' << sec.name
+                  << ": size: " << sec.size
+                  << " offset: " << sec.offset
+                  << std::endl;
 
-        for (files::sections::const_iterator si = secs.begin ();
-             si != secs.end ();
-             ++si)
+        for (files::sections::const_iterator osi = osecs.begin ();
+             osi != osecs.end ();
+             ++osi)
         {
-          files::section sec = *si;
+          files::section osec = *osi;
 
-          if (sec.size)
+          if (osec.size)
           {
-            #define SF(f, i, c) if (sec.flags & (f)) flags[i] = c
+            #define SF(f, i, c) if (osec.flags & (f)) flags[i] = c
 
             std::string flags ("--------------");
 
@@ -390,12 +397,15 @@ namespace rld
             SF (SHF_ORDERED,         13, 'O');
 
             std::cout << "  " << std::left
-                      << std::setw (15) << sec.name
+                      << std::setw (15) << osec.name
                       << " " << flags
-                      << " size: " << std::setw (5) << sec.size
-                      << " align: " << std::setw (3) << sec.alignment
-                      << " relocs: " << sec.relocs.size ()
-                      << std::right << std::endl;
+                      << " size: " << std::setw (5) << osec.size
+                      << " align: " << std::setw (3) << osec.alignment
+                      << " relocs: " << std::setw (4) << osec.relocs.size ()
+                      << " offset: " << std::setw (5) << sec.osecs[osec.index]
+                      << std::hex
+                      << " image: 0x" << sec.offset + sec.osecs[osec.index]
+                      << std::dec << std::right << std::endl;
           }
         }
       }
@@ -628,18 +638,6 @@ namespace rld
                      section_merge (*this, secs[rap_data]));
       std::for_each (bss.begin (), bss.end (),
                      section_merge (*this, secs[rap_bss]));
-
-      if (rld::verbose () >= RLD_VERBOSE_DETAILS)
-      {
-        std::cout << "rap:object: " << obj.name ().full () << std::endl;
-        output ("text", secs[rap_text].size, text);
-        output ("const", secs[rap_const].size, const_);
-        output ("ctor", secs[rap_ctor].size, ctor);
-        output ("dtor", secs[rap_dtor].size, dtor);
-        output ("data", secs[rap_data].size, data);
-        if (secs[rap_bss].size)
-          std::cout << " bss: size: " << secs[rap_bss].size << std::endl;
-      }
     }
 
     object::object (const object& orig)
@@ -708,6 +706,19 @@ namespace rld
       return secs[sec].relocs.size ();
     }
 
+    void
+    object::output ()
+    {
+      std::cout << "rap:object: " << obj.name ().full () << std::endl;
+      rap::output (secs[rap_text], text);
+      rap::output (secs[rap_const], const_);
+      rap::output (secs[rap_ctor], ctor);
+      rap::output (secs[rap_dtor], dtor);
+      rap::output (secs[rap_data], data);
+      if (secs[rap_bss].size)
+        std::cout << " bss: size: " << secs[rap_bss].size << std::endl;
+    }
+
     image::image ()
     {
       clear ();
@@ -761,6 +772,9 @@ namespace rld
         collect_symbols (obj);
 
         relocs_size += obj.get_relocations ();
+
+        if (rld::verbose () >= RLD_VERBOSE_DETAILS)
+          obj.output ();
       }
 
       init_off = strtab.size () + 1;
@@ -822,8 +836,6 @@ namespace rld
             }
 
             /*
-             * The '+ 2' is for the end of string nul and the delimiting nul.
-             *
              * The symbol's value is the symbols value plus the offset of the
              * object file's section offset in the RAP section.
              */
