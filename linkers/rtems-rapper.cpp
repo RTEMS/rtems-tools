@@ -789,7 +789,9 @@ rap_overlay (rld::files::paths& raps, bool warnings)
             spaces -= line.str ().size ();
 
             line << std::setw (spaces) << " ^" << reloc
-                 << ':' << std::hex << sec.relocs[reloc].offset << std::dec;
+                 << ':' << std::hex
+                 << sec.relocs[reloc].addend
+                 << std::dec;
 
             ++reloc;
           }
