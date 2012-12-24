@@ -1131,7 +1131,9 @@ namespace rld
                */
               info |= rap_symsect << 8;
 
-              addend += obj.secs[rap_symsect].osecs[reloc.symsect] + reloc.symvalue;
+              addend += (obj.secs[rap_symsect].offset +
+                         obj.secs[rap_symsect].osecs[reloc.symsect] +
+                         reloc.symvalue);
 
               write_addend = true;
 
@@ -1140,6 +1142,7 @@ namespace rld
                           << '/' << std::setw (2) << rc
                           <<":  rsym: sect=" << section_names[rap_symsect]
                           << " rap_symsect=" << rap_symsect
+                          << " sec.offset=" << obj.secs[rap_symsect].offset
                           << " sec.osecs=" << obj.secs[rap_symsect].osecs[reloc.symsect]
                           << " (" << obj.obj.get_section (reloc.symsect).name << ')'
                           << " reloc.symsect=" << reloc.symsect
