@@ -979,7 +979,9 @@ namespace rld
     object::object (archive& archive_, file& name_)
       : image (name_),
         archive_ (&archive_),
-        valid_ (false)
+        valid_ (false),
+        resolving_ (false),
+        resolved_ (false)
     {
       if (!name ().is_valid ())
         throw rld_error_at ("name is empty");
@@ -988,7 +990,9 @@ namespace rld
     object::object (const std::string& path)
       : image (path),
         archive_ (0),
-        valid_ (false)
+        valid_ (false),
+        resolving_ (false),
+        resolved_ (false)
     {
       if (!name ().is_valid ())
         throw rld_error_at ("name is empty");
@@ -996,7 +1000,9 @@ namespace rld
 
     object::object ()
       : archive_ (0),
-        valid_ (false)
+        valid_ (false),
+        resolving_ (false),
+        resolved_ (false)
     {
     }
 
@@ -1116,7 +1122,7 @@ namespace rld
 
       rld::symbols::pointers syms;
 
-      elf ().get_symbols (syms, false, local);
+      elf ().get_symbols (syms, false, local, false, true);
 
       if (rld::verbose () >= RLD_VERBOSE_TRACE_SYMS)
         std::cout << "object:load-sym: exported: total "
@@ -1132,11 +1138,31 @@ namespace rld
           std::cout << "object:load-sym: exported: " << sym << std::endl;
 
         sym.set_object (*this);
-        symbols[sym.name ()] = &sym;
+        symbols.add_external (sym);
         externals.push_back (&sym);
       }
 
-      elf ().get_symbols (syms, true);
+      elf ().get_symbols (syms, false, false, true, false);
+
+      if (rld::verbose () >= RLD_VERBOSE_TRACE_SYMS)
+        std::cout << "object:load-sym: weak: total "
+                  << syms.size () << std::endl;
+
+      for (symbols::pointers::iterator si = syms.begin ();
+           si != syms.end ();
+           ++si)
+      {
+        symbols::symbol& sym = *(*si);
+
+        if (rld::verbose () >= RLD_VERBOSE_TRACE_SYMS)
+          std::cout << "object:load-sym: weak: " << sym << std::endl;
+
+        sym.set_object (*this);
+        symbols.add_weak (sym);
+        externals.push_back (&sym);
+      }
+
+      elf ().get_symbols (syms, true, false, true, true);
 
       if (rld::verbose () >= RLD_VERBOSE_TRACE_SYMS)
         std::cout << "object:load-sym: unresolved: total "
@@ -1215,7 +1241,7 @@ namespace rld
       return archive_;
     }
 
-    rld::symbols::table&
+    rld::symbols::symtab&
     object::unresolved_symbols ()
     {
       return unresolved;
@@ -1279,6 +1305,36 @@ namespace rld
 
       throw rld::error ("Section index '" + rld::to_string (index) +
                         "' not found: " + name ().full (), "object::get-section");
+    }
+
+    void
+    object::resolve_set ()
+    {
+      resolving_ = true;
+    }
+
+    void
+    object::resolve_clear ()
+    {
+      resolving_ = false;
+    }
+
+    bool
+    object::resolving () const
+    {
+      return resolving_;
+    }
+
+    void
+    object::resolved_set ()
+    {
+      resolved_ = true;
+    }
+
+    bool
+    object::resolved () const
+    {
+      return resolved_;
     }
 
     cache::cache ()

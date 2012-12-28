@@ -56,12 +56,12 @@ namespace rld
     /**
      * Container of archive files.
      */
-    typedef std::map < std::string, archive* > archives;
+    typedef std::map < const std::string, archive* > archives;
 
     /**
      * Container of object files.
      */
-    typedef std::map < std::string, object* > objects;
+    typedef std::map < const std::string, object* > objects;
 
     /**
      * Container list of object files.
@@ -700,7 +700,7 @@ namespace rld
       /**
        * Return the unresolved symbol table for this object file.
        */
-      symbols::table& unresolved_symbols ();
+      symbols::symtab& unresolved_symbols ();
 
       /**
        * Return the list external symbols.
@@ -741,13 +741,40 @@ namespace rld
        */
       const section& get_section (int index) const;
 
+      /**
+       * Set the object file's resolving flag.
+       */
+      void resolve_set ();
+
+      /**
+       * Clear the object file's resolving flag.
+       */
+      void resolve_clear ();
+
+      /**
+       * The resolving state.
+       */
+      bool resolving () const;
+
+      /**
+       * Set the object file resolved flag.
+       */
+      void resolved_set ();
+
+      /**
+       * The resolved state.
+       */
+      bool resolved () const;
+
     private:
       archive*          archive_;   //< Points to the archive if part of an
                                     //  archive.
       bool              valid_;     //< If true begin has run and finished.
-      symbols::table    unresolved; //< This object's unresolved symbols.
+      symbols::symtab   unresolved; //< This object's unresolved symbols.
       symbols::pointers externals;  //< This object's external symbols.
       sections          secs;       //< The sections.
+      bool              resolving_; //< The object is being resolved.
+      bool              resolved_;  //< The object has been resolved.
 
       /**
        * Cannot copy via a copy constructor.

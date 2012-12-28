@@ -187,12 +187,86 @@ namespace rld
      * A symbols table is a map container of symbols. Should always point to
      * symbols held in a bucket.
      */
-    typedef std::map < std::string, symbol* > table;
+    typedef std::map < std::string, symbol* > symtab;
+
+    /**
+     * A symbols contains a symbol table of externals and weak symbols.
+     */
+    class table
+    {
+    public:
+      /**
+       * Construct a table.
+       */
+      table ();
+
+      /**
+       * Destruct a table.
+       */
+      ~table ();
+
+      /**
+       * Add an external symbol.
+       */
+      void add_external (symbol& sym);
+
+      /**
+       * Add a weak symbol.
+       */
+      void add_weak (symbol& sym);
+
+      /**
+       * Find an external symbol.
+       */
+      symbol* find_external (const std::string& name);
+
+      /**
+       * Find an weak symbol.
+       */
+      symbol* find_weak (const std::string& name);
+
+      /**
+       * Return the size of the symbols loaded.
+       */
+      size_t size () const;
+
+      /**
+       * Return the externals symbol table.
+       */
+      const symtab& externals () const;
+
+      /**
+       * Return the weaks symbol table.
+       */
+      const symtab& weaks () const;
+
+    private:
+
+      /**
+       * Cannot copy a table.
+       */
+      table (const table& orig);
+
+      /**
+       * A table of external symbols.
+       */
+      symtab _externals;
+
+      /**
+       * A table of weak symbols.
+       */
+      symtab _weaks;
+    };
 
     /**
      * Load a table from a buckey.
      */
     void load (bucket& bucket_, table& table_);
+
+    /**
+     * Load a table from a buckey.
+     */
+    void load (bucket& bucket_, symtab& table_);
 
     /**
      * Given a container of symbols return how many are referenced.
@@ -203,6 +277,11 @@ namespace rld
      * Output the symbol table.
      */
     void output (std::ostream& out, const table& symbols);
+
+    /**
+     * Output the symbol table.
+     */
+    void output (std::ostream& out, const symtab& symbols);
   }
 }
 

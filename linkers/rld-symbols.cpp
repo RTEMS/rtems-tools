@@ -266,8 +266,75 @@ namespace rld
         out << "   (" << object ()->name ().basename () << ')';
     }
 
+    table::table ()
+    {
+    }
+
+    table::~table ()
+    {
+    }
+
+    void
+    table::add_external (symbol& sym)
+    {
+      _externals[sym.name ()] = &sym;
+    }
+
+    void
+    table::add_weak (symbol& sym)
+    {
+      _weaks[sym.name ()] = &sym;
+    }
+
+    symbol*
+    table::find_external (const std::string& name)
+    {
+      symtab::iterator sti = _externals.find (name);
+      if (sti == _externals.end ())
+        return 0;
+      return (*sti).second;
+    }
+
+    symbol*
+    table::find_weak (const std::string& name)
+    {
+      symtab::iterator sti = _weaks.find (name);
+      if (sti == _weaks.end ())
+        return 0;
+      return (*sti).second;
+    }
+
+    size_t
+    table::size () const
+    {
+      return _externals.size () + _weaks.size ();
+    }
+
+    const symtab&
+    table::externals () const
+    {
+      return _externals;
+    }
+
+    const symtab&
+    table::weaks () const
+    {
+      return _weaks;
+    }
+
     void
     load (bucket& bucket_, table& table_)
+    {
+      for (bucket::iterator sbi = bucket_.begin ();
+           sbi != bucket_.end ();
+           ++sbi)
+      {
+        table_.add_external (*sbi);
+      }
+    }
+
+    void
+    load (bucket& bucket_, symtab& table_)
     {
       for (bucket::iterator sbi = bucket_.begin ();
            sbi != bucket_.end ();
@@ -297,9 +364,18 @@ namespace rld
     void
     output (std::ostream& out, const table& symbols)
     {
+      out << "Externals:" << std::endl;
+      output (out, symbols.externals ());
+      out << "Weaks:" << std::endl;
+      output (out, symbols.weaks ());
+    }
+
+    void
+    output (std::ostream& out, const symtab& symbols)
+    {
       std::cout << " No.  Scope      Type        Address    Size    Name" << std::endl;
       int index = 0;
-      for (table::const_iterator si = symbols.begin ();
+      for (symtab::const_iterator si = symbols.begin ();
            si != symbols.end ();
            ++si)
       {

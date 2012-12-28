@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2011, Chris Johns <chrisj@rtems.org> 
+ * Copyright (c) 2011, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -43,11 +43,11 @@ namespace rld
      * @param undefined Extra undefined symbols dependent object files are
      *                  added for.
      */
-    void resolve (rld::files::object_list& dependents, 
-                  rld::files::cache&       cache,
-                  rld::symbols::table&     base_symbols,
-                  rld::symbols::table&     symbols,
-                  rld::symbols::table&     undefined);
+    void resolve (files::object_list& dependents,
+                  files::cache&       cache,
+                  symbols::table&     base_symbols,
+                  symbols::table&     symbols,
+                  symbols::symtab&    undefined);
   }
 }
 

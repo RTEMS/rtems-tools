@@ -88,10 +88,10 @@ namespace rld
 
         out << "o:" << name << std::endl;
 
-        symbols::table& unresolved = obj.unresolved_symbols ();
+        symbols::symtab& unresolved = obj.unresolved_symbols ();
 
         int count = 0;
-        for (symbols::table::iterator ursi = unresolved.begin ();
+        for (symbols::symtab::iterator ursi = unresolved.begin ();
              ursi != unresolved.begin ();
              ++ursi)
         {

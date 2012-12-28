@@ -170,7 +170,7 @@ main (int argc, char* argv[])
     rld::symbols::bucket undefines;
     rld::symbols::table  base_symbols;
     rld::symbols::table  symbols;
-    rld::symbols::table  undefined;
+    rld::symbols::symtab undefined;
     std::string          entry = "rtems";
     std::string          exit;
     std::string          output = "a.out";

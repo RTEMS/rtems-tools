@@ -853,14 +853,14 @@ namespace rld
           if (unresolved)
             add = true;
         }
-        else if (!unresolved)
+        else
         {
           if (((stype == STT_NOTYPE) ||
                (stype == STT_OBJECT) ||
                (stype == STT_FUNC)) &&
-              ((local && (sbind == STB_LOCAL)) ||
-                  (weak && (sbind == STB_WEAK)) ||
-               (global && (sbind == STB_GLOBAL))))
+              ((weak && (sbind == STB_WEAK)) ||
+               (!unresolved && ((local && (sbind == STB_LOCAL)) ||
+                                (global && (sbind == STB_GLOBAL))))))
             add = true;
         }
 
