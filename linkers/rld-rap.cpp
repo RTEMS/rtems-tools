@@ -74,7 +74,19 @@ namespace rld
     /**
      * Relocation records.
      */
-    typedef std::list < relocation > relocations;
+    typedef std::vector < relocation > relocations;
+
+    /**
+     * Relocation offset sorter for the relocations container.
+     */
+    class reloc_offset_compare
+    {
+    public:
+      bool operator () (const relocation& lhs,
+                        const relocation& rhs) const {
+        return lhs.offset < rhs.offset;
+      }
+    };
 
     /**
      * An object section's offset, size and alignment.
@@ -668,6 +680,10 @@ namespace rld
 
         sec.relocs.push_back (relocation (freloc, offset));
       }
+
+      std::stable_sort (sec.relocs.begin (),
+                        sec.relocs.end (),
+                        reloc_offset_compare ());
 
       sec.rela = fsec.rela;
     }
