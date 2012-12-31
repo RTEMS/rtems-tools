@@ -77,29 +77,57 @@ namespace rld
     typedef std::list < relocation > relocations;
 
     /**
+     * An object section's offset, size and alignment.
+     */
+    struct osection
+    {
+      std::string name;     //< The name of the section.
+      uint32_t    offset;   //< The offset in the object file.
+      uint32_t    size;     //< The size of this section.
+      uint32_t    align;    //< The alignment.
+      uint32_t    relocs;   //< The number of relocations.
+      uint64_t    flags;    //< The flags.
+
+      /**
+       * Construct the object section.
+       */
+      osection (const std::string& name,
+                uint32_t           offset,
+                uint32_t           size,
+                uint32_t           align,
+                uint32_t           relocs,
+                uint64_t           flags);
+
+      /**
+       * Default constructor.
+       */
+      osection ();
+    };
+
+    /**
      * Map of object file section offsets keyed by the object file section
      * index. This is used when adding the external symbols so the symbol's
      * value can be adjusted by the offset of the section in the RAP section.
      */
-    typedef std::map < int, uint32_t > osections;
+    typedef std::map < const int, osection > osections;
+
+    /**
+     * An ordered container of object section indexes. We need the same
+     * order so the alignments match up with the layout.
+     */
+    typedef std::vector < int > osecindexes;
 
     /**
      * The RAP section data.
      */
     struct section
     {
-      std::string name;   //< The name of the section.
-      uint32_t    size;   //< The size of the section.
-      uint32_t    offset; //< The offset of the section.
-      uint32_t    align;  //< The alignment of the section.
-      bool        rela;   //< The relocation record has an addend field.
-      relocations relocs; //< The relocations for this section.
-      osections   osecs;  //< The object section index.
-
-      /**
-       * Operator to add up section data.
-       */
-      section& operator += (const section& sec);
+      std::string name;      //< The name of the section.
+      uint32_t    offset;    //< The offset of the section.
+      bool        rela;      //< The relocation record has an addend field.
+      relocations relocs;    //< The relocations for this section.
+      osections   osecs;     //< The object section index.
+      osecindexes osindexes; //< The object section indexes in order.
 
       /**
        * Default constructor.
@@ -112,9 +140,19 @@ namespace rld
       void clear ();
 
       /**
-       * Update based on the section in the object file.
+       * The size of the section given the offset.
        */
-      void update (const files::sections& secs);
+      uint32_t size (uint32_t offset = 0) const;
+
+      /**
+       * The alignment of the first section.
+       */
+      uint32_t alignment () const;
+
+      /**
+       * The alignment of the object section given its index.
+       */
+      uint32_t alignment (int index) const;
 
       /**
        * Set the offset of this section based on the previous section.
@@ -122,9 +160,15 @@ namespace rld
       void set_offset (const section& sec);
 
       /**
-       * Set the alignment.
+       * Return the object section given the index.
        */
-      void set_alignment (const section& sec);
+      const osection& get_osection (int index) const;
+
+      /**
+       * Output helper function to report the sections in an object file. This
+       * is useful when seeing the flags in the sections.
+       */
+      void output ();
     };
 
     /**
@@ -169,7 +213,6 @@ namespace rld
      */
     struct object
     {
-
       files::object&  obj;            //< The object file.
       files::sections text;           //< All executable code.
       files::sections const_;         //< All read only data.
@@ -254,11 +297,21 @@ namespace rld
       void collect_symbols (object& obj);
 
       /**
-       * Write the compressed output file.
+       * Write the compressed output file. This is the top level write
+       * interface.
        *
        * @param comp The compressor.
        */
       void write (compress::compressor& comp);
+
+      /**
+       * Write the RAP section to the compressed output file given the object files.
+       * Check to make sure the size in the layout and the size written match.
+       *
+       * @param comp The compressor.
+       * @param sec The RAP setion to write.
+       */
+      void write (compress::compressor& comp, sections sec);
 
       /**
        * Write the sections to the compressed output file. The file sections
@@ -302,7 +355,17 @@ namespace rld
        * @param index The RAP section index to update.
        * @param sec The object's RAP section.
        */
-      void update_section (int index, const section& sec);
+      void update_section (int index, section& sec);
+
+      /**
+       * Report the RAP section's size.
+       */
+      uint32_t section_size (sections sec) const;
+
+      /**
+       * Find a symbol name in the string table.
+       */
+      std::size_t find_in_strtab (const std::string& symname);
 
     private:
 
@@ -352,28 +415,133 @@ namespace rld
       return offset;
     }
 
+    relocation::relocation (const files::relocation& reloc,
+                            const uint32_t           offset)
+      : offset (reloc.offset + offset),
+        info (reloc.info),
+        addend (reloc.addend),
+        symname (reloc.symname),
+        symtype (reloc.symtype),
+        symsect (reloc.symsect),
+        symvalue (reloc.symvalue)
+    {
+    }
+
+    osection::osection (const std::string& name,
+                        uint32_t           offset,
+                        uint32_t           size,
+                        uint32_t           align,
+                        uint32_t           relocs,
+                        uint64_t           flags)
+      : name (name),
+        offset (offset),
+        size (size),
+        align (align),
+        relocs (relocs),
+        flags (flags)
+    {
+    }
+
+    osection::osection ()
+      : offset (0),
+        size (0),
+        align (0),
+        relocs (0),
+        flags (0)
+    {
+    }
+
+    section::section ()
+      : offset (0),
+        rela (false)
+    {
+    }
+
+    void
+    section::clear ()
+    {
+      offset = 0;
+      rela = false;
+    }
+
+    uint32_t
+    section::size (uint32_t offset_) const
+    {
+      uint32_t end = offset_;
+      if (end == 0)
+        end = offset;
+      for (size_t si = 0; si < osindexes.size (); ++si)
+      {
+        const osection& osec = get_osection (osindexes[si]);
+        end = align_offset (end, 0, osec.align);
+        end += osec.size;
+      }
+      return end - offset;
+    }
+
+    uint32_t
+    section::alignment () const
+    {
+      if (!osindexes.empty ())
+      {
+        const osection& osec = get_osection (osindexes[0]);
+        return osec.align;
+      }
+      return 0;
+    }
+
+    uint32_t
+    section::alignment (int index) const
+    {
+      const osection& osec = get_osection (index);
+      return osec.align;
+    }
+
+    void
+    section::set_offset (const section& sec)
+    {
+      uint32_t align = alignment ();
+      offset = align_offset (sec.offset, sec.size (), align);
+      if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+        std::cout << "rap:section::set-offset: " << name
+                  << " offset=" << offset
+                  << " size=" << size ()
+                  << " align=" << align
+                  << " sec.offset=" << sec.offset
+                  << " sec.size=" << sec.size (sec.offset)
+                  << std::endl;
+    }
+
+    const osection&
+    section::get_osection (int index) const
+    {
+      osections::const_iterator osi = osecs.find (index);
+      if (osi == osecs.end ())
+        throw rld::error ("Invalid object seciton index in '" + name +"': index=" +
+                          rld::to_string (index),
+                          "rap::section");
+      return (*osi).second;
+    }
+
     /**
-     * Output helper function to report the sections in an object file.
-     * This is useful when seeing the flags in the sections.
-     *
-     * @param sec The RAP section to output.
-     * @param secs The container of sections in the group from the object file.
+     * Output helper function to report the sections in an object file. This is
+     * useful when seeing the flags in the sections.
      */
     void
-    output (section& sec, const files::sections& osecs)
+    section::output ()
     {
-      if (sec.size)
+      if (!osindexes.empty ())
       {
-        std::cout << ' ' << sec.name
-                  << ": size: " << sec.size
-                  << " offset: " << sec.offset
+        std::cout << ' ' << name
+                  << ": size: " << size (offset)
+                  << " offset: " << offset
                   << std::endl;
 
-        for (files::sections::const_iterator osi = osecs.begin ();
-             osi != osecs.end ();
+        for (osecindexes::const_iterator osi = osindexes.begin ();
+             osi != osindexes.end ();
              ++osi)
         {
-          files::section osec = *osi;
+          const osection& osec = get_osection (*osi);
 
           if (osec.size)
           {
@@ -400,86 +568,14 @@ namespace rld
                       << std::setw (15) << osec.name
                       << " " << flags
                       << " size: " << std::setw (5) << osec.size
-                      << " align: " << std::setw (3) << osec.alignment
-                      << " relocs: " << std::setw (4) << osec.relocs.size ()
-                      << " offset: " << std::setw (5) << sec.osecs[osec.index]
+                      << " align: " << std::setw (3) << osec.align
+                      << " relocs: " << std::setw (4) << osec.relocs
+                      << " offset: " << std::setw (5) << osec.offset
                       << std::hex
-                      << " image: 0x" << sec.offset + sec.osecs[osec.index]
+                      << " image: 0x" << offset + osec.offset
                       << std::dec << std::right << std::endl;
           }
         }
-      }
-    }
-
-    relocation::relocation (const files::relocation& reloc,
-                            const uint32_t           offset)
-      : offset (reloc.offset + offset),
-        info (reloc.info),
-        addend (reloc.addend),
-        symname (reloc.symname),
-        symtype (reloc.symtype),
-        symsect (reloc.symsect),
-        symvalue (reloc.symvalue)
-    {
-    }
-
-    section::section ()
-      : size (0),
-        offset (0),
-        align (0),
-        rela (false)
-    {
-    }
-
-    void
-    section::clear ()
-    {
-      size = 0;
-      offset = 0;
-      align = 0;
-      rela = false;
-    }
-
-    section&
-    section::operator += (const section& sec)
-    {
-      if (sec.size)
-      {
-        if (align < sec.align)
-          align = sec.align;
-
-        if (size && (align == 0))
-          throw rld::error ("Invalid alignment '" + name + "'",
-                            "rap::section");
-
-        size += sec.size;
-      }
-
-      rela = sec.rela;
-
-      return *this;
-    }
-
-    void
-    section::set_alignment (const section& sec)
-    {
-      if (align < sec.align)
-        align = sec.align;
-    }
-
-    void
-    section::set_offset (const section& sec)
-    {
-      offset = align_offset (sec.offset, sec.size, align);
-    }
-
-    void
-    section::update (const files::sections& secs)
-    {
-      if (!secs.empty ())
-      {
-        align = (*(secs.begin ())).alignment;
-        size = files::sum_sizes (secs);
       }
     }
 
@@ -494,6 +590,8 @@ namespace rld
 
       section_merge (object& obj, section& sec);
 
+      ~section_merge ();
+
       void operator () (const files::section& fsec);
 
     private:
@@ -506,32 +604,31 @@ namespace rld
       : obj (obj),
         sec (sec)
     {
-      sec.align = 0;
       sec.offset = 0;
-      sec.size = 0;
       sec.rela = false;
+    }
+
+    section_merge::~section_merge ()
+    {
+      if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+        std::cout << "rap:section-merge: " << sec.name
+                  << " size=" << sec.size ()
+                  << " offset=" << sec.offset
+                  << " " << obj.obj.name ().full ()  << std::endl;
     }
 
     void
     section_merge::operator () (const files::section& fsec)
     {
       /*
-       * The RAP section alignment is the largest of all sections that are
-       * being merged. This object file section however can aligned at its
-       * specific alignment. You see this with .const sections which can be say
-       * 4 .eh_frame and 1 for strings.
-       */
-      if (sec.align < fsec.alignment)
-        sec.align = fsec.alignment;
-
-      /*
        * Align the size up to the next alignment boundary and use that as the
        * offset for this object file section.
        */
-      uint32_t offset = align_offset (sec.size, 0, fsec.alignment);
+      uint32_t offset = align_offset (sec.size (), 0, fsec.alignment);
 
       if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
         std::cout << "rap:section-merge: " << fsec.name
+                  << " sec-size=" << sec.size ()
                   << " relocs=" << fsec.relocs.size ()
                   << " offset=" << offset
                   << " fsec.size=" << fsec.size
@@ -542,7 +639,14 @@ namespace rld
        * Add the object file's section offset to the map. This is needed
        * to adjust the external symbol offsets.
        */
-      sec.osecs[fsec.index] = offset;
+      osection osec (fsec.name,
+                     offset,
+                     fsec.size,
+                     fsec.alignment,
+                     fsec.relocs.size (),
+                     fsec.flags);
+      sec.osecs[fsec.index] = osec;
+      sec.osindexes.push_back (fsec.index);
 
       uint32_t rc = 0;
 
@@ -566,7 +670,6 @@ namespace rld
       }
 
       sec.rela = fsec.rela;
-      sec.size = offset + fsec.size;
     }
 
     external::external (const uint32_t name,
@@ -710,13 +813,13 @@ namespace rld
     object::output ()
     {
       std::cout << "rap:object: " << obj.name ().full () << std::endl;
-      rap::output (secs[rap_text], text);
-      rap::output (secs[rap_const], const_);
-      rap::output (secs[rap_ctor], ctor);
-      rap::output (secs[rap_dtor], dtor);
-      rap::output (secs[rap_data], data);
-      if (secs[rap_bss].size)
-        std::cout << " bss: size: " << secs[rap_bss].size << std::endl;
+      secs[rap_text].output ();
+      secs[rap_const].output ();
+      secs[rap_ctor].output ();
+      secs[rap_dtor].output ();
+      secs[rap_data].output ();
+      if (secs[rap_bss].size ())
+        std::cout << " bss: size: " << secs[rap_bss].size () << std::endl;
     }
 
     image::image ()
@@ -762,12 +865,13 @@ namespace rld
         {
           object& pobj = *poi;
           for (int s = 0; s < rap_secs; ++s)
+          {
             obj.secs[s].set_offset (pobj.secs[s]);
+            sec_size[s] = obj.secs[s].offset + obj.secs[s].size ();
+            sec_align[s] = obj.secs[s].alignment ();
+          }
           ++poi;
         }
-
-        for (int s = 0; s < rap_secs; ++s)
-          update_section (s, obj.secs[s]);
 
         collect_symbols (obj);
 
@@ -787,7 +891,7 @@ namespace rld
 
       if (rld::verbose () >= RLD_VERBOSE_INFO)
       {
-        uint32_t total = (sec_size[rap_text] + sec_size[rap_data] +
+        uint32_t total = (sec_size[rap_text] + sec_size[rap_const] +
                           sec_size[rap_data] + sec_size[rap_bss] +
                           symtab_size + strtab.size() + relocs_size);
         std::cout << "rap::layout: total:" << total
@@ -841,76 +945,13 @@ namespace rld
              */
             externs.push_back (external (name,
                                          rap_sec,
-                                         sec.offset + sec.osecs[symsec] +
+                                         sec.offset + sec.osecs[symsec].offset +
                                          sym.value (),
                                          sym.info ()));
 
             symtab_size += external::rap_size;
           }
         }
-      }
-    }
-
-    /**
-     * Helper for for_each to write out the various sections.
-     */
-    class section_writer:
-      public std::unary_function < object, void >
-    {
-    public:
-
-      section_writer (image&                img,
-                      compress::compressor& comp,
-                      sections              sec);
-
-      void operator () (object& obj);
-
-    private:
-
-      image&                img;
-      compress::compressor& comp;
-      sections              sec;
-      uint32_t              offset;
-    };
-
-    section_writer::section_writer (image&                img,
-                                    compress::compressor& comp,
-                                    sections              sec)
-      : img (img),
-        comp (comp),
-        sec (sec),
-        offset (0)
-    {
-      if (rld::verbose () >= RLD_VERBOSE_INFO)
-        std::cout << "rap:output: " << section_names[sec]
-                  << '=' << comp.transferred () << std::endl;
-    }
-
-    void
-    section_writer::operator () (object& obj)
-    {
-      if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
-        std::cout << "rap:writing: " << section_names[sec] << std::endl;
-
-      switch (sec)
-      {
-        case rap_text:
-          img.write (comp, obj.obj, obj.text, offset);
-          break;
-        case rap_const:
-          img.write (comp, obj.obj, obj.const_, offset);
-          break;
-        case rap_ctor:
-          img.write (comp, obj.obj, obj.ctor, offset);
-          break;
-        case rap_dtor:
-          img.write (comp, obj.obj, obj.dtor, offset);
-          break;
-        case rap_data:
-          img.write (comp, obj.obj, obj.data, offset);
-          break;
-        default:
-          break;
       }
     }
 
@@ -956,16 +997,11 @@ namespace rld
       /*
        * Output the sections from each object file.
        */
-      std::for_each (objs.begin (), objs.end (),
-                     section_writer (*this, comp, rap_text));
-      std::for_each (objs.begin (), objs.end (),
-                     section_writer (*this, comp, rap_const));
-      std::for_each (objs.begin (), objs.end (),
-                     section_writer (*this, comp, rap_ctor));
-      std::for_each (objs.begin (), objs.end (),
-                     section_writer (*this, comp, rap_dtor));
-      std::for_each (objs.begin (), objs.end (),
-                     section_writer (*this, comp, rap_data));
+      write (comp, rap_text);
+      write (comp, rap_const);
+      write (comp, rap_ctor);
+      write (comp, rap_dtor);
+      write (comp, rap_data);
 
       if (rld::verbose () >= RLD_VERBOSE_INFO)
         std::cout << "rap:output: strtab=" << comp.transferred () << std::endl;
@@ -982,6 +1018,90 @@ namespace rld
         std::cout << "rap:output: relocs=" << comp.transferred () << std::endl;
 
       write_relocations (comp);
+    }
+
+    /**
+     * Helper for for_each to write out the various sections.
+     */
+    class section_writer:
+      public std::unary_function < object, void >
+    {
+    public:
+
+      section_writer (image&                img,
+                      compress::compressor& comp,
+                      sections              sec);
+
+      void operator () (object& obj);
+
+    private:
+
+      image&                img;
+      compress::compressor& comp;
+      sections              sec;
+      uint32_t              offset;
+    };
+
+    section_writer::section_writer (image&                img,
+                                    compress::compressor& comp,
+                                    sections              sec)
+      : img (img),
+        comp (comp),
+        sec (sec),
+        offset (0)
+    {
+      if (rld::verbose () >= RLD_VERBOSE_INFO)
+        std::cout << "rap:output: " << section_names[sec]
+                  << ": offset=" << comp.transferred ()
+                  << " size=" << img.section_size (sec) << std::endl;
+    }
+
+    void
+    section_writer::operator () (object& obj)
+    {
+      if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+        std::cout << "rap:writing: " << section_names[sec] << std::endl;
+
+      switch (sec)
+      {
+        case rap_text:
+          img.write (comp, obj.obj, obj.text, offset);
+          break;
+        case rap_const:
+          img.write (comp, obj.obj, obj.const_, offset);
+          break;
+        case rap_ctor:
+          img.write (comp, obj.obj, obj.ctor, offset);
+          break;
+        case rap_dtor:
+          img.write (comp, obj.obj, obj.dtor, offset);
+          break;
+        case rap_data:
+          img.write (comp, obj.obj, obj.data, offset);
+          break;
+        default:
+          break;
+      }
+    }
+
+    void
+    image::write (compress::compressor& comp, sections sec)
+    {
+      uint32_t image_offset = comp.transferred ();
+
+      std::for_each (objs.begin (), objs.end (),
+                     section_writer (*this, comp, sec));
+
+      uint32_t written = comp.transferred () - image_offset;
+
+      if (written != sec_size[sec])
+      {
+        std::string msg = "Image output size does not match layout size: ";
+        msg += section_names[sec];
+        msg += ": layout-size=" + rld::to_string (sec_size[sec]);
+        msg += " image-size=" + rld::to_string (written);
+        throw rld::error (msg, "rap::write");
+      }
     }
 
     void
@@ -1021,8 +1141,8 @@ namespace rld
 
           if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
             std::cout << " sec: " << sec.index << ' ' << sec.name
-                      << " size=" << sec.size
                       << " offset=" << offset
+                      << " size=" << sec.size
                       << " align=" << sec.alignment
                       << " padding=" << (offset - unaligned_offset)  << std::endl;
 
@@ -1082,7 +1202,7 @@ namespace rld
         uint32_t sr = 0;
         uint32_t header;
 
-        if (rld::verbose () >= RLD_VERBOSE_TRACE)
+        if (1 || rld::verbose () >= RLD_VERBOSE_TRACE)
           std::cout << "rap:relocation: section:" << section_names[s]
                     << " relocs=" << count
                     << " rela=" << (char*) (sec_rela[s] ? "yes" : "no")
@@ -1102,11 +1222,11 @@ namespace rld
           relocations& relocs = sec.relocs;
           uint32_t     rc = 0;
 
-          if (rld::verbose () >= RLD_VERBOSE_TRACE)
+          if (1 || rld::verbose () >= RLD_VERBOSE_TRACE)
             std::cout << " relocs=" << sec.relocs.size ()
                       << " sec.offset=" << sec.offset
-                      << " sec.size=" << sec.size
-                      << " sec.align=" << sec.align
+                      << " sec.size=" << sec.size ()
+                      << " sec.align=" << sec.alignment ()
                       << "  " << obj.obj.name ().full ()  << std::endl;
 
           for (relocations::const_iterator ri = relocs.begin ();
@@ -1132,18 +1252,18 @@ namespace rld
               info |= rap_symsect << 8;
 
               addend += (obj.secs[rap_symsect].offset +
-                         obj.secs[rap_symsect].osecs[reloc.symsect] +
+                         obj.secs[rap_symsect].osecs[reloc.symsect].offset +
                          reloc.symvalue);
 
               write_addend = true;
 
-              if (rld::verbose () >= RLD_VERBOSE_TRACE)
+              if (1 || rld::verbose () >= RLD_VERBOSE_TRACE)
                 std::cout << "  " << std::setw (2) << sr
                           << '/' << std::setw (2) << rc
                           <<":  rsym: sect=" << section_names[rap_symsect]
                           << " rap_symsect=" << rap_symsect
                           << " sec.offset=" << obj.secs[rap_symsect].offset
-                          << " sec.osecs=" << obj.secs[rap_symsect].osecs[reloc.symsect]
+                          << " sec.osecs=" << obj.secs[rap_symsect].osecs[reloc.symsect].offset
                           << " (" << obj.obj.get_section (reloc.symsect).name << ')'
                           << " reloc.symsect=" << reloc.symsect
                           << " reloc.symvalue=" << reloc.symvalue
@@ -1161,7 +1281,7 @@ namespace rld
 
               info |= RAP_RELOC_STRING;
 
-              std::size_t size = strtab.find (reloc.symname);
+              std::size_t size = find_in_strtab (reloc.symname);
 
               if (size == std::string::npos)
               {
@@ -1180,7 +1300,7 @@ namespace rld
               }
             }
 
-            if (rld::verbose () >= RLD_VERBOSE_TRACE)
+            if (1 || rld::verbose () >= RLD_VERBOSE_TRACE)
             {
               std::cout << "  " << std::setw (2) << sr << '/'
                         << std::setw (2) << rc
@@ -1188,8 +1308,12 @@ namespace rld
                         << " offset=" << offset;
               if (write_addend)
                 std::cout << " addend=" << addend;
-              if (write_symname)
+              if ((info & RAP_RELOC_STRING) != 0)
+              {
                 std::cout << " symname=" << reloc.symname;
+                if (write_symname)
+                  std::cout << " (appended)";
+              }
               std::cout << std::hex
                         << " reloc.info=0x" << reloc.info << std::dec
                         << " reloc.offset=" << reloc.offset
@@ -1246,12 +1370,45 @@ namespace rld
     }
 
     void
-    image::update_section (int index, const section& sec)
+    image::update_section (int index, section& sec)
     {
-      sec_size[index] = align_offset (sec_size[index], 0, sec.align);
-      sec_size[index] += sec.size;
-      sec_align[index] = sec.align;
+      uint32_t in = sec_size[index];
+      sec_size[index] = align_offset (sec_size[index], sec.size (), sec.alignment ());
+      sec_align[index] = sec.alignment ();
       sec_rela[index] = sec.rela;
+
+      if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+        std::cout << "rap:image::update-section: " << section_names[index]
+                  << " offset=" << in
+                  << " sec_size=" << sec_size[index]
+                  << " sec_align=" << sec_align[index]
+                  << " sec.size=" << sec.size ()
+                  << std::endl;
+    }
+
+    uint32_t
+    image::section_size (sections sec) const
+    {
+      if ((sec < 0) || (sec >= rap_secs))
+        throw rld::error ("Invalid section index '" + rld::to_string (index),
+                          "rap::image::section_size");
+      return sec_size[sec];
+    }
+
+    std::size_t
+    image::find_in_strtab (const std::string& symname)
+    {
+      std::size_t pos = 0;
+      while (pos < strtab.size ())
+      {
+        std::size_t off = strtab.find (symname, pos);
+        if (off == std::string::npos)
+          break;
+        if (::strlen (strtab.c_str () + off) == symname.size ())
+          return off;
+        pos = off + 1;
+      }
+      return std::string::npos;
     }
 
     void
