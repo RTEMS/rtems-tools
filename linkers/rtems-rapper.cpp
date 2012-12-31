@@ -74,6 +74,18 @@ namespace rap
   typedef std::vector < relocation > relocations;
 
   /**
+   * Relocation offset sorter for the relocations container.
+   */
+  class reloc_offset_compare
+  {
+  public:
+    bool operator () (const relocation& lhs,
+                      const relocation& rhs) const {
+      return lhs.offset < rhs.offset;
+    }
+  };
+
+  /**
    * A RAP section.
    */
   struct section
@@ -285,6 +297,8 @@ namespace rap
 
         relocs.push_back (reloc);
       }
+
+      std::stable_sort (relocs.begin (), relocs.end (), reloc_offset_compare ());
     }
   }
 
@@ -647,7 +661,10 @@ rap_show (rld::files::paths& raps,
         int count = 0;
         while (offset < r.strtab_size)
         {
-          std::cout << std::setw (16) << count++ << ": "
+          std::cout << std::setw (16) << count++
+                    << std::hex << std::setfill ('0')
+                    << " (0x" << std::setw (6) << offset << "): "
+                    << std::dec << std::setfill (' ')
                     << (char*) &r.strtab[offset] << std::endl;
           offset += ::strlen ((char*) &r.strtab[offset]) + 1;
         }
@@ -724,7 +741,6 @@ rap_show (rld::files::paths& raps,
       std::cout << std::setw (16) << " "
                 << "No relocation table found." << std::endl;
     }
-
   }
 
 }
