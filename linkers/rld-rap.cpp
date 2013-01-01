@@ -20,6 +20,7 @@
  *
  * @brief RTEMS Linker.
  *
+ * @todo Set the RAP alignment as the max of all alignments.
  */
 
 #if HAVE_CONFIG_H
@@ -946,7 +947,7 @@ namespace rld
             /*
              * See if the name is already in the string table.
              */
-            name = strtab.find (sym.name ());
+            name = find_in_strtab (sym.name ());
 
             if (name == std::string::npos)
             {
@@ -1191,7 +1192,7 @@ namespace rld
       {
         const external& ext = *ei;
 
-        if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+        if (rld::verbose () >= RLD_VERBOSE_TRACE)
           std::cout << "rap:externs: " << count
                     << " name=" << &strtab[ext.name] << " (" << ext.name << ')'
                     << " section=" << section_names[ext.sec]
@@ -1218,7 +1219,7 @@ namespace rld
         uint32_t sr = 0;
         uint32_t header;
 
-        if (1 || rld::verbose () >= RLD_VERBOSE_TRACE)
+        if (rld::verbose () >= RLD_VERBOSE_TRACE)
           std::cout << "rap:relocation: section:" << section_names[s]
                     << " relocs=" << count
                     << " rela=" << (char*) (sec_rela[s] ? "yes" : "no")
@@ -1238,7 +1239,7 @@ namespace rld
           relocations& relocs = sec.relocs;
           uint32_t     rc = 0;
 
-          if (1 || rld::verbose () >= RLD_VERBOSE_TRACE)
+          if (rld::verbose () >= RLD_VERBOSE_TRACE)
             std::cout << " relocs=" << sec.relocs.size ()
                       << " sec.offset=" << sec.offset
                       << " sec.size=" << sec.size ()
@@ -1273,7 +1274,7 @@ namespace rld
 
               write_addend = true;
 
-              if (1 || rld::verbose () >= RLD_VERBOSE_TRACE)
+              if (rld::verbose () >= RLD_VERBOSE_TRACE)
                 std::cout << "  " << std::setw (2) << sr
                           << '/' << std::setw (2) << rc
                           <<":  rsym: sect=" << section_names[rap_symsect]
@@ -1316,7 +1317,7 @@ namespace rld
               }
             }
 
-            if (1 || rld::verbose () >= RLD_VERBOSE_TRACE)
+            if (rld::verbose () >= RLD_VERBOSE_TRACE)
             {
               std::cout << "  " << std::setw (2) << sr << '/'
                         << std::setw (2) << rc
