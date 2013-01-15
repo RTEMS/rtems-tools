@@ -394,7 +394,7 @@ namespace rap
 
     sptr = eptr + 1;
 
-    rhdr_checksum = strtoul (sptr, &eptr, 16);
+    rhdr_checksum = ::strtoul (sptr, &eptr, 16);
 
     if (*eptr != '\n')
       throw rld::error ("Cannot parse RAP header", "open: " + name);
@@ -629,13 +629,11 @@ rap_show (rld::files::paths& raps,
                 << std::setfill (' ') << std::dec
                 << " (" << r.layout_rap_off << ')' << std::endl
                 << std::setw (18) << "  "
-                << "  size  align offset    " << std::endl
-                << std::setw (16) << "strtab" << ": "
-                << std::setw (6) << r.strtab_size << std::endl
-                << std::setw (16) << "symtab" << ": "
-                << std::setw (6) << r.symtab_size << std::endl;
+                << "  size  align offset    " << std::endl;
+      uint32_t relocs_size = 0;
       for (int s = 0; s < rld::rap::rap_secs; ++s)
       {
+        relocs_size += r.secs[s].relocs.size ();
         std::cout << std::setw (16) << rld::rap::section_name (s)
                   << ": " << std::setw (6) << r.secs[s].size
                   << std::setw (7)  << r.secs[s].alignment;
@@ -644,19 +642,44 @@ rap_show (rld::files::paths& raps,
                     << " 0x" << std::setw (8) << r.secs[s].rap_off
                     << std::setfill (' ') << std::dec
                     << " (" << r.secs[s].rap_off << ')';
+        else
+          std::cout << " -";
         std::cout << std::endl;
       }
+      std::cout << std::setw (16) << "strtab" << ": "
+                << std::setw (6) << r.strtab_size
+                << std::setw (7) << '-'
+                << std::hex << std::setfill ('0')
+                << " 0x" << std::setw (8) << r.strtab_rap_off
+                << std::setfill (' ') << std::dec
+                << " (" << r.strtab_rap_off << ')' << std::endl
+                << std::setw (16) << "symtab" << ": "
+                << std::setw (6) << r.symtab_size
+                << std::setw (7) << '-'
+                << std::hex << std::setfill ('0')
+                << " 0x" << std::setw (8) << r.symtab_rap_off
+                << std::setfill (' ') << std::dec
+                << " (" << r.symtab_rap_off << ')' << std::endl
+                << std::setw (16) << "relocs" << ": "
+                << std::setw (6) << (relocs_size * 3 * sizeof (uint32_t))
+                << std::setw (7) << '-'
+                << std::hex << std::setfill ('0')
+                << " 0x" << std::setw (8) << r.relocs_rap_off
+                << std::setfill (' ') << std::dec
+                << " (" << r.relocs_rap_off << ')' << std::endl;
     }
 
     if (show_strings)
     {
+      std::cout << "  Strings: 0x"
+                << std::hex << std::setfill ('0')
+                << std::setw (8) << r.strtab_rap_off
+                << std::setfill (' ') << std::dec
+                << " (" << r.strtab_rap_off << ')'
+                << " size: " << r.strtab_size
+                << std::endl;
       if (r.strtab_size)
       {
-        std::cout << "  Strings: 0x"
-                  << std::hex << std::setfill ('0')
-                  << std::setw (8) << r.strtab_rap_off
-                  << std::setfill (' ') << std::dec
-                  << " (" << r.strtab_rap_off << ')' << std::endl;
         uint32_t offset = 0;
         int count = 0;
         while (offset < r.strtab_size)
@@ -682,7 +705,9 @@ rap_show (rld::files::paths& raps,
                 << std::hex << std::setfill ('0')
                 << std::setw (8) << r.symtab_rap_off
                 << std::setfill (' ') << std::dec
-                << " (" << r.symtab_rap_off << ')' << std::endl;
+                << " (" << r.symtab_rap_off << ')'
+                << " size: " << r.symtab_size
+                << std::endl;
       if (r.symtab_size)
       {
         std::cout << std::setw (18) << "  "
@@ -735,11 +760,6 @@ rap_show (rld::files::paths& raps,
           }
         }
       }
-    }
-    else
-    {
-      std::cout << std::setw (16) << " "
-                << "No relocation table found." << std::endl;
     }
   }
 
