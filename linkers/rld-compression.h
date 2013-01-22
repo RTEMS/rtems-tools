@@ -86,42 +86,47 @@ namespace rld
        *
        * @param data Write the decompressed data here.
        * @param length The mount of data in bytes to read.
+       * @return size_t The amount of data read.
        */
       size_t read (void* data, size_t length);
 
       /**
        * Read the decompressed data writing it to the image.
        *
-       * @param output The output image.
+       * @param output_ The output image.
        * @param offset The output image offset to write from.
        * @param length The mount of data in bytes to read.
+       * @return size_t The amount of data read.
        */
       size_t read (files::image& output_, off_t offset, size_t length);
 
       /**
        * Read the decompressed data writing it to the image.
        *
-       * @param output The output image.
+       * @param output_ The output image.
        * @param length The mount of data in bytes to read.
+       * @return size_t The amount of data read.
        */
       size_t read (files::image& output_, size_t length);
 
       /**
        * The amount of uncompressed data transferred.
        *
-       * @param return size_t The amount of data tranferred.
+       * @return size_t The amount of data tranferred.
        */
       size_t transferred () const;
 
       /**
        * The amount of compressed data transferred.
        *
-       * @param return size_t The amount of compressed data tranferred.
+       * @return size_t The amount of compressed data tranferred.
        */
       size_t compressed () const;
 
       /**
        * The current offset in the stream.
+       *
+       * @return off_t The current uncompressed offset.
        */
       off_t offset () const;
 

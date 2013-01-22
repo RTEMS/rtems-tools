@@ -273,7 +273,7 @@ namespace rld
       /**
        * Construct the image.
        *
-       * @param name The file path.
+       * @param path The file path.
        * @param is_object If true (default) the name is for an object file.
        */
       image (const std::string& path, bool is_object = true);
@@ -712,7 +712,7 @@ namespace rld
        * flags. The filtered section container is not cleared so any matching
        * sections are appended.
        *
-       * @param filter_secs The container of the matching sections.
+       * @param filtered_secs The container of the matching sections.
        * @param type The section type. Must match. If 0 matches any.
        * @param flags_in The sections flags that must be set. This is a
        *                 mask. If 0 matches any.
@@ -729,7 +729,7 @@ namespace rld
        * filtered section container is not cleared so any matching sections are
        * appended.
        *
-       * @param filter_secs The container of the matching sections.
+       * @param filtered_secs The container of the matching sections.
        * @param name The name of the section.
        */
       void get_sections (sections& filtered_secs, const std::string& name);
@@ -865,7 +865,7 @@ namespace rld
        * Load the symbols into the symbol table.
        *
        * @param symbols The symbol table to load.
-       * @param local Include local symbols. The default is not to.
+       * @param locals Include local symbols. The default does not include them.
        */
       void load_symbols (symbols::table& symbols, bool locals = false);
 

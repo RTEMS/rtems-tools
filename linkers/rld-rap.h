@@ -72,7 +72,7 @@ namespace rld
      *
      * @param app The application image to write too.
      * @param init The application's initialisation entry point.
-     * @param exit The application's finish entry point .
+     * @param fini The application's finish entry point .
      * @param objects The list of object files in the application.
      * @param symbols The symbol table used to create the application.
      */

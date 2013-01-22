@@ -49,6 +49,7 @@ namespace rld
       /**
        * Construct a relocation record.
        *
+       * @param sym The symbol the relocation references.
        * @param offset The offset in the section the relocation applies to.
        * @param info The relocation info.
        * @param addend The constant addend value.
@@ -385,6 +386,7 @@ namespace rld
        * @param offset The offet to segment.
        * @param filesz The segment size in the file.
        * @param memsz The segment size in memory.
+       * @param align The segment alignment.
        * @param vaddr The virtual address in memory.
        * @param paddr The physical address if any.
        */
@@ -555,12 +557,12 @@ namespace rld
        * Get a filtered container of symbols given the various types. If the
        * symbols are not loaded they are loaded.
        *
-       * @param filter_syms The filtered symbols found in the file. This is a
-       *                    container of pointers.
+       * @param filtered_syms The filtered symbols found in the file. This is a
+       *                      container of pointers.
+       * @param unresolved Return unresolved symbols.
        * @param local Return local symbols.
        * @param weak Return weak symbols.
        * @param global Return global symbols.
-       * @param unresolved Return unresolved symbols.
        */
       void get_symbols (rld::symbols::pointers& filtered_syms,
                         bool                    unresolved = false,

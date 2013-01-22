@@ -103,6 +103,7 @@ namespace rld
      * @param dependents The list of dependent object files
      * @param cache The file cache for the link. Includes the object list
      *              the user requested.
+     * @param symbols The symbol table used to resolve the application.
      */
     void application (const std::string&        name,
                       const std::string&        entry,

@@ -33,11 +33,11 @@ namespace rtems
      * Hex display memory.
      *
      * @param addr The address of the memory to display.
-     * @param mem The actual memory to display. If 0 use addr.
      * @param length The number of elements to display.
      * @param size The size of the data element.
      * @param real Use the real address based on addr.
      * @param line_length Number of elements per line.
+     * @param offset The printed offset.
      */
     void dump (const void* addr,
                size_t      length,

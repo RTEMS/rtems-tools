@@ -60,8 +60,7 @@ def build(bld):
     #
     if bld.cmd == 'doxy':
         bld(features = 'doxygen',
-            doxyfile = 'rtl-host.conf',
-            doxy_tar = 'rtl-host-docs.tar.bz2')
+            doxyfile = 'rtl-host.conf')
         return
 
     if bld.env.SHOW_COMMANDS == 'yes':
