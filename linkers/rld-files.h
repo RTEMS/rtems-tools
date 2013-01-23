@@ -105,18 +105,30 @@ namespace rld
 
     /**
      * Make a path by joining the parts with required separator.
+     *
+     * @param path_ The path component to be joined.
+     * @param file_ The file name to add to the path.
+     * @param joined The joined path and file name with a path separator.
      */
     void path_join (const std::string& path_,
                     const std::string& file_,
-                    std::string& joined);
+                    std::string&       joined);
 
     /**
-     * Check the path is a file.
+     * Check the path is a file using a stat call.
+     *
+     * @param path The path to check.
+     * @retval true The path is valid.
+     * @retval false The path is not valid.
      */
     bool check_file (const std::string& path);
 
     /**
-     * Check the path is a directory.
+     * Check if the path is a directory.
+     *
+     * @param path The path to check.
+     * @retval false The path is not a directory.
+     * @retval true The path is a directory.
      */
     bool check_directory (const std::string& path);
 
@@ -132,8 +144,8 @@ namespace rld
                     paths&             search_paths);
 
     /**
-     * A file is a single object file that is either in an archive or stand
-     * alone.
+     * A file is a single object file that is either in an @ref archive or
+     * a separate stand alone @ref object file.
      */
     class file
     {
@@ -231,21 +243,29 @@ namespace rld
       /**
        * The archive name component. A length of 0 means there was not
        * archive component.
+       *
+       * @return const std::string& The archive name.
        */
       const std::string& aname () const;
 
       /**
        * The object name. There is always an object name.
+       *
+       * @return const std::string& The object name.
        */
       const std::string& oname () const;
 
       /**
        * The object's offset in the archive or on disk.
+       *
+       * @return off_t The offset part of the file name.
        */
       off_t offset () const;
 
       /**
        * The object's size in the archive.
+       *
+       * @return size_t The size of the file in bytes.
        */
       size_t size () const;
 
@@ -257,8 +277,8 @@ namespace rld
     };
 
     /**
-     * Image is the base file type. A base class is used so we can have a
-     * single container of to hold types of images we need to support.
+     * Image is the base file type and lets us have a single container to hold
+     * the types of images we need to support.
      */
     class image
     {
@@ -291,12 +311,17 @@ namespace rld
       /**
        * Open the image. You can open the image more than once but you need to
        * close it the same number of times.
+       *
+       * @param name The @ref file name.
        */
       virtual void open (file& name);
 
       /**
        * Open the image. You can open the image more than once but you need to
        * close it the same number of times.
+       *
+       * @param writeable If true the image is open as writable. The default is
+       *                  false.
        */
       virtual void open (bool writable = false);
 
@@ -307,51 +332,83 @@ namespace rld
 
       /**
        * Read a block from the file.
+       *
+       * @param buffer The buffer to read the data into.
+       * @param size The amount of data to read.
+       * @return ssize_t The amount of data read.
        */
       virtual ssize_t read (void* buffer, size_t size);
 
       /**
        * Write a block from the file.
+       *
+       * @param buffer The buffer of data to write.
+       * @param size The amount of data to write.
+       * @return ssize_t The amount of data written.
        */
       virtual ssize_t write (const void* buffer, size_t size);
 
       /**
-       * Seek.
+       * Seek to the offset in the image.
+       *
+       * @param offset The offset to seek too.
        */
       virtual void seek (off_t offset);
 
       /**
-       * Seek and read.
+       * Seek and then read.
+       *
+       * @param offset The offset to seek too before reading.
+       * @param buffer The buffer to read the data into.
+       * @param size The amount of data to read.
+       * @retval true The data requested was read.
+       * @retval false The request data was not read.
        */
       virtual bool seek_read (off_t offset, uint8_t* buffer, size_t size);
 
       /**
-       * Seek and write.
+       * Seek and then write.
+       *
+       * @param offset The offset to seek too before writing.
+       * @param buffer The buffer of data to write.
+       * @param size The amount of data to write.
+       * @retval true The data requested was written.
+       * @retval false The request data was not written.
        */
       virtual bool seek_write (off_t offset, const void* buffer, size_t size);
 
       /**
        * The name of the image.
+       *
+       * @param const file& The @ref file name of the image.
        */
       const file& name () const;
 
       /**
        * References to the image.
+       *
+       * @return int The number of references the image has.
        */
       virtual int references () const;
 
       /**
        * The file size.
+       *
+       * @return size_t The size of the image.
        */
       virtual size_t size () const;
 
       /**
        * The file descriptor.
+       *
+       * @return int The operating system file descriptor handle.
        */
       virtual int fd () const;
 
       /**
        * The ELF reference.
+       *
+       * @return elf::file& The @ref elf::file object of the image.
        */
       elf::file& elf ();
 
@@ -362,6 +419,8 @@ namespace rld
 
       /**
        * Return the number of symbol references.
+       *
+       * @return int The symbol references count.
        */
       virtual int symbol_references () const;
 
@@ -407,12 +466,18 @@ namespace rld
     /**
      * Copy the input section of the image to the output section. The file
      * positions in the images must be set before making the call.
+     *
+     * @param in The input image.
+     * @param out The output image.
+     * @param size The amouint of data to copy.
      */
     void copy (image& in, image& out, size_t size);
 
     /**
-     * The archive class proivdes access to ELF object files that are held in a
-     * AR format file. GNU AR extensions are supported.
+     * The archive class proivdes access to object files that are held in a AR
+     * format file. GNU AR extensions are supported. The archive is a kind of
+     * @ref image and provides the container for the @ref object's that it
+     * contains.
      */
     class archive:
       public image
@@ -421,6 +486,7 @@ namespace rld
       /**
        * Open a archive format file that contains ELF object files.
        *
+       * @param name The name of the @ref archive.
        */
       archive (const std::string& name);
 
@@ -443,46 +509,73 @@ namespace rld
        * Match the archive name.
        *
        * @param name The name of the archive to check.
-       * @retval true This is the archive.
-       * @retval false This is not the archive.
+       * @retval true The name matches.
+       * @retval false The name does not match.
        */
       bool is (const std::string& name) const;
 
       /**
        * Check this is a valid archive.
+       *
+       * @retval true It is a valid archive.
+       * @retval false It is not a valid archive.
        */
       bool is_valid ();
 
       /**
-       * Load objects.
+       * Load @ref object's from the @ref archive adding each to the provided
+       * @ref objects container.
+       *
+       * @param objs The container the loaded object files are added too.
        */
       void load_objects (objects& objs);
 
       /**
        * Get the name.
+       *
+       * @return const std::string& Return a reference to the archive's name.
        */
       const std::string& get_name () const;
 
       /**
-       * Less than operator for the map container.
+       * Less than operator for the map container. It compares the name of the
+       * the @ref archive.
+       *
+       * @param rhs The right hand side of the '<' operator.
+       * @return true The right hand side is less than this archive.
+       * @return false The right hand side is greater than or equal to this
+       *               archive.
        */
       bool operator< (const archive& rhs) const;
 
       /**
-       * Create a new archive. If referening an existing archive it is
-       * overwritten.
+       * Create a new archive containing the given set of objects. If
+       * referening an existing archive it is overwritten.
+       *
+       * @param objects The list of objects to place in the archive.
        */
       void create (object_list& objects);
 
     private:
 
       /**
-       * Read header.
+       * Read the archive header and check the magic number is valid.
+       *
+       * @param offset The offset in the file to read the header.
+       * @param header Read the header into here. There must be enough space.
+       * @retval true The header was read successfull and the magic number
+       *               matched.
+       * @retval false The header could not be read from the @ref image.
        */
       bool read_header (off_t offset, uint8_t* header);
 
       /**
        * Add the object file from the archive to the object's container.
+       *
+       * @param objs The container to add the object to.
+       * @param name The name of the object file being added.
+       * @param offset The offset in the @ref archive of the object file.
+       * @param size The size of the object file.
        */
       void add_object (objects&    objs,
                        const char* name,
@@ -491,6 +584,13 @@ namespace rld
 
       /**
        * Write a file header into the archive.
+       *
+       * @param name The name of the archive.
+       * @param mtime The modified time of the archive.
+       * @param uid The user id of the archive.
+       * @param gid The group id of the archive.
+       * @param mode The mode of the archive.
+       * @param size The size of the archive.
        */
       void write_header (const std::string& name,
                          uint32_t           mtime,
@@ -505,7 +605,7 @@ namespace rld
       archive (const archive& orig);
 
       /**
-       * Cannot assign using the assignment operator..
+       * Cannot assign using the assignment operator.
        */
       archive& operator= (const archive& rhs);
     };
