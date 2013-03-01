@@ -25,6 +25,8 @@
 #if !defined (_MEMORY_DUMP_H_)
 #define _MEMORY_DUMP_H_
 
+#include <stdint.h>
+
 namespace rtems
 {
   namespace utils

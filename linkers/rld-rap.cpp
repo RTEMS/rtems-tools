@@ -27,6 +27,8 @@
 #include "config.h"
 #endif
 
+#include <string.h>
+
 #include <algorithm>
 #include <list>
 #include <iomanip>
@@ -821,7 +823,7 @@ namespace rld
     object::get_relocations (int sec) const
     {
       if ((sec < 0) || (sec >= rap_secs))
-        throw rld::error ("Invalid section index '" + rld::to_string (index),
+        throw rld::error ("Invalid section index '" + rld::to_string (sec),
                           "rap::relocations");
       return secs[sec].relocs.size ();
     }
@@ -1354,7 +1356,7 @@ namespace rld
     image::get_relocations (int sec) const
     {
       if ((sec < 0) || (sec >= rap_secs))
-        throw rld::error ("Invalid section index '" + rld::to_string (index),
+        throw rld::error ("Invalid section index '" + rld::to_string (sec),
                           "rap::image::relocations");
 
       uint32_t relocs = 0;
@@ -1407,7 +1409,7 @@ namespace rld
     image::section_size (sections sec) const
     {
       if ((sec < 0) || (sec >= rap_secs))
-        throw rld::error ("Invalid section index '" + rld::to_string (index),
+        throw rld::error ("Invalid section index '" + rld::to_string (sec),
                           "rap::image::section_size");
       return sec_size[sec];
     }

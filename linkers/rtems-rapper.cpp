@@ -26,6 +26,7 @@
 #include "config.h"
 #endif
 
+#include <algorithm>
 #include <iomanip>
 #include <iostream>
 #include <vector>
