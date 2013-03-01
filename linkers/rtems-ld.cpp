@@ -109,6 +109,7 @@ usage (int exit_code)
             << " -E prefix : the RTEMS tool prefix (also --exec-prefix)" << std::endl
             << " -a march  : machine architecture (also --march)" << std::endl
             << " -c cpu    : machine architecture's CPU (also --mcpu)" << std::endl
+            << " -Wl,opts  : link compatible flags, ignored" << std::endl
             << "Output Formats:" << std::endl
             << " rap     - RTEMS application (LZ77, single image)" << std::endl
             << " elf     - ELF application (script, ELF files)" << std::endl
@@ -186,7 +187,7 @@ main (int argc, char* argv[])
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvwVMnb:E:o:O:L:l:a:c:e:d:u:C:", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvwVMnb:E:o:O:L:l:a:c:e:d:u:C:W:", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -271,6 +272,10 @@ main (int argc, char* argv[])
 
         case 'b':
           base_name = optarg;
+          break;
+
+        case 'W':
+          /* ignore linker compatiable flags */
           break;
 
         case '?':
