@@ -365,14 +365,6 @@ namespace rld
       void clear ();
 
       /**
-       * Update the section values.
-       *
-       * @param index The RAP section index to update.
-       * @param sec The object's RAP section.
-       */
-      void update_section (int index, section& sec);
-
-      /**
        * Report the RAP section's size.
        */
       uint32_t section_size (sections sec) const;
@@ -550,6 +542,7 @@ namespace rld
         std::cout << ' ' << name
                   << ": size: " << size (offset)
                   << " offset: " << offset
+                  << " rela: " << (rela ? "yes" : "no")
                   << std::endl;
 
         for (osecindexes::const_iterator osi = osindexes.begin ();
@@ -648,6 +641,7 @@ namespace rld
                   << " offset=" << offset
                   << " fsec.size=" << fsec.size
                   << " fsec.alignment=" << fsec.alignment
+                  << " fsec.rela=" << fsec.rela
                   << " " << obj.obj.name ().full ()  << std::endl;
 
       /*
@@ -888,6 +882,7 @@ namespace rld
             obj.secs[s].set_offset (pobj.secs[s]);
             sec_size[s] = obj.secs[s].offset + obj.secs[s].size ();
             sec_align[s] = obj.secs[s].alignment ();
+            sec_rela[s] = obj.secs[s].rela;
           }
           ++poi;
         }
@@ -1386,23 +1381,6 @@ namespace rld
       relocs_size = 0;
       init_off = 0;
       fini_off = 0;
-    }
-
-    void
-    image::update_section (int index, section& sec)
-    {
-      uint32_t in = sec_size[index];
-      sec_size[index] = align_offset (sec_size[index], sec.size (), sec.alignment ());
-      sec_align[index] = sec.alignment ();
-      sec_rela[index] = sec.rela;
-
-      if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
-        std::cout << "rap:image::update-section: " << section_names[index]
-                  << " offset=" << in
-                  << " sec_size=" << sec_size[index]
-                  << " sec_align=" << sec_align[index]
-                  << " sec.size=" << sec.size ()
-                  << std::endl;
     }
 
     uint32_t

@@ -750,8 +750,11 @@ rap_show (rld::files::paths& raps,
       {
         if (r.secs[s].relocs.size ())
         {
+          const char* rela = r.secs[s].rela ? "(A)" : "   ";
           std::cout << std::setw (16) << r.secs[s].name
-                    << ": info       offset     addend     symbol name" << std::endl;
+                    << ": info       offset     addend "
+                    << rela
+                    << " symbol name" << std::endl;
           for (size_t f = 0; f < r.secs[s].relocs.size (); ++f)
           {
             rap::relocation& reloc = r.secs[s].relocs[f];
