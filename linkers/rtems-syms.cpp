@@ -72,7 +72,7 @@ usage (int exit_code)
             << "Options and arguments:" << std::endl
             << " -h        : help (also --help)" << std::endl
             << " -V        : print linker version number and exit (also --version)" << std::endl
-            << " -v        : verbose (trace import parts), can be supply multiple times" << std::endl
+            << " -v        : verbose (trace import parts), can supply multiple times" << std::endl
             << "             to increase verbosity (also --verbose)" << std::endl
             << " -w        : generate warnings (also --warn)" << std::endl
             << " -L path   : path to a library, add multiple for more than" << std::endl
