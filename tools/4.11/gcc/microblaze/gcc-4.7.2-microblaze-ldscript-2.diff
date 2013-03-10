@@ -1,0 +1,18 @@
+--- gcc-4.7.2/gcc/config/microblaze/rtems.h.orig	2013-03-10 14:00:19.000000000 +1100
++++ gcc-4.7.2/gcc/config/microblaze/rtems.h	2013-03-10 14:27:46.000000000 +1100
+@@ -23,3 +23,15 @@
+   builtin_define( "__rtems__" );		\
+   builtin_assert( "system=rtems" );		\
+ } while (0)
++
++/* Use the default */
++#undef LINK_GCC_C_SEQUENCE_SPEC
++
++/* Extra switches sometimes passed to the linker.  */
++/* -xl-mode-xmdstub translated to -Zxl-mode-xmdstub -- deprecated. */
++/* RTEMS: Remove use of xilinx.ld but keep other parts for compatibility */
++#undef LINK_SPEC
++#define LINK_SPEC "%{shared:-shared} -N -relax \
++  %{Zxl-mode-xmdstub:-defsym _TEXT_START_ADDR=0x800} \
++  %{mxl-mode-xmdstub:-defsym _TEXT_START_ADDR=0x800} \
++  %{mxl-gp-opt:%{G*}} %{!mxl-gp-opt: -G 0}"
