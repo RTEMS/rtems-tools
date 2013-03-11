@@ -1,6 +1,34 @@
---- gcc-4.7.2/gcc/config.gcc.orig	2013-03-11 02:58:43.000000000 +0000
-+++ gcc-4.7.2/gcc/config.gcc	2013-03-11 04:03:40.000000000 +0000
-@@ -257,7 +257,7 @@
+From 5dd0bd36e611cca5754177566bf407e791fa52e9 Mon Sep 17 00:00:00 2001
+From: Sebastian Huber <sebastian.huber@embedded-brains.de>
+Date: Fri, 22 Feb 2013 09:52:53 +0100
+Subject: [PATCH] ARM RTEMS changes for GCC 4.7
+
+Testsuite results:
+
+http://gcc.gnu.org/ml/gcc-testresults/2013-02/msg02508.html
+
+2013-02-22  Sebastian Huber <sebastian.huber@embedded-brains.de>
+
+        * config.gcc (arm*-*-rtemself*): New.
+        (arm*-*-rtems*): Removed.
+        (arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtemseabi*): Rename
+        "arm*-*-rtemseabi*" to "arm*-*-rtems*".
+
+2013-02-22  Sebastian Huber <sebastian.huber@embedded-brains.de>
+
+        * config.host (arm*-*-rtemself*): New.
+        (arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtemseabi*): Rename
+        "arm*-*-rtemseabi*" to "arm*-*-rtems*".
+---
+ gcc/config.gcc     |   14 +++++++-------
+ libgcc/config.host |   12 ++++++------
+ 2 files changed, 13 insertions(+), 13 deletions(-)
+
+diff --git a/gcc/config.gcc b/gcc/config.gcc
+index a188133..3ca322d 100644
+--- a/gcc/config.gcc
++++ b/gcc/config.gcc
+@@ -257,7 +257,7 @@ case ${target} in
   | arm*-*-elf				\
   | arm*-*-freebsd*			\
   | arm*-*-linux*			\
@@ -9,7 +37,7 @@
   | arm*-*-uclinux*			\
   | arm*-wince-pe*			\
   | mips-sgi-irix6.5			\
-@@ -893,7 +893,12 @@
+@@ -899,7 +899,11 @@ arm*-*-ecos-elf)
  	tm_file="dbxelf.h elfos.h newlib-stdint.h arm/unknown-elf.h arm/elf.h arm/aout.h arm/arm.h arm/ecos-elf.h"
  	tmake_file="arm/t-arm arm/t-arm-elf"
  	;;
@@ -17,13 +45,12 @@
 +arm*-*-rtemself*)
 +	tm_file="dbxelf.h elfos.h arm/unknown-elf.h arm/elf.h arm/aout.h arm/arm.h arm/rtems-elf.h rtems.h newlib-stdint.h"
 +	tmake_file="arm/t-arm arm/t-arm-elf t-rtems arm/t-rtems"
-+	use_gcc_stdint=provide
 +	;;
 +arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtems*)
  	# The BPABI long long divmod functions return a 128-bit value in
  	# registers r0-r3.  Correctly modeling that requires the use of
  	# TImode.
-@@ -907,9 +912,10 @@
+@@ -913,7 +917,7 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtemseabi*)
  	  tmake_file="${tmake_file} arm/t-bpabi"
  	  use_gcc_stdint=wrap
  	  ;;
@@ -31,11 +58,8 @@
 +	arm*-*-rtems*)
  	  tm_file="${tm_file} rtems.h arm/rtems-eabi.h newlib-stdint.h"
  	  tmake_file="${tmake_file} arm/t-bpabi t-rtems arm/t-rtems-eabi"
-+	  use_gcc_stdint=provide
  	  ;;
- 	arm*-*-symbianelf*)
- 	  tm_file="${tm_file} arm/symbian.h"
-@@ -920,10 +926,6 @@
+@@ -926,10 +930,6 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtemseabi*)
  	esac
  	tm_file="${tm_file} arm/aout.h arm/arm.h"
  	;;
@@ -46,9 +70,11 @@
  arm*-*-elf)
  	tm_file="dbxelf.h elfos.h newlib-stdint.h arm/unknown-elf.h arm/elf.h arm/aout.h arm/arm.h"
  	tmake_file="arm/t-arm arm/t-arm-elf"
---- gcc-4.7.2/libgcc/config.host.orig	2013-03-11 02:58:43.000000000 +0000
-+++ gcc-4.7.2/libgcc/config.host	2013-03-11 04:01:55.000000000 +0000
-@@ -354,11 +354,15 @@
+diff --git a/libgcc/config.host b/libgcc/config.host
+index 51aec66..66b4724 100644
+--- a/libgcc/config.host
++++ b/libgcc/config.host
+@@ -354,11 +354,15 @@ arm*-*-ecos-elf)
  	tmake_file="$tmake_file arm/t-arm arm/t-elf t-softfp-sfdf t-softfp-excl arm/t-softfp t-softfp"
  	extra_parts="$extra_parts crti.o crtn.o"
  	;;
@@ -66,7 +92,7 @@
  	  tmake_file="${tmake_file} arm/t-bpabi"
  	  extra_parts="crtbegin.o crtend.o crti.o crtn.o"
  	  ;;
-@@ -371,10 +375,6 @@
+@@ -371,10 +375,6 @@ arm*-*-eabi* | arm*-*-symbianelf* | arm*-*-rtemseabi*)
  	tmake_file="$tmake_file t-softfp-sfdf t-softfp-excl arm/t-softfp t-softfp"
  	unwind_header=config/arm/unwind-arm.h
  	;;
@@ -77,3 +103,5 @@
  arm*-*-elf)
  	tmake_file="$tmake_file arm/t-arm arm/t-elf t-softfp-sfdf t-softfp-excl arm/t-softfp t-softfp"
  	extra_parts="$extra_parts crti.o crtn.o"
+-- 
+1.6.4.2
