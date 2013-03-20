@@ -1,0 +1,14 @@
+--- gdb-7.3.1/sim/bfin/Makefile.in.orig	2011-03-15 21:01:45.000000000 +0000
++++ gdb-7.3.1/sim/bfin/Makefile.in	2013-03-20 05:12:10.000000000 +0000
+@@ -56,9 +56,9 @@
+ 		echo "static const unsigned char bfin_linux_fixed_code[] ="; \
+ 		echo "{"; \
+ 		$(OBJDUMP_FOR_TARGET) -d -z linux-fixed-code.o > $@.dis; \
+-		sed -n $@.dis \
++		sed -n \
+ 			-e 's:^[^	]*	:0x:' \
+-			-e '/^0x/{s:	.*::;s: *$$:,:;s: :, 0x:g;p}'; \
++			-e '/^0x/{s:	.*::;s: *$$:,:;s: :, 0x:g;}' $@.dis; \
+ 		rm -f $@.dis; \
+ 		echo "};" \
+ 	) > $@.tmp
