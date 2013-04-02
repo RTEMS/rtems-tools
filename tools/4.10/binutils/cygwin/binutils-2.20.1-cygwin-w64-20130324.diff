@@ -1,0 +1,17 @@
+--- binutils-2.20.1/binutils/rename.c.orig	2013-03-24 12:24:17.265804700 +1100
++++ binutils-2.20.1/binutils/rename.c	2013-03-24 12:24:32.182796900 +1100
+@@ -18,12 +18,12 @@
+    Foundation, Inc., 51 Franklin Street - Fifth Floor, Boston, MA
+    02110-1301, USA.  */
+ 
++#include <sys/stat.h>
++
+ #include "sysdep.h"
+ #include "bfd.h"
+ #include "bucomm.h"
+ 
+-#include <sys/stat.h>
+-
+ #ifdef HAVE_GOOD_UTIME_H
+ #include <utime.h>
+ #else /* ! HAVE_GOOD_UTIME_H */
