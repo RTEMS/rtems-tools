@@ -1,0 +1,24 @@
+diff --git a/libcpp/configure b/libcpp/configure
+index fb5654d..1e351fa 100755
+--- a/libcpp/configure
++++ b/libcpp/configure
+@@ -7370,6 +7370,7 @@ fi
+ case $target in
+      alpha*-*-* | \
+      arm*-*-*eabi* | \
++     arm*-*-rtems[.0-9]* | \
+      arm*-*-symbianelf* | \
+      x86_64-*-* | \
+      ia64-*-* | \
+diff --git a/libcpp/configure.ac b/libcpp/configure.ac
+index 070ab63..6d525ec 100644
+--- a/libcpp/configure.ac
++++ b/libcpp/configure.ac
+@@ -150,6 +150,7 @@ m4_changequote(,)
+ case $target in
+      alpha*-*-* | \
+      arm*-*-*eabi* | \
++     arm*-*-rtems[.0-9]* | \
+      arm*-*-symbianelf* | \
+      x86_64-*-* | \
+      ia64-*-* | \
