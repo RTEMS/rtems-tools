@@ -1,0 +1,39 @@
+This patch is for GCC 4.6 and 4.7.
+
+libcpp/ChangeLog
+2013-04-02  Sebastian Huber  <sebastian.huber@embedded-brains.de>
+
+	PR target/56771
+	* configure.ac: Require 64-bit int for arm*-*-rtems[.0-9]*.
+	* configure: Regenerate.
+---
+ libcpp/configure    |    1 +
+ libcpp/configure.ac |    1 +
+ 2 files changed, 2 insertions(+), 0 deletions(-)
+
+diff --git a/libcpp/configure b/libcpp/configure
+index fb5654d..1e351fa 100755
+--- a/libcpp/configure
++++ b/libcpp/configure
+@@ -7370,6 +7370,7 @@ fi
+ case $target in
+ 	alpha*-*-* | \
+ 	arm*-*-*eabi* | \
++	arm*-*-rtems[.0-9]* | \
+ 	arm*-*-symbianelf* | \
+ 	x86_64-*-* | \
+ 	ia64-*-* | \
+diff --git a/libcpp/configure.ac b/libcpp/configure.ac
+index 070ab63..6d525ec 100644
+--- a/libcpp/configure.ac
++++ b/libcpp/configure.ac
+@@ -150,6 +150,7 @@ m4_changequote(,)
+ case $target in
+ 	alpha*-*-* | \
+ 	arm*-*-*eabi* | \
++	arm*-*-rtems[.0-9]* | \
+ 	arm*-*-symbianelf* | \
+ 	x86_64-*-* | \
+ 	ia64-*-* | \
+-- 
+1.7.7
