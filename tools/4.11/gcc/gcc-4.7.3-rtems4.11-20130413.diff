@@ -1,0 +1,310 @@
+diff -Naur gcc-4.7.2.orig/gcc/ChangeLog gcc-4.7.2-rtems4.11-20130318/gcc/ChangeLog
+--- gcc-4.7.2.orig/gcc/ChangeLog	2012-09-20 08:53:53.000000000 +0200
++++ gcc-4.7.2-rtems4.11-20130318/gcc/ChangeLog	2013-03-18 16:52:14.810743574 +0100
+@@ -1,3 +1,32 @@
++2013-03-18  Ralf Corsépius  <ralf.corsepius@rtems.org>
++
++	* gcc/doc/cppopts.texi, gcc/doc/generic.texi, gcc/doc/invoke.texi:
++	Fix typos.
++
++2012-10-31  Ralf Corsépius  <ralf.corsepius@rtems.org>,
++	    Joel Sherrill  <joel.sherrill@oarcorp.com>
++
++	* config/sparc/t-rtems: New (Custom multilibs).
++	* config/sparc/t-rtems-64: New (Custom multilibs).
++	* config.gcc (sparc64-*-rtems*): Add sparc/t-rtems-64.
++	(sparc-*-rtems*): Add sparc/t-rtems.
++
++2012-10-26  Ralf Corsépius  <ralf.corsepius@rtems.org>
++
++	* config/avr/t-rtems: Revert previous commit.
++
++2012-10-26  Ralf Corsépius  <ralf.corsepius@rtems.org>
++
++	* config/avr/rtems.h (TARGET_OS_CPP_BUILTINS): Remove
++	__USE_INIT_FINI__.
++	* config/avr/t-rtems (LIB1ASMFUNCS): Filter out _exit.
++
++2012-10-25  Ralf Corsépius  <ralf.corsepius@rtems.org>
++
++	* config.gcc (microblaze*-*-rtems*): New target.
++	* config/microblaze/rtems.h: New.
++	* config/microblaze/t-rtems: New.
++
+ 2012-09-20  Release Manager
+
+ 	* GCC 4.7.2 released.
+diff -Naur gcc-4.7.2.orig/gcc/ChangeLog.rtems gcc-4.7.2-rtems4.11-20130318/gcc/ChangeLog.rtems
+--- gcc-4.7.2.orig/gcc/ChangeLog.rtems	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.7.2-rtems4.11-20130318/gcc/ChangeLog.rtems	2013-03-18 16:52:14.810743574 +0100
+@@ -0,0 +1,31 @@
++2012-10-26  Ralf Corsépius  <ralf.corsepius@rtems.org>
++
++	* config/v850/rtems.h: Undef WCHAR_TYPE_SIZE, WCHAR_TYPE.
++
++2012-01-10	Ralf Corsépius <ralf.corsepius@rtems.org>
++
++	* config/h8300/h8300.h: Apply DJ Delorie's patch from
++	http://gcc.gnu.org/bugzilla/show_bug.cgi?id=48231#c1.
++
++2010-04-19	Ralf Corsépius <ralf.corsepius@rtems.org>
++
++	* ginclude/stddef.h: Define _MACHINE_ANSI_H_ if _X86_64_ANSI_H_ is
++	defined (Used by amd64-*-netbsdelf5.*).
++
++2010-04-18	Ralf Corsépius <ralf.corsepius@rtems.org>
++
++	* ginclude/stddef.h: Define _MACHINE_ANSI_H_ if _I386_ANSI_H_ is
++	defined (Used by i386-*-netbsdelf5.*).
++
++2009-11-04	Ralf Corsépius <ralf.corsepius@rtems.org>
++
++	* config/m32c/rtems.h, config/m68k/rtemself.h,
++	config/m68k/rtemself.h, config/sh/rtemself.h,
++	config/sparc/rtemself.h: Undef WCHAR_TYPE_SIZE, WCHAR_TYPE.
++	(Resets WCHAR_TYPE's to defaults. Prevents broken GCC tm_files
++	to interfere and cause wchar_t/wint_t incompatibilities).
++
++		Ralf Corsépius <ralf.corsepius@rtems.org>
++
++	* config/mips/elf.h: Remove NO_IMPLICIT_EXTERN_C.
++
+diff -Naur gcc-4.7.2.orig/gcc/config/h8300/h8300.h gcc-4.7.2-rtems4.11-20130318/gcc/config/h8300/h8300.h
+--- gcc-4.7.2.orig/gcc/config/h8300/h8300.h	2012-08-06 16:34:27.000000000 +0200
++++ gcc-4.7.2-rtems4.11-20130318/gcc/config/h8300/h8300.h	2013-03-18 16:52:14.812743561 +0100
+@@ -129,6 +129,7 @@
+ #define INCOMING_FRAME_SP_OFFSET   (POINTER_SIZE / 8)
+
+ #define DWARF_CIE_DATA_ALIGNMENT	2
++#define DWARF2_ADDR_SIZE		4
+
+ /* Define this if addresses of constant functions
+    shouldn't be put through pseudo regs where they can be cse'd.
+diff -Naur gcc-4.7.2.orig/gcc/config/m32c/rtems.h gcc-4.7.2-rtems4.11-20130318/gcc/config/m32c/rtems.h
+--- gcc-4.7.2.orig/gcc/config/m32c/rtems.h	2008-12-01 17:34:42.000000000 +0100
++++ gcc-4.7.2-rtems4.11-20130318/gcc/config/m32c/rtems.h	2013-03-18 16:52:14.812743561 +0100
+@@ -29,5 +29,9 @@
+     }						\
+   while (0)
+
+-/* Use the default */
++/* Use the defaults */
+ #undef LINK_GCC_C_SEQUENCE_SPEC
++
++#undef WCHAR_TYPE
++
++#undef WCHAR_TYPE_SIZE
+diff -Naur gcc-4.7.2.orig/gcc/config/m68k/rtemself.h gcc-4.7.2-rtems4.11-20130318/gcc/config/m68k/rtemself.h
+--- gcc-4.7.2.orig/gcc/config/m68k/rtemself.h	2007-08-02 12:49:31.000000000 +0200
++++ gcc-4.7.2-rtems4.11-20130318/gcc/config/m68k/rtemself.h	2013-03-18 16:52:14.812743561 +0100
+@@ -31,3 +31,8 @@
+ 	builtin_assert ("system=rtems");	\
+     }						\
+   while (0)
++
++/* Use the defaults */
++#undef WCHAR_TYPE
++
++#undef WCHAR_TYPE_SIZE
+diff -Naur gcc-4.7.2.orig/gcc/config/microblaze/rtems.h gcc-4.7.2-rtems4.11-20130318/gcc/config/microblaze/rtems.h
+--- gcc-4.7.2.orig/gcc/config/microblaze/rtems.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.7.2-rtems4.11-20130318/gcc/config/microblaze/rtems.h	2013-03-18 16:52:14.813743557 +0100
+@@ -0,0 +1,25 @@
++/* Definitions for rtems targeting a microblaze using ELF.
++   Copyright (C) 2012 Free Software Foundation, Inc.
++
++This file is part of GCC.
++
++GCC is free software; you can redistribute it and/or modify
++it under the terms of the GNU General Public License as published by
++the Free Software Foundation; either version 3, or (at your option)
++any later version.
++
++GCC is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++You should have received a copy of the GNU General Public License
++along with GCC; see the file COPYING3.  If not see
++<http://www.gnu.org/licenses/>.  */
++
++/* Specify predefined symbols in preprocessor.  */
++
++#define TARGET_OS_CPP_BUILTINS() do {		\
++  builtin_define( "__rtems__" );		\
++  builtin_assert( "system=rtems" );		\
++} while (0)
+diff -Naur gcc-4.7.2.orig/gcc/config/microblaze/t-rtems gcc-4.7.2-rtems4.11-20130318/gcc/config/microblaze/t-rtems
+--- gcc-4.7.2.orig/gcc/config/microblaze/t-rtems	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.7.2-rtems4.11-20130318/gcc/config/microblaze/t-rtems	2013-03-18 16:52:14.813743557 +0100
+@@ -0,0 +1 @@
++# Custom multilibs for RTEMS
+diff -Naur gcc-4.7.2.orig/gcc/config/mips/elf.h gcc-4.7.2-rtems4.11-20130318/gcc/config/mips/elf.h
+--- gcc-4.7.2.orig/gcc/config/mips/elf.h	2010-11-21 01:54:14.000000000 +0100
++++ gcc-4.7.2-rtems4.11-20130318/gcc/config/mips/elf.h	2013-03-18 16:52:14.813743557 +0100
+@@ -47,5 +47,3 @@
+
+ #undef  ENDFILE_SPEC
+ #define ENDFILE_SPEC "crtend%O%s crtn%O%s"
+-
+-#define NO_IMPLICIT_EXTERN_C 1
+diff -Naur gcc-4.7.2.orig/gcc/config/rs6000/rtems.h gcc-4.7.2-rtems4.11-20130318/gcc/config/rs6000/rtems.h
+--- gcc-4.7.2.orig/gcc/config/rs6000/rtems.h	2011-12-06 23:49:57.000000000 +0100
++++ gcc-4.7.2-rtems4.11-20130318/gcc/config/rs6000/rtems.h	2013-03-18 16:52:14.813743557 +0100
+@@ -69,3 +69,7 @@
+           rs6000_spe_abi = 1;                                             \
+       }                                                                   \
+   } while(0)
++
++#undef WCHAR_TYPE
++
++#undef WCHAR_TYPE_SIZE
+diff -Naur gcc-4.7.2.orig/gcc/config/sh/rtemself.h gcc-4.7.2-rtems4.11-20130318/gcc/config/sh/rtemself.h
+--- gcc-4.7.2.orig/gcc/config/sh/rtemself.h	2007-08-02 12:49:31.000000000 +0200
++++ gcc-4.7.2-rtems4.11-20130318/gcc/config/sh/rtemself.h	2013-03-18 16:52:14.813743557 +0100
+@@ -24,3 +24,8 @@
+   builtin_define( "__rtems__" );		\
+   builtin_assert( "system=rtems" );		\
+ } while (0)
++
++/* Use the defaults */
++#undef WCHAR_TYPE
++
++#undef WCHAR_TYPE_SIZE
+diff -Naur gcc-4.7.2.orig/gcc/config/sparc/rtemself.h gcc-4.7.2-rtems4.11-20130318/gcc/config/sparc/rtemself.h
+--- gcc-4.7.2.orig/gcc/config/sparc/rtemself.h	2007-08-02 12:49:31.000000000 +0200
++++ gcc-4.7.2-rtems4.11-20130318/gcc/config/sparc/rtemself.h	2013-03-18 16:52:14.813743557 +0100
+@@ -29,5 +29,9 @@
+     }						\
+   while (0)
+
+-/* Use the default */
++/* Use the defaults */
+ #undef LINK_GCC_C_SEQUENCE_SPEC
++
++#undef WCHAR_TYPE
++
++#undef WCHAR_TYPE_SIZE
+diff -Naur gcc-4.7.2.orig/gcc/config/sparc/sp64-rtemself.h gcc-4.7.2-rtems4.11-20130318/gcc/config/sparc/sp64-rtemself.h
+--- gcc-4.7.2.orig/gcc/config/sparc/sp64-rtemself.h	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.7.2-rtems4.11-20130318/gcc/config/sparc/sp64-rtemself.h	2013-03-18 16:52:14.814743560 +0100
+@@ -0,0 +1,37 @@
++/* Definitions for rtems targeting a SPARC64 using ELF.
++   Copyright (C) 2010 Free Software Foundation, Inc.
++   Contributed by Joel Sherrill (joel@OARcorp.com).
++
++This file is part of GCC.
++
++GCC is free software; you can redistribute it and/or modify
++it under the terms of the GNU General Public License as published by
++the Free Software Foundation; either version 3, or (at your option)
++any later version.
++
++GCC is distributed in the hope that it will be useful,
++but WITHOUT ANY WARRANTY; without even the implied warranty of
++MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++GNU General Public License for more details.
++
++You should have received a copy of the GNU General Public License
++along with GCC; see the file COPYING3.  If not see
++<http://www.gnu.org/licenses/>.  */
++
++/* Target OS builtins.  */
++#undef TARGET_OS_CPP_BUILTINS
++#define TARGET_OS_CPP_BUILTINS()		\
++  do						\
++    {						\
++	builtin_define ("__rtems__");		\
++	builtin_define ("__USE_INIT_FINI__");	\
++	builtin_assert ("system=rtems");	\
++    }						\
++  while (0)
++
++/* Use the default */
++#undef LINK_GCC_C_SEQUENCE_SPEC
++
++/* we are not svr4 */
++#undef CPP_SUBTARGET_SPEC
++#define CPP_SUBTARGET_SPEC ""
+diff -Naur gcc-4.7.2.orig/gcc/config/sparc/t-rtems gcc-4.7.2-rtems4.11-20130318/gcc/config/sparc/t-rtems
+--- gcc-4.7.2.orig/gcc/config/sparc/t-rtems	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.7.2-rtems4.11-20130318/gcc/config/sparc/t-rtems	2013-03-18 16:52:14.814743560 +0100
+@@ -0,0 +1,22 @@
++# Copyright (C) 2012 Free Software Foundation, Inc.
++#
++# This file is part of GCC.
++#
++# GCC is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 3, or (at your option)
++# any later version.
++#
++# GCC is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with GCC; see the file COPYING3.  If not see
++# <http://www.gnu.org/licenses/>.
++#
++
++MULTILIB_OPTIONS = msoft-float mcpu=v8
++MULTILIB_DIRNAMES = soft v8
++MULTILIB_MATCHES = msoft-float=mno-fpu
+diff -Naur gcc-4.7.2.orig/gcc/config/sparc/t-rtems-64 gcc-4.7.2-rtems4.11-20130318/gcc/config/sparc/t-rtems-64
+--- gcc-4.7.2.orig/gcc/config/sparc/t-rtems-64	1970-01-01 01:00:00.000000000 +0100
++++ gcc-4.7.2-rtems4.11-20130318/gcc/config/sparc/t-rtems-64	2013-03-18 16:52:14.814743560 +0100
+@@ -0,0 +1,22 @@
++# Copyright (C) 2012 Free Software Foundation, Inc.
++#
++# This file is part of GCC.
++#
++# GCC is free software; you can redistribute it and/or modify
++# it under the terms of the GNU General Public License as published by
++# the Free Software Foundation; either version 3, or (at your option)
++# any later version.
++#
++# GCC is distributed in the hope that it will be useful,
++# but WITHOUT ANY WARRANTY; without even the implied warranty of
++# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++# GNU General Public License for more details.
++#
++# You should have received a copy of the GNU General Public License
++# along with GCC; see the file COPYING3.  If not see
++# <http://www.gnu.org/licenses/>.
++#
++
++MULTILIB_OPTIONS = msoft-float
++MULTILIB_DIRNAMES = soft
++MULTILIB_MATCHES = msoft-float=mno-fpu
+diff -Naur gcc-4.7.2.orig/gcc/config/v850/rtems.h gcc-4.7.2-rtems4.11-20130318/gcc/config/v850/rtems.h
+--- gcc-4.7.2.orig/gcc/config/v850/rtems.h	2012-07-18 17:34:46.000000000 +0200
++++ gcc-4.7.2-rtems4.11-20130318/gcc/config/v850/rtems.h	2013-03-18 16:52:14.814743560 +0100
+@@ -27,3 +27,8 @@
+ /* Map mv850e1 and mv850es to mv850e to match MULTILIB_MATCHES */
+ #undef ASM_SPEC
+ #define ASM_SPEC "%{mv850es:-mv850e} %{mv850e1:-mv850e} %{!mv850es:%{!mv850e1:%{mv*:-mv%*}}}"
++
++/* Use the defaults */
++#undef WCHAR_TYPE
++
++#undef WCHAR_TYPE_SIZE
+diff -Naur gcc-4.7.2.orig/gcc/ginclude/stddef.h gcc-4.7.2-rtems4.11-20130318/gcc/ginclude/stddef.h
+--- gcc-4.7.2.orig/gcc/ginclude/stddef.h	2012-02-12 02:06:04.000000000 +0100
++++ gcc-4.7.2-rtems4.11-20130318/gcc/ginclude/stddef.h	2013-03-18 16:52:14.821743498 +0100
+@@ -53,7 +53,13 @@
+    one less case to deal with in the following.  */
+ #if defined (__BSD_NET2__) || defined (____386BSD____) || (defined (__FreeBSD__) && (__FreeBSD__ < 5)) || defined(__NetBSD__)
+ #include <machine/ansi.h>
++#if !defined(_MACHINE_ANSI_H_)
++#if defined(_I386_ANSI_H_) || defined(_X86_64_ANSI_H_)
++#define _MACHINE_ANSI_H_
+ #endif
++#endif
++#endif
++
+ /* On FreeBSD 5, machine/ansi.h does not exist anymore... */
+ #if defined (__FreeBSD__) && (__FreeBSD__ >= 5)
+ #include <sys/_types.h>
