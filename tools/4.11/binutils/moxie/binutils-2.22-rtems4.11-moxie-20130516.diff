@@ -1,0 +1,483 @@
+Only in a_binutils-2.23.2: 1.diff
+Only in a_binutils-2.23.2: 2.diff
+Only in a_binutils-2.23.2: 3.diff
+Only in a_binutils-2.23.2: a.diff
+Only in a_binutils-2.23.2/bfd: ChangeLog.orig
+Only in a_binutils-2.23.2/bfd: ChangeLog.rej
+diff -ru binutils-2.23.2/bfd/config.bfd a_binutils-2.23.2/bfd/config.bfd
+--- binutils-2.23.2/bfd/config.bfd	2012-09-04 09:14:59.000000000 -0500
++++ a_binutils-2.23.2/bfd/config.bfd	2013-05-16 02:44:11.494930482 -0500
+@@ -419,7 +419,8 @@
+     ;;
+ 
+   moxie-*-elf | moxie-*-rtems* | moxie-*-uclinux)
+-    targ_defvec=bfd_elf32_moxie_vec
++    targ_defvec=bfd_elf32_bigmoxie_vec
++    targ_selvecs=bfd_elf32_littlemoxie_vec
+     ;;
+ 
+   h8300*-*-rtemscoff*)
+diff -ru binutils-2.23.2/bfd/configure a_binutils-2.23.2/bfd/configure
+--- binutils-2.23.2/bfd/configure	2013-03-25 04:08:07.000000000 -0500
++++ a_binutils-2.23.2/bfd/configure	2013-05-16 02:44:11.499930893 -0500
+@@ -15212,6 +15212,7 @@
+     bfd_elf32_bigmips_vec) 	tb="$tb elf32-mips.lo elfxx-mips.lo elf-vxworks.lo elf32.lo $elf ecofflink.lo" ;;
+     bfd_elf32_bigmips_vxworks_vec)
+ 			 	tb="$tb elf32-mips.lo elfxx-mips.lo elf-vxworks.lo elf32.lo $elf ecofflink.lo" ;;
++    bfd_elf32_bigmoxie_vec)	tb="$tb elf32-moxie.lo elf32.lo $elf" ;;
+     bfd_elf32_cr16_vec)		tb="$tb elf32-cr16.lo elf32.lo $elf" ;;
+     bfd_elf32_cr16c_vec)	tb="$tb elf32-cr16c.lo elf32.lo $elf" ;;
+     bfd_elf32_cris_vec)		tb="$tb elf32-cris.lo elf32.lo $elf" ;;
+@@ -15223,7 +15224,6 @@
+     bfd_elf32_fr30_vec)		tb="$tb elf32-fr30.lo elf32.lo $elf" ;;
+     bfd_elf32_frv_vec)		tb="$tb elf32-frv.lo elf32.lo $elf" ;;
+     bfd_elf32_frvfdpic_vec)	tb="$tb elf32-frv.lo elf32.lo $elf" ;;
+-    bfd_elf32_moxie_vec)	tb="$tb elf32-moxie.lo elf32.lo $elf" ;;
+     bfd_elf32_h8300_vec)	tb="$tb elf32-h8300.lo elf32.lo $elf" ;;
+     bfd_elf32_hppa_linux_vec)	tb="$tb elf32-hppa.lo elf32.lo $elf" ;;
+     bfd_elf32_hppa_nbsd_vec)	tb="$tb elf32-hppa.lo elf32.lo $elf" ;;
+@@ -15254,6 +15254,7 @@
+     bfd_elf32_littlemips_vec) 	tb="$tb elf32-mips.lo elfxx-mips.lo elf-vxworks.lo elf32.lo $elf ecofflink.lo" ;;
+     bfd_elf32_littlemips_vxworks_vec)
+ 			 	tb="$tb elf32-mips.lo elfxx-mips.lo elf-vxworks.lo elf32.lo $elf ecofflink.lo" ;;
++    bfd_elf32_littlemoxie_vec)	tb="$tb elf32-moxie.lo elf32.lo $elf" ;;
+     bfd_elf32_m32c_vec)         tb="$tb elf32-m32c.lo elf32.lo $elf" ;;
+     bfd_elf32_m32r_vec)		tb="$tb elf32-m32r.lo elf32.lo $elf" ;;
+     bfd_elf32_m32rle_vec)       tb="$tb elf32-m32r.lo elf32.lo $elf" ;;
+diff -ru binutils-2.23.2/bfd/configure.in a_binutils-2.23.2/bfd/configure.in
+--- binutils-2.23.2/bfd/configure.in	2013-03-25 04:08:05.000000000 -0500
++++ a_binutils-2.23.2/bfd/configure.in	2013-05-16 02:44:11.500931023 -0500
+@@ -704,6 +704,7 @@
+     bfd_elf32_bigmips_vec) 	tb="$tb elf32-mips.lo elfxx-mips.lo elf-vxworks.lo elf32.lo $elf ecofflink.lo" ;;
+     bfd_elf32_bigmips_vxworks_vec)
+ 			 	tb="$tb elf32-mips.lo elfxx-mips.lo elf-vxworks.lo elf32.lo $elf ecofflink.lo" ;;
++    bfd_elf32_bigmoxie_vec)	tb="$tb elf32-moxie.lo elf32.lo $elf" ;;
+     bfd_elf32_cr16_vec)		tb="$tb elf32-cr16.lo elf32.lo $elf" ;;
+     bfd_elf32_cr16c_vec)	tb="$tb elf32-cr16c.lo elf32.lo $elf" ;;
+     bfd_elf32_cris_vec)		tb="$tb elf32-cris.lo elf32.lo $elf" ;;
+@@ -715,7 +716,6 @@
+     bfd_elf32_fr30_vec)		tb="$tb elf32-fr30.lo elf32.lo $elf" ;;
+     bfd_elf32_frv_vec)		tb="$tb elf32-frv.lo elf32.lo $elf" ;;
+     bfd_elf32_frvfdpic_vec)	tb="$tb elf32-frv.lo elf32.lo $elf" ;;
+-    bfd_elf32_moxie_vec)	tb="$tb elf32-moxie.lo elf32.lo $elf" ;;
+     bfd_elf32_h8300_vec)	tb="$tb elf32-h8300.lo elf32.lo $elf" ;;
+     bfd_elf32_hppa_linux_vec)	tb="$tb elf32-hppa.lo elf32.lo $elf" ;;
+     bfd_elf32_hppa_nbsd_vec)	tb="$tb elf32-hppa.lo elf32.lo $elf" ;;
+@@ -746,6 +746,7 @@
+     bfd_elf32_littlemips_vec) 	tb="$tb elf32-mips.lo elfxx-mips.lo elf-vxworks.lo elf32.lo $elf ecofflink.lo" ;;
+     bfd_elf32_littlemips_vxworks_vec)
+ 			 	tb="$tb elf32-mips.lo elfxx-mips.lo elf-vxworks.lo elf32.lo $elf ecofflink.lo" ;;
++    bfd_elf32_littlemoxie_vec)	tb="$tb elf32-moxie.lo elf32.lo $elf" ;;
+     bfd_elf32_m32c_vec)         tb="$tb elf32-m32c.lo elf32.lo $elf" ;;
+     bfd_elf32_m32r_vec)		tb="$tb elf32-m32r.lo elf32.lo $elf" ;;
+     bfd_elf32_m32rle_vec)       tb="$tb elf32-m32r.lo elf32.lo $elf" ;;
+Only in a_binutils-2.23.2/bfd: configure.orig
+diff -ru binutils-2.23.2/bfd/elf32-moxie.c a_binutils-2.23.2/bfd/elf32-moxie.c
+--- binutils-2.23.2/bfd/elf32-moxie.c	2012-05-06 22:27:50.000000000 -0500
++++ a_binutils-2.23.2/bfd/elf32-moxie.c	2013-05-16 02:44:11.500931023 -0500
+@@ -366,8 +366,10 @@
+ #define ELF_MACHINE_CODE	EM_MOXIE
+ #define ELF_MAXPAGESIZE		0x1
+ 
+-#define TARGET_BIG_SYM          bfd_elf32_moxie_vec
+-#define TARGET_BIG_NAME		"elf32-moxie"
++#define TARGET_BIG_SYM          bfd_elf32_bigmoxie_vec
++#define TARGET_BIG_NAME		"elf32-bigmoxie"
++#define TARGET_LITTLE_SYM       bfd_elf32_littlemoxie_vec
++#define TARGET_LITTLE_NAME	"elf32-littlemoxie"
+ 
+ #define elf_info_to_howto_rel			NULL
+ #define elf_info_to_howto			moxie_info_to_howto_rela
+diff -ru binutils-2.23.2/bfd/targets.c a_binutils-2.23.2/bfd/targets.c
+--- binutils-2.23.2/bfd/targets.c	2012-09-04 07:53:42.000000000 -0500
++++ a_binutils-2.23.2/bfd/targets.c	2013-05-16 02:44:11.501931151 -0500
+@@ -606,6 +606,7 @@
+ extern const bfd_target bfd_elf32_bigarm_vxworks_vec;
+ extern const bfd_target bfd_elf32_bigmips_vec;
+ extern const bfd_target bfd_elf32_bigmips_vxworks_vec;
++extern const bfd_target bfd_elf32_bigmoxie_vec;
+ extern const bfd_target bfd_elf32_cr16_vec;
+ extern const bfd_target bfd_elf32_cr16c_vec;
+ extern const bfd_target bfd_elf32_cris_vec;
+@@ -617,7 +618,6 @@
+ extern const bfd_target bfd_elf32_fr30_vec;
+ extern const bfd_target bfd_elf32_frv_vec;
+ extern const bfd_target bfd_elf32_frvfdpic_vec;
+-extern const bfd_target bfd_elf32_moxie_vec;
+ extern const bfd_target bfd_elf32_h8300_vec;
+ extern const bfd_target bfd_elf32_hppa_linux_vec;
+ extern const bfd_target bfd_elf32_hppa_nbsd_vec;
+@@ -645,6 +645,7 @@
+ extern const bfd_target bfd_elf32_littlearm_vxworks_vec;
+ extern const bfd_target bfd_elf32_littlemips_vec;
+ extern const bfd_target bfd_elf32_littlemips_vxworks_vec;
++extern const bfd_target bfd_elf32_littlemoxie_vec;
+ extern const bfd_target bfd_elf32_m32c_vec;
+ extern const bfd_target bfd_elf32_m32r_vec;
+ extern const bfd_target bfd_elf32_m32rle_vec;
+@@ -979,6 +980,7 @@
+ 	&bfd_elf32_bigarm_vxworks_vec,
+ 	&bfd_elf32_bigmips_vec,
+ 	&bfd_elf32_bigmips_vxworks_vec,
++ 	&bfd_elf32_bigmoxie_vec,
+ 	&bfd_elf32_cr16_vec,
+ 	&bfd_elf32_cr16c_vec,
+ 	&bfd_elf32_cris_vec,
+@@ -990,7 +992,6 @@
+ 	&bfd_elf32_fr30_vec,
+ 	&bfd_elf32_frv_vec,
+ 	&bfd_elf32_frvfdpic_vec,
+- 	&bfd_elf32_moxie_vec,
+ 	&bfd_elf32_h8300_vec,
+ 	&bfd_elf32_hppa_linux_vec,
+ 	&bfd_elf32_hppa_nbsd_vec,
+@@ -1020,6 +1021,7 @@
+ 	&bfd_elf32_littlearm_vxworks_vec,
+ 	&bfd_elf32_littlemips_vec,
+ 	&bfd_elf32_littlemips_vxworks_vec,
++ 	&bfd_elf32_littlemoxie_vec,
+ 	&bfd_elf32_m32c_vec,
+ 	&bfd_elf32_m32r_vec,
+         &bfd_elf32_m32rle_vec,
+Only in a_binutils-2.23.2/gas: ChangeLog.orig
+Only in a_binutils-2.23.2/gas: ChangeLog.rej
+diff -ru binutils-2.23.2/gas/config/tc-moxie.c a_binutils-2.23.2/gas/config/tc-moxie.c
+--- binutils-2.23.2/gas/config/tc-moxie.c	2010-07-05 00:56:11.000000000 -0500
++++ a_binutils-2.23.2/gas/config/tc-moxie.c	2013-05-16 02:44:29.939034034 -0500
+@@ -1,5 +1,5 @@
+ /* tc-moxie.c -- Assemble code for moxie
+-   Copyright 2009
++   Copyright 2009, 2012
+    Free Software Foundation, Inc.
+ 
+    This file is part of GAS, the GNU Assembler.
+@@ -43,7 +43,11 @@
+ const char FLT_CHARS[] = "rRsSfFdDxXpP";
+ const char EXP_CHARS[] = "eE";
+ 
+-static int md_chars_to_number (char *val, int n);
++static valueT md_chars_to_number (char * buf, int n);
++
++/* Byte order.  */
++extern int target_big_endian;
++const char *moxie_target_format = DEFAULT_TARGET_FORMAT;
+ 
+ void
+ md_operand (expressionS *op __attribute__((unused)))
+@@ -203,7 +207,7 @@
+ 	op_end++;
+ 	op_end = parse_exp_save_ilp (op_end, &arg);
+ 	fix_new_exp (frag_now,
+-		     ((p+1) - frag_now->fr_literal),
++		     ((p + (target_big_endian ? 1 : 0)) - frag_now->fr_literal),
+ 		     1,
+ 		     &arg,
+ 		     0,
+@@ -589,26 +593,50 @@
+ 
+   return NULL;
+ }
+-
+-const char *md_shortopts = "";
++
++enum options
++{
++  OPTION_EB = OPTION_MD_BASE,
++  OPTION_EL,
++};
+ 
+ struct option md_longopts[] =
+ {
+-  {NULL, no_argument, NULL, 0}
++  { "EB",          no_argument, NULL, OPTION_EB},
++  { "EL",          no_argument, NULL, OPTION_EL},
++  { NULL,          no_argument, NULL, 0}
+ };
++
+ size_t md_longopts_size = sizeof (md_longopts);
++
++const char *md_shortopts = "";
+ 
+-/* We have no target specific options yet, so these next
+-   two functions are empty.  */
+ int
+ md_parse_option (int c ATTRIBUTE_UNUSED, char *arg ATTRIBUTE_UNUSED)
+ {
+-  return 0;
++  switch (c)
++    {
++    case OPTION_EB: 
++      target_big_endian = 1; 
++      moxie_target_format = "elf32-bigmoxie";
++      break;
++    case OPTION_EL: 
++      target_big_endian = 0;
++      moxie_target_format = "elf32-littlemoxie";
++      break;
++    default:        
++      return 0;
++    }
++
++  return 1;
+ }
+ 
+ void
+ md_show_usage (FILE *stream ATTRIBUTE_UNUSED)
+ {
++  fprintf (stream, _("\
++  -EB                     assemble for a big endian system (default)\n\
++  -EL                     assemble for a little endian system\n"));
+ }
+ 
+ /* Apply a fixup to the object file.  */
+@@ -626,15 +654,35 @@
+   switch (fixP->fx_r_type)
+     {
+     case BFD_RELOC_32:
+-      *buf++ = val >> 24;
+-      *buf++ = val >> 16;
+-      *buf++ = val >> 8;
+-      *buf++ = val >> 0;
++      if (target_big_endian)
++	{
++	  buf[0] = val >> 24;
++	  buf[1] = val >> 16;
++	  buf[2] = val >> 8;
++	  buf[3] = val >> 0;
++	}
++      else
++	{
++	  buf[3] = val >> 24;
++	  buf[2] = val >> 16;
++	  buf[1] = val >> 8;
++	  buf[0] = val >> 0;
++	}
++      buf += 4;
+       break;
+ 
+     case BFD_RELOC_16:
+-      *buf++ = val >> 8;
+-      *buf++ = val >> 0;
++      if (target_big_endian)
++	{
++	  buf[0] = val >> 8;
++	  buf[1] = val >> 0;
++	}
++      else
++	{
++	  buf[1] = val >> 8;
++	  buf[0] = val >> 0;
++	}
++      buf += 2;
+       break;
+ 
+     case BFD_RELOC_8:
+@@ -665,28 +713,43 @@
+     fixP->fx_done = 1;
+ }
+ 
+-/* Put number into target byte order (big endian).  */
++/* Put number into target byte order.  */
+ 
+ void
+-md_number_to_chars (char *ptr, valueT use, int nbytes)
++md_number_to_chars (char * ptr, valueT use, int nbytes)
+ {
+-  number_to_chars_bigendian (ptr, use, nbytes);
++  if (target_big_endian)
++    number_to_chars_bigendian (ptr, use, nbytes);
++  else
++    number_to_chars_littleendian (ptr, use, nbytes);
+ }
+ 
+ /* Convert from target byte order to host byte order.  */
+ 
+-static int
+-md_chars_to_number (char *val, int n)
++static valueT
++md_chars_to_number (char * buf, int n)
+ {
+-  int retval = 0;
++  valueT result = 0;
++  unsigned char * where = (unsigned char *) buf;
+ 
+-  while (n--)
++  if (target_big_endian)
+     {
+-      retval <<= 8;
+-      retval |= (*val++ & 255);
++      while (n--)
++	{
++	  result <<= 8;
++	  result |= (*where++ & 255);
++	}
++    }
++  else
++    {
++      while (n--)
++	{
++	  result <<= 8;
++	  result |= (where[n] & 255);
++	}
+     }
+ 
+-  return retval;
++  return result;
+ }
+ 
+ /* Generate a machine-dependent relocation.  */
+@@ -774,7 +837,8 @@
+     case BFD_RELOC_32:
+       return addr + 4;
+     case BFD_RELOC_MOXIE_10_PCREL:
+-      return addr;
++      /* Offset is from the end of the instruction.  */
++      return addr + 2;
+     default:
+       abort ();
+       return addr;
+Only in a_binutils-2.23.2/gas/config: tc-moxie.c.orig
+diff -ru binutils-2.23.2/gas/config/tc-moxie.h a_binutils-2.23.2/gas/config/tc-moxie.h
+--- binutils-2.23.2/gas/config/tc-moxie.h	2009-04-16 10:39:44.000000000 -0500
++++ a_binutils-2.23.2/gas/config/tc-moxie.h	2013-05-16 02:44:11.502931278 -0500
+@@ -1,6 +1,6 @@
+ /* tc-moxie.h -- Header file for tc-moxie.c.
+ 
+-   Copyright 2009 Free Software Foundation, Inc.
++   Copyright 2009, 2012 Free Software Foundation, Inc.
+ 
+    This file is part of GAS, the GNU Assembler.
+ 
+@@ -22,11 +22,11 @@
+ #define TARGET_BYTES_BIG_ENDIAN 1
+ #define WORKING_DOT_WORD
+ 
+-/* This macro is the BFD target name to use when creating the output
+-   file.  This will normally depend upon the `OBJ_FMT' macro.  */
+-#define TARGET_FORMAT "elf32-moxie"
+-
+ /* This macro is the BFD architecture to pass to `bfd_set_arch_mach'.  */
++const char *moxie_target_format;
++#define DEFAULT_TARGET_FORMAT  "elf32-bigmoxie"
++#define TARGET_FORMAT          moxie_target_format
++
+ #define TARGET_ARCH bfd_arch_moxie
+ 
+ #define md_undefined_symbol(NAME)           0
+Only in a_binutils-2.23.2/ld: ChangeLog.orig
+Only in a_binutils-2.23.2/ld: ChangeLog.rej
+diff -ru binutils-2.23.2/ld/emulparams/elf32moxie.sh a_binutils-2.23.2/ld/emulparams/elf32moxie.sh
+--- binutils-2.23.2/ld/emulparams/elf32moxie.sh	2009-04-29 23:29:23.000000000 -0500
++++ a_binutils-2.23.2/ld/emulparams/elf32moxie.sh	2013-05-16 02:44:11.503931401 -0500
+@@ -1,8 +1,11 @@
+ SCRIPT_NAME=elf
+ TEMPLATE_NAME=generic
+ EXTRA_EM_FILE=genelf
+-OUTPUT_FORMAT="elf32-moxie"
++OUTPUT_FORMAT="elf32-bigmoxie"
++BIG_OUTPUT_FORMAT="elf32-bigmoxie"
++LITTLE_OUTPUT_FORMAT="elf32-littlemoxie"
+ TEXT_START_ADDR=0x1000
+ MAXPAGESIZE="CONSTANT (MAXPAGESIZE)"
+ ARCH=moxie
++EMBEDDED=yes
+ STACK_ADDR=0x400000
+Only in a_binutils-2.23.2/opcodes: ChangeLog.orig
+Only in a_binutils-2.23.2/opcodes: ChangeLog.rej
+diff -ru binutils-2.23.2/opcodes/moxie-dis.c a_binutils-2.23.2/opcodes/moxie-dis.c
+--- binutils-2.23.2/opcodes/moxie-dis.c	2012-05-17 10:13:25.000000000 -0500
++++ a_binutils-2.23.2/opcodes/moxie-dis.c	2013-05-16 02:44:24.491004948 -0500
+@@ -53,7 +53,11 @@
+ 
+   if ((status = info->read_memory_func (addr, buffer, 2, info)))
+     goto fail;
+-  iword = bfd_getb16 (buffer);
++
++  if (info->endian == BFD_ENDIAN_BIG)
++    iword = bfd_getb16 (buffer);
++  else
++    iword = bfd_getl16 (buffer);
+ 
+   /* Form 1 instructions have the high bit set to 0.  */
+   if ((iword & (1<<15)) == 0)
+@@ -79,7 +83,10 @@
+ 	    unsigned imm;
+ 	    if ((status = info->read_memory_func (addr + 2, buffer, 4, info)))
+ 	      goto fail;
+-	    imm = bfd_getb32 (buffer);
++	    if (info->endian == BFD_ENDIAN_BIG)
++	      imm = bfd_getb32 (buffer);
++	    else
++	      imm = bfd_getl32 (buffer);
+ 	    fpr (stream, "%s\t%s, 0x%x", opcode->name,
+ 		 reg_names[OP_A(iword)], imm);
+ 	    length = 6;
+@@ -90,7 +97,10 @@
+ 	    unsigned imm;
+ 	    if ((status = info->read_memory_func (addr + 2, buffer, 4, info)))
+ 	      goto fail;
+-	    imm = bfd_getb32 (buffer);
++	    if (info->endian == BFD_ENDIAN_BIG)
++	      imm = bfd_getb32 (buffer);
++	    else
++	      imm = bfd_getl32 (buffer);
+ 	    fpr (stream, "%s\t0x%x", opcode->name, imm);
+ 	    length = 6;
+ 	  }
+@@ -100,7 +110,10 @@
+ 	    unsigned imm;
+ 	    if ((status = info->read_memory_func (addr + 2, buffer, 4, info)))
+ 	      goto fail;
+-	    imm = bfd_getb32 (buffer);
++	    if (info->endian == BFD_ENDIAN_BIG)
++	      imm = bfd_getb32 (buffer);
++	    else
++	      imm = bfd_getl32 (buffer);
+ 	    fpr (stream, "%s\t", opcode->name);
+ 	    info->print_address_func ((bfd_vma) imm, info);
+ 	    length = 6;
+@@ -119,7 +132,10 @@
+ 	    unsigned imm;
+ 	    if ((status = info->read_memory_func (addr + 2, buffer, 4, info)))
+ 	      goto fail;
+-	    imm = bfd_getb32 (buffer);
++	    if (info->endian == BFD_ENDIAN_BIG)
++	      imm = bfd_getb32 (buffer);
++	    else
++	      imm = bfd_getl32 (buffer);
+ 	    fpr (stream, "%s\t0x%x, %s",
+ 		 opcode->name, imm, reg_names[OP_A(iword)]);
+ 	    length = 6;
+@@ -130,7 +146,10 @@
+ 	    unsigned imm;
+ 	    if ((status = info->read_memory_func (addr+2, buffer, 4, info)))
+ 	      goto fail;
+-	    imm = bfd_getb32 (buffer);
++	    if (info->endian == BFD_ENDIAN_BIG)
++	      imm = bfd_getb32 (buffer);
++	    else
++	      imm = bfd_getl32 (buffer);
+ 	    fpr (stream, "%s\t0x%x(%s), %s", opcode->name,
+ 		 imm,
+ 		 reg_names[OP_A(iword)],
+@@ -143,7 +162,10 @@
+ 	    unsigned imm;
+ 	    if ((status = info->read_memory_func (addr+2, buffer, 4, info)))
+ 	      goto fail;
+-	    imm = bfd_getb32 (buffer);
++	    if (info->endian == BFD_ENDIAN_BIG)
++	      imm = bfd_getb32 (buffer);
++	    else
++	      imm = bfd_getl32 (buffer);
+ 	    fpr (stream, "%s\t%s, 0x%x(%s)",
+ 		 opcode->name,
+ 		 reg_names[OP_A(iword)],
+@@ -183,7 +205,7 @@
+ 	{
+ 	case MOXIE_F3_PCREL:
+ 	  fpr (stream, "%s\t", opcode->name);
+-	  info->print_address_func ((bfd_vma) (addr + INST2OFFSET(iword)), 
++	  info->print_address_func ((bfd_vma) (addr + INST2OFFSET(iword) + 2), 
+ 				    info);
+ 	  break;
+ 	default:
