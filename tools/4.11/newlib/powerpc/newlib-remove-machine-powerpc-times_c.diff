@@ -1,0 +1,99 @@
+? a.diff
+Index: newlib/libc/machine/powerpc/Makefile.am
+===================================================================
+RCS file: /cvs/src/src/newlib/libc/machine/powerpc/Makefile.am,v
+retrieving revision 1.8
+diff -u -r1.8 Makefile.am
+--- a/newlib/libc/machine/powerpc/Makefile.am	24 May 2007 17:33:35 -0000	1.8
++++ b/newlib/libc/machine/powerpc/Makefile.am	22 May 2013 06:39:33 -0000
+@@ -10,7 +10,7 @@
+ 
+ AM_CFLAGS = -I $(srcdir)/../../stdio -I $(srcdir)/../../stdlib
+ 
+-lib_a_SOURCES = setjmp.S times.c
++lib_a_SOURCES = setjmp.S
+ lib_a_CCASFLAGS=$(AM_CCASFLAGS)
+ lib_a_CFLAGS=$(AM_CFLAGS)
+ lib_a_LIBADD = @extra_objs@
+Index: newlib/libc/machine/powerpc/Makefile.in
+===================================================================
+RCS file: /cvs/src/src/newlib/libc/machine/powerpc/Makefile.in,v
+retrieving revision 1.23
+diff -u -r1.23 Makefile.in
+--- a/newlib/libc/machine/powerpc/Makefile.in	20 Dec 2012 21:09:59 -0000	1.23
++++ b/newlib/libc/machine/powerpc/Makefile.in	22 May 2013 06:39:33 -0000
+@@ -68,7 +68,7 @@
+ LIBRARIES = $(noinst_LIBRARIES)
+ ARFLAGS = cru
+ lib_a_AR = $(AR) $(ARFLAGS)
+-am_lib_a_OBJECTS = lib_a-setjmp.$(OBJEXT) lib_a-times.$(OBJEXT)
++am_lib_a_OBJECTS = lib_a-setjmp.$(OBJEXT)
+ lib_a_OBJECTS = $(am_lib_a_OBJECTS)
+ DEFAULT_INCLUDES = -I.@am__isrc@
+ depcomp =
+@@ -197,7 +197,7 @@
+ AM_CCASFLAGS = $(INCLUDES)
+ noinst_LIBRARIES = lib.a
+ AM_CFLAGS = -I $(srcdir)/../../stdio -I $(srcdir)/../../stdlib
+-lib_a_SOURCES = setjmp.S times.c
++lib_a_SOURCES = setjmp.S
+ lib_a_CCASFLAGS = $(AM_CCASFLAGS)
+ lib_a_CFLAGS = $(AM_CFLAGS)
+ lib_a_LIBADD = @extra_objs@
+@@ -275,12 +275,6 @@
+ .c.obj:
+ 	$(COMPILE) -c `$(CYGPATH_W) '$<'`
+ 
+-lib_a-times.o: times.c
+-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-times.o `test -f 'times.c' || echo '$(srcdir)/'`times.c
+-
+-lib_a-times.obj: times.c
+-	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-times.obj `if test -f 'times.c'; then $(CYGPATH_W) 'times.c'; else $(CYGPATH_W) '$(srcdir)/times.c'; fi`
+-
+ ID: $(HEADERS) $(SOURCES) $(LISP) $(TAGS_FILES)
+ 	list='$(SOURCES) $(HEADERS) $(LISP) $(TAGS_FILES)'; \
+ 	unique=`for i in $$list; do \
+Index: newlib/libc/machine/powerpc/times.c
+===================================================================
+RCS file: /cvs/src/src/newlib/libc/machine/powerpc/times.c,v
+retrieving revision 1.1
+diff -u -r1.1 times.c
+--- a/newlib/libc/machine/powerpc/times.c	22 Jul 2002 20:26:51 -0000	1.1
++++ b/dev/null
+@@ -1,36 +0,0 @@
+-/* Time support routines for PowerPC.
+- *
+- * Written by Aldy Hernandez.
+- */
+-
+-#include <_ansi.h>
+-#include <reent.h>
+-#include <sys/time.h>
+-#include <sys/times.h>
+-#include <sys/resource.h>
+-
+-clock_t
+-times (struct tms *tp)
+-{
+-  struct rusage usage;
+-  union {
+-    struct rusage r;
+-    /* Newlib's rusage has only 2 fields.  We need to make room for
+-       when we call the system's rusage.  This should be enough.  */
+-    int filler[32];
+-  } host_ru;
+-
+-  getrusage (RUSAGE_SELF, (void *)&host_ru);
+-
+-  if (tp)
+-    {
+-      tp->tms_utime = host_ru.r.ru_utime.tv_sec * 1000
+-	+ host_ru.r.ru_utime.tv_usec;
+-      tp->tms_stime = host_ru.r.ru_stime.tv_sec * 1000
+-	+ host_ru.r.ru_stime.tv_usec;
+-      tp->tms_cutime = 0;	/* user time, children */
+-      tp->tms_cstime = 0;	/* system time, children */
+-    }
+-
+-  return tp->tms_utime;
+-}
