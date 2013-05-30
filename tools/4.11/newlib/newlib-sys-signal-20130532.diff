@@ -1,0 +1,34 @@
+Index: newlib/libc/include/sys/signal.h
+===================================================================
+RCS file: /cvs/src/src/newlib/libc/include/sys/signal.h,v
+retrieving revision 1.21
+diff -u -r1.21 signal.h
+--- newlib/libc/include/sys/signal.h	8 Aug 2012 11:04:16 -0000	1.21
++++ newlib/libc/include/sys/signal.h	22 Jan 2013 20:46:29 -0000
+@@ -101,6 +101,15 @@
+ #define sa_sigaction  _signal_handlers._sigaction
+ #endif
+ 
++/*
++ * Structure used in sigaltstack call.
++ */
++typedef struct sigalstack {
++  void     *ss_sp;    /* Stack base or pointer.  */
++  size_t    ss_size;  /* Stack size.  */
++  int       ss_flags; /* Flags.  */
++} stack_t;
++
+ #elif defined(__CYGWIN__)
+ #include <cygwin/signal.h>
+ #else
+@@ -158,6 +167,10 @@
+ int _EXFUN(sigsuspend, (const sigset_t *));
+ int _EXFUN(sigpause, (int));
+ 
++#if defined(__rtems__)
++int _EXFUN(sigaltstack, (const stack_t *, stack_t *));
++#endif
++
+ #if defined(_POSIX_THREADS)
+ #ifdef __CYGWIN__
+ #  ifndef _CYGWIN_TYPES_H
