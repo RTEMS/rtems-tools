@@ -62,6 +62,9 @@ class infotables:
             api = id.api()
             _class = id._class()
             index = id.index()
+        return self.object_return(api, _class, index)
+
+    def object_return(self, api, _class, index):
         n = self.name(api, _class)
         self.load(n)
         max = self.maximum(api, _class)
@@ -96,7 +99,7 @@ class ident:
         { 'index': (0, 15),
           'node':  (16, 23),
           'api':   (24, 26),
-          'class': (27, 31) } 
+          'class': (27, 31) }
         ]
 
     OBJECT_16_BITS = 0
@@ -147,7 +150,7 @@ class ident:
                    'variable_memory_pools',
                    'fixed_memory_pools')
         }
-    
+
     def __init__(self, id):
         if type(id) != gdb.Value and type(id) != int and type(id) != unicode:
             raise TypeError('%s: must be gdb.Value, int, unicoded int' % (type(id)))

@@ -14,7 +14,6 @@ def task_chain(chain):
     tasks = []
     node = chain.first()
     while not node.null():
-        print node.addr
         tasks.append(control(node.cast('Thread_Control')))
         node.next()
     return tasks
@@ -62,7 +61,7 @@ class state:
         WAITING_FOR_EVENT       | \
         WAITING_ON_THREAD_QUEUE | \
         INTERRUPTIBLE_BY_SIGNAL
-    
+
     masks = {
         ALL_SET : 'all-set',
         READY : 'ready',
@@ -85,7 +84,7 @@ class state:
         WAITING_FOR_BARRIER : 'waiting-for-barrier',
         WAITING_FOR_RWLOCK : 'waiting-for-rwlock'
         }
-        
+
     def __init__(self, s):
         self.s = s
 
@@ -121,16 +120,16 @@ class wait_info:
 
     def block2n(self):
         return task_chain(chains.control(self.info['Block2n']))
-        
+
     def queue(self):
         return task_chain(chains.control(self.info['queue']))
 
 class control:
-    
+
     def __init__(self, ctrl):
         self.ctrl = ctrl
         self.object = objects.control(ctrl['Object'])
-        
+
     def id(self):
         return self.object.id()
 
@@ -181,14 +180,15 @@ class queue:
 
     def state(self):
         return state(self.que['state']).to_string()
-        
+
     def tasks(self):
         if self.fifo():
             t = task_chain(chains.control(self.que['Queues']['Fifo']))
         else:
             t = []
             for ph in range(0, self.priority_headers):
-                t.extend(task_chain(chains.control(self.que['Queues']['Fifo'])))
+                t.extend(task_chain(chains.control( \
+                    self.que['Queues']['Priority'][ph])))
         return t
 
     def to_string(self):

@@ -14,21 +14,24 @@ class node:
         self.node_val = node_val
 
     def null(self):
-        return self.node_val['next'] == 0
+        if not self.node_val:
+            return True
+        return False
 
     def next(self):
         if not self.null():
-            self.node_val = self.node_val['next'].dereference()
+            self.node_val = self.node_val['next']
 
     def previous(self):
         if not self.null():
-            self.node_val = self.node_val['previous'].dereference()
+            self.node_val = self.node_val['previous']
 
     def cast(self, typename):
         if not self.null():
             nodetype = gdb.lookup_type(typename)
             return self.node_val.cast(nodetype)
         return None
+
 
 class control:
     """Manage the Chain_Control."""
@@ -37,7 +40,8 @@ class control:
         self.ctrl = ctrl
 
     def first(self):
-        return node(self.ctrl['first'].dereference())
+        t = node(self.ctrl['Head']['Node'])
+        return t
 
     def last(self):
         return node(self.ctrl['first'])
