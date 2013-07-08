@@ -72,12 +72,13 @@ class rtems_object(gdb.Command):
 
     objects = {
         'classic/semaphores': lambda id: classic.semaphore(id),
-        'classic/tasks': lambda id: classic.task(id)
+        'classic/tasks': lambda id: classic.task(id),
+        'classic/message_queues': lambda id: classic.message_queue(id)
         }
 
     def __init__(self):
         self.__doc__ = 'Display the RTEMS object given a numeric ID.'
-        super(rtems_object, self).__init__('rtems object', 
+        super(rtems_object, self).__init__('rtems object',
                                            gdb.COMMAND_STATUS)
 
     def invoke(self, arg, from_tty):
@@ -98,7 +99,7 @@ class rtems_object(gdb.Command):
                 object = self.objects[objectname](id)
                 object.show(from_tty)
         objects.information.invalidate()
-            
+
 #
 # Main
 #

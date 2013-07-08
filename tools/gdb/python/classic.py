@@ -36,7 +36,9 @@ class attribute:
                        'semaphore-pri-ceiling'],
         'barrier' : ['scope',
                      'priority',
-                     'barrier']
+                     'barrier'],
+        'message_queue' : ['priority',
+                           'scope']
         }
 
     masks = {
@@ -64,7 +66,7 @@ class attribute:
                            (0x00000040, 'inherit-pri')],
         'semaphore-pri-ceiling' : [(0x00000000, 'no-pri-ceiling'),
                                    (0x00000080, 'pri-ceiling')],
-        'barrier' : [(0x00000010, 'barrier-auto-release'), 
+        'barrier' : [(0x00000010, 'barrier-auto-release'),
                      (0x00000000, 'barrier-manual-release')],
         'task' : [(0x00000000, 'app-task'),
                   (0x00008000, 'sys-task')]
@@ -97,7 +99,7 @@ class attribute:
         return False
 
 class attribute_printer:
-    
+
     def __init__(self, attr):
         self.attr = attr
 
@@ -124,7 +126,7 @@ class semaphore_printer:
             if self.count == 1:
                 return self.semaphore['Object']
             elif self.count == 2:
-                attr = attribute(self.semaphore['attribute_set'], 
+                attr = attribute(self.semaphore['attribute_set'],
                                  'semaphore')
                 return attr.to_string()
             elif self.count == 3:
@@ -162,7 +164,7 @@ class semaphore:
         self.object = objects.information.object(self.id).dereference()
         self.object_control = objects.control(self.object['Object'])
         self.attr = attribute(self.object['attribute_set'], 'semaphore')
-        
+
     def show(self, from_tty):
         print '     Name:', self.object_control.name()
         print '     Attr:', self.attr.to_string()
@@ -202,7 +204,7 @@ class task:
         self.id = id;
         self.task = \
             threads.control(objects.information.object(self.id).dereference())
-        
+
     def show(self, from_tty):
         print '     Name:', self.task.name()
         print '    State:', self.task.current_state()
@@ -213,4 +215,17 @@ class task:
         print '  Preempt:', self.task.preemptible()
         print ' T Budget:', self.task.cpu_time_budget()
         wait_info = self.task.wait_info()
-        
+
+class message_queue:
+    "Print a classic messege queue"
+
+    def __init__(self,id):
+        self.id = id
+        self.object = objects.information.object(self.id).dereference()
+        self.object_control = objects.control(self.object['Object'])
+        self.attr = attribute(self.object['attribute_set'], \
+            'message_queue')
+
+    def show(self, from_tty):
+        print '     Name:', self.object_control.name()
+        print '     Attr:', self.attr.to_string()
