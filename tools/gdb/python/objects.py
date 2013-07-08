@@ -68,7 +68,7 @@ class infotables:
         n = self.name(api, _class)
         self.load(n)
         max = self.maximum(api, _class)
-        if index >= max:
+        if index > max:
             raise IndexError('object index out of range (%d)' % (max))
         table_type = self.tables_types[n]
         expr = '(' + table_type[0] + '*)' + \
