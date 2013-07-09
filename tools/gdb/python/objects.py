@@ -307,8 +307,8 @@ class name_printer:
     """Pretty printer for an object's name. It has to guess the type as no
     information is available to help determine it."""
 
-    def __init__(self, name):
-        self.name = name(name)
+    def __init__(self, nameval):
+        self.name = name(nameval)
 
     def to_string(self):
         return gdb.Value(str(self.name))

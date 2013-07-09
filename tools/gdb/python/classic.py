@@ -101,7 +101,7 @@ class attribute:
 class attribute_printer:
 
     def __init__(self, attr):
-        self.attr = attr
+        self.attr = attribute(attr,'all')
 
     def to_string(self):
         return gdb.Value(self.attr.to_string())
@@ -229,3 +229,5 @@ class message_queue:
     def show(self, from_tty):
         print '     Name:', self.object_control.name()
         print '     Attr:', self.attr.to_string()
+
+
