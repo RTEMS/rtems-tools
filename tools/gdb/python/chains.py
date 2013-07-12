@@ -32,6 +32,8 @@ class node:
             return self.node_val.cast(nodetype)
         return None
 
+    def to_string(self):
+        return self.node_val['next'] + "Prev: "+self.node_val['previous']
 
 class control:
     """Manage the Chain_Control."""
@@ -44,4 +46,5 @@ class control:
         return t
 
     def last(self):
-        return node(self.ctrl['first'])
+        return node(self.ctrl['Tail']['Node'])
+

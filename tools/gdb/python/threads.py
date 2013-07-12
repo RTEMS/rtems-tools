@@ -191,17 +191,5 @@ class queue:
                     self.que['Queues']['Priority'][ph])))
         return t
 
-    def to_string(self):
-        if self.fifo():
-            s = 'fifo'
-        else:
-            s = 'priority'
-        return
 
-class state_printer:
 
-    def __init__(self, s):
-        self.s = state(s)
-
-    def to_string(self):
-        return self.s.to_string()

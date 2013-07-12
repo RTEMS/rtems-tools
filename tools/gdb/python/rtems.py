@@ -12,6 +12,10 @@ import objects
 import threads
 import classic
 
+# ToDo: Move every printing out
+import supercore_printer
+import classic_printer
+
 nesting = 0
 
 def type_from_value(val):
@@ -50,13 +54,13 @@ def lookup_function (val):
     return None
 
 def build_rtems_dict():
-    pp_dict[re.compile('^rtems_id$')]   = lambda val: objects.id_printer(val)
-    pp_dict[re.compile('^Objects_Id$')] = lambda val: objects.id_printer(val)
-    pp_dict[re.compile('^Objects_Name$')] = lambda val: objects.name_printer(val)
-    pp_dict[re.compile('^Objects_Control$')] = lambda val: objects.control_printer(val)
-    pp_dict[re.compile('^States_Control$')] = lambda val: threads.state_printer(val)
-    pp_dict[re.compile('^rtems_attribute$')] = lambda val: classic.attribute_printer(val)
-    pp_dict[re.compile('^Semaphore_Control$')] = lambda val: classic.semaphore_printer(val)
+    pp_dict[re.compile('^rtems_id$')]   = lambda val: supercore_printer.id_printer(val)
+    pp_dict[re.compile('^Objects_Id$')] = lambda val: supercore_printer.id_printer(val)
+    pp_dict[re.compile('^Objects_Name$')] = lambda val: supercore_printer.name_printer(val)
+    pp_dict[re.compile('^Objects_Control$')] = lambda val: supercore_printer.control_printer(val)
+    pp_dict[re.compile('^States_Control$')] = lambda val: supercore_printer.state_printer(val)
+    pp_dict[re.compile('^rtems_attribute$')] = lambda val: classic_printer.attribute_printer(val)
+    pp_dict[re.compile('^Semaphore_Control$')] = lambda val: classic_printer.semaphore_printer(val)
 
 class rtems(gdb.Command):
     """Prefix command for RTEMS."""

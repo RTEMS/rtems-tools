@@ -247,71 +247,8 @@ class control:
         is_string = information.is_string(self._id.api(), self._id._class())
         return str(name(self.object['name'], is_string))
 
-class id_printer:
-    """Print an object given the ID. Print using the struct display hint and an
-    iterator."""
 
-    class iterator:
-        """Use an iterator for each field expanded from the id so GDB output
-        is formatted correctly."""
 
-        def __init__(self, id):
-            self.id = id
-            self.count = 0
-
-        def __iter__(self):
-            return self
-
-        def next(self):
-            self.count += 1
-            if self.count == 1:
-                return int(self.id.value())
-            elif self.count == 2:
-                return self.id.node()
-            elif self.count == 3:
-                return self.id.api()
-            elif self.count == 4:
-                return self.id._class()
-            elif self.count == 5:
-                return self.id.index()
-            raise StopIteration
-
-    def __init__(self, id):
-        self.id = ident(id)
-
-    def to_string(self):
-        return ''
-
-    @staticmethod
-    def key(i):
-        if i == 0:
-            return 'id'
-        elif i == 1:
-            return 'node'
-        elif i == 2:
-            return 'api'
-        elif i == 3:
-            return 'class'
-        elif i == 4:
-            return 'index'
-        return 'bad'
-
-    def children(self):
-        counter = itertools.imap (self.key, itertools.count())
-        return itertools.izip (counter, self.iterator(self.id))
-
-    def display_hint (self):
-        return 'struct'
-
-class name_printer:
-    """Pretty printer for an object's name. It has to guess the type as no
-    information is available to help determine it."""
-
-    def __init__(self, nameval):
-        self.name = name(nameval)
-
-    def to_string(self):
-        return gdb.Value(str(self.name))
 
 class control_printer:
 
