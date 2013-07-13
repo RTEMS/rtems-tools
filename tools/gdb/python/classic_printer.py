@@ -2,7 +2,7 @@
 # RTEMS Classic pretty printers for GDB
 #
 
-class attribute_printer:
+class attribute:
 
     def __init__(self, attribute):
         ''' ToDo: Verify - usage of all '''
@@ -11,8 +11,8 @@ class attribute_printer:
     def to_string(self):
         return gdb.Value(self.attr.to_string())
 
-class semaphore_printer:
-    """WIP: Print a Semaphore_Control object. Print using the struct display hint
+class semaphore:
+    """ToDo: Print a Semaphore_Control object. Print using the struct display hint
     and an iterator. """
 
     class iterator:

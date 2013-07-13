@@ -3,13 +3,7 @@
 #
 
 import threads
-
-# ToDo: Move this to helper.
-def tasks_printer_rotuine(wait_queue):
-    tasks = wait_queue.tasks()
-    print '    Queue: len = %d, state = %s' % (len(tasks),wait_queue.state())
-    for t in range(0, len(tasks)):
-        print '      ', tasks[t].brief(), ' (%08x)' % (tasks[t].id())
+import helper
 
 class CORE_message_queue:
     '''Manage a Supercore message_queue'''
@@ -21,4 +15,4 @@ class CORE_message_queue:
         # self.buffer
 
     def show(self):
-        tasks_printer_rotuine(self.wait_queue)
+        helper.tasks_printer_rotuine(self.wait_queue)

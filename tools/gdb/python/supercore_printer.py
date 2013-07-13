@@ -4,7 +4,7 @@
 import objects
 import itertools
 
-class id_printer:
+class id:
     """Print an object given the ID. Print using the struct display hint and an
     iterator."""
 
@@ -60,7 +60,7 @@ class id_printer:
     def display_hint (self):
         return 'struct'
 
-class name_printer:
+class name:
     """Pretty printer for an object's name. It has to guess the type as no
     information is available to help determine it."""
 
@@ -70,7 +70,7 @@ class name_printer:
     def to_string(self):
         return str(self.name)
 
-class control_printer:
+class control:
 
     class iterator:
         """Use an iterator for each field expanded from the id so GDB output
@@ -117,14 +117,14 @@ class control_printer:
         return 'struct'
 
 
-class state_printer:
+class state:
 
     def __init__(self, state):
         self.state = threads.state(state)
     def to_string(self):
         return self.state.to_string()
 
-class chains_printer:
+class chains:
 
     def __init__(self,chain):
         self.chain = chains.control(chain)
@@ -132,7 +132,7 @@ class chains_printer:
     def to_string(self):
         return "First:"+str(self.chain.first())+"\n Last:"+str(self.chain.last())
 
-class node_printer:
+class node:
     def __init__(self, node):
         self.node = chains.node(node)
 

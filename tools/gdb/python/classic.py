@@ -79,6 +79,7 @@ class attribute:
         self.attrtype = attrtype
         self.attr = attr
 
+    #ToDo: Move this out
     def to_string(self):
         s = '0x%08x,' % (self.attr)
         if self.attrtype != 'none':

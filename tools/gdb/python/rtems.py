@@ -54,13 +54,13 @@ def lookup_function (val):
     return None
 
 def build_rtems_dict():
-    pp_dict[re.compile('^rtems_id$')]   = lambda val: supercore_printer.id_printer(val)
-    pp_dict[re.compile('^Objects_Id$')] = lambda val: supercore_printer.id_printer(val)
-    pp_dict[re.compile('^Objects_Name$')] = lambda val: supercore_printer.name_printer(val)
-    pp_dict[re.compile('^Objects_Control$')] = lambda val: supercore_printer.control_printer(val)
-    pp_dict[re.compile('^States_Control$')] = lambda val: supercore_printer.state_printer(val)
-    pp_dict[re.compile('^rtems_attribute$')] = lambda val: classic_printer.attribute_printer(val)
-    pp_dict[re.compile('^Semaphore_Control$')] = lambda val: classic_printer.semaphore_printer(val)
+    pp_dict[re.compile('^rtems_id$')]   = lambda val: supercore_printer.id(val)
+    pp_dict[re.compile('^Objects_Id$')] = lambda val: supercore_printer.id(val)
+    pp_dict[re.compile('^Objects_Name$')] = lambda val: supercore_printer.name(val)
+    pp_dict[re.compile('^Objects_Control$')] = lambda val: supercore_printer.control(val)
+    pp_dict[re.compile('^States_Control$')] = lambda val: supercore_printer.state(val)
+    pp_dict[re.compile('^rtems_attribute$')] = lambda val: classic_printer.attribute(val)
+    pp_dict[re.compile('^Semaphore_Control$')] = lambda val: classic_printer.semaphore(val)
 
 class rtems(gdb.Command):
     """Prefix command for RTEMS."""

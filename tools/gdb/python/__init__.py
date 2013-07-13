@@ -13,7 +13,7 @@ if __name__ == "__main__":
     import supercore_printer
     import classic_printer
 
-    # Needed to reload code inside gdb source command
+    # Needed inorder to reload code from inside gdb
     reload(supercore)
     reload(chains)
     reload(rtems)
@@ -22,4 +22,5 @@ if __name__ == "__main__":
     reload(threads)
     reload(supercore_printer)
     reload(classic_printer)
+
     print 'RTEMS GDB Support loaded'
