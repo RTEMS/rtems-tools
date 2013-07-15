@@ -1,0 +1,55 @@
+The __cxa_atexit support is a reqirement for destructor registration of
+thread-local objects.
+
+For *-*-elf it is already enabled by default.  See comment line 810 in
+"gcc/config.gcc".
+
+Define TARGET_LIBGCC_SDATA_SECTION on PowerPC for RTEMS to ".sdata" to
+place the __dso_handle.  The __dso_handle is referenced by application
+code.  In case this code uses the small data section, the __dso_handle
+must be there.
+
+This patch should be committed to GCC 4.8 and 4.9.
+
+Test results:
+
+ href="http://gcc.gnu.org/ml/gcc-testresults/2013-07/msg00671.html
+
+gcc/ChangeLog
+2013-07-08  Sebastian Huber  &lt;sebastian.huber@embedded-brains.de&gt;
+
+	* config.gcc (*-*-rtems*): Use __cxa_atexit by default.
+	* config/rs6000/rtems.h (TARGET_LIBGCC_SDATA_SECTION): Define.
+---
+ gcc/config.gcc            |    1 +
+ gcc/config/rs6000/rtems.h |    3 +++
+ 2 files changed, 4 insertions(+), 0 deletions(-)
+
+diff --git a/gcc/config.gcc b/gcc/config.gcc
+index a927964..1648dfe 100644
+--- a/gcc/config.gcc
++++ b/gcc/config.gcc
+@@ -734,6 +734,7 @@ case ${target} in
+     yes) thread_file='rtems' ;;
+   esac
+   extra_options="${extra_options} rtems.opt"
++  default_use_cxa_atexit=yes
+   use_gcc_stdint=wrap
+   ;;
+ *-*-uclinux*)
+diff --git a/gcc/config/rs6000/rtems.h b/gcc/config/rs6000/rtems.h
+index b910b5e..fb22be1 100644
+--- a/gcc/config/rs6000/rtems.h
++++ b/gcc/config/rs6000/rtems.h
+@@ -34,6 +34,9 @@
+     }                                     \
+   while (0)
+
++#undef TARGET_LIBGCC_SDATA_SECTION
++#define TARGET_LIBGCC_SDATA_SECTION ".sdata"
++
+ #undef CPP_OS_DEFAULT_SPEC
+ #define CPP_OS_DEFAULT_SPEC "%(cpp_os_rtems)"
+
+--
+1.7.7
