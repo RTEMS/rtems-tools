@@ -14,7 +14,7 @@ class infotables:
 
     tables_types = {
         'classic/tasks'          : ('Thread_Control',        '_RTEMS_tasks_Information'),
-        'classic/timers'         : ('Timer_Control',         '_Timers_Information'),
+        'classic/timers'         : ('Timer_Control',         '_Timer_Information'),
         'classic/semaphores'     : ('Semaphore_Control',     '_Semaphore_Information'),
         'classic/message_queues' : ('Message_queue_Control', '_Message_queue_Information'),
         'classic/partitions'     : ('Partition_Control',     '_Partition_Information'),
