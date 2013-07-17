@@ -11,6 +11,7 @@ import re
 
 import objects
 import threads
+import watchdog
 import supercore
 
 class attribute:
@@ -180,3 +181,16 @@ class message_queue:
         print '     Attr:', self.attr.to_string()
 
         self.core_control.show()
+
+class timer:
+    '''Print a classic timer'''
+
+    def __init__(self, id):
+        self.id = id
+        self.object = objects.information.object(self.id).dereference()
+        self.object_control = objects.control(self.object['Object'])
+        self.watchdog = watchdog.control(self.object['Ticker'])
+
+    def show(self, from_tty):
+        print '     Name:', self.object_control.name()
+        self.watchdog.show()
