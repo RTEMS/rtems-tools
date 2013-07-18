@@ -882,9 +882,20 @@ namespace rld
             obj.secs[s].set_offset (pobj.secs[s]);
             sec_size[s] = obj.secs[s].offset + obj.secs[s].size ();
             sec_align[s] = obj.secs[s].alignment ();
-            sec_rela[s] = obj.secs[s].rela;
+            if (obj.secs[s].rela == true)
+              sec_rela[s] = obj.secs[s].rela;
           }
           ++poi;
+        }
+        else
+        {
+          for (int s = 0; s < rap_secs; ++s)
+          {
+            sec_size[s] =  obj.secs[s].size ();
+            sec_align[s] = obj.secs[s].alignment ();
+            if (obj.secs[s].rela == true)
+              sec_rela[s] = true;
+          }
         }
 
         collect_symbols (obj);
