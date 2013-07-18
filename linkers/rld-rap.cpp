@@ -59,13 +59,14 @@ namespace rld
      */
     struct relocation
     {
-      uint32_t    offset;   //< The offset in the section to apply the fixup.
-      uint32_t    info;     //< The ELF info record.
-      uint32_t    addend;   //< The ELF constant addend.
-      std::string symname;  //< The symbol name if there is one.
-      uint32_t    symtype;  //< The type of symbol.
-      int         symsect;  //< The symbol's RAP section.
-      uint32_t    symvalue; //< The symbol's default value.
+      uint32_t    offset;    //< The offset in the section to apply the fixup.
+      uint32_t    info;      //< The ELF info record.
+      uint32_t    addend;    //< The ELF constant addend.
+      std::string symname;   //< The symbol name if there is one.
+      uint32_t    symtype;   //< The type of symbol.
+      int         symsect;   //< The symbol's RAP section.
+      uint32_t    symvalue;  //< The symbol's default value.
+      uint32_t    symbinding;//< The symbol's binding.
 
       /**
        * Construct the relocation using the file relocation, the offset of the
@@ -430,7 +431,8 @@ namespace rld
         symname (reloc.symname),
         symtype (reloc.symtype),
         symsect (reloc.symsect),
-        symvalue (reloc.symvalue)
+        symvalue (reloc.symvalue),
+        symbinding (reloc.symbinding)
     {
     }
 
@@ -673,6 +675,7 @@ namespace rld
                     << " reloc.addend=" << freloc.addend
                     << " reloc.symtype=" << freloc.symtype
                     << " reloc.symsect=" << freloc.symsect
+                    << " reloc.symbinding=" << freloc.symbinding
                     << std::endl;
 
         sec.relocs.push_back (relocation (freloc, offset));
@@ -1268,7 +1271,7 @@ namespace rld
 
             offset = sec.offset + reloc.offset;
 
-            if (reloc.symtype == STT_SECTION)
+            if ((reloc.symtype == STT_SECTION) || (reloc.symbinding == STB_LOCAL))
             {
               int rap_symsect = obj.find (reloc.symsect);
 

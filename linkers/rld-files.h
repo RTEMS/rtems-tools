@@ -625,6 +625,7 @@ namespace rld
       const uint32_t    symtype;   //< The type of symbol.
       const int         symsect;   //< The symbol's section symbol.
       const uint32_t    symvalue;  //< The symbol's value.
+      const uint32_t    symbinding;//< The symbol's binding.
 
       /**
        * Construct from an ELF relocation record.

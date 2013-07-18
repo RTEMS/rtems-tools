@@ -910,7 +910,8 @@ namespace rld
         symname (er.symbol ().name ()),
         symtype (er.symbol ().type ()),
         symsect (er.symbol ().section_index ()),
-        symvalue (er.symbol ().value ())
+        symvalue (er.symbol ().value ()),
+        symbinding (er.symbol ().binding ())
     {
     }
 
