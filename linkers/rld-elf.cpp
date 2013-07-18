@@ -184,7 +184,11 @@ namespace rld
         name_ = file_.get_string (shdr.sh_name);
         data_ = ::elf_getdata (scn, 0);
         if (!data_)
-          libelf_error ("elf_getdata: " + name_ + '(' + file_.name () + ')');
+        {
+          data_ = ::elf_rawdata (scn, 0);
+          if (!data_)
+            libelf_error ("elf_getdata: " + name_ + '(' + file_.name () + ')');
+        }
       }
 
       if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
