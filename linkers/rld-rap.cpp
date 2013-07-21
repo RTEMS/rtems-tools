@@ -81,6 +81,18 @@ namespace rld
     typedef std::vector < relocation > relocations;
 
     /**
+     * Relocation symname sorter for the relocations container.
+     */
+    class reloc_symname_compare
+    {
+    public:
+      bool operator () (const relocation& lhs,
+                        const relocation& rhs) const {
+        return lhs.symname < rhs.symname;
+      }
+    };
+
+    /**
      * Relocation offset sorter for the relocations container.
      */
     class reloc_offset_compare
@@ -88,7 +100,9 @@ namespace rld
     public:
       bool operator () (const relocation& lhs,
                         const relocation& rhs) const {
-        return lhs.offset < rhs.offset;
+        if (lhs.symname == rhs.symname)
+          return lhs.offset < rhs.offset;
+        else return false;
       }
     };
 
@@ -681,6 +695,9 @@ namespace rld
         sec.relocs.push_back (relocation (freloc, offset));
       }
 
+      std::stable_sort (sec.relocs.begin (),
+                        sec.relocs.end (),
+                        reloc_symname_compare ());
       std::stable_sort (sec.relocs.begin (),
                         sec.relocs.end (),
                         reloc_offset_compare ());
