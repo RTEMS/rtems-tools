@@ -964,7 +964,7 @@ namespace rld
       {
         const symbols::symbol& sym = *(*ei);
 
-        if ((sym.type () == STT_OBJECT) || (sym.type () == STT_FUNC))
+        if ((sym.type () == STT_OBJECT) || (sym.type () == STT_FUNC) || (sym.type () == STT_NOTYPE))
         {
           if ((sym.binding () == STB_GLOBAL) || (sym.binding () == STB_WEAK))
           {
