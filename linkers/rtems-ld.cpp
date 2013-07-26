@@ -38,6 +38,7 @@
 
 #include <rld.h>
 #include <rld-cc.h>
+#include <rld-rap.h>
 #include <rld-outputter.h>
 #include <rld-process.h>
 #include <rld-resolver.h>
@@ -69,6 +70,7 @@ static struct option rld_opts[] = {
   { "exec-prefix", required_argument,      NULL,           'E' },
   { "march",       required_argument,      NULL,           'a' },
   { "mcpu",        required_argument,      NULL,           'c' },
+  { "rap-strip",   no_argument,            NULL,           'S' },
   { NULL,          0,                      NULL,            0 }
 };
 
@@ -109,6 +111,7 @@ usage (int exit_code)
             << " -E prefix : the RTEMS tool prefix (also --exec-prefix)" << std::endl
             << " -a march  : machine architecture (also --march)" << std::endl
             << " -c cpu    : machine architecture's CPU (also --mcpu)" << std::endl
+            << " -S        : do not include file details (also --rap-strip)" << std::endl
             << " -Wl,opts  : link compatible flags, ignored" << std::endl
             << "Output Formats:" << std::endl
             << " rap     - RTEMS application (LZ77, single image)" << std::endl
@@ -272,6 +275,10 @@ main (int argc, char* argv[])
 
         case 'b':
           base_name = optarg;
+          break;
+
+        case 'S':
+          rld::rap::add_obj_details = false;
           break;
 
         case 'W':

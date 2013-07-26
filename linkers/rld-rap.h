@@ -32,6 +32,11 @@ namespace rld
   namespace rap
   {
     /**
+     * Output details or not.
+     */
+     extern bool add_obj_details;
+
+    /**
      * The RAP relocation bit masks.
      */
     #define RAP_RELOC_RELA         (1UL << 31)

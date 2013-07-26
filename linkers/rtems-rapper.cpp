@@ -57,6 +57,19 @@
 namespace rap
 {
   /**
+   * The names of the RAP sections.
+   */
+  static const char* section_names[6] =
+  {
+    ".text",
+    ".const",
+    ".ctor",
+    ".dtor",
+    ".data",
+    ".bss"
+  };
+
+  /**
    * A relocation record.
    */
   struct relocation
@@ -108,6 +121,42 @@ namespace rap
   };
 
   /**
+   * Section detail
+   */
+  struct section_detail
+  {
+    uint32_t name;   //< The offset in the strtable.
+    uint32_t offset; //< The offset in the rap section.
+    uint32_t id;     //< The rap id.
+    uint32_t obj;    //< The obj id.
+
+    /* Constructor */
+    section_detail (const section_detail& s);
+    section_detail ();
+  };
+
+  section_detail::section_detail (const section_detail& s)
+    : name (s.name),
+      offset (s.offset),
+      id (s.id),
+      obj (s.obj)
+  {
+  }
+
+  section_detail::section_detail ()
+    : name (0),
+      offset (0),
+      id (0),
+      obj (0)
+  {
+  }
+
+  /**
+   * A container of section_detail
+   */
+  typedef std::list < section_detail > section_details;
+
+  /**
    * A RAP file.
    */
   struct file
@@ -145,6 +194,13 @@ namespace rap
     off_t       relocs_rap_off;
     uint32_t    relocs_size; /* not used */
 
+    off_t       detail_rap_off;
+    uint32_t    obj_num;
+    uint8_t**   obj_name;
+    uint32_t*   sec_num;
+    uint8_t*    str_detail;
+    section_details sec_details;
+
     section     secs[rld::rap::rap_secs];
 
     /**
@@ -171,6 +227,11 @@ namespace rap
      * Expand the image.
      */
     void expand ();
+
+    /**
+     * Load details.
+     */
+    void load_details(rld::compress::compressor& comp);
 
     /**
      * The name.
@@ -323,6 +384,11 @@ namespace rap
       symtab (0),
       relocs_rap_off (0),
       relocs_size (0),
+      detail_rap_off (0),
+      obj_num (0),
+      obj_name (0),
+      sec_num (0),
+      str_detail (0),
       warnings (warnings),
       image (name)
   {
@@ -340,6 +406,13 @@ namespace rap
       delete [] symtab;
     if (strtab)
       delete [] strtab;
+    if (obj_name)
+      delete [] obj_name;
+    if (sec_num)
+      delete [] sec_num;
+    if (str_detail)
+      delete [] str_detail;
+
   }
 
   void
@@ -414,6 +487,44 @@ namespace rap
   }
 
   void
+  file::load_details (rld::compress::compressor& comp)
+  {
+    uint32_t tmp;
+
+    obj_name = new uint8_t*[obj_num];
+
+    sec_num = new uint32_t[obj_num];
+
+    /* how many sections of each object file */
+    for (uint32_t i = 0; i < obj_num; i++)
+    {
+      comp >> tmp;
+      sec_num[i] = tmp;
+    }
+
+    /* strtable size */
+    comp >> tmp;
+    str_detail = new uint8_t[tmp];
+    if (comp.read (str_detail, tmp) != tmp)
+      throw rld::error ("Reading file str details error", "rapper");
+
+    section_detail sec;
+
+    for (uint32_t i = 0; i < obj_num; i++)
+    {
+      sec.obj = i;
+      for (uint32_t j = 0; j < sec_num[i]; j++)
+      {
+        comp >> sec.name;
+        comp >> tmp;
+        sec.offset = tmp & 0xfffffff;
+        sec.id = tmp >> 28;
+
+        sec_details.push_back (section_detail (sec));
+      }
+    }
+  }
+  void
   file::load ()
   {
     image.seek (rhdr_len);
@@ -443,6 +554,16 @@ namespace rap
          >> symtab_size
          >> strtab_size
          >> relocs_size;
+
+    /*
+     * Load the file details.
+     */
+    detail_rap_off = comp.offset ();
+
+    comp >> obj_num;
+
+    if (obj_num > 0)
+      load_details(comp);
 
     /*
      * uint32_t: text_size
@@ -575,7 +696,8 @@ rap_show (rld::files::paths& raps,
           bool               show_layout,
           bool               show_strings,
           bool               show_symbols,
-          bool               show_relocs)
+          bool               show_relocs,
+          bool               show_details)
 {
   for (rld::files::paths::iterator pi = raps.begin();
        pi != raps.end();
@@ -668,6 +790,49 @@ rap_show (rld::files::paths& raps,
                 << " 0x" << std::setw (8) << r.relocs_rap_off
                 << std::setfill (' ') << std::dec
                 << " (" << r.relocs_rap_off << ')' << std::endl;
+    }
+
+    if (show_details)
+    {
+      std::cout << " Details: 0x"
+                << std::hex << std::setfill ('0')
+                << std::setw (8) << r.detail_rap_off
+                << std::setfill (' ') << std::dec
+                << " (" << r.detail_rap_off << ')' << std::endl;
+
+      if (r.obj_num == 0)
+        std::cout << " No details" << std::endl;
+      else
+        std::cout << ' ' << r.obj_num <<" Files" << std::endl;
+
+      uint32_t pos = 0;
+      for (uint32_t i = 0; i < r.obj_num; ++i)
+      {
+        r.obj_name[i] = (uint8_t*) &r.str_detail[pos];
+        pos += ::strlen ((char*) &r.str_detail[pos]) + 1;
+      }
+
+      for (uint32_t i = 0; i < r.obj_num; ++i)
+      {
+        std::cout << " File: " << r.obj_name[i] << std::endl;
+
+        for (rap::section_details::const_iterator sd = r.sec_details.begin ();
+             sd != r.sec_details.end ();
+             ++sd)
+        {
+          rap::section_detail tmp = *sd;
+          if (tmp.obj == i)
+          {
+            std::cout << std::setw (12) << "name:"
+                      << std::setw (16) << (char*)&r.str_detail[tmp.name]
+                      << " rap_section:"<< std::setw (8)
+                      << rap::section_names[tmp.id]
+                      << std::hex << " offset:0x" << tmp.offset << std::dec
+                      << std::endl;
+
+          }
+        }
+      }
     }
 
     if (show_strings)
@@ -766,7 +931,6 @@ rap_show (rld::files::paths& raps,
       }
     }
   }
-
 }
 
 void
@@ -911,7 +1075,8 @@ usage (int exit_code)
             << " -S        : show symbols (also --symbols)" << std::endl
             << " -r        : show relocations (also --relocs)" << std::endl
             << " -o        : linkage overlay (also --overlay)" << std::endl
-            << " -x        : expand (also --expand)" << std::endl;
+            << " -x        : expand (also --expand)" << std::endl
+            << " -f        : show file details" << std::endl;
   ::exit (exit_code);
 }
 
@@ -967,12 +1132,13 @@ main (int argc, char* argv[])
     bool              show_strings = false;
     bool              show_symbols = false;
     bool              show_relocs = false;
+    bool              show_details = false;
     bool              overlay = false;
     bool              expand = false;
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvVnaHlsSrox", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvVnaHlsSroxf", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -1000,6 +1166,7 @@ main (int argc, char* argv[])
           show_strings = true;
           show_symbols = true;
           show_relocs = true;
+          show_details = true;
           break;
 
         case 'H':
@@ -1040,6 +1207,10 @@ main (int argc, char* argv[])
           expand = true;
           break;
 
+        case 'f':
+          show_details = true;
+          break;
+
         case '?':
         case 'h':
           usage (0);
@@ -1072,7 +1243,8 @@ main (int argc, char* argv[])
                 show_layout,
                 show_strings,
                 show_symbols,
-                show_relocs);
+                show_relocs,
+                show_details);
 
     if (overlay)
       rap_overlay (raps, warnings);

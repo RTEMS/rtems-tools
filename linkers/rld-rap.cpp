@@ -41,6 +41,12 @@ namespace rld
 {
   namespace rap
   {
+
+    /**
+     * Output details or not.
+     */
+    bool add_obj_details = true;
+
     /**
      * The names of the RAP sections.
      */
@@ -146,6 +152,24 @@ namespace rld
      * order so the alignments match up with the layout.
      */
     typedef std::vector < int > osecindexes;
+
+    /**
+     * Section detail will be written into RAP file
+     */
+    struct section_detail
+    {
+      uint32_t name;   //< The offset in the strtable.
+      uint32_t offset; //< The offset in the rap section.
+      uint32_t id;     //< The rap id.
+
+      /* Constructor */
+      section_detail (uint32_t name, uint32_t offset, uint32_t id);
+    };
+
+    /*
+     * A container of section detail
+     */
+    typedef std::list < section_detail > section_details;
 
     /**
      * The RAP section data.
@@ -369,6 +393,11 @@ namespace rld
       void write_relocations (compress::compressor& comp);
 
       /**
+       * Write the details of the files.
+       */
+      void write_details (compress::compressor& comp);
+
+      /**
        * The total number of relocations for a specific RAP section in the
        * image.
        */
@@ -447,6 +476,15 @@ namespace rld
         symsect (reloc.symsect),
         symvalue (reloc.symvalue),
         symbinding (reloc.symbinding)
+    {
+    }
+
+    section_detail::section_detail (uint32_t name,
+                                    uint32_t offset,
+                                    uint32_t id)
+      : name (name),
+        offset (offset),
+        id (id)
     {
     }
 
@@ -1034,6 +1072,18 @@ namespace rld
            << (uint32_t) 0;
 
       /*
+       * Output file details
+       */
+      if (add_obj_details)
+      {
+        write_details (comp);
+      }
+      else
+      {
+        comp << (uint32_t)0; /* No file details */
+      }
+
+      /*
        * The sections.
        */
       for (int s = 0; s < rap_secs; ++s)
@@ -1379,6 +1429,103 @@ namespace rld
       }
     }
 
+    void image::write_details (compress::compressor& comp)
+    {
+
+      std::string strtable;
+      uint32_t pos = 0;
+
+      section_details s_details;
+
+      if (rld::verbose () >= RLD_VERBOSE_TRACE)
+      {
+        std::cout << "rap:file details" << std::endl
+                  << "  total " << objs.size () <<" files" << std::endl;
+      }
+
+      comp << (uint32_t)(objs.size ());
+
+      for (objects::iterator oi = objs.begin ();
+           oi != objs.end ();
+           ++oi)
+      {
+          object& obj = *oi;
+
+          /* obj full name */
+          strtable += obj.obj.name ().full ();
+          strtable += '\0';
+      }
+
+      pos = strtable.length ();
+
+      uint32_t sec_num = 0;
+      for (objects::iterator oi = objs.begin ();
+           oi != objs.end ();
+           ++oi)
+      {
+        object& obj = *oi;
+
+        if (rld::verbose () >= RLD_VERBOSE_TRACE)
+          std::cout << "file:" << obj.obj.name ().full () << std::endl;
+
+        for (int s = 0; s < rap_secs; ++s)
+        {
+          section& sec = obj.secs[s];
+
+          if (rld::verbose () >= RLD_VERBOSE_TRACE)
+          {
+            std::cout << "rap:section: " << sec.name << " "
+                         "offset= " << sec.offset << std::endl;
+          }
+
+          for (size_t si = 0; si < sec.osindexes.size (); ++si)
+          {
+            const osection& osec = sec.get_osection (sec.osindexes[si]);
+
+            strtable += osec.name;
+            strtable += '\0';
+
+            /* sec.offset + osec.offset is the offset in the rap section */
+            s_details.push_back (section_detail (pos, sec.offset + osec.offset, s));
+
+            pos = strtable.length ();
+
+            if (rld::verbose () >= RLD_VERBOSE_TRACE)
+            {
+              std::cout << "osec.name=" << osec.name << " "
+                        << "osec.offset=" << osec.offset << " "
+                        << "osec.size=" << osec.size << std::endl;
+            }
+          }
+        }
+
+        /* Output section numbers*/
+        comp << (uint32_t)((s_details.size () - sec_num));
+        if (rld::verbose () >= RLD_VERBOSE_TRACE)
+          std::cout << "sec_num:" << s_details.size () - sec_num  << std::endl;
+        sec_num = s_details.size ();
+      }
+
+      comp << (uint32_t)(strtable.size ());
+      if (rld::verbose () >= RLD_VERBOSE_TRACE)
+        std::cout << "total detail size:" << strtable.size () << std::endl;
+
+      comp << strtable;
+
+      for (section_details::const_iterator si = s_details.begin ();
+           si != s_details.end ();
+           ++si)
+      {
+        const section_detail& sec_detail = *si;
+        comp << (uint32_t)(sec_detail.name);
+
+        if (sec_detail.id > 0xf)
+          std::cout << "Out max rap section id 15\n" << std::endl;
+
+        comp << (uint32_t)((sec_detail.id << 28) | sec_detail.offset);
+      }
+    }
+
     uint32_t
     image::get_relocations (int sec) const
     {
@@ -1450,7 +1597,7 @@ namespace rld
     {
       std::string header;
 
-      header = "RAP,00000000,0001,LZ77,00000000\n";
+      header = "RAP,00000000,0002,LZ77,00000000\n";
       app.write (header.c_str (), header.size ());
 
       compress::compressor compressor (app, 2 * 1024);
