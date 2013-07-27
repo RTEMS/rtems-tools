@@ -1,6 +1,8 @@
 #
 # RTEMS Classic pretty printers for GDB
 #
+import classic
+import gdb
 
 class attribute:
 
@@ -12,7 +14,7 @@ class attribute:
         return gdb.Value(self.attr.to_string())
 
 class semaphore:
-    """ToDo: Print a Semaphore_Control object. Print using the struct display hint
+    """Print a Semaphore_Control object. Print using the struct display hint
     and an iterator. """
 
     class iterator:

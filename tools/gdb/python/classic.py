@@ -40,7 +40,8 @@ class attribute:
                      'priority',
                      'barrier'],
         'message_queue' : ['priority',
-                           'scope']
+                           'scope'],
+        'partition' : ['scope']
         }
 
     masks = {
@@ -163,7 +164,7 @@ class task:
         wait_info = self.task.wait_info()
 
 class message_queue:
-    "Print a classic messege queue"
+    "Print classic messege queue"
 
     def __init__(self,id):
         self.id = id
@@ -194,3 +195,25 @@ class timer:
     def show(self, from_tty):
         print '     Name:', self.object_control.name()
         self.watchdog.show()
+
+class partition:
+    ''' Print a rtems partition '''
+
+    def __init__(self, id):
+        self.id = id
+        self.object = objects.information.object(self.id).dereference()
+        self.object_control = objects.control(self.object['Object'])
+        self.attr = attribute(self.object['attribute_set'], 'partition')
+        self.starting_addr = self.object['starting_address']
+        self.length = self.object['length']
+        self.buffer_size = self.object['buffer_size']
+        self.used_blocks = self.object['number_of_used_blocks']
+
+    def show(self, from_tty):
+        # ToDo: the printing still somewhat crude.
+        print '     Name:', self.object_control.name()
+        print '     Attr:', self.attr.to_string()
+        print '   Length:', self.length
+        print 'Buffer Size:', self.buffer_size
+        print 'Used Blocks:', self.used_blocks
+
