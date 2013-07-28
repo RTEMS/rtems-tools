@@ -18,7 +18,7 @@ class infotables:
         'classic/semaphores'     : ('Semaphore_Control',     '_Semaphore_Information'),
         'classic/message_queues' : ('Message_queue_Control', '_Message_queue_Information'),
         'classic/partitions'     : ('Partition_Control',     '_Partition_Information'),
-        'classic/regions'        : ('Region_Control',        '_Regions_Information'),
+        'classic/regions'        : ('Region_Control',        '_Region_Information'),
         'classic/ports'          : ('Port_Control',          '_Port_Information'),
         'classic/periods'        : ('Period_Control',        '_Period_Information'),
         'classic/extensions'     : ('Extension_Control',     '_Extension_Information'),

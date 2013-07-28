@@ -15,4 +15,4 @@ class CORE_message_queue:
         # self.buffer
 
     def show(self):
-        helper.tasks_printer_rotuine(self.wait_queue)
+        helper.tasks_printer_routine(self.wait_queue)

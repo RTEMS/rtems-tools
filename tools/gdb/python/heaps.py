@@ -15,6 +15,8 @@ class block:
             return False
         return True
 
+    def val(self):
+        return str(self.block)
 
     def next(self):
         if not self.null():
@@ -25,10 +27,14 @@ class block:
             self.block = self.block['prev']
 
 class stats:
-    ''heap statistics''
+    '''heap statistics'''
 
     def __init__(self,stat):
         self.stat = stat
+
+    def inst(self):
+        i = self.stat['instance']
+        return i
 
     def avail(self):
         val = self.stat['size']
@@ -37,9 +43,14 @@ class stats:
     def free(self):
         return self.stat['free_size']
 
+    def show(self):
+        print '  Instance:',self.inst()
+        print '     Avail:',self.avail()
+        print '      Free:',self.free()
+
     # ToDo : incorporate others
 
-def control:
+class control:
     '''Abstract a heap control structure'''
 
     def __init__(self, ctl):
@@ -60,3 +71,14 @@ def control:
     def stat(self):
         st = stats(self.ctl['stats'])
         return st
+
+    def show(self):
+        fi = self.first()
+        la = self.last()
+
+        print '     First:', fi.val()
+        print '      Last:', la.val()
+
+        stats = self.stat()
+        print '    stats:'
+        stats.show()

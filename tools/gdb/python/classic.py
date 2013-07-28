@@ -8,10 +8,13 @@
 import gdb
 import itertools
 import re
+#ToDo This shouldn't be here
+import helper
 
 import objects
 import threads
 import watchdog
+import heaps
 import supercore
 
 class attribute:
@@ -41,7 +44,8 @@ class attribute:
                      'barrier'],
         'message_queue' : ['priority',
                            'scope'],
-        'partition' : ['scope']
+        'partition' : ['scope'],
+        'region' : ['priority']
         }
 
     masks = {
@@ -214,6 +218,23 @@ class partition:
         print '     Name:', self.object_control.name()
         print '     Attr:', self.attr.to_string()
         print '   Length:', self.length
-        print 'Buffer Size:', self.buffer_size
-        print 'Used Blocks:', self.used_blocks
+        print '   B Size:', self.buffer_size
+        print ' U Blocks:', self.used_blocks
 
+class region:
+    "prints a classic region"
+
+    def __init__(self,id):
+        self.id = id
+        self.object = objects.information.object(self.id).dereference()
+        self.object_control = objects.control(self.object['Object'])
+        self.attr = attribute(self.object['attribute_set'], 'region')
+        self.wait_queue = threads.queue(self.object['Wait_queue'])
+        self.heap = heaps.control(self.object['Memory'])
+
+    def show(self, from_tty):
+        print '     Name:', self.object_control.name()
+        print '     Attr:', self.attr.to_string()
+        helper.tasks_printer_routine(self.wait_queue)
+        print '   Memory:'
+        self.heap.show()

@@ -79,7 +79,8 @@ class rtems_object(gdb.Command):
         'classic/tasks': lambda id: classic.task(id),
         'classic/message_queues': lambda id: classic.message_queue(id),
         'classic/timers' : lambda id: classic.timer(id),
-        'classic/partitions' : lambda id: classic.partition(id)
+        'classic/partitions' : lambda id: classic.partition(id),
+        'classic/regions' : lambda id: classic.region(id)
         }
 
     def __init__(self):
