@@ -39,9 +39,7 @@ class attribute:
                        'semaphore-type',
                        'semaphore-pri',
                        'semaphore-pri-ceiling'],
-        'barrier' : ['scope',
-                     'priority',
-                     'barrier'],
+        'barrier' : ['barrier'],
         'message_queue' : ['priority',
                            'scope'],
         'partition' : ['scope'],
@@ -149,7 +147,7 @@ class semaphore:
             print 'semaphore'
 
 class task:
-    "Print a classic tasks."
+    "Print a classic task"
 
     def __init__(self, id):
         self.id = id;
@@ -179,7 +177,7 @@ class message_queue:
         self.wait_queue = threads.queue( \
             self.object['message_queue']['Wait_queue'])
 
-        self.core_control = supercore.CORE_message_queue(self.object['message_queue'])
+        self.core_control = supercore.message_queue(self.object['message_queue'])
 
     def show(self, from_tty):
         print '     Name:', self.object_control.name()
@@ -238,3 +236,25 @@ class region:
         helper.tasks_printer_routine(self.wait_queue)
         print '   Memory:'
         self.heap.show()
+
+class barrier:
+    '''classic barrier abstraction'''
+
+    def __init__(self,id):
+        self.id = id
+        self.object = objects.information.object(self.id).dereference()
+        self.object_control = objects.control(self.object['Object'])
+        self.attr = attribute(self.object['attribute_set'],'barrier')
+        self.core_b_control = supercore.barrier_control(self.object['Barrier'])
+
+    def show(self,from_tty):
+        print '     Name:',self.object_control.name()
+        print '     Attr:',self.attr.to_string()
+
+        if self.attr.test('barrier','barrier-auto-release'):
+            max_count = self.core_b_control.max_count()
+            print 'Aut Count:', max_count
+
+        print '  Waiting:',self.core_b_control.waiting_threads()
+        helper.tasks_printer_routine(self.core_b_control.tasks())
+
