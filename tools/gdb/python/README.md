@@ -7,3 +7,4 @@ See [this blog post for instructions](http://dbalan.github.io/blog/2013/06/23/de
 
 TODO:
  - classic abstractions address on id - change this to more proper hierarchy.
+ - Inherit from object_control class
