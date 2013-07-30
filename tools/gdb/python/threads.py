@@ -145,12 +145,6 @@ class control:
     def real_priority(self):
         return self.ctrl['real_priority']
 
-    def suspends(self):
-        return self.ctrl['suspend_count']
-
-    def post_task_switch_ext(self):
-        return self.ctrl['do_post_task_switch_extension']
-
     def preemptible(self):
         return self.ctrl['is_preemptible']
 

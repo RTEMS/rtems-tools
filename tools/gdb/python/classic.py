@@ -153,17 +153,16 @@ class task:
         self.id = id;
         self.task = \
             threads.control(objects.information.object(self.id).dereference())
+        self.wait_info = self.task.wait_info()
 
     def show(self, from_tty):
         print '     Name:', self.task.name()
         print '    State:', self.task.current_state()
         print '  Current:', self.task.current_priority()
         print '     Real:', self.task.real_priority()
-        print ' Suspends:', self.task.suspends()
-        print ' Post Ext:', self.task.post_task_switch_ext()
         print '  Preempt:', self.task.preemptible()
         print ' T Budget:', self.task.cpu_time_budget()
-        wait_info = self.task.wait_info()
+
 
 class message_queue:
     "Print classic messege queue"

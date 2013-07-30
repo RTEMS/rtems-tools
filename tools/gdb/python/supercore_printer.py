@@ -3,6 +3,7 @@
 #
 import objects
 import itertools
+import threads
 
 class id:
     """Print an object given the ID. Print using the struct display hint and an
