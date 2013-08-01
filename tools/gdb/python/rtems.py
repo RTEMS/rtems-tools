@@ -75,13 +75,13 @@ class rtems_object(gdb.Command):
     """Object sub-command for RTEMS"""
 
     objects = {
-        'classic/semaphores': lambda id: classic.semaphore(id),
-        'classic/tasks': lambda id: classic.task(id),
-        'classic/message_queues': lambda id: classic.message_queue(id),
-        'classic/timers' : lambda id: classic.timer(id),
-        'classic/partitions' : lambda id: classic.partition(id),
-        'classic/regions' : lambda id: classic.region(id),
-        'classic/barriers' : lambda id: classic.barrier(id)
+        'classic/semaphores': lambda obj: classic.semaphore(obj),
+        'classic/tasks': lambda obj: classic.task(obj),
+        'classic/message_queues': lambda obj: classic.message_queue(obj),
+        'classic/timers' : lambda obj: classic.timer(obj),
+        'classic/partitions' : lambda obj: classic.partition(obj),
+        'classic/regions' : lambda obj: classic.region(obj),
+        'classic/barriers' : lambda obj: classic.barrier(obj)
         }
 
     def __init__(self):
@@ -103,8 +103,10 @@ class rtems_object(gdb.Command):
             print 'API:%s Class:%s Node:%d Index:%d Id:%08X' % \
                 (id.api(), id._class(), id.node(), id.index(), id.value())
             objectname = id.api() + '/' + id._class()
+
+            obj = objects.information.object(id).dereference()
             if objectname in self.objects:
-                object = self.objects[objectname](id)
+                object = self.objects[objectname](obj)
                 object.show(from_tty)
         objects.information.invalidate()
 

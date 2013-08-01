@@ -108,9 +108,8 @@ class attribute:
 class semaphore:
     "Print a classic semaphore."
 
-    def __init__(self, id):
-        self.id = id;
-        self.object = objects.information.object(self.id).dereference()
+    def __init__(self, obj):
+        self.object = obj
         self.object_control = objects.control(self.object['Object'])
         self.attr = attribute(self.object['attribute_set'], 'semaphore')
 
@@ -149,10 +148,10 @@ class semaphore:
 class task:
     "Print a classic task"
 
-    def __init__(self, id):
-        self.id = id;
+    def __init__(self, obj):
+        self.object = obj
         self.task = \
-            threads.control(objects.information.object(self.id).dereference())
+            threads.control(self.object)
         self.wait_info = self.task.wait_info()
 
     def show(self, from_tty):
@@ -167,9 +166,8 @@ class task:
 class message_queue:
     "Print classic messege queue"
 
-    def __init__(self,id):
-        self.id = id
-        self.object = objects.information.object(self.id).dereference()
+    def __init__(self,obj):
+        self.object = obj
         self.object_control = objects.control(self.object['Object'])
         self.attr = attribute(self.object['attribute_set'], \
             'message_queue')
@@ -187,9 +185,8 @@ class message_queue:
 class timer:
     '''Print a classic timer'''
 
-    def __init__(self, id):
-        self.id = id
-        self.object = objects.information.object(self.id).dereference()
+    def __init__(self, obj):
+        self.object = obj
         self.object_control = objects.control(self.object['Object'])
         self.watchdog = watchdog.control(self.object['Ticker'])
 
@@ -200,9 +197,8 @@ class timer:
 class partition:
     ''' Print a rtems partition '''
 
-    def __init__(self, id):
-        self.id = id
-        self.object = objects.information.object(self.id).dereference()
+    def __init__(self, obj):
+        self.object = obj
         self.object_control = objects.control(self.object['Object'])
         self.attr = attribute(self.object['attribute_set'], 'partition')
         self.starting_addr = self.object['starting_address']
@@ -221,9 +217,8 @@ class partition:
 class region:
     "prints a classic region"
 
-    def __init__(self,id):
-        self.id = id
-        self.object = objects.information.object(self.id).dereference()
+    def __init__(self,obj):
+        self.object = obj
         self.object_control = objects.control(self.object['Object'])
         self.attr = attribute(self.object['attribute_set'], 'region')
         self.wait_queue = threads.queue(self.object['Wait_queue'])
@@ -239,9 +234,8 @@ class region:
 class barrier:
     '''classic barrier abstraction'''
 
-    def __init__(self,id):
-        self.id = id
-        self.object = objects.information.object(self.id).dereference()
+    def __init__(self,obj):
+        self.object = obj
         self.object_control = objects.control(self.object['Object'])
         self.attr = attribute(self.object['attribute_set'],'barrier')
         self.core_b_control = supercore.barrier_control(self.object['Barrier'])
