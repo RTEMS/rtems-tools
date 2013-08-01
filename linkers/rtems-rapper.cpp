@@ -128,6 +128,7 @@ namespace rap
     uint32_t name;   //< The offset in the strtable.
     uint32_t offset; //< The offset in the rap section.
     uint32_t id;     //< The rap id.
+    uint32_t size;   //< The size of the elf section.
     uint32_t obj;    //< The obj id.
 
     /* Constructor */
@@ -139,6 +140,7 @@ namespace rap
     : name (s.name),
       offset (s.offset),
       id (s.id),
+      size (s.size),
       obj (s.obj)
   {
   }
@@ -147,6 +149,7 @@ namespace rap
     : name (0),
       offset (0),
       id (0),
+      size (0),
       obj (0)
   {
   }
@@ -519,6 +522,7 @@ namespace rap
         comp >> tmp;
         sec.offset = tmp & 0xfffffff;
         sec.id = tmp >> 28;
+        comp >> sec.size;
 
         sec_details.push_back (section_detail (sec));
       }
@@ -827,8 +831,10 @@ rap_show (rld::files::paths& raps,
                       << std::setw (16) << (char*)&r.str_detail[tmp.name]
                       << " rap_section:"<< std::setw (8)
                       << rap::section_names[tmp.id]
-                      << std::hex << " offset:0x" << tmp.offset << std::dec
-                      << std::endl;
+                      << std::hex << std::setfill ('0')
+                      << " offset:0x" << std::setw (8) << tmp.offset
+                      << " size:0x" << std::setw (8) << tmp.size << std::dec
+                      << std::setfill (' ') << std::endl;
 
           }
         }

@@ -161,9 +161,10 @@ namespace rld
       uint32_t name;   //< The offset in the strtable.
       uint32_t offset; //< The offset in the rap section.
       uint32_t id;     //< The rap id.
+      uint32_t size;   //< The size of the section.
 
       /* Constructor */
-      section_detail (uint32_t name, uint32_t offset, uint32_t id);
+      section_detail (uint32_t name, uint32_t offset, uint32_t id, uint32_t size);
     };
 
     /*
@@ -481,10 +482,12 @@ namespace rld
 
     section_detail::section_detail (uint32_t name,
                                     uint32_t offset,
-                                    uint32_t id)
+                                    uint32_t id,
+                                    uint32_t size)
       : name (name),
         offset (offset),
-        id (id)
+        id (id),
+        size (size)
     {
     }
 
@@ -1486,7 +1489,10 @@ namespace rld
             strtable += '\0';
 
             /* sec.offset + osec.offset is the offset in the rap section */
-            s_details.push_back (section_detail (pos, sec.offset + osec.offset, s));
+            s_details.push_back (section_detail (pos,
+                                                 sec.offset + osec.offset,
+                                                 s,
+                                                 osec.size));
 
             pos = strtable.length ();
 
@@ -1523,6 +1529,7 @@ namespace rld
           std::cout << "Out max rap section id 15\n" << std::endl;
 
         comp << (uint32_t)((sec_detail.id << 28) | sec_detail.offset);
+        comp << (uint32_t)(sec_detail.size);
       }
     }
 
