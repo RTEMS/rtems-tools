@@ -100,6 +100,8 @@ class rtems_object(gdb.Command):
             id = objects.ident(num)
             if not id.valid():
                 print 'Invalid object id'
+                return
+
             print 'API:%s Class:%s Node:%d Index:%d Id:%08X' % \
                 (id.api(), id._class(), id.node(), id.index(), id.value())
             objectname = id.api() + '/' + id._class()
