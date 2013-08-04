@@ -71,6 +71,7 @@ static struct option rld_opts[] = {
   { "march",       required_argument,      NULL,           'a' },
   { "mcpu",        required_argument,      NULL,           'c' },
   { "rap-strip",   no_argument,            NULL,           'S' },
+  { "rpath",       required_argument,      NULL,           'R' },
   { NULL,          0,                      NULL,            0 }
 };
 
@@ -112,6 +113,7 @@ usage (int exit_code)
             << " -a march  : machine architecture (also --march)" << std::endl
             << " -c cpu    : machine architecture's CPU (also --mcpu)" << std::endl
             << " -S        : do not include file details (also --rap-strip)" << std::endl
+            << " -R        : include file paths (also --rpath)" << std::endl
             << " -Wl,opts  : link compatible flags, ignored" << std::endl
             << "Output Formats:" << std::endl
             << " rap     - RTEMS application (LZ77, single image)" << std::endl
@@ -190,7 +192,7 @@ main (int argc, char* argv[])
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvwVMnb:E:o:O:L:l:a:c:e:d:u:C:W:", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvwVMnb:E:o:O:L:l:a:c:e:d:u:C:W:R", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -279,6 +281,11 @@ main (int argc, char* argv[])
 
         case 'S':
           rld::rap::add_obj_details = false;
+          break;
+
+        case 'R':
+          rld::rap::rpath += optarg;
+          rld::rap::rpath += '\0';
           break;
 
         case 'W':

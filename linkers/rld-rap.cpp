@@ -48,6 +48,11 @@ namespace rld
     bool add_obj_details = true;
 
     /**
+     * Store the path of object files.
+     */
+    std::string rpath;
+
+    /**
      * The names of the RAP sections.
      */
     static const char* section_names[rap_secs] =
@@ -1440,6 +1445,7 @@ namespace rld
 
       section_details s_details;
 
+
       if (rld::verbose () >= RLD_VERBOSE_TRACE)
       {
         std::cout << "rap:file details" << std::endl
@@ -1447,6 +1453,19 @@ namespace rld
       }
 
       comp << (uint32_t)(objs.size ());
+
+      /* rpath for rap file */
+      if (rld::verbose () >= RLD_VERBOSE_TRACE)
+      {
+        std::cout << "rap:file rpath=" << rld::rap::rpath << std::endl;
+      }
+
+      comp << (uint32_t)rld::rap::rpath.length ();
+
+      if (rld::rap::rpath.length () > 0)
+      {
+        strtable += rld::rap::rpath;
+      }
 
       for (objects::iterator oi = objs.begin ();
            oi != objs.end ();

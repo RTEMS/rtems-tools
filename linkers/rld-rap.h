@@ -36,6 +36,11 @@ namespace rld
      */
      extern bool add_obj_details;
 
+     /**
+      * Store the path of object files.
+      */
+     extern std::string rpath;
+
     /**
      * The RAP relocation bit masks.
      */

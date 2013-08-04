@@ -201,6 +201,8 @@ namespace rap
     uint32_t    obj_num;
     uint8_t**   obj_name;
     uint32_t*   sec_num;
+    uint8_t*    rpath;
+    uint32_t    rpathlen;
     uint8_t*    str_detail;
     section_details sec_details;
 
@@ -391,6 +393,8 @@ namespace rap
       obj_num (0),
       obj_name (0),
       sec_num (0),
+      rpath (0),
+      rpathlen (0),
       str_detail (0),
       warnings (warnings),
       image (name)
@@ -494,6 +498,8 @@ namespace rap
   {
     uint32_t tmp;
 
+    comp >> rpathlen;
+
     obj_name = new uint8_t*[obj_num];
 
     sec_num = new uint32_t[obj_num];
@@ -510,6 +516,10 @@ namespace rap
     str_detail = new uint8_t[tmp];
     if (comp.read (str_detail, tmp) != tmp)
       throw rld::error ("Reading file str details error", "rapper");
+
+    if (rpathlen > 0)
+      rpath = (uint8_t*)str_detail;
+    else rpath = NULL;
 
     section_detail sec;
 
@@ -804,12 +814,22 @@ rap_show (rld::files::paths& raps,
                 << std::setfill (' ') << std::dec
                 << " (" << r.detail_rap_off << ')' << std::endl;
 
+      uint32_t pos = 0;
+      if (r.rpath != NULL)
+      {
+        std::cout << " rpath:" << std::endl;
+        while (pos < r.rpathlen)
+        {
+          std::cout << " " << r.rpath + pos << std::endl;
+          pos = std::string ((char*)(r.rpath + pos)).length () + pos + 1;
+        }
+      }
+
       if (r.obj_num == 0)
         std::cout << " No details" << std::endl;
       else
         std::cout << ' ' << r.obj_num <<" Files" << std::endl;
 
-      uint32_t pos = 0;
       for (uint32_t i = 0; i < r.obj_num; ++i)
       {
         r.obj_name[i] = (uint8_t*) &r.str_detail[pos];
