@@ -251,3 +251,4 @@ class barrier:
         print '  Waiting:',self.core_b_control.waiting_threads()
         helper.tasks_printer_routine(self.core_b_control.tasks())
 
+
