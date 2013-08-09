@@ -130,10 +130,14 @@ class rtems_semaphore(gdb.Command):
             except ValueError:
                 print "error: %s is not an index" % (val)
                 return
+            try:
+                obj = objects.information.object_return( self.api,
+                                                         self._class,
+                                                         index ).dereference()
+            except IndexError:
+                print "error: index %s is invalid" % (index)
+                return
 
-            obj = objects.information.object_return( self.api,
-                                                 self._class,
-                                                 int(index)).dereference()
             instance = classic.semaphore(obj)
             instance.show(from_tty)
         objects.information.invalidate()
