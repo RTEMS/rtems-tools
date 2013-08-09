@@ -85,7 +85,7 @@ class rtems_object(gdb.Command):
         }
 
     def __init__(self):
-        self.__doc__ = 'Display the RTEMS object given a numeric ID.'
+        self.__doc__ = 'Display the RTEMS object given a numeric ID (Or a reference to rtems_object).'
         super(rtems_object, self).__init__('rtems object',
                                            gdb.COMMAND_STATUS)
 
@@ -112,6 +112,32 @@ class rtems_object(gdb.Command):
                 object.show(from_tty)
         objects.information.invalidate()
 
+class rtems_semaphore(gdb.Command):
+    '''Semaphore subcommand for rtems'''
+
+    api = 'classic'
+    _class = 'semaphores'
+
+    def __init__(self):
+        self.__doc__ = 'Display the RTEMS semaphores by index'
+        super(rtems_semaphore, self).__init__('rtems semaphore',
+                                           gdb.COMMAND_STATUS)
+
+    def invoke(self, arg, from_tty):
+        for val in arg.split():
+            try:
+                index = int(val)
+            except ValueError:
+                print "error: %s is not an index" % (val)
+                return
+
+            obj = objects.information.object_return( self.api,
+                                                 self._class,
+                                                 int(index)).dereference()
+            instance = classic.semaphore(obj)
+            instance.show(from_tty)
+        objects.information.invalidate()
+
 #
 # Main
 #
@@ -121,3 +147,4 @@ gdb.pretty_printers = []
 gdb.pretty_printers.append (lookup_function)
 rtems()
 rtems_object()
+rtems_semaphore()
