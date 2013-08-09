@@ -138,6 +138,36 @@ class rtems_semaphore(gdb.Command):
             instance.show(from_tty)
         objects.information.invalidate()
 
+class rtems_task(gdb.Command):
+    '''tasks subcommand for rtems'''
+
+    api = 'classic'
+    _class = 'tasks'
+
+    def __init__(self):
+        self.__doc__ = 'Display the RTEMS tasks by index(s)'
+        super(rtems_task,self).__init__('rtems task', gdb.COMMAND_STATUS)
+
+    def invoke(self, arg, from_tty):
+        for val in arg.split():
+            try:
+                index = int(val)
+            except ValueError:
+                print "error: %s is not an index" % (val)
+                return
+
+            try:
+                obj = objects.information.object_return(self.api,
+                                                        self._class,
+                                                        index).dereference()
+            except IndexError:
+                print "error: index %s is invalid" % (index)
+                return
+
+            instance = classic.task(obj)
+            instance.show(from_tty)
+        objects.information.invalidate()
+
 #
 # Main
 #
@@ -148,3 +178,4 @@ gdb.pretty_printers.append (lookup_function)
 rtems()
 rtems_object()
 rtems_semaphore()
+rtems_task()
