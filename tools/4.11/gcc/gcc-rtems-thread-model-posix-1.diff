@@ -1,0 +1,101 @@
+diff --git a/gcc/config.gcc b/gcc/config.gcc
+index ef37e61..6e03865 100644
+--- a/gcc/config.gcc
++++ b/gcc/config.gcc
+@@ -763,7 +763,7 @@ case ${target} in
+   ;;
+ *-*-rtems*)
+   case ${enable_threads} in
+-    yes) thread_file='rtems' ;;
++    yes) thread_file='posix' ;;
+   esac
+   extra_options="${extra_options} rtems.opt"
+   default_use_cxa_atexit=yes
+diff --git a/libgcc/config/t-rtems b/libgcc/config/t-rtems
+index 85f1da9..11e0c64 100644
+--- a/libgcc/config/t-rtems
++++ b/libgcc/config/t-rtems
+@@ -1,4 +1,4 @@
+ # If we are building next to newlib, this will let us find the RTEMS
+ # limits.h when building libgcc2.  Otherwise, newlib must be installed
+ # first.
+-LIBGCC2_INCLUDES = -I$(srcdir)/../newlib/libc/sys/rtems/include
++LIBGCC2_INCLUDES = -I$(srcdir)/../newlib/libc/sys/rtems/include -I$(srcdir)/../newlib/libc/sys/rtems
+diff --git a/libgcc/gthr-posix.h b/libgcc/gthr-posix.h
+index f0d8cd7..653a7fc 100644
+--- a/libgcc/gthr-posix.h
++++ b/libgcc/gthr-posix.h
+@@ -110,7 +110,9 @@ __gthrw(pthread_detach)
+ #ifndef __BIONIC__
+ __gthrw(pthread_cancel)
+ #endif
++#ifndef __rtems__
+ __gthrw(sched_yield)
++#endif
+ 
+ __gthrw(pthread_mutex_lock)
+ __gthrw(pthread_mutex_trylock)
+@@ -447,8 +449,10 @@ __gthread_objc_thread_get_priority (void)
+ static inline void
+ __gthread_objc_thread_yield (void)
+ {
++#ifndef __rtems__
+   if (__gthread_active_p ())
+     __gthrw_(sched_yield) ();
++#endif
+ }
+ 
+ /* Terminate the current thread.  */
+@@ -689,7 +693,11 @@ __gthread_self (void)
+ static inline int
+ __gthread_yield (void)
+ {
++#ifndef __rtems__
+   return __gthrw_(sched_yield) ();
++#else
++  return 0;
++#endif
+ }
+ 
+ static inline int
+diff --git a/libgcc/gthr.h b/libgcc/gthr.h
+index 0edb583..672f69d 100644
+--- a/libgcc/gthr.h
++++ b/libgcc/gthr.h
+@@ -135,8 +135,10 @@ see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+ #if SUPPORTS_WEAK
+ /* The pe-coff weak support isn't fully compatible to ELF's weak.
+    For static libraries it might would work, but as we need to deal
+-   with shared versions too, we disable it for mingw-targets.  */
+-#ifdef __MINGW32__
++   with shared versions too, we disable it for mingw-targets.
++
++   RTEMS is always threaded so disable weak support.  */
++#if defined(__MINGW32__) || defined(__rtems__)
+ #undef GTHREAD_USE_WEAK
+ #define GTHREAD_USE_WEAK 0
+ #endif
+diff --git a/libstdc++-v3/include/Makefile.am b/libstdc++-v3/include/Makefile.am
+index 5971af3..b8f2842 100644
+--- a/libstdc++-v3/include/Makefile.am
++++ b/libstdc++-v3/include/Makefile.am
+@@ -1139,6 +1139,7 @@ ${host_builddir}/gthr.h: ${toplevel_srcdir}/libgcc/gthr.h stamp-${host_alias}
+ 	    -e '/^#/s/\(${uppercase}${uppercase}*\)/_GLIBCXX_\1/g' \
+ 	    -e 's/_GLIBCXX_SUPPORTS_WEAK/__GXX_WEAK__/g' \
+ 	    -e 's/_GLIBCXX___MINGW32_GLIBCXX___/__MINGW32__/g' \
++	    -e 's/_GLIBCXX___rtems_GLIBCXX___/__rtems__/g' \
+ 	    -e 's,^#include "\(.*\)",#include <bits/\1>,g' \
+ 	    < $< > $@
+ 
+diff --git a/libstdc++-v3/include/Makefile.in b/libstdc++-v3/include/Makefile.in
+index aa8ef43..1536a7f 100644
+--- a/libstdc++-v3/include/Makefile.in
++++ b/libstdc++-v3/include/Makefile.in
+@@ -1545,6 +1545,7 @@ ${host_builddir}/gthr.h: ${toplevel_srcdir}/libgcc/gthr.h stamp-${host_alias}
+ 	    -e '/^#/s/\(${uppercase}${uppercase}*\)/_GLIBCXX_\1/g' \
+ 	    -e 's/_GLIBCXX_SUPPORTS_WEAK/__GXX_WEAK__/g' \
+ 	    -e 's/_GLIBCXX___MINGW32_GLIBCXX___/__MINGW32__/g' \
++	    -e 's/_GLIBCXX___rtems_GLIBCXX___/__rtems__/g' \
+ 	    -e 's,^#include "\(.*\)",#include <bits/\1>,g' \
+ 	    < $< > $@
+ 
