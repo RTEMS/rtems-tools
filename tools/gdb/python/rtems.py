@@ -172,6 +172,38 @@ class rtems_task(gdb.Command):
             instance.show(from_tty)
         objects.information.invalidate()
 
+class rtems_message_queue(gdb.Command):
+    '''Message Queue subcommand'''
+
+    api = 'classic'
+    _class = 'message_queues'
+
+    def __init__(self):
+        self.__doc__ = 'Display the RTEMS message_queue by index(s)'
+        super(rtems_message_queue,self).__init__('rtems mqueue', gdb.COMMAND_STATUS)
+
+    def invoke(self, arg, from_tty):
+        for val in arg.split():
+            try:
+                index = int(val)
+            except ValueError:
+                print "error: %s is not an index" % (val)
+                return
+
+            try:
+                obj = objects.information.object_return(self.api,
+                                                        self._class,
+                                                        index).dereference()
+            except IndexError:
+                print "error: index %s is invalid" % (index)
+                return
+
+            print "Ahi"
+            instance = classic.message_queue(obj)
+            instance.show(from_tty)
+        objects.information.invalidate()
+
+
 #
 # Main
 #
@@ -183,3 +215,4 @@ rtems()
 rtems_object()
 rtems_semaphore()
 rtems_task()
+rtems_message_queue()
