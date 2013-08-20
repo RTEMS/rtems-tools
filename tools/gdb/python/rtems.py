@@ -36,9 +36,11 @@ class rtems_object(gdb.Command):
         }
 
     def __init__(self):
-        self.__doc__ = 'Display the RTEMS object given a numeric ID (Or a reference to rtems_object).'
+        self.__doc__ = 'Display the RTEMS object given a numeric ID \
+                                            (Or a reference to rtems_object).'
         super(rtems_object, self).__init__('rtems object',
-                                           gdb.COMMAND_STATUS)
+                                           gdb.COMMAND_DATA,
+                                           gdb.COMPLETE_SYMBOL)
 
     def invoke(self, arg, from_tty):
         for num in arg.split():
@@ -71,8 +73,8 @@ class rtems_semaphore(gdb.Command):
 
     def __init__(self):
         self.__doc__ = 'Display the RTEMS semaphores by index'
-        super(rtems_semaphore, self).__init__('rtems semaphore',
-                                           gdb.COMMAND_STATUS)
+        super(rtems_semaphore, self).__init__( 'rtems semaphore',
+                                           gdb.COMMAND_DATA, gdb.COMPLETE_NONE )
 
     def invoke(self, arg, from_tty):
         for val in arg.split():
@@ -101,7 +103,8 @@ class rtems_task(gdb.Command):
 
     def __init__(self):
         self.__doc__ = 'Display the RTEMS tasks by index(s)'
-        super(rtems_task,self).__init__('rtems task', gdb.COMMAND_STATUS)
+        super(rtems_task,self).__init__('rtems task',
+                                        gdb.COMMAND_DATA, gdb.COMPLETE_NONE)
 
     def invoke(self, arg, from_tty):
         for val in arg.split():
@@ -130,7 +133,9 @@ class rtems_message_queue(gdb.Command):
 
     def __init__(self):
         self.__doc__ = 'Display the RTEMS message_queue by index(s)'
-        super(rtems_message_queue,self).__init__('rtems mqueue', gdb.COMMAND_STATUS)
+        super(rtems_message_queue,self).__init__('rtems mqueue',
+                                                gdb.COMMAND_DATA,
+                                                gdb.COMPLETE_NONE)
 
     def invoke(self, arg, from_tty):
         for val in arg.split():
