@@ -65,16 +65,20 @@ class rtems_object(gdb.Command):
                 object.show(from_tty)
         objects.information.invalidate()
 
-class rtems_semaphore(gdb.Command):
-    '''Semaphore subcommand for rtems'''
+class rtems_index(gdb.Command):
+    '''Print object by index'''
 
     api = 'classic'
-    _class = 'semaphores'
+    _class = ''
 
-    def __init__(self):
-        self.__doc__ = 'Display the RTEMS semaphores by index'
-        super(rtems_semaphore, self).__init__( 'rtems semaphore',
-                                           gdb.COMMAND_DATA, gdb.COMPLETE_NONE )
+    def __init__(self,command):
+        super(rtems_index, self).__init__( command,
+                                           gdb.COMMAND_DATA,
+                                           gdb.COMPLETE_NONE)
+
+    def instance(self,obj):
+        '''Returns a n instance of corresponding object, the child should extend this'''
+        return obj
 
     def invoke(self, arg, from_tty):
         for val in arg.split():
@@ -91,68 +95,44 @@ class rtems_semaphore(gdb.Command):
                 print "error: index %s is invalid" % (index)
                 return
 
-            instance = classic.semaphore(obj)
+            instance = self.instance(obj)
             instance.show(from_tty)
         objects.information.invalidate()
 
-class rtems_task(gdb.Command):
+
+class rtems_semaphore(rtems_index):
+    '''semaphore subcommand'''
+    _class = 'semaphores'
+
+    def __init__(self):
+        self.__doc__ = 'Display RTEMS semaphore(s) by index(es)'
+        super(rtems_semaphore, self).__init__('rtems semaphore')
+
+    def instance(self,obj):
+        return classic.semaphore(obj)
+
+class rtems_task(rtems_index):
     '''tasks subcommand for rtems'''
 
-    api = 'classic'
     _class = 'tasks'
 
     def __init__(self):
-        self.__doc__ = 'Display the RTEMS tasks by index(s)'
-        super(rtems_task,self).__init__('rtems task',
-                                        gdb.COMMAND_DATA, gdb.COMPLETE_NONE)
+        self.__doc__ = 'Display RTEMS task(s) by index(es)'
+        super(rtems_task,self).__init__('rtems task')
 
-    def invoke(self, arg, from_tty):
-        for val in arg.split():
-            try:
-                index = int(val)
-            except ValueError:
-                raise gdb.GdbError( "Value is not an integer")
+    def instance(self,obj):
+        return classic.task(obj)
 
-            try:
-                obj = objects.information.object_return(self.api,
-                                                        self._class,
-                                                        index).dereference()
-            except IndexError:
-                print "error: index %s is invalid" % (index)
-                return
 
-            instance = classic.task(obj)
-            instance.show(from_tty)
-        objects.information.invalidate()
-
-class rtems_message_queue(gdb.Command):
+class rtems_message_queue(rtems_index):
     '''Message Queue subcommand'''
 
-    api = 'classic'
     _class = 'message_queues'
 
     def __init__(self):
-        self.__doc__ = 'Display the RTEMS message_queue by index(s)'
-        super(rtems_message_queue,self).__init__('rtems mqueue',
-                                                gdb.COMMAND_DATA,
-                                                gdb.COMPLETE_NONE)
+        self.__doc__ = 'Display RTEMS message_queue(s) by index(es)'
+        super(rtems_message_queue,self).__init__('rtems mqueue')
 
-    def invoke(self, arg, from_tty):
-        for val in arg.split():
-            try:
-                index = int(val)
-            except ValueError:
-                print "error: %s is not an index" % (val)
-                return
+    def instance(self,obj):
+        return classic.message_queue(obj)
 
-            try:
-                obj = objects.information.object_return(self.api,
-                                                        self._class,
-                                                        index).dereference()
-            except IndexError:
-                print "error: index %s is invalid" % (index)
-                return
-
-            instance = classic.message_queue(obj)
-            instance.show(from_tty)
-        objects.information.invalidate()
