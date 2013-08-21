@@ -136,3 +136,51 @@ class rtems_message_queue(rtems_index):
     def instance(self,obj):
         return classic.message_queue(obj)
 
+class rtems_timer(rtems_index):
+    '''Index subcommand'''
+
+    _class = 'timers'
+
+    def __init__(self):
+        self.__doc__ = 'Display RTEMS timer(s) by index(es)'
+        super(rtems_timer, self).__init__('rtems timer')
+
+    def instance(self,obj):
+        return classic.timer(obj)
+
+class rtems_partition(rtems_index):
+    '''Partition subcommand'''
+
+    _class = 'partitions'
+
+    def __init__(self):
+        self.__doc__ = 'Display RTEMS partition(s) by index(es)'
+        super(rtems_partition, self).__init__('rtems partition')
+
+    def instance(self, obj):
+        return classic.partition(obj)
+
+class rtems_region(rtems_index):
+    '''Region subcomamnd'''
+
+    _class = 'regions'
+
+    def __init__(self):
+        self.__doc__ = 'Display RTEMS region(s) by index(es)'
+        super(rtems_region , self).__init__('rtems regions')
+
+    def instance(self, obj):
+        return classic.region(obj)
+
+class rtems_barrier(rtems_index):
+    '''Barrier subcommand'''
+
+    _class = 'barriers'
+
+    def __init__(self):
+        self.__doc__ = 'Display RTEMS barrier(s) by index(es)'
+        super(rtems_barrier , self).__init__('rtems barrier')
+
+    def instance(self, obj):
+        return classic.barrier(obj)
+
