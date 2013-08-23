@@ -5,6 +5,7 @@ GDB extensions to help accelarting RTEMS debugging.
 ## Usage
  - Clone the git repo
  - Fire up gdb and use source command
+
 ```
 $ sparc-rtems4.11-gdb
 
