@@ -25,8 +25,8 @@ RTEMS GDB Support loaded
 
 ## Commands Implemented
  - `rtems object` : Prints rtems objects by ID
- - [rtems index subcommands](Subcommands)
+ - [rtems index subcommands](https://github.com/dbalan/rtems-gdb/wiki/Subcommands)
 
 ## Developer documentation
-We have a document to get started with [pretty printer development](Writing-a-pretty-printer).
+We have a document to get started with [pretty printer development](https://github.com/dbalan/rtems-gdb/wiki/Writing-a-pretty-printer).
 
