@@ -140,6 +140,8 @@ class semaphore:
             tasks = wait_queue.tasks()
             print '    Queue: len = %d, state = %s' % (len(tasks),
                                                        wait_queue.state())
+            print '    Tasks:'
+            print '    Name (c:current, r:real), (id)'
             for t in range(0, len(tasks)):
                 print '      ', tasks[t].brief(), ' (%08x)' % (tasks[t].id())
         else:

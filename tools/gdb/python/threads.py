@@ -6,7 +6,6 @@
 #
 
 import gdb
-
 import chains
 import objects
 
@@ -134,7 +133,10 @@ class control:
         return self.object.id()
 
     def name(self):
-        return self.object.name()
+        val = self.object.name()
+        if val == "":
+            val = '*'
+        return val
 
     def current_state(self):
         return state(self.ctrl['current_state']).to_string()

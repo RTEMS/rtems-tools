@@ -253,4 +253,11 @@ class control:
 
     def name(self):
         is_string = information.is_string(self._id.api(), self._id._class())
-        return str(name(self.object['name'], is_string))
+        val = str(name(self.object['name'],is_string))
+
+        # Normal comaprision is a bit tricky with quotes
+        # 0 '\000' in hex == '3020275c30303027'
+        if val.encode('hex') == '3020275c30303027':
+            val = ""
+
+        return val
