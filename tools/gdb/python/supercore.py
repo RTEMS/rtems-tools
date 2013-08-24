@@ -5,6 +5,31 @@
 import threads
 import helper
 
+class time_of_day:
+    '''Manage time of day object'''
+
+    def __init__(self, tod):
+        self.tod = tod
+
+    def now(self):
+        return self.tod['now']
+
+    def timer(self):
+        return self.tod['uptime']
+
+    def is_set(self):
+        return bool(self.tod['is_set'])
+
+    def show(self):
+        print ' Time Of Day'
+
+        if not self.is_set():
+            print ' Application has not set a TOD'
+
+        print '      Now:', self.now()
+        print '   Uptime:', self.timer()
+
+
 class message_queue:
     '''Manage a Supercore message_queue'''
 

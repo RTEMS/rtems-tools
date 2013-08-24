@@ -10,6 +10,7 @@ import re
 
 import objects
 import threads
+import supercore
 import classic
 
 
@@ -184,3 +185,23 @@ class rtems_barrier(rtems_index):
     def instance(self, obj):
         return classic.barrier(obj)
 
+class rtems_tod(gdb.Command):
+    '''Print rtems time of day'''
+
+    api = 'internal'
+    _class = 'time'
+
+    def __init__(self):
+        self.__doc__ = 'Display RTEMS time of day'
+        super(rtems_tod, self).__init__ \
+                    ('rtems tod', gdb.COMMAND_STATUS,gdb.COMPLETE_NONE)
+
+    def invoke(self, arg, from_tty):
+
+        if arg:
+            print "warning: commad takes no arguments!"
+
+        obj = objects.information.object_return(self.api,self._class)
+        instance = supercore.time_of_day(obj)
+        instance.show()
+        objects.information.invalidate()

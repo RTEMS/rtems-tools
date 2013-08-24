@@ -13,6 +13,8 @@ class infotables:
     """Manage the object information tables."""
 
     tables_types = {
+        'internal/time'          : ('TOD_Control',           '_TOD'),
+
         'classic/tasks'          : ('Thread_Control',        '_RTEMS_tasks_Information'),
         'classic/timers'         : ('Timer_Control',         '_Timer_Information'),
         'classic/semaphores'     : ('Semaphore_Control',     '_Semaphore_Information'),
@@ -64,15 +66,21 @@ class infotables:
             index = id.index()
         return self.object_return(api, _class, index)
 
-    def object_return(self, api, _class, index):
+    def object_return(self, api, _class, index=-1):
         n = self.name(api, _class)
         self.load(n)
-        max = self.maximum(api, _class)
-        if index > max:
-            raise IndexError('object index out of range (%d)' % (max))
+
         table_type = self.tables_types[n]
-        expr = '(' + table_type[0] + '*)' + \
-            table_type[1] + '.local_table[' + str(index) + ']'
+
+        if api == 'internal':
+            expr = '(' + table_type[0] + ')' + table_type[1]
+
+        else:
+            max = self.maximum(api, _class)
+            if index > max:
+                raise IndexError('object index out of range (%d)' % (max))
+            expr = '(' + table_type[0] + '*)' + \
+                table_type[1] + '.local_table[' + str(index) + ']'
         return gdb.parse_and_eval(expr)
 
     def is_string(self, api, _class):
