@@ -1015,6 +1015,14 @@ namespace rld
           if ((sym.binding () == STB_GLOBAL) || (sym.binding () == STB_WEAK))
           {
             int         symsec = sym.section_index ();
+
+            /* Ignore section index 0 */
+            if (symsec == 0)
+              continue;
+            /* Ignore sparc common section */
+            if ((elf::object_machine_type () == EM_SPARC) && (symsec == 65522))
+              continue;
+
             sections    rap_sec = obj.find (symsec);
             section&    sec = obj.secs[rap_sec];
             std::size_t name;
