@@ -72,6 +72,8 @@ static struct option rld_opts[] = {
   { "mcpu",        required_argument,      NULL,           'c' },
   { "rap-strip",   no_argument,            NULL,           'S' },
   { "rpath",       required_argument,      NULL,           'R' },
+  { "runtime-lib", required_argument,      NULL,           'P' },
+  { "one-file",    no_argument,            NULL,           's' },
   { NULL,          0,                      NULL,            0 }
 };
 
@@ -114,6 +116,8 @@ usage (int exit_code)
             << " -c cpu    : machine architecture's CPU (also --mcpu)" << std::endl
             << " -S        : do not include file details (also --rap-strip)" << std::endl
             << " -R        : include file paths (also --rpath)" << std::endl
+            << " -P        : place objects from archives (also --runtime-lib)" << std::endl
+            << " -s        : Include archive elf object files (also --one-file)" << std::endl
             << " -Wl,opts  : link compatible flags, ignored" << std::endl
             << "Output Formats:" << std::endl
             << " rap     - RTEMS application (LZ77, single image)" << std::endl
@@ -168,6 +172,7 @@ main (int argc, char* argv[])
   {
     rld::files::cache    cache;
     rld::files::cache    base;
+    rld::files::cache    cachera;
     rld::files::paths    libpaths;
     rld::files::paths    libs;
     rld::files::paths    objects;
@@ -180,6 +185,7 @@ main (int argc, char* argv[])
     std::string          entry = "rtems";
     std::string          exit;
     std::string          output = "a.out";
+    std::string          outra;
     std::string          base_name;
     std::string          cc_name;
     std::string          output_type = "rap";
@@ -187,12 +193,13 @@ main (int argc, char* argv[])
     bool                 exec_prefix_set = false;
     bool                 map = false;
     bool                 warnings = false;
+    bool                 one_file = false;
 
     libpaths.push_back (".");
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvwVMnb:E:o:O:L:l:a:c:e:d:u:C:W:R", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvwVMnb:E:o:O:L:l:a:c:e:d:u:C:W:R:P", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -231,6 +238,18 @@ main (int argc, char* argv[])
            * The order is important. It is the search order.
            */
           libs.push_back (optarg);
+          break;
+
+        case 'P':
+          if (!outra.empty ())
+            std::cerr << "warning: output ra alreay set" << std::endl;
+          outra = "lib";
+          outra += optarg;
+          outra += ".ra";
+          break;
+
+        case 's':
+          one_file = true;
           break;
 
         case 'L':
@@ -450,8 +469,30 @@ main (int argc, char* argv[])
           rld::outputter::elf_application (output, entry, exit,
                                            dependents, cache);
         else if (output_type == "rap")
+        {
           rld::outputter::application (output, entry, exit,
-                                       dependents, cache, symbols);
+                                       dependents, cache, symbols,
+                                       one_file);
+          if (!outra.empty ())
+          {
+            rld::files::paths ra_libs;
+            bool ra_exist = false;
+
+            /**
+             * If exist, search it, else create a new one.
+             */
+            if ((ra_exist = ::access (outra.c_str (), 0)) == 0)
+            {
+              ra_libs.push_back (outra);
+              cachera.open ();
+              cachera.add_libraries (ra_libs);
+              cachera.archives_begin ();
+            }
+
+            rld::outputter::archivera (outra, dependents, cachera,
+                                       !ra_exist);
+          }
+        }
         else
           throw rld::error ("invalid output type", "output");
 

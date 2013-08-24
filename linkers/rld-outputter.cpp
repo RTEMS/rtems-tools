@@ -35,6 +35,11 @@
 #include <rld.h>
 #include <rld-rap.h>
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <unistd.h>
+#include "rld-process.h"
+
 namespace rld
 {
   namespace outputter
@@ -186,6 +191,96 @@ namespace rld
     }
 
     void
+    archivera (const std::string&        name,
+               const files::object_list& dependents,
+               files::cache&             cache,
+               bool                      ra_exist)
+    {
+      files::object_list dep_copy (dependents);
+      files::object_list objects;
+
+      if (rld::verbose () >= RLD_VERBOSE_INFO)
+        std::cout << "outputter:archivera: " << name
+                  << ", dependents: " << dependents.size () << std::endl;
+
+      objects.clear ();
+
+      files::object_list::iterator oli;
+      for (oli = dep_copy.begin (); oli != dep_copy.end (); ++oli)
+      {
+        files::object& object = *(*oli);
+
+        if (object.get_archive ())
+        {
+          objects.push_back (&object);
+        }
+      }
+
+      bool exist = false;
+      files::object_list objects_tmp;
+      files::objects& objs = cache.get_objects ();
+      objects_tmp.clear ();
+      for (files::objects::iterator obi = objs.begin ();
+           obi != objs.end ();
+           ++obi)
+      {
+        files::object* obj = (*obi).second;
+        exist = false;
+
+        /**
+         * Replace the elf object file in ra file with elf object file
+         * in collected object files, if exist.
+         */
+        for (oli = objects.begin (); oli != objects.end (); ++oli)
+        {
+          files::object& object = *(*oli);
+          if (obj->name ().oname () == object.name ().oname ())
+          {
+            exist = true;
+            break;
+          }
+        }
+        if (!exist)
+          objects_tmp.push_back (obj);
+      }
+
+      objects.merge (objects_tmp);
+      objects.unique ();
+
+      if (objects.size ())
+      {
+        if (ra_exist)
+        {
+          std::string new_name = "rld_XXXXXX";
+          struct stat sb;
+          files::archive arch (new_name);
+          arch.create (objects);
+
+          if ((::stat (name.c_str (), &sb) >= 0) && S_ISREG (sb.st_mode))
+          {
+            if (::unlink (name.c_str ()) < 0)
+              std::cerr << "error: unlinking temp file: " << name << std::endl;
+          }
+          if (::link (new_name.c_str (), name.c_str ()) < 0)
+          {
+            std::cerr << "error: linking temp file: " << name << std::endl;
+          }
+          if ((::stat (new_name.c_str (), &sb) >= 0) && S_ISREG (sb.st_mode))
+          {
+            if (::unlink (new_name.c_str ()) < 0)
+              std::cerr << "error: unlinking temp file: " << new_name << std::endl;
+          }
+        }
+        else
+        {
+          /* Create */
+          files::archive arch (name);
+          arch.create (objects);
+        }
+      }
+    }
+
+    void
     script (const std::string&        name,
             const std::string&        entry,
             const std::string&        exit,
@@ -297,13 +392,21 @@ namespace rld
       app.close ();
     }
 
+    bool in_archive (files::object* object)
+    {
+      if (object->get_archive ())
+        return true;
+      return false;
+    }
+
     void
     application (const std::string&        name,
                  const std::string&        entry,
                  const std::string&        exit,
                  const files::object_list& dependents,
                  const files::cache&       cache,
-                 const symbols::table&     symbols)
+                 const symbols::table&     symbols,
+                 bool                      one_file)
     {
       if (rld::verbose () >= RLD_VERBOSE_INFO)
         std::cout << "outputter:application: " << name << std::endl;
@@ -311,6 +414,9 @@ namespace rld
       files::object_list dep_copy (dependents);
       files::object_list objects;
       files::image       app (name);
+
+      if (!one_file)
+        dep_copy.remove_if (in_archive);
 
       cache.get_objects (objects);
       objects.merge (dep_copy);
