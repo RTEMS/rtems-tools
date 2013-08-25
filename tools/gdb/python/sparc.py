@@ -68,6 +68,45 @@ class psr:
 
         return val
 
+class register:
+    '''SPARC Registers'''
+
+    def __init__(self,reg):
+        self.reg = reg
+
+    def global_regs(self):
+        val = [self.reg['g0_g1']]
+
+        for i in range(2,7):
+            val.append(int(self.reg['g'+str(i)]))
+        return val
+
+    def local_regs(self):
+        val = []
+
+        for i in range(0,8):
+            val.append(self.reg['l'+str(i)])
+        return val
+
+    def in_regs(self):
+        val = []
+
+        for i in range(0,8):
+            if i==6:
+                val.append(self.reg['i6_fp'])
+            else:
+                val.append(self.reg['i'+str(i)])
+        return val
+
+    def out_regs(self):
+        val = []
+
+        for i in range(0,8):
+            if i==6:
+                val.append(self.reg['o6_sp'])
+            else:
+                val.append(self.reg['o'+str(i)])
+        return val
 
 
 
