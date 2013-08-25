@@ -48,3 +48,6 @@ class control:
     def last(self):
         return node(self.ctrl['Tail']['Node'])
 
+    def empty(self):
+        if self.last() == self.first().next():
+            return True

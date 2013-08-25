@@ -12,11 +12,6 @@ import objects
 
 class state:
 
-    INACTIVE = 0
-    BEING_INSERTED = 1
-    ACTIVE = 2
-    REMOVE_IT = 3
-
     states = {
         0: 'inactive',
         1: 'being-inserted',
@@ -35,9 +30,10 @@ class control:
     def __init__(self, ctrl):
         self.ctrl = ctrl
 
-    # Not sure if an extra class is needed.
+    # ToDo: fix this.1
     def state(self):
-        return state(int(self.ctrl['state'])).to_string()
+        return state(1).to_string()
+        #return state(int(self.ctrl['state'])).to_string()
 
     def initial(self):
         return self.ctrl['initial']

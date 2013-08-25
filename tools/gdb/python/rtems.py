@@ -10,6 +10,7 @@ import re
 
 import objects
 import threads
+import chains
 import supercore
 import classic
 
@@ -205,3 +206,37 @@ class rtems_tod(gdb.Command):
         instance = supercore.time_of_day(obj)
         instance.show()
         objects.information.invalidate()
+
+class rtems_watchdog_chain(gdb.Command):
+    '''Print watchdog ticks chain'''
+
+    api = 'internal'
+    _class = ''
+
+    def __init__(self,command):
+        super(rtems_watchdog_chain, self).__init__ \
+                                (command, gdb.COMMAND_DATA, gdb.COMPLETE_NONE)
+
+    def invoke(self, arg, from_tty):
+        obj = objects.information.object_return(self.api, self._class)
+
+        inst = chains.control(obj)
+
+        if inst.empty():
+            print '     error: empty chain'
+            return
+
+        nd = inst.first()
+        while not nd.null():
+            wd = watchdog.control(nd.cast('Watchdog_Control'))
+            wd.show()
+            nd = nd.next()
+
+class rtems_wdt(rtems_watchdog_chain):
+
+    _class = 'wdticks'
+
+    def __init__(self):
+        self.__doc__ = 'Display watchdog ticks chain'
+        super(rtems_wdt, self).__init__('rtems wdticks')
+
