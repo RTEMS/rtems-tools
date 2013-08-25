@@ -16,3 +16,6 @@ def type_from_value(val):
         type = type.target ()
     # Get the unqualified type
     return type.unqualified ()
+
+def test_bit(val, pos):
+    return bool(val & (1 << (pos-1)))
