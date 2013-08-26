@@ -11,6 +11,7 @@ import re
 import objects
 import threads
 import chains
+import watchdog
 import supercore
 import classic
 
@@ -227,10 +228,14 @@ class rtems_watchdog_chain(gdb.Command):
             return
 
         nd = inst.first()
+        i = 0
+        print '  Ticks Chain'
         while not nd.null():
             wd = watchdog.control(nd.cast('Watchdog_Control'))
-            wd.show()
-            nd = nd.next()
+            print ' #'+str(i)
+            print wd.to_string()
+            nd.next()
+            i += 1
 
 class rtems_wdt(rtems_watchdog_chain):
 

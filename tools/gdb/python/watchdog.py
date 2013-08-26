@@ -52,10 +52,15 @@ class control:
         addr = self.ctrl['routine']
         return str(addr)
 
+    def to_string(self):
+        val = ""
+        val += "     State:" + str(self.state())
+        val += "\n     Intial Interval:" + str(self.initial())
+        val += "\n     Delta Interval:"+ str(self.delta_interval())
+        val += "\n     Start time:" + str(self.start_time())
+        val += "\n     Stop time:" + str(self.stop_time())
+        val += "\n     WD Routine:" + str(self.routine())
+        return val
+
     def show(self):
-        print "     State:", self.state()
-        print "     Intial Interval:", self.initial()
-        print "     Delta Interval:", self.delta_interval()
-        print "     Start time:", self.start_time()
-        print "     Stop time:", self.stop_time()
-        print "     WD Routine:", self.routine()
+        print self.to_string()

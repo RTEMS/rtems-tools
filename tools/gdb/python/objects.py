@@ -14,6 +14,7 @@ class infotables:
 
     tables_types = {
         'internal/time'          : ('TOD_Control',           '_TOD'),
+        'internal/wdticks'       : ('Chain_Control',        '_Watchdog_Ticks_chain'),
 
         'classic/tasks'          : ('Thread_Control',        '_RTEMS_tasks_Information'),
         'classic/timers'         : ('Timer_Control',         '_Timer_Information'),
