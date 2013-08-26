@@ -245,3 +245,11 @@ class rtems_wdt(rtems_watchdog_chain):
         self.__doc__ = 'Display watchdog ticks chain'
         super(rtems_wdt, self).__init__('rtems wdticks')
 
+class rtems_wsec(rtems_watchdog_chain):
+
+    _class = 'wdseconds'
+
+    def __init__(self):
+        self.__doc__ = 'Display watchdog seconds chain'
+        super(rtems_wsec, self).__init__('rtems wdseconds')
+
