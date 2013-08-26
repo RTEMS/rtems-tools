@@ -229,7 +229,6 @@ class rtems_watchdog_chain(gdb.Command):
 
         nd = inst.first()
         i = 0
-        print '  Ticks Chain'
         while not nd.null():
             wd = watchdog.control(nd.cast('Watchdog_Control'))
             print ' #'+str(i)
