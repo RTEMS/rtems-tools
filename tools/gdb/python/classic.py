@@ -16,6 +16,7 @@ import threads
 import watchdog
 import heaps
 import supercore
+import sparc
 
 class attribute:
     """The Classic API attribute."""
@@ -155,6 +156,8 @@ class task:
         self.task = \
             threads.control(self.object)
         self.wait_info = self.task.wait_info()
+        # ToDo: Insert platform dep. code here.
+        self.regs = sparc.register(self.object['Registers'])
 
     def show(self, from_tty):
         print '     Name:', self.task.name()
@@ -163,6 +166,8 @@ class task:
         print '     Real:', self.task.real_priority()
         print '  Preempt:', self.task.preemptible()
         print ' T Budget:', self.task.cpu_time_budget()
+        print ' Regsters:'
+        self.regs.show()
 
 
 class message_queue:
