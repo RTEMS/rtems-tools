@@ -777,7 +777,7 @@ namespace rld
     archive::add_object (objects& objs, const char* path, off_t offset, size_t size)
     {
       const char* end = path;
-      while ((*end != '\0') && (*end != '/'))
+      while ((*end != '\0') && (*end != '/') && (*end != '\n'))
         ++end;
 
       std::string str;
@@ -843,12 +843,16 @@ namespace rld
         {
           object& obj = *(*oi);
           const std::string&  oname = basename (obj.name ().oname ());
-          if (oname.length () > rld_archive_fname_size)
+          if (oname.length () >= rld_archive_fname_size)
             extended_file_names += oname + '\n';
         }
 
         if (!extended_file_names.empty ())
         {
+          if (extended_file_names.length () & 1)
+          {
+            extended_file_names += ' ';
+          }
           write_header ("//", 0, 0, 0, 0, extended_file_names.length ());
           write (extended_file_names.c_str (), extended_file_names.length ());
         }
@@ -870,7 +874,7 @@ namespace rld
              * table if the file name is too long for the header.
              */
 
-            if (oname.length () > rld_archive_fname_size)
+            if (oname.length () >= rld_archive_fname_size)
             {
               size_t pos = extended_file_names.find (oname + '\n');
               if (pos == std::string::npos)
@@ -879,10 +883,13 @@ namespace rld
               oss << '/' << pos;
               oname = oss.str ();
             }
+            else oname += '/';
 
-            write_header (oname, 0, 0, 0, 0666, obj.name ().size ());
+            write_header (oname, 0, 0, 0, 0666, (obj.name ().size () + 1) & ~1);
             obj.seek (0);
             copy_file (obj, *this);
+            if (obj.name ().size () & 1)
+              write ("\n", 1);
           }
           catch (...)
           {

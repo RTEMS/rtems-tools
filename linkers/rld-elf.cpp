@@ -1006,14 +1006,30 @@ namespace rld
       if (ehdr == 0)
         error ("gelf_newehdr");
 
-      if (::gelf_getehdr (elf_, ehdr) == 0)
+      if (class_ == ELFCLASS32)
+      {
+        if((ehdr = (elf_ehdr*) ::elf32_getehdr (elf_)) == 0)
+          error ("elf32_getehdr");
+      }
+      else if (::gelf_getehdr (elf_, ehdr) == 0)
         error ("gelf_getehdr");
 
-      ehdr->e_type = type;
-      ehdr->e_machine = machinetype;
-      ehdr->e_flags = 0;
-      ehdr->e_ident[EI_DATA] = datatype;
-      ehdr->e_version = EV_CURRENT;
+      if (class_ == ELFCLASS32)
+      {
+        ((elf32_ehdr*)ehdr)->e_type = type;
+        ((elf32_ehdr*)ehdr)->e_machine = machinetype;
+        ((elf32_ehdr*)ehdr)->e_flags = 0;
+        ((elf32_ehdr*)ehdr)->e_ident[EI_DATA] = datatype;
+        ((elf32_ehdr*)ehdr)->e_version = EV_CURRENT;
+      }
+      else
+      {
+        ehdr->e_type = type;
+        ehdr->e_machine = machinetype;
+        ehdr->e_flags = 0;
+        ehdr->e_ident[EI_DATA] = datatype;
+        ehdr->e_version = EV_CURRENT;
+      }
 
       ::elf_flagphdr (elf_, ELF_C_SET , ELF_F_DIRTY);
     }

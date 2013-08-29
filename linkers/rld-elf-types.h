@@ -47,6 +47,7 @@ namespace rld
     typedef ::Elf_Kind    elf_kind;
     typedef ::Elf_Scn     elf_scn;
     typedef ::GElf_Ehdr   elf_ehdr;
+    typedef ::Elf32_Ehdr  elf32_ehdr;
     typedef ::GElf_Shdr   elf_shdr;
     typedef ::GElf_Phdr   elf_phdr;
     typedef ::Elf_Data    elf_data;
