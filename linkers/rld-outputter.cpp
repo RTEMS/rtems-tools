@@ -194,7 +194,8 @@ namespace rld
     archivera (const std::string&        name,
                const files::object_list& dependents,
                files::cache&             cache,
-               bool                      ra_exist)
+               bool                      ra_exist,
+               bool                      ra_rap)
     {
       files::object_list dep_copy (dependents);
       files::object_list objects;
@@ -210,9 +211,12 @@ namespace rld
       {
         files::object& object = *(*oli);
 
-        if (object.get_archive ())
-        {
+        if (ra_rap)
           objects.push_back (&object);
+        else
+        {
+          if (object.get_archive ())
+            objects.push_back (&object);
         }
       }
 
@@ -231,15 +235,19 @@ namespace rld
          * Replace the elf object file in ra file with elf object file
          * in collected object files, if exist.
          */
-        for (oli = objects.begin (); oli != objects.end (); ++oli)
+        if (!ra_rap)
         {
-          files::object& object = *(*oli);
-          if (obj->name ().oname () == object.name ().oname ())
+          for (oli = objects.begin (); oli != objects.end (); ++oli)
           {
-            exist = true;
-            break;
+            files::object& object = *(*oli);
+            if (obj->name ().oname () == object.name ().oname ())
+            {
+              exist = true;
+              break;
+            }
           }
         }
+
         if (!exist)
           objects_tmp.push_back (obj);
       }

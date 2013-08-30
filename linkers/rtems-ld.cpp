@@ -490,7 +490,7 @@ main (int argc, char* argv[])
             }
 
             rld::outputter::archivera (outra, dependents, cachera,
-                                       !ra_exist);
+                                       !ra_exist, false);
           }
         }
         else

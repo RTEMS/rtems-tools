@@ -65,7 +65,8 @@ namespace rld
     void archivera (const std::string&        name,
                     const files::object_list& dependents,
                     files::cache&             cache,
-                    bool                      ra_exist);
+                    bool                      ra_exist,
+                    bool                      ra_rap);
 
     /**
      * Output the object file list as a script.

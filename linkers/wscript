@@ -128,6 +128,19 @@ def build(bld):
                 use = modules)
 
     #
+    # Build the ra linker.
+    #
+    bld.program(target = 'rtems-ra',
+                source = ['rtems-ra.cpp',
+                          'pkgconfig.cpp'] + rld_source,
+                defines = ['HAVE_CONFIG_H=1', 'RTEMS_VERSION=' + bld.env.RTEMS_VERSION],
+                includes = ['.'] + bld.includes,
+                cflags = bld.cflags + bld.warningflags,
+                cxxflags = bld.cxxflags + bld.warningflags,
+                linkflags = bld.linkflags,
+                use = modules)
+
+    #
     # Build the symbols.
     #
     bld.program(target = 'rtems-syms',
