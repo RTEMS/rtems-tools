@@ -1,0 +1,22 @@
+RTEMS Tools Project
+
+Chris Johns <chrisj@rtems.org>
+
+The RTEMS Tools Project is a collection of tools to help you use RTEMS. The
+package is self contained and if in a release package format is specific to an
+RTEMS release and if in the git repo is a development version.
+
+All tools are distributed as source code. They should work on a range of host
+computers. Windows support may be via cross building on suitable Unix systems.
+
+The tools contained in this package each come with documentation so please
+locate and refer to it.
+
+The RTEMS Tools Project has been developed for the RTEMS Project however these
+tools can be used for a range of things no relate to RTEMS. The RTEMS Project
+welcomes this and
+
+If you have a problem or question post to rtems-user@rtems.org or drop by the
+RTEMS IRC channel #rtems on chat.freenode.net. Drop by and tell us is you are
+using this tools for other uses.
+
