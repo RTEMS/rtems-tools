@@ -1,0 +1,424 @@
+RTEMS Tester
+============
+:doctype: book
+:toc2:
+:toclevels: 5
+:icons:
+:numbered:
+
+image:images/rtemswhitebg.jpg["RTEMS",width="30%"]
+
+Chris Johns <chrisj@rtems.org>
+1.0, Janurary 2014
+
+RTEMS Tester
+------------
+
+The RTEMS Tester is a test framework. It includes a command line interface to
+run tests on supported targets. The framework provides backend support for
+common simulators and debuggers. The board support package (BSP) configurations
+for RTEMS are provided and can be used to run all the tests provided with
+RTEMS. The framework is not specific to RTEMS and can be configured to run any
+suitable application.
+
+RTEMS is an embedded operating system and is cross-compiled on a range of host
+machines. The executables run on the target hardware and this can vary widely
+from open source simulators, commercial simulators, debuggers with simulators,
+to debuggers with hardware specific pods and devices. Testing RTEMS requires
+the cross-compiled test executable is transfered to the target hardware,
+executed and the output returned to the host where it is analyised to determine
+the test result. The RTEMS Tester provides a framework to do this.
+
+Running all the RTEMS tests on your target is very important. It provides you
+with a tracable record your RTEMS version and its tools and working at the
+level the RTEMS development team expect when releasing RTEMS. Being able to
+easly run the tests and verify the results is critical is maintiaining a high
+standard.
+
+The RTEMS Tester contains:
+
+* Command line tool (+rtems-test+)
+* BSP Configuration scripts
+* Backend Configuration scripts
+* Backend Python classes
+* Python based framework
+
+IMPORTANT: If you have a problem please see the <<_bugs,reporting bugs>>
+           section.
+
+License
+-------
+
+The RTEMS Tester is part of the RTEMS Tools Project. The code is released under
+the OSI approved The BSD 2-Clause License. It is free to use and we encourage
+this including operating systems other than RTEMS.
+
+The code and command line tools must retain the same names and always reference
+the RTEMS Tools Project.
+
+Quick Start
+-----------
+
+The quick start will show you how to run the test suite for a BSP. It will
+explain how to get the RTEMS Tester, set it up and run the tests for the SIS
+BSP. It assumes you have a valid SPARC tool chain and built SIS BSP version of
+RTEMS. 4.11.
+
+Setup
+~~~~~
+
+Setup a development work space:
+
+-------------------------------------------------------------
+$ cd
+$ mkdir -p development/rtems/test
+$ cd development/rtems/test
+-------------------------------------------------------------
+
+First fetch the RTEMS tester. During the development stages of this tool it is
+provided as a tarball. Point your browser to
+http://www.rtems.org/ftp/pub/rtems/people/chrisj/rtems-tester and download the
+latest version. The versions are dated and number if more than one release is
+made on a single day. Unpack the tarball and enter the directory:
+
+-------------------------------------------------------------
+$ tar jxf rtems-test-20140117-1.tar.bz2
+$ cd rtems-test
+-------------------------------------------------------------
+
+Available BSPs
+~~~~~~~~~~~~~~
+
+You can list the available BSP's with:
+
+-------------------------------------------------------------
+$ ./rtems-test --list-bsps
+  mcf5235
+  realview_pbx_a9_qemu
+  sis-run
+  sis
+  xilinx_zynq_zc706
+-------------------------------------------------------------
+
+[TIP]
+=============================================================
+The list is growing all the time and if your BSP is not support we
+encourage you to add it and submit the configuration back to the project.
+=============================================================
+
+Some of the BSPs may appear more than once in the list. These are aliased BSP
+configuration's that may use a different backend. An example is the SPARC
+Instruction Simulator (SIS) BSP. There is the 'sis' BSP which uses the GDB
+backend and the 'sis-run' which uses the command line version of the SIS
+simulator. We will show how to use +rtems-test+ with the SIS BSP because it is
+easy to build an use.
+
+Building RTEMS Tests
+~~~~~~~~~~~~~~~~~~~~
+
+Building RTEMS with a configuration command line something similar to:
+
+[NOTE]
+=============================================================
+The following assumes a Unix type host and the tools have been built with
+a prefix of +$HOME/development/rtems/4.11+.
+=============================================================
+
+-------------------------------------------------------------
+$ cd
+$ export PATH=$HOME/development/rtems/4.11/bin:$PATH
+$ mkdir -p development/rtems/kernel
+$ cd development/rtems/kernel
+$ git clone git://git.rtems.org/rtems.git rtems.git
+$ cd rtems.git
+$ ./bootstrap -c && ./bootstrap -p && ./bootstrap
+$ cd ..
+$ mkdir sis
+$ ../rtems.git/configure --target=sparc-rtems4.11 \
+                  --enable-tests --enable-rtemsbsp=sis
+-------------------------------------------------------------
+
+It will build all the tests. There are currently 471 separate tests and you can
+run them all with a single RTEMS Tester command. Building all the tests takes
+time and it uses more disk so be patient.
+
+TIP: Use a recent RSB version to build a SPARC tool chain. A recent patch
+fixes issues with the GDB simulator and it improves the test results. It is
+also recommended you use a recent RTEMS 4.11 version as the tests have been
+cleaned up to improve the results.
+
+Running the Tests
+~~~~~~~~~~~~~~~~~
+
+The +rtems-test+ command line accepts a range of options. These are discussed
+later in the manual. Any command line argument without a +--+ prefix is a test
+executable. You can pass more than one executable on the command line. If the
+executable is a path to a directory the directories under that path are
+searched for any file with a +.exe+ extension. This is the detault extension
+for RTEMS executables built within RTEMS.
+
+To run the SIS tests we have built run this command:
+
+-------------------------------------------------------------
+./rtems-test --log=log_sis_run <1> \
+             --rtems-bsp=sis-run <2> \
+             --rtems-tools=$HOME/development/rtems/4.11 <3> \
+                 $HOME/development/rtems/kernel/sis <4>
+RTEMS Testing - Tester, v0.2.0
+[  5/471] p:0   f:0   t:0   i:0   | sparc/sis: fsdosfswrite01.exe
+[  2/471] p:0   f:0   t:0   i:0   | sparc/sis: fsdosfsformat01.exe
+[  4/471] p:0   f:0   t:0   i:0   | sparc/sis: fsdosfssync01.exe
+[  6/471] p:0   f:0   t:0   i:0   | sparc/sis: fsfseeko01.exe
+[  3/471] p:0   f:0   t:0   i:0   | sparc/sis: fsdosfsname01.exe
+[  1/471] p:0   f:0   t:0   i:0   | sparc/sis: fsbdpart01.exe
+[  7/471] p:0   f:0   t:0   i:0   | sparc/sis: fsimfsgeneric01.exe
+[  8/471] p:0   f:0   t:0   i:0   | sparc/sis: fsnofs01.exe
+[  9/471] p:1   f:0   t:0   i:0   | sparc/sis: fsrfsbitmap01.exe
+[ 10/471] p:4   f:0   t:0   i:0   | sparc/sis: imfs_fserror.exe
+[ 11/471] p:4   f:0   t:0   i:0   | sparc/sis: imfs_fslink.exe
+[ 12/471] p:4   f:0   t:0   i:0   | sparc/sis: imfs_fspatheval.exe
+  ................................................. <5>
+[465/471] p:453 f:4   t:0   i:0   | sparc/sis: tm26.exe
+[466/471] p:454 f:4   t:0   i:0   | sparc/sis: tm27.exe
+[467/471] p:455 f:4   t:0   i:0   | sparc/sis: tm28.exe
+[468/471] p:456 f:4   t:0   i:0   | sparc/sis: tm29.exe
+[469/471] p:457 f:4   t:0   i:0   | sparc/sis: tm30.exe
+[470/471] p:458 f:4   t:0   i:0   | sparc/sis: tmck.exe
+[471/471] p:459 f:4   t:0   i:0   | sparc/sis: tmoverhd.exe
+Passed:   466 <6>
+Failed:     4
+Timeouts:   1
+Invalid:    0
+Total:    471
+Testing time: 0:05:29.240084 <7>
+-------------------------------------------------------------
+<1> The +--log+ option sends the output to a log file.
+<2> Select the SIS BSP and use the simulator run command.
+<3> Path to the RTEMS tools so the simulator run command can be found.
+<4> Path to the SIS BSP built with all tests.
+<5> The output has been shortened so it fits nicely here.
+<6> The test results. It shows passes, fails, timeouts, and invalid results.
+<7> The total time taken to run all the tests.
+
+This BSP requires the +--rtems-tools+ option because the SIS simulator is the
++sparc-rtems4.11-run+ command that is part of the RTEMS tools. Not every BSP
+will require this option so you will need to check the specifics of the BSP
+configration to determine if it is needed.
+
+The output you see is each test starting to run. The +rtems-test+ command can
+run multiple SIS simulators in parallel so you will see a number start quickly
+and then tests start as others finish. The output shown here is from an 8 core
+processor so the first 8 are started in parallel and the status shows the order
+they actually started which is not 1 to 7.
+
+The test start line shows the current status of the tests. The status reported
+is when the test starts and not the result of that test. A fail, timeout or
+invalid count changing means a test running before this test started failed,
+not the starting test. The status here has 453 tests pass and 4 tests fail when
+test tm26.exe start:
+
+-------------------------------------------------------------
+[465/471]<1>  p:453<2> f:4<3>  t:0<4>  i:0<5>  | sparc/sis:<6> tm26.exe<7>
+-------------------------------------------------------------
+<1> The test number, in this case test 465 of 471 tests.
+<2> Passed test count.
+<3> Failied test count.
+<4> Timeout test count.
+<5> Invalid test count.
+<6> Architecture and BSP.
+<7> Executable name.
+
+The test log records all the tests and results. The reporting mode by default
+only provides the output history if a test fails, timeouts, or is invalid. The
+time taken by each test is also records.
+
+The tests must complete in a specified time or the test is marked as timed
+out. The default timeout is 3 minutes and can be globally changed using the
++--timeout+ command line option. The time required to complete a test can
+vary. When simulators are run in parallel the time taken depends on the
+specifics of the host machine being used. A test per core is the most stable
+even though more tests can be run than available cores. If your machine needs
+longer or you are using a VM you may need to length the time out.
+
+Test Status
+~~~~~~~~~~~
+
+Tests can be marked with one of the following:
+
+. Pass
+. Fail
+. Timeout
+. Invalid
+
+The RTEMS console or stdout output from the test is needed to determine the
+result of the test.
+
+.Pass
+A test passes if the start and end markers are seen in the test output. The
+start marker is "+\*\*\*+" and the end mark is "+\*** END OF TEST+". All tests in the
+RTEMS test suite have these markers.
+
+.Fail
+A test fails if the start marker is seen and there is no end marker.
+
+.Timeout
+If the test does not complete within the timeout setting the test is marked as
+timed out.
+
+.Invalid
+If no start marker is seen the test is marked as invalid. If you are testing on
+real target hardware things can sometimes go wrong and the target may not
+initialise or respond to the debugger in an expected way.
+
+Reporting
+~~~~~~~~~
+
+The report written to the log has the following modes:
+
+. All (+all+)
+. Failures (+failures+)
+. None (+none+)
+
+The mode is controlled using the command line option +--report-mode+ using the
+values listed above.
+
+.All
+The output of all tests is written to the log.
+
+.Failures
+The output of the all tests that do not pass is written to the log.
+
+.None
+No output is written to the log.
+
+The output is tagged so you can determine where it comes from. The following is
+the complete output for the In Memory File System test +imfs_fslink.exe+
+running on a Coldfire MCF5235 using a GDB and a BDM pod:
+
+-------------------------------------------------------------
+[ 11/472] p:9   f:0   t:0   i:1   | m68k/mcf5235: imfs_fslink.exe
+> gdb: ..../bin/m68k-rtems4.11-gdb -i=mi --nx --quiet ..../imfs_fslink.exe <1>
+> Reading symbols from ..../fstests/imfs_fslink/imfs_fslink.exe...
+> done. <2>
+> target remote | m68k-bdm-gdbserver pipe 003-005
+> Remote debugging using | m68k-bdm-gdbserver pipe 003-005
+> m68k-bdm: debug module version 0
+> m68k-bdm: detected MCF5235
+> m68k-bdm: architecture CF5235 connected to 003-005
+> m68k-bdm: Coldfire debug module version is 0 (5206(e)/5235/5272/5282)
+> Process 003-005 created; pid = 0
+> 0x00006200 in ?? ()
+> thb *0xffe254c0
+> Hardware assisted breakpoint 1 at 0xffe254c0
+> continue
+> Continuing.
+] <3>
+]
+] External Reset
+]
+] ColdFire MCF5235 on the BCC
+] Firmware v3b.1a.1a (Built on Jul 21 2004 17:31:28)
+] Copyright 1995-2004 Freescale Semiconductor, Inc.  All Rights Reserved.
+]
+] Enter 'help' for help.
+]
+> Temporary breakpoint
+> 1, 0xffe254c0 in ?? ()
+> load
+> Loading section .text, size 0x147e0 lma 0x40000
+> Loading section .data, size 0x5d0 lma 0x547e0
+> Start address 0x40414, load size 85424
+> Transfer rate: 10 KB/sec, 1898 bytes/write.
+> b bsp_reset
+> Breakpoint 2 at 0x41274: file ..../shared/bspreset_loop.c, line 14.
+> continue
+> Continuing.
+] dBUG>
+]
+] *** FILE SYSTEM TEST ( IMFS ) *** <4>
+] Initializing filesystem IMFS
+]
+]
+] *** LINK TEST ***
+] link creates hardlinks
+] test if the stat is the same
+] chmod and chown
+] unlink then stat the file
+] *** END OF LINK TEST ***
+]
+]
+] Shutting down filesystem IMFS
+] *** END OF FILE SYSTEM TEST ( IMFS ) *** <5>
+> Breakpoint
+> 2, bsp_reset () at ..../m68k/mcf5235/../../shared/bspreset_loop.c:14
+> 14    {
+Result: passed     Time: 0:00:10.045447 <6>
+-------------------------------------------------------------
+<1> GDB command line (Note: paths with \'....' have been shortened)
+<2> Lines starting with +>+ are from GDB's console.
+<3> Line starting with +]+ are from the target's console.
+<4> The start marker.
+<5> The end marker.
+<6> The result with the test time.
+
+Running Tests in Parallel
+-------------------------
+
+The RTEMS Tester supports parallel execution of tests by default. This only
+makes sense if the test backend can run in parallel without resulting in
+resource contention. Simulators are an example of backends that can run in
+parallel.
+
+The test framework manages the test jobs and orders the output in the report
+long in test order. Output is held for completed tests until the next test to
+be reported has finished.
+
+Command Line Help
+~~~~~~~~~~~~~~~~~
+
+The +rtems-test+ command line accepts a range of options. You can review the
+available option by the +--help+ option:
+
+-------------------------------------------------------------
+RTEMS Tools Project (c) 2012-2014 Chris Johns
+Options and arguments:
+--always-clean               : Always clean the build tree, even with an error
+--debug-trace                : Debug trace based on specific flags
+--dry-run                    : Do everything but actually run the build
+--force                      : Force the build to proceed
+--jobs=[0..n,none,half,full] : Run with specified number of jobs, default: num CPUs.
+--keep-going                 : Do not stop on an error.
+--list-bsps                  : List the supported BSPs
+--log file                   : Log file where all build out is written too
+--macros file[,file]         : Macro format files to load after the defaults
+--no-clean                   : Do not clean up the build tree
+--quiet                      : Quiet output (not used)
+--report-mode                : Reporting modes, failures (default),all,none
+--rtems-bsp                  : The RTEMS BSP to run the test on
+--rtems-tools                : The path to the RTEMS tools
+--target                     : Set the target triplet
+--timeout                    : Set the test timeout in seconds (default 180 seconds)
+--trace                      : Trace the execution
+--warn-all                   : Generate warnings
+-------------------------------------------------------------
+
+Developement
+------------
+
+The RTEMS Tester framework and command line tool is under active
+development. This are changing, being fixed, broken and generally improved. If
+you want to help please see the Wiki page for open itmes.
+
+
+
+History
+-------
+
+The RTEMS Tester is based on a refactored base of Python code used in the RTEMS
+Source Builder. This code provided a working tested base that has been extended
+and expanded to meet the needs of the RTEMS Tester. The tester uses the
+specifics found in the various scripts and configurations in the
+rtems-testing.git repo that has been accumulated over many years. The shell
+script implementation is restricted in what can it do and per BSP script is a
+maintenance burden, for example the command lines and options vary between each
+script.

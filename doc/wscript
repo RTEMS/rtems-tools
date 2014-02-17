@@ -1,0 +1,26 @@
+#
+# Waf build script to build the Source Builder Documentation.
+#
+
+import os
+import os.path
+
+version = "1.0.0"
+
+def configure(ctx):
+    ctx.env.ASCIIDOC = ctx.find_program(['asciidoc.py'],
+                                        path_list = [os.path.join(os.getcwd(), 'asciidoc')],
+                                        mandatory = True)
+    ctx.env.ASCIIDOC_FLAGS = ['-b', 'html5', '-a', 'data-uri',
+                              '-a', 'icons', '-a', 'max-width=55em-a']
+
+def build(ctx):
+    ctx(target = 'rtems-tester.html', source = 'rtems-tester.txt')
+
+import waflib.TaskGen
+waflib.TaskGen.declare_chain(name      = 'html',
+                             rule      = 'python ${ASCIIDOC} ${ASCIIDOC_FLAGS} -o ${TGT} ${SRC}',
+                             shell     = False,
+                             ext_in    = '.txt',
+                             ext_out   = '.html',
+                             reentrant = False)
