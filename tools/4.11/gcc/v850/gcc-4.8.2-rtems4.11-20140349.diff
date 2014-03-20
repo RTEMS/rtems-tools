@@ -1,0 +1,20 @@
+2014-03-19  Joel Sherrill  <joel.sherrill@oarcorp.com>
+
+	* config.host (v850*-*-*): Add to tmake_file instead of resetting it.
+
+diff --git a/libgcc/config.host b/libgcc/config.host
+index bdc725f..f8f74cc 100644
+--- a/libgcc/config.host
++++ b/libgcc/config.host
+@@ -1195,7 +1195,7 @@ tilepro*-*-linux*)
+ 	md_unwind_header=tilepro/linux-unwind.h
+         ;;
+ v850*-*-*)
+-	tmake_file="v850/t-v850 t-fdpbit"
++	tmake_file="${tmake_file} v850/t-v850 t-fdpbit"
+ 	;;
+ vax-*-linux*)
+ 	tmake_file="$tmake_file vax/t-linux"
+-- 
+1.8.3.1
+
