@@ -111,7 +111,7 @@ class file(config.file):
                                                     self._timeout))
             if ec > 0:
                 self._lock()
-                self._error('execute failed: %s: %s' % (' '.join(data), os.strerror(ec)))
+                self._error('execute failed: %s: exit-code:%d' % (' '.join(data), ec))
                 self._unlock()
             if self.console:
                 self.console.close()
