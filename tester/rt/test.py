@@ -44,6 +44,7 @@ import console
 import options
 import report
 import version
+import fnmatch
 
 def stacktraces():
     import traceback
@@ -119,7 +120,7 @@ class test_run(object):
         if self.result is not None:
             raise self.result[0], self.result[1], self.result[2]
 
-def find_executables(paths):
+def find_executables(paths, glob):
     executables = []
     for p in paths:
         if path.isfile(p):
@@ -127,7 +128,7 @@ def find_executables(paths):
         elif path.isdir(p):
             for root, dirs, files in os.walk(p, followlinks = True):
                 for f in files:
-                    if f.lower().endswith('.exe'):
+                    if fnmatch.fnmatch(f.lower(), glob):
                         executables += [path.join(root, f)]
     return sorted(executables)
 
@@ -178,12 +179,15 @@ def run(command_path = None):
     import sys
     stdtty = console.save()
     opts = None
+    default_exefilter = '*.exe'
     try:
         optargs = { '--rtems-tools': 'The path to the RTEMS tools',
                     '--rtems-bsp':   'The RTEMS BSP to run the test on',
                     '--report-mode': 'Reporting modes, failures (default),all,none',
                     '--list-bsps':   'List the supported BSPs',
                     '--debug-trace': 'Debug trace based on specific flags',
+                    '--filter':      'Glob that executables must match to run (default: ' +
+                              default_exefilter + ')',
                     '--stacktrace':  'Dump a stack trace on a user termination (^C)' }
         opts = options.load(sys.argv,
                             optargs = optargs,
@@ -191,6 +195,11 @@ def run(command_path = None):
         log.notice('RTEMS Testing - Tester, v%s' % (version.str()))
         if opts.find_arg('--list-bsps'):
             list_bsps(opts)
+        exe_filter = opts.find_arg('--filter')
+        if exe_filter:
+            exe_filter = exe_filter[1]
+        else:
+            exe_filter = default_exefilter
         opts.log_info()
         debug_trace = opts.find_arg('--debug-trace')
         if debug_trace:
@@ -225,7 +234,7 @@ def run(command_path = None):
             report_mode = report_mode[1]
         else:
             report_mode = 'failures'
-        executables = find_executables(opts.params())
+        executables = find_executables(opts.params(), exe_filter)
         if len(executables) == 0:
             raise error.general('no executbles supplied')
         start_time = datetime.datetime.now()
