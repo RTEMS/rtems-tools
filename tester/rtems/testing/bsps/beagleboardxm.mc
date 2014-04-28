@@ -57,5 +57,5 @@ gdb_script:               none,    none,   'beagleboardxm_gdb_script'
 beagleboardxm_gdb_script: none,    none,   '''target remote kaka:3333
                                               mon beagleboard_xm_mlo /home/chris/development/rtems/bb/uboot/u-boot/MLO
                                               load
-                                              b _Terminate
+                                              b _Terminate_CPU_Fatal_halt
                                               continue'''
