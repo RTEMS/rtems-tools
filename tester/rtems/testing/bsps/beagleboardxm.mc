@@ -42,12 +42,13 @@
 #
 
 #
-# The Xilinx Zync ZC706 board connected via OpenOCD and a JTAG pod. The console
-# is connected to a tty device.
+# The BeagleBoard xM board connected via OpenOCD and a JTAG pod. The console
+# is connected to a tty device. The BeagleBoard xM BSP contains an OpenOCD
+# configuration file called bbxm.cfg you need to start OpenOCD with.
 #
 [global]
-bsp:                          none,    none,   'beagleboardxm'
-jobs:                         none,    none,   '1'
+bsp:                      none,    none,   'beagleboardxm'
+jobs:                     none,    none,   '1'
 
 [beagleboardxm]
 beagleboardxm:            none,    none,   '%{_rtscripts}/gdb.cfg'
