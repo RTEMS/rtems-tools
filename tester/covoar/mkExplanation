@@ -1,0 +1,70 @@
+#! /bin/sh
+#
+#  Script to help generate an explanation for the covoar explanations file.
+#
+
+toggle()
+{
+  case $1 in
+    no)  echo "yes" ;;
+    yes) echo "no" ;;
+    *)   fatal "Unknown value to toggle ($1)" ;;
+  esac
+}
+
+usage()
+{
+  echo "$progname -r sourceLine -c category [-m message|-M msgfile] "
+  exit 1
+}
+
+message=
+messageFile=
+category=
+sourceLine=
+verbose=no
+while getopts c:m:M:r:v OPT
+do
+  case "$OPT" in 
+    c) category=$OPTARG ;; 
+    m) message=$OPTARG ;; 
+    M) messageFile=$OPTARG ;; 
+    r) sourceLine=$OPTARG ;; 
+    v) verbose=`toggle ${verbose}` ;;
+    *) usage ;;
+  esac
+done
+
+# Error check
+if [ "X${sourceLine}" = "X" ] ; then
+  echo No sourceLine provided
+  usage
+fi
+
+let $((shiftcount = $OPTIND - 1))
+shift #shiftcount
+
+args=$*
+
+if [ "X${category}" = "X" ] ; then
+  echo No category provided
+  usage
+fi
+
+if [ "X${message}" = "X" -a "X${messageFile}" = "X" ] ; then
+  echo No message provided
+  usage
+fi
+
+# Generate the explanation
+echo ${sourceLine}
+echo ${category}
+if [ "X${message}" = "X" ] ; then
+  cat ${messageFile}
+else
+  echo ${message} | xargs -s 76
+fi
+echo "+++"
+echo
+
+exit 0

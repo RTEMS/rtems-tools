@@ -1,0 +1,117 @@
+#
+# RTEMS Tools Project (http://www.rtems.org/)
+# Copyright 2014 Chris Johns (chrisj@rtems.org)
+# All rights reserved.
+#
+# This file is part of the RTEMS Tools package in 'rtems-tools'.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+
+#
+# Build the covoar application.
+#
+# Taken from the waf C++ demo.
+#
+
+#
+# The following two variables are used by the target "waf dist".
+#
+VERSION='0.0.1'
+APPNAME='covoar'
+
+#
+# These variables are mandatory ('/' are converted automatically)
+#
+top = '.'
+out = 'build'
+
+def options(opt):
+    opt.load('compiler_cxx')
+
+def configure(conf):
+    conf.load('compiler_cxx')
+    conf.check_cc(function_name='open64', header_name="stdlib.h", mandatory = False)
+    conf.check_cc(function_name='stat64', header_name="stdlib.h", mandatory = False)
+    conf.write_config_header('covoar-config.h')
+
+def build(bld):
+    bld.stlib(target = 'ccovoar',
+              source = ['app_common.cc',
+                        'ConfigFile.cc',
+                        'CoverageFactory.cc',
+                        'CoverageMap.cc',
+                        'CoverageMapBase.cc',
+                        'CoverageRanges.cc',
+                        'CoverageReaderBase.cc',
+                        'CoverageReaderQEMU.cc',
+                        'CoverageReaderRTEMS.cc',
+                        'CoverageReaderSkyeye.cc',
+                        'CoverageReaderTSIM.cc',
+                        'CoverageWriterBase.cc',
+                        'CoverageWriterRTEMS.cc',
+                        'CoverageWriterSkyeye.cc',
+                        'CoverageWriterTSIM.cc',
+                        'DesiredSymbols.cc',
+                        'ExecutableInfo.cc',
+                        'Explanations.cc',
+                        'GcovData.cc',
+                        'GcovFunctionData.cc',
+                        'ObjdumpProcessor.cc',
+                        'ReportsBase.cc',
+                        'ReportsText.cc',
+                        'ReportsHtml.cc',
+                        'SymbolTable.cc',
+                        'Target_arm.cc',
+                        'TargetBase.cc',
+                        'TargetFactory.cc',
+                        'Target_i386.cc',
+                        'Target_lm32.cc',
+                        'Target_m68k.cc',
+                        'Target_powerpc.cc',
+                        'Target_sparc.cc'],
+              cflags = ['-O2', '-g'],
+              includes = ['.'])
+
+    bld.program(target = 'trace-converter',
+                source = ['TraceConverter.cc',
+                          'TraceList.cc',
+                          'TraceReaderBase.cc',
+                          'TraceReaderLogQEMU.cc',
+                          'TraceWriterBase.cc',
+                          'TraceWriterQEMU.cc'],
+                use = 'ccovoar',
+                cflags = ['-O2', '-g'],
+                includes = ['.'])
+
+    bld.program(target = 'covoar',
+                source = ['covoar.cc'],
+                use = 'ccovoar',
+                cflags = ['-O2', '-g'],
+                includes = ['.'])
+
+    bld.program(target = 'covoar',
+                source = ['covoar.cc'],
+                use = 'ccovoar',
+                cflags = ['-O2', '-g'],
+                includes = ['.'])

@@ -1,0 +1,22 @@
+#
+#  This is a comment.
+#
+
+projectName = RTEMS 4.10
+
+verbose = no   
+
+verbose
+
+verbose     yes   
+
+bad_option  = no
+
+verbose = yes   # comment
+
+verbose = no # comment
+
+  verbose   =   yes   
+# next line is filled with spaces
+                       
+                  # comment
