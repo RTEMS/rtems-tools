@@ -136,6 +136,7 @@ $ cd ..
 $ mkdir sis
 $ ../rtems.git/configure --target=sparc-rtems4.11 \
                   --enable-tests --enable-rtemsbsp=sis
+$ make
 -------------------------------------------------------------
 
 It will build all the tests. There are currently 471 separate tests and you can
