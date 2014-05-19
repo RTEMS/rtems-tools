@@ -1,0 +1,342 @@
+diff -ur gdb-7.7.orig/sim/erc32/erc32.c gdb-7.7/sim/erc32/erc32.c
+--- gdb-7.7.orig/sim/erc32/erc32.c	2014-01-08 20:23:36.000000000 +1100
++++ gdb-7.7/sim/erc32/erc32.c	2014-05-19 10:59:56.000000000 +1000
+@@ -22,6 +22,7 @@
+ /* The control space devices */
+ 
+ #include "config.h"
++#include <errno.h>
+ #include <sys/types.h>
+ #include <stdio.h>
+ #include <string.h>
+@@ -40,6 +41,8 @@
+ extern char     uart_dev1[], uart_dev2[];
+ 
+ int dumbio = 0; /* normal, smart, terminal oriented IO by default */
++int tty_setup = 1; /* default setup if not a tty */
++int disable_uartrx = 0; /* default is to poll for received data */
+ 
+ /* MEC registers */
+ #define MEC_START 	0x01f80000
+@@ -305,12 +308,16 @@
+ 
+ extern int	ext_irl;
+ 
++static host_callback *callback;
++
+ 
+ /* One-time init */
+ 
+ void
+-init_sim()
++init_sim(host_callback* cb, int nouartrx)
+ {
++    callback = cb;
++    disable_uartrx = nouartrx;
+     port_init();
+ }
+ 
+@@ -940,10 +947,14 @@
+ {
+     if (dumbio)
+         return; /* do nothing */
+-    if (!ifd1)
++    if (ifd1 == 0 && f1open) {
+ 	tcsetattr(0, TCSANOW, &ioc1);
+-    if (!ifd2)
++        tcflush(ifd1, TCIFLUSH);
++    }
++    if (ifd2 == 0 && f1open) {
+ 	tcsetattr(0, TCSANOW, &ioc2);
++        tcflush(ifd2, TCIFLUSH);
++    }
+ }
+ 
+ void
+@@ -951,16 +962,18 @@
+ {
+     if (dumbio)
+         return; /* do nothing */
+-    if (!ifd1)
++    if (ifd1 == 0 && f1open && tty_setup)
+ 	tcsetattr(0, TCSANOW, &iocold1);
+-    if (!ifd2)
++    if (ifd2 == 0 && f2open && tty_setup)
+ 	tcsetattr(0, TCSANOW, &iocold2);
+ }
+ 
+ #define DO_STDIO_READ( _fd_, _buf_, _len_ )          \
+-             ( dumbio                                \
++             ( dumbio || disable_uartrx \
+                ? (0) /* no bytes read, no delay */   \
+-               : read( _fd_, _buf_, _len_ ) )
++               : (_fd_) == 1 && callback ? \
++                 callback->read_stdin (callback, _buf_, _len_) :  \
++                 read( _fd_, _buf_, _len_ ) )
+ 
+ 
+ static void
+@@ -990,21 +1003,26 @@
+ 	}
+     if (f1in) ifd1 = fileno(f1in);
+     if (ifd1 == 0) {
++        if (callback && !callback->isatty(callback, ifd1)) {
++            tty_setup = 0;
++        }
+ 	if (sis_verbose)
+ 	    printf("serial port A on stdin/stdout\n");
+         if (!dumbio) {
+             tcgetattr(ifd1, &ioc1);
++            if (tty_setup) {
+             iocold1 = ioc1;
+             ioc1.c_lflag &= ~(ICANON | ECHO);
+             ioc1.c_cc[VMIN] = 0;
+             ioc1.c_cc[VTIME] = 0;
+         }
++        }
+ 	f1open = 1;
+     }
+ 
+     if (f1out) {
+ 	ofd1 = fileno(f1out);
+-    	if (!dumbio && ofd1 == 1) setbuf(f1out, NULL);
++    	if (!dumbio && tty_setup && ofd1 == 1) setbuf(f1out, NULL);
+     }
+ 
+     if (uart_dev2[0] != 0)
+@@ -1023,17 +1041,19 @@
+ 	    printf("serial port B on stdin/stdout\n");
+         if (!dumbio) {
+             tcgetattr(ifd2, &ioc2);
++            if (tty_setup) {
+             iocold2 = ioc2;
+             ioc2.c_lflag &= ~(ICANON | ECHO);
+             ioc2.c_cc[VMIN] = 0;
+             ioc2.c_cc[VTIME] = 0;
+         }
++        }
+ 	f2open = 1;
+     }
+ 
+     if (f2out) {
+ 	ofd2 = fileno(f2out);
+-        if (!dumbio && ofd2 == 1) setbuf(f2out, NULL);
++        if (!dumbio && tty_setup && ofd2 == 1) setbuf(f2out, NULL);
+     }
+ 
+     wnuma = wnumb = 0;
+@@ -1062,6 +1082,9 @@
+ 	    if (f1open) {
+ 	        anum = DO_STDIO_READ(ifd1, aq, UARTBUF);
+ 	    }
++      else {
++          anum = 0;
++      }
+ 	    if (anum > 0) {
+ 		aind = 0;
+ 		if ((aind + 1) < anum)
+@@ -1094,6 +1117,9 @@
+ 	    if (f2open) {
+ 		bnum = DO_STDIO_READ(ifd2, bq, UARTBUF);
+ 	    }
++	    else {
++		bnum = 0;
++	    }
+ 	    if (bnum > 0) {
+ 		bind = 0;
+ 		if ((bind + 1) < bnum)
+@@ -1126,6 +1152,9 @@
+ 	    if (f1open) {
+ 	        anum = DO_STDIO_READ(ifd1, aq, UARTBUF);
+             }
++	    else {
++		anum = 0;
++	    }
+ 	    if (anum > 0) {
+ 		Ucontrol |= 0x00000001;
+ 		aind = 0;
+@@ -1138,6 +1167,9 @@
+ 	    if (f2open) {
+ 		bnum = DO_STDIO_READ(ifd2, bq, UARTBUF);
+ 	    }
++	    else {
++		bnum = 0;
++	    }
+ 	    if (bnum > 0) {
+ 		Ucontrol |= 0x00010000;
+ 		bind = 0;
+@@ -1178,8 +1210,12 @@
+ 	    if (wnuma < UARTBUF)
+ 	        wbufa[wnuma++] = c;
+ 	    else {
+-	        while (wnuma)
++	        while (wnuma) {
++              if (ofd1 == 1 && callback)
++                  wnuma -= callback->write_stdout(callback, wbufa, wnuma);
++              else
+ 		    wnuma -= fwrite(wbufa, 1, wnuma, f1out);
++          }
+ 	        wbufa[wnuma++] = c;
+ 	    }
+ 	}
+@@ -1202,8 +1238,12 @@
+ 	    if (wnumb < UARTBUF)
+ 		wbufb[wnumb++] = c;
+ 	    else {
+-		while (wnumb)
++          while (wnumb) {
++              if (ofd1 == 1 && callback)
++                  wnumb -= callback->write_stdout(callback, wbufb, wnumb);
++              else
+ 		    wnumb -= fwrite(wbufb, 1, wnumb, f2out);
++          }
+ 		wbufb[wnumb++] = c;
+ 	    }
+ 	}
+@@ -1241,19 +1281,37 @@
+ static void
+ flush_uart()
+ {
+-    while (wnuma && f1open)
++    while (wnuma && f1open) {
++        if (ofd1 == 1 && callback) {
++            wnuma -= callback->write_stdout(callback, wbufa, wnuma);
++            callback->flush_stdout(callback);
++        }
++        else
+ 	wnuma -= fwrite(wbufa, 1, wnuma, f1out);
+-    while (wnumb && f2open)
++    }
++    while (wnumb && f2open) {
++        if (ofd2 == 1 && callback) {
++            wnuma -= callback->write_stdout(callback, wbufb, wnuma);
++            callback->flush_stdout(callback);
++        }
++        else
+ 	wnumb -= fwrite(wbufb, 1, wnumb, f2out);
+ }
++}
+ 
+ 
+ 
+ static void
+ uarta_tx()
+ {
+-
+-    while (f1open && fwrite(&uarta_sreg, 1, 1, f1out) != 1);
++    while (f1open) {
++        if (ofd1 == 1 && callback) {
++            while (callback->write_stdout(callback, &uarta_sreg, 1) != 1);
++        }
++        else {
++            while (fwrite(&uarta_sreg, 1, 1, f1out) != 1);
++        }
++    }
+     if (uart_stat_reg & UARTA_HRE) {
+ 	uart_stat_reg |= UARTA_SRE;
+     } else {
+@@ -1267,7 +1325,14 @@
+ static void
+ uartb_tx()
+ {
+-    while (f2open && fwrite(&uartb_sreg, 1, 1, f2out) != 1);
++    while (f2open) {
++        if (ofd2 == 1 && callback) {
++            while (callback->write_stdout(callback, &uarta_sreg, 1) != 1);
++        }
++        else {
++            while (fwrite(&uartb_sreg, 1, 1, f2out) != 1);
++        }
++    }
+     if (uart_stat_reg & UARTB_HRE) {
+ 	uart_stat_reg |= UARTB_SRE;
+     } else {
+@@ -1289,6 +1354,8 @@
+     rsize = 0;
+     if (f1open)
+         rsize = DO_STDIO_READ(ifd1, &rxd, 1);
++    else
++        rsize = 0;
+     if (rsize > 0) {
+ 	uarta_data = UART_DR | rxd;
+ 	if (uart_stat_reg & UARTA_HRE)
+@@ -1305,6 +1372,8 @@
+     rsize = 0;
+     if (f2open)
+         rsize = DO_STDIO_READ(ifd2, &rxd, 1);
++    else
++        rsize = 0;
+     if (rsize) {
+ 	uartb_data = UART_DR | rxd;
+ 	if (uart_stat_reg & UARTB_HRE)
+diff -ur gdb-7.7.orig/sim/erc32/interf.c gdb-7.7/sim/erc32/interf.c
+--- gdb-7.7.orig/sim/erc32/interf.c	2013-12-08 15:55:48.000000000 +1100
++++ gdb-7.7/sim/erc32/interf.c	2014-05-19 10:59:56.000000000 +1000
+@@ -185,6 +185,7 @@
+     int             argc = 0;
+     int             stat = 1;
+     int             freq = 0;
++    int             nouartrx = 0;
+ 
+     sim_callback = callback;
+ 
+@@ -210,6 +211,9 @@
+             if (strcmp(argv[stat], "-dumbio") == 0) {
+ 		dumbio = 1;
+ 	    } else
++            if (strcmp(argv[stat], "-nouartrx") == 0) {
++		nouartrx = 1;
++	    } else
+             if (strcmp(argv[stat], "-wrp") == 0) {
+                 wrp = 1;
+ 	    } else
+@@ -268,7 +272,7 @@
+     dinfo.endian = BFD_ENDIAN_BIG;
+     reset_all();
+     ebase.simtime = 0;
+-    init_sim();
++    init_sim(callback, nouartrx);
+     init_bpt(&sregs);
+     reset_stat(&sregs);
+ 
+diff -ur gdb-7.7.orig/sim/erc32/sis.c gdb-7.7/sim/erc32/sis.c
+--- gdb-7.7.orig/sim/erc32/sis.c	2014-01-08 20:23:36.000000000 +1100
++++ gdb-7.7/sim/erc32/sis.c	2014-05-19 10:59:56.000000000 +1000
+@@ -166,6 +166,7 @@
+     int             cont = 1;
+     int             stat = 1;
+     int             freq = 14;
++    int             nouartrx = 0;
+     int             copt = 0;
+ 
+     char           *cfile, *bacmd;
+@@ -214,6 +215,8 @@
+ #endif
+             } else if (strcmp(argv[stat], "-dumbio") == 0) {
+ 		dumbio = 1;
++            } else if (strcmp(argv[stat], "-nouartrx") == 0) {
++		nouartrx = 1;
+ 	    } else {
+ 		printf("unknown option %s\n", argv[stat]);
+ 		usage();
+@@ -241,7 +244,7 @@
+     ebase.simtime = 0;
+     reset_all();
+     init_bpt(&sregs);
+-    init_sim();
++    init_sim(NULL, nouartrx);
+ #ifdef STAT
+     reset_stat(&sregs);
+ #endif
+diff -ur gdb-7.7.orig/sim/erc32/sis.h gdb-7.7/sim/erc32/sis.h
+--- gdb-7.7.orig/sim/erc32/sis.h	2014-01-08 20:23:36.000000000 +1100
++++ gdb-7.7/sim/erc32/sis.h	2014-05-19 12:36:36.000000000 +1000
+@@ -159,7 +159,7 @@
+ /* Prototypes  */
+ 
+ /* erc32.c */
+-extern void	init_sim (void);
++extern void	init_sim (host_callback* sb, int nouartrx);
+ extern void	reset (void);
+ extern void	error_mode (uint32 pc);
+ extern void	sim_halt (void);
