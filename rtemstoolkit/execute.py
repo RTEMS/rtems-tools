@@ -116,6 +116,7 @@ class execute(object):
         self.environment = None
         self.outputting = False
         self.timing_out = False
+        self.proc = None
 
     def _capture(self, command, proc, timeout = None):
         """Create 3 threads to read stdout and stderr and send to the output handler
@@ -262,12 +263,25 @@ class execute(object):
             timeout_thread.daemon = True
             timeout_thread.start()
         try:
+            self.lock.acquire()
+            try:
+                self.proc = proc
+            except:
+                raise
+            finally:
+                self.lock.release()
             exitcode = proc.wait()
         except:
-            print 'killing'
             proc.kill()
             raise
         finally:
+            self.lock.acquire()
+            try:
+                self.proc = None
+            except:
+                raise
+            finally:
+                self.lock.release()
             if self.cleanup:
                 self.cleanup(proc)
             if timeout_thread:
@@ -414,6 +428,37 @@ class execute(object):
         old_environment = self.environment
         self.environment = environment
         return old_environment
+
+    def kill(self):
+        self.lock.acquire()
+        try:
+            if self.proc is not None:
+                self.proc.kill()
+        except:
+            raise
+        finally:
+            self.lock.release()
+
+    def terminate(self):
+        self.lock.acquire()
+        try:
+            if self.proc is not None:
+                self.proc.terminate()
+        except:
+            raise
+        finally:
+            self.lock.release()
+
+    def send_signal(self, signal):
+        self.lock.acquire()
+        try:
+            if self.proc is not None:
+                print "sending sig"
+                self.proc.send_signal(signal)
+        except:
+            raise
+        finally:
+            self.lock.release()
 
 class capture_execution(execute):
     """Capture all output as a string and return it."""

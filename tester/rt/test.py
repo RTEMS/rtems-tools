@@ -38,24 +38,15 @@ import time
 from rtemstoolkit import error
 from rtemstoolkit import log
 from rtemstoolkit import path
+from rtemstoolkit import stacktraces
 
+import bsps
 import config
 import console
 import options
 import report
 import version
 import fnmatch
-
-def stacktraces():
-    import traceback
-    code = []
-    for threadId, stack in sys._current_frames().items():
-        code.append("\n# thread-id: %s" % threadId)
-        for filename, lineno, name, line in traceback.extract_stack(stack):
-            code.append('file: "%s", line %d, in %s' % (filename, lineno, name))
-            if line:
-                code.append("  %s" % (line.strip()))
-    return '\n'.join(code)
 
 class test(object):
     def __init__(self, index, total, report, executable, rtems_tools, bsp, bsp_config, opts):
@@ -78,7 +69,15 @@ class test(object):
             if not path.isdir(rtems_tools_bin):
                 raise error.general('cannot find RTEMS tools path: %s' % (rtems_tools_bin))
             self.opts.defaults['rtems_tools'] = rtems_tools_bin
-        self.config = config.file(report, bsp_config, self.opts)
+        self.config = config.file(self.report, self.bsp_config, self.opts)
+
+    def run(self):
+        if self.config:
+            self.config.run()
+
+    def kill(self):
+        if self.config:
+            self.config.kill()
 
 class test_run(object):
     def __init__(self, index, total, report, executable, rtems_tools, bsp, bsp_config, opts):
@@ -102,6 +101,7 @@ class test_run(object):
                              self.executable, self.rtems_tools,
                              self.bsp, self.bsp_config,
                              self.opts)
+            self.test.run()
         except KeyboardInterrupt:
             pass
         except:
@@ -119,6 +119,10 @@ class test_run(object):
     def reraise(self):
         if self.result is not None:
             raise self.result[0], self.result[1], self.result[2]
+
+    def kill(self):
+        if self.test:
+            self.test.kill()
 
 def find_executables(paths, glob):
     executables = []
@@ -175,8 +179,13 @@ def list_bsps(opts):
         log.notice('  %s' % (path.basename(bsp[:-3])))
     raise error.exit()
 
+def killall(tests):
+    for test in tests:
+        test.kill()
+
 def run(command_path = None):
     import sys
+    tests = []
     stdtty = console.save()
     opts = None
     default_exefilter = '*.exe'
@@ -194,7 +203,7 @@ def run(command_path = None):
                             command_path = command_path)
         log.notice('RTEMS Testing - Tester, v%s' % (version.str()))
         if opts.find_arg('--list-bsps'):
-            list_bsps(opts)
+            bsps.list(opts)
         exe_filter = opts.find_arg('--filter')
         if exe_filter:
             exe_filter = exe_filter[1]
@@ -246,7 +255,6 @@ def run(command_path = None):
         reporting = 1
         jobs = int(opts.jobs(opts.defaults['_ncpus']))
         exe = 0
-        tests = []
         finished = []
         if jobs > len(executables):
             jobs = len(executables)
@@ -288,7 +296,8 @@ def run(command_path = None):
             report_finished(reports, report_mode, -1, finished, job_trace)
         reports.summary()
         end_time = datetime.datetime.now()
-        log.notice('Testing time: %s' % (str(end_time - start_time)))
+        log.notice('Average test time: %s' % (str((end_time - start_time) / total)))
+        log.notice('Testing time     : %s' % (str(end_time - start_time)))
     except error.general, gerr:
         print gerr
         sys.exit(1)
@@ -302,8 +311,9 @@ def run(command_path = None):
             print '}} dumping:', threading.active_count()
             for t in threading.enumerate():
                 print '}} ', t.name
-            print stacktraces()
+            print stacktraces.trace()
         log.notice('abort: user terminated')
+        killall(tests)
         sys.exit(1)
     finally:
         console.restore(stdtty)

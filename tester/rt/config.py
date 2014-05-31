@@ -62,7 +62,7 @@ class file(config.file):
         self.console = None
         self.output = None
         self.report = report
-        self.load(name)
+        self.name = name
 
     def __del__(self):
         if self.console:
@@ -181,6 +181,9 @@ class file(config.file):
             for l in text:
                 print ' '.join(l)
 
+    def run(self):
+        self.load(self.name)
+
     def capture(self, text):
         text = [(']', l) for l in text.replace(chr(13), '').splitlines()]
         self._lock()
@@ -203,3 +206,7 @@ class file(config.file):
             if flag in dt.split(','):
                 return True
         return False
+
+    def kill(self):
+        if self.process:
+            self.process.kill()
