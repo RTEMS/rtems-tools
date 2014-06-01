@@ -42,12 +42,13 @@
 #
 
 #
-# The Xilinx Zynq A9 QEMU BSP
+# The Xilinx Zync ZC706 board connected via OpenOCD and a JTAG pod. The console
+# is connected to a tty device.
 #
 [global]
-bsp:                      none,    none,     'xilinx_zynq_a9_qemu'
+bsp:                    none,    none,   'xilinx_zynq_zc706'
 
-[xilinx_zynq_a9_qemu]
-realview_pbx_a9_qemu:     none,    none,  '%{_rtscripts}/qemu.cfg'
-xilinx_zynq_a9_qemu_arch: none,    none,  'arm'
-xilinx_zynq_a9_qemu_opts: none,    none,  '%{qemu_opts_base} %{qemu_opts_no_net} -M xilinx-zynq-a9 -m 256M'
+[xilinx_zynq_zc706]
+xilinx_zynq_zc706:      none,    none,  '%{_rtscripts}/qemu.cfg'
+xilinx_zynq_zc706_arch: none,    none,  'arm'
+xilinx_zynq_zc706_opts: none,    none,  '%{qemu_opts_base} %{qemu_opts_no_net} -M xilinx-zynq-a9 -m 1024M'

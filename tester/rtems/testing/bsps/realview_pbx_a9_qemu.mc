@@ -45,9 +45,9 @@
 # The Realview PBX A9 BSP.
 #
 [global]
-bsp:                   none,    none,     'realview_pbx_a9_qemu'
+bsp:                       none,    none,  'realview_pbx_a9_qemu'
 
 [realview_pbx_a9_qemu]
-realview_pbx_a9_qemu:      none,    none,     '%{_rtscripts}/qemu.cfg'
-realview_pbx_a9_qemu_arch: none,    none,     'arm'
-realview_pbx_a9_qemu_opts: none,    none,     '-no-reboot -serial /dev/null -serial mon:stdio -net none -nographic -M xilinx-zynq-a9 -m 256M'
+realview_pbx_a9_qemu:      none,    none,  '%{_rtscripts}/qemu.cfg'
+realview_pbx_a9_qemu_arch: none,    none,  'arm'
+realview_pbx_a9_qemu_opts: none,    none,  '%{qemu_opts_base} %{qemu_opts_no_net} -M realview-pbx-a9 -m 256M'

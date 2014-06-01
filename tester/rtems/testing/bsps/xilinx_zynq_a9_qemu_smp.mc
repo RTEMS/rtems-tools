@@ -45,11 +45,10 @@
 # The Xilinx Zynq A9 QEMU BSP
 #
 [global]
-bsp:                none,    none,     'xilinx_zynq_a9_qemu'
+bsp:                      none,    none,  'xilinx_zynq_a9_qemu'
+jobs:                     none,    none,  'half'
 
 [xilinx_zynq_a9_qemu]
-xilinx_zynq_a9_qemu:       none,    none,     '%{_rtscripts}/run.cfg'
-xilinx_zynq_a9_qemu_arch:  none,    none,     'arm'
-bsp_run_cmd:               none,    none,     'qemu-system-arm'
-bsp_run_opts:              none,    none,     '-no-reboot -serial null -serial mon:stdio -nographic -net none -M xilinx-zynq-a9 -m 256M -smp cpus=2 -kernel'
-jobs:                      none,    none,     'half'
+realview_pbx_a9_qemu:     none,    none,  '%{_rtscripts}/qemu.cfg'
+xilinx_zynq_a9_qemu_arch: none,    none,  'arm'
+xilinx_zynq_a9_qemu_opts: none,    none,  '%{qemu_opts_base} %{qemu_opts_no_net} -M xilinx-zynq-a9 -m 256M -smp cpus=2'
