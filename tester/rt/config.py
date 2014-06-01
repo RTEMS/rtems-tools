@@ -63,6 +63,7 @@ class file(config.file):
         self.output = None
         self.report = report
         self.name = name
+        self.timedout = False
 
     def __del__(self):
         if self.console:
@@ -76,6 +77,9 @@ class file(config.file):
         self.lock.release()
 
     def _timeout(self):
+        self._lock()
+        self.timedout = True
+        self._unlock()
         self.capture('*** TIMEOUT TIMEOUT')
 
     def _dir_console(self, data):
@@ -109,10 +113,12 @@ class file(config.file):
             ec, proc = self.process.open(data,
                                          timeout = (int(self.expand('%{timeout}')),
                                                     self._timeout))
+            self._lock()
             if ec > 0:
-                self._lock()
                 self._error('execute failed: %s: exit-code:%d' % (' '.join(data), ec))
-                self._unlock()
+            elif self.timedout:
+                self.process.kill()
+            self._unlock()
             if self.console:
                 self.console.close()
 
