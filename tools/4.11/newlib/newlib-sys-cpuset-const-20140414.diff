@@ -1,0 +1,32 @@
+2014-04-14  Sebastian Huber  <sebastian.huber@embedded-brains.de>
+
+	* libc/sys/rtems/sys/cpuset.h (CPU_SET_S): Add const qualifier.
+	(CPU_SET): Likewise.
+---
+ newlib/libc/sys/rtems/sys/cpuset.h |    4 ++--
+ 1 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/newlib/libc/sys/rtems/sys/cpuset.h b/newlib/libc/sys/rtems/sys/cpuset.h
+index 2818677..8fae475 100644
+--- a/newlib/libc/sys/rtems/sys/cpuset.h
++++ b/newlib/libc/sys/rtems/sys/cpuset.h
+@@ -153,14 +153,14 @@ static __inline void CPU_CLR(int cpu, cpu_set_t *set)
+   CPU_CLR_S(cpu, sizeof(*set), set);
+ }
+ 
+-static __inline int CPU_ISSET_S(int cpu, size_t setsize, cpu_set_t *set)
++static __inline int CPU_ISSET_S(int cpu, size_t setsize, const cpu_set_t *set)
+ {
+   const cpu_set_word_t *w = &set->__bits[0];
+ 
+   return ((w[__cpuset_index(cpu)] & __cpuset_mask(cpu)) != 0);
+ }
+ 
+-static __inline int CPU_ISSET(int cpu, cpu_set_t *set)
++static __inline int CPU_ISSET(int cpu, const cpu_set_t *set)
+ {
+   return CPU_ISSET_S(cpu, sizeof(*set), set);
+ }
+-- 
+1.7.7
+
