@@ -245,7 +245,7 @@ def run(command_path = None):
             report_mode = 'failures'
         executables = find_executables(opts.params(), exe_filter)
         if len(executables) == 0:
-            raise error.general('no executbles supplied')
+            raise error.general('no executables supplied')
         start_time = datetime.datetime.now()
         total = len(executables)
         reports = report.report(total)
