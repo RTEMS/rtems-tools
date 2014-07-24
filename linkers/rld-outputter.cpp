@@ -428,6 +428,7 @@ namespace rld
 
       cache.get_objects (objects);
       objects.merge (dep_copy);
+      objects.sort ();
       objects.unique ();
 
       app.open (true);
