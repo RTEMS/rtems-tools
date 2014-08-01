@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2011, Chris Johns <chrisj@rtems.org> 
+ * Copyright (c) 2011, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -23,6 +23,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <unistd.h>
 
 #ifdef HAVE_SYS_WAIT_H
 #include <sys/wait.h>
@@ -66,7 +67,7 @@ namespace rld
     {
       clean_up ();
     }
-    
+
     const std::string
     temporary_files::get ()
     {
@@ -88,7 +89,13 @@ namespace rld
       struct stat sb;
       if ((::stat (name.c_str (), &sb) >= 0) && S_ISREG (sb.st_mode))
       {
-        if (::unlink (name.c_str ()) < 0)
+        int r;
+#if _WIN32
+        r = ::remove(name.c_str ());
+#else
+        r = ::unlink (name.c_str ());
+#endif
+        if (r < 0)
         {
           std::cerr << "error: unlinking temp file: " << name << std::endl;
           ::exit (100);
@@ -159,7 +166,7 @@ namespace rld
       }
     }
 
-    const std::string& 
+    const std::string&
     tempfile::name () const
     {
       return _name;
@@ -174,7 +181,7 @@ namespace rld
       struct stat sb;
       if (::stat (_name.c_str (), &sb) == 0)
         return sb.st_size;
-      
+
       return 0;
     }
 
@@ -242,7 +249,7 @@ namespace rld
     }
 
     void
-    tempfile::output (const std::string& prefix, 
+    tempfile::output (const std::string& prefix,
                       std::ostream&      out,
                       bool               line_numbers)
     {
@@ -268,7 +275,7 @@ namespace rld
     }
 
     status
-    execute (const std::string& pname, 
+    execute (const std::string& pname,
              const std::string& command,
              const std::string& outname,
              const std::string& errname)
@@ -279,7 +286,7 @@ namespace rld
     }
 
     status
-    execute (const std::string&   pname, 
+    execute (const std::string&   pname,
              const arg_container& args,
              const std::string&   outname,
              const std::string&   errname)
@@ -345,7 +352,7 @@ namespace rld
       }
       else
         throw rld::error ("execute: " + args[0], "unknown status returned");
-          
+
       return _status;
     }
 
@@ -364,7 +371,7 @@ namespace rld
       };
 
       args.clear ();
-      
+
       const char quote = '"';
       const char escape = '\\';
       pstate     state = pstate_discard_space;

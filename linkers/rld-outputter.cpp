@@ -44,6 +44,24 @@ namespace rld
 {
   namespace outputter
   {
+    int unlink (const char* path)
+    {
+#if _WIN32
+      return ::remove(path);
+#else
+      return ::unlink (path);
+#endif
+    }
+
+    int link (const char* path1, const char* path2)
+    {
+#if _WIN32
+      return ::rename(path1, path2);
+#else
+      return ::link (path1, path2);
+#endif
+    }
+
     const std::string
     script_text (const std::string&        entry,
                  const std::string&        exit,
@@ -259,23 +277,24 @@ namespace rld
       {
         if (ra_exist)
         {
-          std::string new_name = "rld_XXXXXX";
-          struct stat sb;
+          std::string    new_name = "rld_XXXXXX";
           files::archive arch (new_name);
+          struct stat    sb;
+
           arch.create (objects);
 
           if ((::stat (name.c_str (), &sb) >= 0) && S_ISREG (sb.st_mode))
           {
-            if (::unlink (name.c_str ()) < 0)
+            if (unlink (name.c_str ()) < 0)
               std::cerr << "error: unlinking temp file: " << name << std::endl;
           }
-          if (::link (new_name.c_str (), name.c_str ()) < 0)
+          if (link (new_name.c_str (), name.c_str ()) < 0)
           {
             std::cerr << "error: linking temp file: " << name << std::endl;
           }
           if ((::stat (new_name.c_str (), &sb) >= 0) && S_ISREG (sb.st_mode))
           {
-            if (::unlink (new_name.c_str ()) < 0)
+            if (unlink (new_name.c_str ()) < 0)
               std::cerr << "error: unlinking temp file: " << new_name << std::endl;
           }
         }
