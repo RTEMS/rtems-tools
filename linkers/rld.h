@@ -25,7 +25,11 @@
 #if !defined (_RLD_H_)
 #define _RLD_H_
 
+#include <algorithm>
+#include <cctype>
+#include <functional>
 #include <iostream>
+#include <locale>
 #include <sstream>
 #include <string>
 
@@ -77,17 +81,6 @@ namespace rld
 namespace rld
 {
   /**
-   * Convert a supported type to a string.
-   */
-  template <class T>
-  std::string to_string (T t, std::ios_base & (*f)(std::ios_base&) = std::dec)
-  {
-    std::ostringstream oss;
-    oss << f << t;
-    return oss.str();
-  }
-
-  /**
    * General error.
    */
   struct error
@@ -109,6 +102,107 @@ namespace rld
    */
   #define rld_error_at(_what) \
     rld::error (_what, std::string (__FILE__) + ":" + to_string (__LINE__))
+
+  /**
+   * Convert a supported type to a string.
+   */
+  template <class T>
+  std::string to_string (T t, std::ios_base & (*f)(std::ios_base&) = std::dec)
+  {
+    std::ostringstream oss;
+    oss << f << t;
+    return oss.str();
+  }
+
+  /**
+   * A container of strings.
+   */
+  typedef std::vector < std::string > strings;
+
+  /**
+   * Trim from start.
+   */
+  inline std::string& ltrim (std::string &s)
+  {
+    s.erase (s.begin (),
+            std::find_if (s.begin (), s.end (),
+                         std::not1 (std::ptr_fun < int, int > (std::isspace))));
+    return s;
+  }
+
+  /**
+   * Trim from end.
+   */
+  inline std::string& rtrim (std::string &s)
+  {
+    s.erase (std::find_if (s.rbegin (), s.rend (),
+                           std::not1 (std::ptr_fun < int, int > (std::isspace))).base(),
+             s.end());
+    return s;
+  }
+
+  /**
+   * Trim from both ends.
+   */
+  inline std::string& trim (std::string &s)
+  {
+    return ltrim (rtrim (s));
+  }
+
+  /**
+   * Split the string in a contain of strings based on the the
+   * delimiter. Optionally trim any white space or include empty string.
+   *
+   * @todo The split should optionally honour string quoting.
+   */
+  inline strings& split (strings&           se,
+                         const std::string& s,
+                         char               delimiter,
+                         bool               strip_quotes = true,
+                         bool               strip_whitespace = true,
+                         bool               empty = false)
+  {
+    std::stringstream ss(s);
+    std::string       e;
+    se.clear ();
+    while (std::getline (ss, e, delimiter))
+    {
+      if (strip_whitespace)
+        trim (e);
+      if (strip_quotes)
+      {
+        if ((e.front () == '"') || (e.front () == '\''))
+        {
+          if (e.front () != e.back ())
+            throw rld::error ("invalid quoting", "string: " + s);
+          e = e.substr (1, e.length () - 1);
+        }
+      }
+      if (empty || !e.empty ())
+      {
+        se.push_back (e);
+      }
+    }
+    return se;
+  }
+
+  /**
+   * Join the strings together with the separator.
+   */
+  inline std::string& join (const strings&     ss,
+                            const std::string& separator,
+                            std::string&       s)
+  {
+    for (strings::const_iterator ssi = ss.begin ();
+         ssi != ss.end ();
+         ++ssi)
+    {
+      s += *ssi;
+      if ((ssi != ss.begin ()) && (ssi != ss.end ()))
+        s += separator;
+    }
+    return s;
+  }
 
   /**
    * Increment the verbose level.

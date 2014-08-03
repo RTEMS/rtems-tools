@@ -25,7 +25,6 @@
 #include <errno.h>
 
 #include <rld-config.h>
-#include <rld.h>
 
 #include <SimpleIni.h>
 
@@ -124,6 +123,45 @@ namespace rld
         }
 
         secs.push_back (sec);
+      }
+    }
+
+
+    void
+    config::includes (const section& sec, bool must_exist)
+    {
+      bool have_includes = false;
+
+      try
+      {
+        const rld::config::record& rec = sec.get_record ("include");
+
+        have_includes = true;
+
+        /*
+         * Include records are a path which we can just load.
+         *
+         * @todo Add a search path. See 'rld::files' for details. We can default
+         *       the search path to the install $prefix of this tool and we can
+         *       then provide a default set of function signatures for RTEMS
+         *       APIs.
+         */
+
+        for (rld::config::items::const_iterator ri = rec.items.begin ();
+             ri != rec.items.end ();
+             ++ri)
+        {
+          load ((*ri).text);
+        }
+      }
+      catch (rld::error re)
+      {
+        /*
+         * No include records, must be all inlined. If we have includes it must
+         * be another error so throw it.
+         */
+        if (have_includes || (!have_includes && must_exist))
+          throw;
       }
     }
 

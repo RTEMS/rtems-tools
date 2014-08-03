@@ -29,6 +29,8 @@
 #include <list>
 #include <vector>
 
+#include <rld.h>
+
 namespace rld
 {
   namespace config
@@ -61,6 +63,13 @@ namespace rld
     {
       std::string name;   //< Name of the record.
       items       items;  //< The record's items.
+
+      /**
+       * Return true if there is only one item.
+       */
+      bool single () const {
+        return items.size () == 1;
+      }
     };
 
     /**
@@ -116,6 +125,13 @@ namespace rld
       void load (const std::string& name);
 
       /**
+       * Process any include records in the section named. If the section has
+       * any records named 'include' split the items and include the
+       * configuration files.
+       */
+      void includes (const section& sec, bool must_exist = false);
+
+      /**
        * Get the section and throw an error if not found.
        */
       const section& get_section (const std::string& name) const;
@@ -130,6 +146,85 @@ namespace rld
       paths    paths; /**< The path's of the loaded files. */
       sections secs;  /**< The sections loaded from configuration files */
     };
+
+    /**
+     * Return the items from a record.
+     */
+    template < typename T >
+    void parse_items (const rld::config::record& record, T& items)
+    {
+      items.clear ();
+      for (rld::config::items::const_iterator ii = record.items.begin ();
+           ii != record.items.end ();
+           ++ii)
+      {
+        rld::strings ss;
+        rld::split (ss, (*ii).text, ',');
+        std::copy (ss.begin (), ss.end (), std::back_inserter (items));
+      }
+    }
+
+    /**
+     * Return the items from a record in a section. Optionally raise an error
+     * if the record is not found and it is to be present.
+     */
+    template < typename T >
+    void parse_items (const rld::config::section& section,
+                      const std::string&          name,
+                      T&                          items,
+                      bool                        present = false)
+    {
+      items.clear ();
+      const rld::config::record* rec = 0;
+      try
+      {
+        const rld::config::record& rr = section.get_record (name);
+        rec = &rr;
+      }
+      catch (rld::error re)
+      {
+        /*
+         * Ignore the error if it does not need to exist.
+         */
+        if (present)
+          throw rld::error ("not found", "record: " + section.name + name);
+      }
+
+      if (rec)
+        parse_items (*rec, items);
+    }
+
+    /**
+     * Return the items from a record in a section in the
+     * configuration. Optionally raise an error if the section is not found and
+     * it is to be present.
+     */
+    template < typename T >
+    void parse_items (const rld::config::config& config,
+                      const std::string&         section,
+                      const std::string&         record,
+                      T&                         items,
+                      bool                       present = false)
+    {
+      items.clear ();
+      const rld::config::section* sec = 0;
+      try
+      {
+        const rld::config::section& sr = config.get_section (section);
+        sec = &sr;
+      }
+      catch (rld::error re)
+      {
+        /*
+         * Ignore the error if it does not need to exist.
+         */
+        if (present)
+          throw rld::error ("not found", "section: " + section);
+      }
+
+      if (sec)
+        parse_items (*sec, record, items);
+    }
   }
 }
 
