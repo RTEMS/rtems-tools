@@ -121,6 +121,16 @@ namespace rld
                rld::config::config& config);
 
       /**
+       * Recursive parser for strings.
+       */
+      void parse (rld::config::config&        config,
+                  const rld::config::section& section,
+                  const std::string&          sec_name,
+                  const std::string&          rec_name,
+                  rld::strings&               items,
+                  int                         depth = 0);
+
+      /**
        * Dump the wrapper.
        */
       void dump (std::ostream& out) const;
@@ -261,11 +271,12 @@ namespace rld
        */
       const rld::config::section& section = config.get_section (name);
 
+      parse (config, section, "headers", "header", headers);
+      parse (config, section, "defines", "define", defines);
+
       rld::strings sig_list;
 
-      rld::config::parse_items (section, "header", headers);
-      rld::config::parse_items (section, "define", defines);
-      rld::config::parse_items (section, "signature", sig_list);
+      rld::config::parse_items (section, "signatures", sig_list);
 
       for (rld::strings::const_iterator sli = sig_list.begin ();
            sli != sig_list.end ();
@@ -279,6 +290,32 @@ namespace rld
           function_sig func (*ri);
           sigs[func.name] = func;
         }
+      }
+    }
+
+    void
+    wrapper::parse (rld::config::config&        config,
+                    const rld::config::section& section,
+                    const std::string&          sec_name,
+                    const std::string&          rec_name,
+                    rld::strings&               items,
+                    int                         depth)
+    {
+      if (depth > 32)
+        throw rld::error ("too deep", "parsing: " + sec_name + '/' + rec_name);
+
+      rld::config::parse_items (section, rec_name, items);
+
+      rld::strings sl;
+
+      rld::config::parse_items (section, sec_name, sl);
+
+      for (rld::strings::const_iterator sli = sl.begin ();
+           sli != sl.end ();
+           ++sli)
+      {
+        const rld::config::section& sec = config.get_section (*sli);
+        parse (config, sec, sec_name, rec_name, items, depth + 1);
       }
     }
 

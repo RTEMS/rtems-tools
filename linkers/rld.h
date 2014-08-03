@@ -175,7 +175,7 @@ namespace rld
         {
           if (e.front () != e.back ())
             throw rld::error ("invalid quoting", "string: " + s);
-          e = e.substr (1, e.length () - 1);
+          e = e.substr (1, e.length () - (1 + 1));
         }
       }
       if (empty || !e.empty ())
