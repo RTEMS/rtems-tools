@@ -109,16 +109,26 @@ namespace rld
      */
     struct wrapper
     {
-      std::string   name;     /**< The name of this wrapper. */
-      rld::strings  headers;  /**< Include statements. */
-      rld::strings  defines;  /**< Define statements. */
-      function_sigs sigs;     /**< The functions this wrapper wraps. */
+      std::string   name;            /**< The name of this wrapper. */
+      rld::strings  headers;         /**< Include statements. */
+      rld::strings  defines;         /**< Define statements. */
+      std::string   map_sym_prefix;  /**< Mapping symbol prefix. */
+      std::string   arg_trace;       /**< Code template to trace an argument. */
+      std::string   ret_trace;       /**< Code template to trace the return value. */
+      std::string   code;            /**< Code block inserted before the trace code. */
+      function_sigs sigs;            /**< The functions this wrapper wraps. */
 
       /**
        * Load the wrapper.
        */
       wrapper (const std::string&   name,
                rld::config::config& config);
+
+      /**
+       * Parse the generator.
+       */
+      void parse_generator (rld::config::config& config,
+                            const rld::config::section& section);
 
       /**
        * Recursive parser for strings.
@@ -162,10 +172,10 @@ namespace rld
 
     private:
 
-      std::string  name;     /**< The name of the trace. */
-      std::string  bsp;      /**< The BSP we are linking to. */
-      rld::strings trace;    /**< The functions to trace. */
-      wrappers     wrappers; /**< Wrappers wrap trace functions. */
+      std::string  name;            /**< The name of the trace. */
+      std::string  bsp;             /**< The BSP we are linking to. */
+      rld::strings trace;           /**< The functions to trace. */
+      wrappers     wrappers;        /**< Wrappers wrap trace functions. */
     };
 
     /**
@@ -262,9 +272,13 @@ namespace rld
       /*
        * A wrapper section optionally contain one or more records of:
        *
-       * # header    A list of include string that are single or double quoted.
-       * # define    A list of define string that are single or double quoted.
-       * # signature A list of section names of function signatures.
+       * # trace      A list of functions to trace.
+       * # generator  The name of the generator section. Defaults if not present.
+       * # headers    A list of sections containing headers or header records.
+       * # header     A list of include string that are single or double quoted.
+       * # defines    A list of sections containing defines or define record.
+       * # defines    A list of define string that are single or double quoted.
+       * # signatures A list of section names of function signatures.
        *
        * @note The quoting and list spliting is a little weak because a delimiter
        *       in a quote should not be seen as a delimiter.
@@ -273,6 +287,8 @@ namespace rld
 
       parse (config, section, "headers", "header", headers);
       parse (config, section, "defines", "define", defines);
+
+      parse_generator (config, section);
 
       rld::strings sig_list;
 
@@ -291,6 +307,44 @@ namespace rld
           sigs[func.name] = func;
         }
       }
+    }
+
+    void
+    wrapper::parse_generator (rld::config::config& config,
+                              const rld::config::section& section)
+    {
+      const rld::config::record* rec = 0;
+      try
+      {
+        const rld::config::record& record = section.get_record ("generator");
+        rec = &record;
+      }
+      catch (rld::error re)
+      {
+        /*
+         * No error, continue.
+         */
+      }
+
+      std::string gen_section;
+
+      if (rec)
+      {
+        if (!rec->single ())
+          throw rld::error ("duplicate", "generator: " + section.name + "/generator");
+        gen_section = rec->items[0].text;
+      }
+      else
+      {
+        gen_section = config.get_section ("default-generator").get_record_item ("generator");
+      }
+
+      const rld::config::section& sec = config.get_section (gen_section);
+
+      map_sym_prefix = sec.get_record_item ("map-sym-prefix");
+      arg_trace = rld::dequote (sec.get_record_item ("arg-trace"));
+      ret_trace = rld::dequote (sec.get_record_item ("ret-trace"));
+      code = rld::dequote (sec.get_record_item ("code"));
     }
 
     void
@@ -337,7 +391,12 @@ namespace rld
       {
         out << "    " << (*di) << std::endl;
       }
-      out << "   Function Signatures: " << sigs.size () << std::endl;
+      out << "   Mapping Symbol Prefix: " << map_sym_prefix << std::endl
+          << "   Arg Trace Code: " << arg_trace << std::endl
+          << "   Return Trace Code: " << ret_trace << std::endl
+          << "   Code: | "
+          << rld::find_replace (code, "\n", "\n         | ") << std::endl
+          << "   Function Signatures: " << sigs.size () << std::endl;
       for (function_sigs::const_iterator si = sigs.begin ();
            si != sigs.end ();
            ++si)

@@ -90,6 +90,17 @@ namespace rld
        * Find a record and throw an error if not found.
        */
       const record& get_record (const std::string& name) const;
+
+      /**
+       * Return the single item in a record. If the record is duplicated an
+       * error is thrown.
+       */
+      std::string get_record_item (const std::string& name) const;
+
+      /**
+       * Return the list of items in a record in a strings container.
+       */
+      void get_record_items (const std::string& name, rld::strings& items) const;
     };
 
     /**

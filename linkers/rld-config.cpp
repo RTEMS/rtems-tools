@@ -56,6 +56,28 @@ namespace rld
       throw error ("not found", "config record: " + this->name + '/' + name);
     }
 
+    std::string
+    section::get_record_item (const std::string& rec_name) const
+    {
+      const record& rec = get_record (rec_name);
+      if (rec.items.size () != 1)
+        throw rld::error ("duplicate", "record item: " + name + '/' + rec_name);
+      return rec.items[0].text;
+    }
+
+    void
+    section::get_record_items (const std::string& rec_name, rld::strings& items) const
+    {
+      const record& rec = get_record (rec_name);
+      items.clear ();
+      for (rld::config::items::const_iterator ii = rec.items.begin ();
+           ii != rec.items.end ();
+           ++ii)
+      {
+        items.push_back ((*ii).text);
+      }
+    }
+
     config::config()
     {
     }
@@ -134,7 +156,8 @@ namespace rld
 
       try
       {
-        const rld::config::record& rec = sec.get_record ("include");
+        rld::strings is;
+        parse_items (sec, "include", is);
 
         have_includes = true;
 
@@ -147,11 +170,11 @@ namespace rld
          *       APIs.
          */
 
-        for (rld::config::items::const_iterator ri = rec.items.begin ();
-             ri != rec.items.end ();
-             ++ri)
+        for (rld::strings::const_iterator isi = is.begin ();
+             isi != is.end ();
+             ++isi)
         {
-          load ((*ri).text);
+          load (*isi);
         }
       }
       catch (rld::error re)

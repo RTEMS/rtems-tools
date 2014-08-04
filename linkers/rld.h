@@ -150,6 +150,37 @@ namespace rld
   }
 
   /**
+   * Dequote a string.
+   */
+  inline std::string dequote (const std::string& s)
+  {
+    if ((s.front () == '"') || (s.front () == '\''))
+    {
+      if (s.front () != s.back ())
+        throw rld::error ("invalid quoting", "string: " + s);
+      return s.substr (1, s.length () - (1 + 1));
+    }
+    return s;
+  }
+
+  /**
+   * Find and replace.
+   */
+  inline std::string find_replace(const std::string& sin,
+                                  const std::string& out,
+                                  const std::string& in)
+  {
+    std::string s = sin;
+    size_t      pos = 0;
+    while ((pos = s.find (out, pos)) != std::string::npos)
+    {
+      s.replace (pos, out.length (), in);
+      pos += in.length ();
+    }
+    return s;
+  }
+
+  /**
    * Split the string in a contain of strings based on the the
    * delimiter. Optionally trim any white space or include empty string.
    *
@@ -170,14 +201,7 @@ namespace rld
       if (strip_whitespace)
         trim (e);
       if (strip_quotes)
-      {
-        if ((e.front () == '"') || (e.front () == '\''))
-        {
-          if (e.front () != e.back ())
-            throw rld::error ("invalid quoting", "string: " + s);
-          e = e.substr (1, e.length () - (1 + 1));
-        }
-      }
+        e = dequote (e);
       if (empty || !e.empty ())
       {
         se.push_back (e);
@@ -189,10 +213,10 @@ namespace rld
   /**
    * Join the strings together with the separator.
    */
-  inline std::string& join (const strings&     ss,
-                            const std::string& separator,
-                            std::string&       s)
+  inline std::string join (const strings&     ss,
+                           const std::string& separator)
   {
+    std::string s;
     for (strings::const_iterator ssi = ss.begin ();
          ssi != ss.end ();
          ++ssi)
