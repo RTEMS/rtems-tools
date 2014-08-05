@@ -92,7 +92,7 @@ fatal_signal (int signum)
 {
   signal (signum, SIG_DFL);
 
-  rld::process::temporaries.clean_up ();
+  rld::process::temporaries_clean_up ();
 
   /*
    * Get the same signal again, this time not handled, so its normal effect

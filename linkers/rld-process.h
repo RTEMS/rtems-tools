@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2011, Chris Johns <chrisj@rtems.org> 
+ * Copyright (c) 2011, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -44,7 +44,7 @@ namespace rld
        * Container of temporary file names.
        */
       typedef std::list < std::string > tempfile_container;
-      
+
       /**
        * Construct the temporary files.
        */
@@ -58,7 +58,7 @@ namespace rld
       /**
        * Get a new temporary file name.
        */
-      const std::string get ();
+      const std::string get (const std::string& suffix = ".rldxx");
 
       /**
        * Remove the temporary file.
@@ -82,11 +82,6 @@ namespace rld
     };
 
     /**
-     * The temporary files.
-     */
-    static temporary_files temporaries;
-
-    /**
      * Handle the output files from the process.
      */
     class tempfile
@@ -96,7 +91,7 @@ namespace rld
       /**
        * Get a temporary file name.
        */
-      tempfile ();
+      tempfile (const std::string& suffix = ".rldxx");
 
       /**
        * Clean up the temporary file.
@@ -104,9 +99,9 @@ namespace rld
       ~tempfile ();
 
       /**
-       * Open the temporary file.
+       * Open the temporary file. It can optionally be written too.
        */
-      void open ();
+      void open (bool writable = false);
 
       /**
        * Close the temporary file.
@@ -124,20 +119,35 @@ namespace rld
       size_t size ();
 
       /**
-       * Get all the file.
+       * Read all the file.
        */
-      void get (std::string& all);
+      void read (std::string& all);
 
       /**
-       * Get time.
+       * Read a line at a time.
        */
-      void getline (std::string& line);
+      void read_line (std::string& line);
+
+      /**
+       * Write the string to the file.
+       */
+      void write (const std::string& s);
+
+      /**
+       * Write the string as a line to the file.
+       */
+      void write_line (const std::string& s);
+
+      /**
+       * Write the strings to the file using a suitable line separator.
+       */
+      void write_lines (const rld::strings& ss);
 
       /**
        * Output the file.
        */
-      void output (const std::string& prefix, 
-                   std::ostream&      out, 
+      void output (const std::string& prefix,
+                   std::ostream&      out,
                    bool               line_numbers = false);
 
       /**
@@ -147,12 +157,23 @@ namespace rld
 
     private:
 
-      std::string _name;    //< The name of the file.
-      int         fd;       //< The file descriptor
-      char        buf[256]; //< The read buffer.
-      int         level;    //< The level of data in the buffer.
+      std::string       _name;    //< The name of the file.
+      const std::string suffix;   //< The temp file's suffix.
+      int               fd;       //< The file descriptor
+      char              buf[256]; //< The read buffer.
+      int               level;    //< The level of data in the buffer.
     };
-    
+
+    /**
+     * Keep the temporary files.
+     */
+    void set_keep_temporary_files ();
+
+    /**
+     * Clean up the temporaryes.
+     */
+    void temporaries_clean_up ();
+
     /**
      * The arguments containter has a single argument per element.
      */
@@ -169,7 +190,7 @@ namespace rld
         signal, //< The process terminated due to receipt of a signal.
         stopped //< The process has not terminated, but has stopped and can be restarted.
       };
-      
+
       types type; //< Type of status.
       int   code; //< The status code returned.
     };
@@ -178,7 +199,7 @@ namespace rld
      * Execute a process and capture stdout and stderr. The first element is
      * the program name to run. Return an error code.
      */
-    status execute (const std::string&   pname, 
+    status execute (const std::string&   pname,
                     const arg_container& args,
                     const std::string&   outname,
                     const std::string&   errname);
@@ -187,7 +208,7 @@ namespace rld
      * Execute a process and capture stdout and stderr given a command line
      * string. Return an error code.
      */
-    status execute (const std::string& pname, 
+    status execute (const std::string& pname,
                     const std::string& command,
                     const std::string& outname,
                     const std::string& errname);

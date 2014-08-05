@@ -117,7 +117,7 @@ fatal_signal (int signum)
 {
   signal (signum, SIG_DFL);
 
-  rld::process::temporaries.clean_up ();
+  rld::process::temporaries_clean_up ();
 
   /*
    * Get the same signal again, this time not handled, so its normal effect
@@ -315,7 +315,7 @@ main (int argc, char* argv[])
        * Get the command line libraries.
        */
       rld::files::find_libraries (libraries, libpaths, libs);
-  
+
       /*
        * Are we to load standard libraries ?
        */
@@ -330,28 +330,28 @@ main (int argc, char* argv[])
         rld::files::paths    library;
         rld::symbols::table  symbols;
         rld::files::cache*   cache = new rld::files::cache ();
-  
+
         library.clear ();
         library.push_back (*p);
-  
+
         /*
         * Open the cache.
         */
         cache->open ();
-  
+
         /*
          * Load the library to the cache.
          */
         cache->add_libraries (library);
-  
+
         cache->load_symbols (symbols);
-  
+
         try
         {
-  
+
           rld::files::objects& objs = cache->get_objects ();
           rld::files::paths    raobjects;
-  
+
           int pos = -1;
           std::string rap_name;
           for (rld::files::objects::iterator obi = objs.begin ();
@@ -359,49 +359,49 @@ main (int argc, char* argv[])
               ++obi)
           {
             rld::files::object* obj = (*obi).second;
-  
+
             dependents.clear ();
-  
+
             rap_name = obj->name ().oname ();
-  
+
             pos = obj->name ().oname ().rfind ('.', rap_name.length ());
             if (pos != -1)
             {
               rap_name.erase (pos, rap_name.length ());
             }
-  
+
             rap_name += ".rap";
-  
+
             dependents.push_back (obj);
-  
+
             raobjects.push_back (rap_name);
-  
+
             /* Todo: include absolute name for rap_name */
-  
+
             rld::outputter::application (rap_name, entry, exit,
                                          dependents, *cache, symbols,
                                          true);
           }
-  
+
           dependents.clear ();
           for (rld::files::paths::iterator ni = raobjects.begin (); ni != raobjects.end (); ++ni)
           {
             rld::files::object* obj = new rld::files::object (*ni);
             dependents.push_back (obj);
           }
-  
+
           bool ra_rap = true;
           bool ra_exist = false;
           rld::files::cache cachera;
           std::string raname = *p;
-  
+
           pos = -1;
           pos = raname.rfind ('/', raname.length ());
           if (pos != -1)
           {
             raname.erase (0, pos);
           }
-  
+
           pos = -1;
           pos = raname.rfind ('.', raname.length ());
           if (pos != -1)
@@ -409,14 +409,14 @@ main (int argc, char* argv[])
             raname.erase (pos, raname.length ());
           }
           raname += ".ra";
-  
+
           raname = output_path + raname;
-  
+
           rld::outputter::archivera (raname, dependents, cachera,
                                      ra_exist, ra_rap);
           std::cout << "Generated: " << raname << std::endl;
-  
-  
+
+
           for (rld::files::object_list::iterator oi = dependents.begin ();
                oi != dependents.end ();
                ++oi)
@@ -430,7 +430,7 @@ main (int argc, char* argv[])
           cache->archives_end ();
           throw;
         }
-  
+
         cache->archives_end ();
         delete cache;
       }
@@ -438,32 +438,32 @@ main (int argc, char* argv[])
     else
     {
      /*
-      * Add, replace, delete files from the ra file. 
+      * Add, replace, delete files from the ra file.
       */
       for (rld::files::paths::iterator pl = libs.begin (); pl != libs.end (); ++pl)
       {
         rld::files::paths    library;
         rld::files::cache*   cache = new rld::files::cache ();
-  
+
         library.clear ();
         library.push_back (*pl);
-  
+
         /*
         * Open the cache.
         */
         cache->open ();
-  
+
         /*
          * Load the library to the cache.
          */
         cache->add_libraries (library);
-  
+
         rld::files::objects& objs = cache->get_objects ();
         rld::files::paths    raobjects;
-  
+
         std::string rap_name;
         bool rap_delete = false;
-  
+
         dependents.clear ();
         /*
          * Delete rap files in ra file.
@@ -473,10 +473,10 @@ main (int argc, char* argv[])
             ++obi)
         {
           rld::files::object* obj = (*obi).second;
-  
+
           rap_name = obj->name ().oname ();
           rap_delete = false;
-  
+
           for (rld::files::paths::iterator pa = raps_delete.begin ();
                pa != raps_delete.end ();
                ++pa)
@@ -487,11 +487,11 @@ main (int argc, char* argv[])
               break;
             }
           }
-  
+
           if (!rap_delete)
             dependents.push_back (obj);
         }
-  
+
         /*
          * Add rap files into ra file, add supports replace.
          */
@@ -502,7 +502,7 @@ main (int argc, char* argv[])
              ++pa)
         {
           rap_exist = false;
-  
+
           for (rld::files::object_list::iterator oi = dependents.begin ();
                oi != dependents.end ();
                ++oi)
@@ -515,11 +515,11 @@ main (int argc, char* argv[])
               break;
             }
           }
-  
+
           if (!rap_exist)
             rap_objects.push_back (*pa);
         }
-  
+
         for (rld::files::paths::iterator pa = rap_objects.begin ();
              pa != rap_objects.end ();
              ++pa)
@@ -532,22 +532,22 @@ main (int argc, char* argv[])
           }
           else dependents.push_back (obj);
         }
-  
+
         /*
          * Replace rap files in ra file
          */
         bool rap_replace = false;
         rld::files::cache cachera;
-  
+
         rap_objects.clear ();
         cachera.open ();
-  
+
         for (rld::files::paths::iterator pa = raps_replace.begin ();
              pa != raps_replace.end ();
              ++pa)
         {
           rap_replace = false;
-  
+
           for (rld::files::object_list::iterator oi = dependents.begin ();
                oi != dependents.end ();
                )
@@ -561,11 +561,11 @@ main (int argc, char* argv[])
             }
             ++oi;
           }
-  
+
           if (rap_replace)
             rap_objects.push_back (*pa);
         }
-  
+
         for (rld::files::paths::iterator pa = rap_objects.begin ();
              pa != rap_objects.end ();
              ++pa)
@@ -578,11 +578,11 @@ main (int argc, char* argv[])
           }
           else dependents.push_back (obj);
         }
-  
+
         rld::outputter::archivera (*pl, dependents, cachera,
                                    true, true);
         std::cout << "End" << std::endl;
-  
+
         cache->archives_end ();
         delete cache;
       }

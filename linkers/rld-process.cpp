@@ -59,6 +59,16 @@ namespace rld
 {
   namespace process
   {
+    /**
+     * Keep the temporary files if true. Used to help debug a system.
+     */
+    bool keep_temporary_files = false;
+
+    /**
+     * The temporary files.
+     */
+    temporary_files temporaries;
+
     temporary_files::temporary_files ()
     {
     }
@@ -69,12 +79,12 @@ namespace rld
     }
 
     const std::string
-    temporary_files::get ()
+    temporary_files::get (const std::string& suffix)
     {
-      char* temp = ::make_temp_file ("rldXXXXXX");
+      char* temp = ::make_temp_file (suffix.c_str ());
 
       if (!temp)
-        throw rld::error ("bad temp name", "pex");
+        throw rld::error ("bad temp name", "temp-file");
 
       std::string name = temp;
 
@@ -86,19 +96,22 @@ namespace rld
     void
     temporary_files::unlink (const std::string& name)
     {
-      struct stat sb;
-      if ((::stat (name.c_str (), &sb) >= 0) && S_ISREG (sb.st_mode))
+      if (!keep_temporary_files)
       {
-        int r;
-#if _WIN32
-        r = ::remove(name.c_str ());
-#else
-        r = ::unlink (name.c_str ());
-#endif
-        if (r < 0)
+        struct stat sb;
+        if ((::stat (name.c_str (), &sb) >= 0) && S_ISREG (sb.st_mode))
         {
-          std::cerr << "error: unlinking temp file: " << name << std::endl;
-          ::exit (100);
+          int r;
+#if _WIN32
+          r = ::remove(name.c_str ());
+#else
+          r = ::unlink (name.c_str ());
+#endif
+          if (r < 0)
+          {
+            std::cerr << "error: unlinking temp file: " << name << std::endl;
+            ::exit (100);
+          }
         }
       }
     }
@@ -130,11 +143,12 @@ namespace rld
       }
     }
 
-    tempfile::tempfile ()
-      : fd (-1),
+    tempfile::tempfile (const std::string& suffix)
+      : suffix (suffix),
+        fd (-1),
         level (0)
     {
-      _name = temporaries.get ();
+      _name = temporaries.get (suffix);
     }
 
     tempfile::~tempfile ()
@@ -144,12 +158,12 @@ namespace rld
     }
 
     void
-    tempfile::open ()
+    tempfile::open (bool writable)
     {
       if ((fd < 0) && rld::files::check_file (_name))
       {
         level = 0;
-        fd = ::open (_name.c_str (), O_RDONLY);
+        fd = ::open (_name.c_str (), writable ? O_RDWR : O_RDONLY);
         if (fd < 0)
           throw rld::error (::strerror (errno), "tempfile open:" + _name);
       }
@@ -186,7 +200,7 @@ namespace rld
     }
 
     void
-    tempfile::get (std::string& all)
+    tempfile::read (std::string& all)
     {
       all.clear ();
       if (fd != -1)
@@ -208,7 +222,7 @@ namespace rld
     }
 
     void
-    tempfile::getline (std::string& line)
+    tempfile::read_line (std::string& line)
     {
       line.clear ();
       if (fd != -1)
@@ -242,6 +256,40 @@ namespace rld
     }
 
     void
+    tempfile::write (const std::string& s)
+    {
+      const char* p = s.c_str ();
+      size_t      l = s.length ();
+      while (l)
+      {
+        int written = ::write (fd, p, l);
+        if (written < 0)
+            throw rld::error (::strerror (errno), "tempfile write:" + _name);
+        if (written == 0)
+          break;
+        l -= written;
+      }
+    }
+
+    void
+    tempfile::write_line (const std::string& s)
+    {
+      write (s);
+      write (RLD_LINE_SEPARATOR);
+    }
+
+    void
+    tempfile::write_lines (const rld::strings& ss)
+    {
+      for (rld::strings::const_iterator ssi = ss.begin ();
+           ssi != ss.end ();
+           ++ssi)
+      {
+        write_line (*ssi);
+      }
+    }
+
+    void
     tempfile::output (std::ostream& out)
     {
       std::string prefix;
@@ -260,7 +308,7 @@ namespace rld
         open ();
         while (true)
         {
-          getline (line);
+          read_line (line);
           ++lc;
           if (line.empty ())
             break;
@@ -272,6 +320,18 @@ namespace rld
         }
         close ();
       }
+    }
+
+    void
+    set_keep_temporary_files ()
+    {
+      keep_temporary_files = true;
+    }
+
+    void
+    temporaries_clean_up ()
+    {
+      temporaries.clean_up ();
     }
 
     status

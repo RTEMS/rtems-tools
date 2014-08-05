@@ -99,7 +99,7 @@ namespace rld
         while (true)
         {
           std::string line;
-          out.getline (line);
+          out.read_line (line);
           if (line.size () == 0)
             break;
           if (match_and_trim ("install: ", line, install_path))
@@ -143,7 +143,7 @@ namespace rld
         if (rld::verbose () >= RLD_VERBOSE_DETAILS)
           out.output ("cc", std::cout, true);
         out.open ();
-        out.get (path);
+        out.read (path);
         out.close ();
         if (rld::verbose () >= RLD_VERBOSE_DETAILS)
           std::cout << "cc::libpath: " << name << " -> " << path << std::endl;
