@@ -115,13 +115,14 @@ namespace rld
       std::string   map_sym_prefix;  /**< Mapping symbol prefix. */
       std::string   arg_trace;       /**< Code template to trace an argument. */
       std::string   ret_trace;       /**< Code template to trace the return value. */
-      std::string   code;            /**< Code block inserted before the trace code. */
+      rld::strings& code;            /**< Code block inserted before the trace code. */
       function_sigs sigs;            /**< The functions this wrapper wraps. */
 
       /**
        * Load the wrapper.
        */
       wrapper (const std::string&   name,
+               rld::strings&        code,
                rld::config::config& config);
 
       /**
@@ -166,16 +167,27 @@ namespace rld
                  const std::string&   section);
 
       /**
+       * Generate the wrapper object file.
+       */
+      void generate ();
+
+      /**
+       * Generate the trace functions.
+       */
+      void generate_traces (rld::process::tempfile& c);
+
+      /**
        * Dump the wrapper.
        */
       void dump (std::ostream& out) const;
 
     private:
 
-      std::string  name;            /**< The name of the trace. */
-      std::string  bsp;             /**< The BSP we are linking to. */
-      rld::strings trace;           /**< The functions to trace. */
-      wrappers     wrappers;        /**< Wrappers wrap trace functions. */
+      std::string  name;      /**< The name of the trace. */
+      std::string  bsp;       /**< The BSP we are linking to. */
+      rld::strings traces;    /**< The functions to trace. */
+      wrappers     wrappers;  /**< Wrappers wrap trace functions. */
+      rld::strings code;      /**< Wrapper code records. Must be unique. */
     };
 
     /**
@@ -195,7 +207,7 @@ namespace rld
       /**
        * Generate the C file.
        */
-      void generate_c ();
+      void generate_wrapper ();
 
       /**
        * Dump the linker.
@@ -261,13 +273,14 @@ namespace rld
           ds += (*ai) + " a" + rld::to_string (++arg);
         }
       ds += ')';
-
       return ds;
     }
 
     wrapper::wrapper (const std::string&   name,
+                      rld::strings&        code,
                       rld::config::config& config)
-      : name (name)
+      : name (name),
+        code (code)
     {
       /*
        * A wrapper section optionally contain one or more records of:
@@ -344,7 +357,16 @@ namespace rld
       map_sym_prefix = sec.get_record_item ("map-sym-prefix");
       arg_trace = rld::dequote (sec.get_record_item ("arg-trace"));
       ret_trace = rld::dequote (sec.get_record_item ("ret-trace"));
-      code = rld::dequote (sec.get_record_item ("code"));
+
+      /*
+       * The code block, if present is placed in the code conttainer if unique.
+       * If referenced by more than wrapper and duplicated a compiler error
+       * will be generated.
+       */
+      rld::strings::iterator ci;
+      code.push_back (rld::dequote (sec.get_record_item ("code")));
+      ci = std::unique (code.begin (), code.end ());
+      code.resize (std::distance (code.begin (), ci));
     }
 
     void
@@ -394,8 +416,6 @@ namespace rld
       out << "   Mapping Symbol Prefix: " << map_sym_prefix << std::endl
           << "   Arg Trace Code: " << arg_trace << std::endl
           << "   Return Trace Code: " << ret_trace << std::endl
-          << "   Code: | "
-          << rld::find_replace (code, "\n", "\n         | ") << std::endl
           << "   Function Signatures: " << sigs.size () << std::endl;
       for (function_sigs::const_iterator si = sigs.begin ();
            si != sigs.end ();
@@ -461,7 +481,7 @@ namespace rld
            wsi != wi.end ();
            ++wsi)
       {
-        wrappers.push_back (wrapper (*wsi, config));
+        wrappers.push_back (wrapper (*wsi, code, config));
       }
 
       /*
@@ -473,9 +493,119 @@ namespace rld
            tsi != ti.end ();
            ++tsi)
       {
-        rld::config::parse_items (config, *tsi, "trace", trace, true);
+        rld::config::parse_items (config, *tsi, "trace", traces, true);
       }
 
+    }
+
+    void
+    tracer::generate ()
+    {
+      rld::process::tempfile c (".c");
+
+      c.open (true);
+
+      if (rld::verbose ())
+        std::cout << "wrapper C file: " << c.name () << std::endl;
+
+      try
+      {
+        c.write_line ("/*");
+        c.write_line (" * RTEMS Trace Linker Wrapper");
+        c.write_line (" *  Automatically generated.");
+        c.write_line (" */");
+
+        for (wrappers::const_iterator wi = wrappers.begin ();
+             wi != wrappers.end ();
+             ++wi)
+        {
+          const wrapper& wrap = *wi;
+          c.write_line ("");
+          c.write_line ("/*");
+          c.write_line (" * Wrapper: " + wrap.name);
+          c.write_line (" */");
+          c.write_lines (wrap.defines);
+          c.write_lines (wrap.headers);
+        }
+
+        c.write_line ("");
+        c.write_line ("/*");
+        c.write_line (" * Code blocks");
+        c.write_line (" */");
+        c.write_lines (code);
+
+        generate_traces (c);
+      }
+      catch (...)
+      {
+        c.close ();
+        throw;
+      }
+
+      c.close ();
+    }
+
+    void
+    tracer::generate_traces (rld::process::tempfile& c)
+    {
+      for (rld::strings::const_iterator ti = traces.begin ();
+           ti != traces.end ();
+           ++ti)
+      {
+        const std::string& func = *ti;
+        bool               found = false;
+
+        for (wrappers::const_iterator wi = wrappers.begin ();
+             wi != wrappers.end ();
+             ++wi)
+        {
+          const wrapper&                wrap = *wi;
+          function_sigs::const_iterator fsi = wrap.sigs.find (func);
+
+          if (fsi != wrap.sigs.end ())
+          {
+            found = true;
+
+            const function_sig& fs = (*fsi).second;
+
+            c.write_line("");
+            c.write_line(fs.decl ());
+            c.write_line("{");
+
+            std::string l;
+
+            /*
+             * @todo Need to define as part of the function signature if ret
+             *       processing is required.
+             */
+            if (fs.ret != "void")
+            {
+              c.write_line(" " + fs.ret + " ret;");
+              l = " ret =";
+            }
+
+            l += " " + wrap.map_sym_prefix + fs.name + '(';
+            for (size_t a = 0; a < fs.args.size (); ++a)
+            {
+              if (a)
+                l += ", ";
+              l += "a" + rld::to_string ((int) (a + 1));
+            }
+            l += ");";
+            c.write_line(l);
+
+            if (fs.ret != "void")
+            {
+              c.write_line(" return ret;");
+            }
+
+            c.write_line("}");
+          }
+        }
+
+        if (!found)
+          throw rld::error ("not found", "trace function: " + func);
+      }
     }
 
     void
@@ -488,6 +618,14 @@ namespace rld
            ++wi)
       {
         (*wi).dump (out);
+      }
+      out << "  Code blocks: " << std::endl;
+      for (rld::strings::const_iterator ci = code.begin ();
+           ci != code.end ();
+           ++ci)
+      {
+        out << "    > "
+            << rld::find_replace (*ci, "\n", "\n    | ") << std::endl;
       }
     }
 
@@ -505,11 +643,16 @@ namespace rld
     }
 
     void
+    linker::generate_wrapper ()
+    {
+      tracer.generate ();
+    }
+
+    void
     linker::dump (std::ostream& out) const
     {
       const rld::config::paths& cpaths = config.get_paths ();
-      out << "RTEMS Trace Linker" << std::endl
-          << " Configuration Files: " << cpaths.size () << std::endl;
+      out << " Configuration Files: " << cpaths.size () << std::endl;
       for (rld::config::paths::const_iterator pi = cpaths.begin ();
            pi != cpaths.end ();
            ++pi)
@@ -532,6 +675,7 @@ static struct option rld_opts[] = {
   { "version",     no_argument,            NULL,           'V' },
   { "verbose",     no_argument,            NULL,           'v' },
   { "warn",        no_argument,            NULL,           'w' },
+  { "keep",        no_argument,            NULL,           'k' },
   { "exec-prefix", required_argument,      NULL,           'E' },
   { "march",       required_argument,      NULL,           'a' },
   { "mcpu",        required_argument,      NULL,           'c' },
@@ -549,6 +693,7 @@ usage (int exit_code)
             << " -v        : verbose (trace import parts), can supply multiple times" << std::endl
             << "             to increase verbosity (also --verbose)" << std::endl
             << " -w        : generate warnings (also --warn)" << std::endl
+            << " -k        : keep temporary files (also --keep)" << std::endl
             << " -E prefix : the RTEMS tool prefix (also --exec-prefix)" << std::endl
             << " -a march  : machine architecture (also --march)" << std::endl
             << " -c cpu    : machine architecture's CPU (also --mcpu)" << std::endl
@@ -561,7 +706,7 @@ fatal_signal (int signum)
 {
   signal (signum, SIG_DFL);
 
-  rld::process::temporaries.clean_up ();
+  rld::process::temporaries_clean_up ();
 
   /*
    * Get the same signal again, this time not handled, so its normal effect
@@ -610,7 +755,7 @@ main (int argc, char* argv[])
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvwVE:a:c:C:", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvwkVE:a:c:C:", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -630,6 +775,10 @@ main (int argc, char* argv[])
 #if HAVE_WARNINGS
           warnings = true;
 #endif
+          break;
+
+        case 'k':
+          rld::process::set_keep_temporary_files ();
           break;
 
         case 'E':
@@ -687,7 +836,10 @@ main (int argc, char* argv[])
     try
     {
       linker.load_config (configuration, trace);
-      linker.dump (std::cout);
+      linker.generate_wrapper ();
+
+      if (rld::verbose ())
+        linker.dump (std::cout);
     }
     catch (...)
     {

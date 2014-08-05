@@ -41,11 +41,13 @@
 #define RLD_PATHSTR_SEPARATOR     ';'
 #define RLD_PATHSTR_SEPARATOR_STR ";"
 #define RLD_DRIVE_SEPARATOR       (1)
+#define RLD_LINE_SEPARATOR        "\r\n"
 #else
 #define RLD_PATH_SEPARATOR        '/'
 #define RLD_PATHSTR_SEPARATOR     ':'
 #define RLD_PATHSTR_SEPARATOR_STR ":"
 #define RLD_DRIVE_SEPARATOR       (0)
+#define RLD_LINE_SEPARATOR        "\n"
 #endif
 
 namespace rld
