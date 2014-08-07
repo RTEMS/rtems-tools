@@ -70,7 +70,7 @@ namespace rld
     /**
      * A function's signature.
      */
-    struct function_sig
+    struct signature
     {
       std::string     name; /**< The function's name. */
       function_args   args; /**< The function's list of arguments. */
@@ -79,17 +79,12 @@ namespace rld
       /**
        * The default constructor.
        */
-      function_sig ();
+      signature ();
 
       /**
        * Construct the signature loading it from the configuration.
        */
-      function_sig (const rld::config::record& record);
-
-      /**
-       * Copy constructor.
-       */
-      function_sig (const function_sig& orig);
+      signature (const rld::config::record& record);
 
       /**
        * Return the function's declaration.
@@ -98,59 +93,68 @@ namespace rld
     };
 
     /**
-     * A container of function signatures.
+     * A container of signatures.
      */
-    typedef std::map < std::string, function_sig > function_sigs;
+    typedef std::map < std::string, signature > signatures;
 
     /**
-     * Wrappers hold the data used when wrapping the code. It knows how to wrap
-     * a specific trace function. Wrapping a function requires specific defines
-     * and header files.
+     * A function is list of function signatures headers and defines that allow
+     * a function to be wrapped.
      */
-    struct wrapper
+    struct function
     {
-      std::string   name;            /**< The name of this wrapper. */
-      rld::strings  headers;         /**< Include statements. */
-      rld::strings  defines;         /**< Define statements. */
-      std::string   map_sym_prefix;  /**< Mapping symbol prefix. */
-      std::string   arg_trace;       /**< Code template to trace an argument. */
-      std::string   ret_trace;       /**< Code template to trace the return value. */
-      rld::strings& code;            /**< Code block inserted before the trace code. */
-      function_sigs sigs;            /**< The functions this wrapper wraps. */
+      std::string  name;        /**< The name of this wrapper. */
+      rld::strings headers;     /**< Include statements. */
+      rld::strings defines;     /**< Define statements. */
+      signatures   signatures_; /**< Signatures in this function. */
 
       /**
-       * Load the wrapper.
+       * Load the function.
        */
-      wrapper (const std::string&   name,
-               rld::strings&        code,
-               rld::config::config& config);
+      function (rld::config::config& config,
+                const std::string&   name);
 
       /**
-       * Parse the generator.
-       */
-      void parse_generator (rld::config::config& config,
-                            const rld::config::section& section);
-
-      /**
-       * Recursive parser for strings.
-       */
-      void parse (rld::config::config&        config,
-                  const rld::config::section& section,
-                  const std::string&          sec_name,
-                  const std::string&          rec_name,
-                  rld::strings&               items,
-                  int                         depth = 0);
-
-      /**
-       * Dump the wrapper.
+       * Dump the function.
        */
       void dump (std::ostream& out) const;
     };
 
     /**
-     * A container of wrappers. The order is the order we wrap.
+     * A container of functions.
      */
-    typedef std::vector < wrapper > wrappers;
+    typedef std::vector < function > functions;
+
+    /**
+     * A generator and that contains the functions used to trace arguments and
+     * return values. It also provides the implementation of those functions.
+     */
+    struct generator
+    {
+      std::string  name;            /**< The name of this wrapper. */
+      rld::strings headers;         /**< Include statements. */
+      rld::strings defines;         /**< Define statements. */
+      std::string  map_sym_prefix;  /**< Mapping symbol prefix. */
+      std::string  arg_trace;       /**< Code template to trace an argument. */
+      std::string  ret_trace;       /**< Code template to trace the return value. */
+      rld::strings code;            /**< Code block inserted before the trace code. */
+
+      /**
+       * Default constructor.
+       */
+      generator ();
+
+      /**
+       * Load the generator.
+       */
+      generator (rld::config::config& config,
+                 const std::string&   name);
+
+      /**
+       * Dump the generator.
+       */
+      void dump (std::ostream& out) const;
+    };
 
     /**
      * Tracer.
@@ -165,6 +169,18 @@ namespace rld
        */
       void load (rld::config::config& config,
                  const std::string&   section);
+
+      /**
+       * The the functions for the trace.
+       */
+      void load_functions (rld::config::config&        config,
+                           const rld::config::section& section);
+
+      /**
+       * The the traces for the tracer.
+       */
+      void load_traces (rld::config::config&        config,
+                        const rld::config::section& section);
 
       /**
        * Generate the wrapper object file.
@@ -183,11 +199,11 @@ namespace rld
 
     private:
 
-      std::string  name;      /**< The name of the trace. */
-      std::string  bsp;       /**< The BSP we are linking to. */
-      rld::strings traces;    /**< The functions to trace. */
-      wrappers     wrappers;  /**< Wrappers wrap trace functions. */
-      rld::strings code;      /**< Wrapper code records. Must be unique. */
+      std::string  name;       /**< The name of the trace. */
+      std::string  bsp;        /**< The BSP we are linking to. */
+      rld::strings traces;     /**< The functions to trace. */
+      functions    functions_; /**< The functions that can be traced. */
+      generator    generator_; /**< The tracer's generator. */
     };
 
     /**
@@ -217,25 +233,62 @@ namespace rld
     private:
 
       rld::config::config config;   /**< User configuration. */
-      tracer              tracer;   /**< The tracer */
+      tracer              tracer_;  /**< The tracer */
     };
 
-    function_sig::function_sig ()
+    /**
+     * Recursive parser for strings.
+     */
+    void
+    parse (rld::config::config&        config,
+           const rld::config::section& section,
+           const std::string&          sec_name,
+           const std::string&          rec_name,
+           rld::strings&               items,
+           bool                        split = true,
+           int                         depth = 0)
+    {
+      if (depth > 32)
+        throw rld::error ("too deep", "parsing: " + sec_name + '/' + rec_name);
+
+      rld::config::parse_items (section, rec_name, items, false, false, split);
+
+      rld::strings sl;
+
+      rld::config::parse_items (section, sec_name, sl);
+
+      for (rld::strings::iterator sli = sl.begin ();
+           sli != sl.end ();
+           ++sli)
+      {
+        const rld::config::section& sec = config.get_section (*sli);
+        parse (config, sec, sec_name, rec_name, items, split, depth + 1);
+      }
+
+      /*
+       * Make the items unique.
+       */
+      rld::strings::iterator ii;
+      ii = std::unique (items.begin (), items.end ());
+      items.resize (std::distance (items.begin (), ii));
+    }
+
+    signature::signature ()
     {
     }
 
-    function_sig::function_sig (const rld::config::record& record)
+    signature::signature (const rld::config::record& record)
     {
       /*
        * There can only be one function signature in the configuration.
        */
       if (!record.single ())
-        throw rld::error ("duplicate", "function signature: " + record.name);
+        throw rld::error ("duplicate", "signature: " + record.name);
 
       name = record.name;
 
       /*
-       * Function signatures are defined as the return value then the arguments
+       * Signatures are defined as the return value then the arguments
        * delimited by a comma and white space. No checking is made of the
        * return value or arguments.
        */
@@ -243,24 +296,17 @@ namespace rld
       rld::config::parse_items (record, si);
 
       if (si.size () == 0)
-        throw rld::error ("no return value", "function signature: " + record.name);
+        throw rld::error ("no return value", "signature: " + record.name);
       if (si.size () == 1)
-          throw rld::error ("no arguments", "function signature: " + record.name);
+          throw rld::error ("no arguments", "signature: " + record.name);
 
       ret = si[0];
       args.resize (si.size () - 1);
       std::copy (si.begin ()  + 1, si.end (), args.begin ());
     }
 
-    function_sig::function_sig (const function_sig& orig)
-      : name (orig.name),
-        args (orig.args),
-        ret (orig.ret)
-    {
-    }
-
     const std::string
-    function_sig::decl () const
+    signature::decl () const
     {
       std::string ds = ret + ' ' + name + '(';
       int         arg = 0;
@@ -276,129 +322,114 @@ namespace rld
       return ds;
     }
 
-    wrapper::wrapper (const std::string&   name,
-                      rld::strings&        code,
-                      rld::config::config& config)
-      : name (name),
-        code (code)
+    function::function (rld::config::config& config,
+                        const std::string&   name)
+      : name (name)
     {
       /*
-       * A wrapper section optionally contain one or more records of:
+       * A function section optionally contain one or more records of:
        *
-       * # trace      A list of functions to trace.
-       * # generator  The name of the generator section. Defaults if not present.
-       * # headers    A list of sections containing headers or header records.
-       * # header     A list of include string that are single or double quoted.
-       * # defines    A list of sections containing defines or define record.
-       * # defines    A list of define string that are single or double quoted.
-       * # signatures A list of section names of function signatures.
+       * # headers     A list of sections containing headers or header records.
+       * # header      A list of include string that are single or double quoted.
+       * # defines     A list of sections containing defines or define record.
+       * # defines     A list of define string that are single or double quoted.
+       * # signatures  A list of section names of signatures.
+       * # includes    A list of files to include.
        *
        * @note The quoting and list spliting is a little weak because a delimiter
        *       in a quote should not be seen as a delimiter.
        */
       const rld::config::section& section = config.get_section (name);
 
+      config.includes (section);
+
       parse (config, section, "headers", "header", headers);
       parse (config, section, "defines", "define", defines);
 
-      parse_generator (config, section);
-
       rld::strings sig_list;
-
-      rld::config::parse_items (section, "signatures", sig_list);
+      section.get_record_items ("signatures", sig_list);
 
       for (rld::strings::const_iterator sli = sig_list.begin ();
            sli != sig_list.end ();
            ++sli)
       {
         const rld::config::section& sig_sec = config.get_section (*sli);
-        for (rld::config::records::const_iterator ri = sig_sec.recs.begin ();
-             ri != sig_sec.recs.end ();
-             ++ri)
+        for (rld::config::records::const_iterator si = sig_sec.recs.begin ();
+             si != sig_sec.recs.end ();
+             ++si)
         {
-          function_sig func (*ri);
-          sigs[func.name] = func;
+          signature sig (*si);
+          signatures_[sig.name] = sig;
         }
       }
     }
 
     void
-    wrapper::parse_generator (rld::config::config& config,
-                              const rld::config::section& section)
+    function::dump (std::ostream& out) const
     {
-      const rld::config::record* rec = 0;
-      try
+      out << "   Function: " << name << std::endl
+          << "    Headers: " << headers.size () << std::endl;
+      for (rld::strings::const_iterator hi = headers.begin ();
+           hi != headers.end ();
+           ++hi)
       {
-        const rld::config::record& record = section.get_record ("generator");
-        rec = &record;
+        out << "     " << (*hi) << std::endl;
       }
-      catch (rld::error re)
+      out << "   Defines: " << defines.size () << std::endl;
+      for (rld::strings::const_iterator di = defines.begin ();
+           di != defines.end ();
+           ++di)
       {
-        /*
-         * No error, continue.
-         */
+        out << "     " << (*di) << std::endl;
       }
-
-      std::string gen_section;
-
-      if (rec)
+      out << "   Signatures: " << signatures_.size () << std::endl;
+      for (signatures::const_iterator si = signatures_.begin ();
+           si != signatures_.end ();
+           ++si)
       {
-        if (!rec->single ())
-          throw rld::error ("duplicate", "generator: " + section.name + "/generator");
-        gen_section = rec->items[0].text;
+        const signature& sig = (*si).second;
+        out << "     " << sig.name << ": " << sig.decl () << ';' << std::endl;
       }
-      else
-      {
-        gen_section = config.get_section ("default-generator").get_record_item ("generator");
-      }
+    }
 
-      const rld::config::section& sec = config.get_section (gen_section);
+    generator::generator ()
+    {
+    }
 
-      map_sym_prefix = sec.get_record_item ("map-sym-prefix");
-      arg_trace = rld::dequote (sec.get_record_item ("arg-trace"));
-      ret_trace = rld::dequote (sec.get_record_item ("ret-trace"));
-
+    generator::generator (rld::config::config& config,
+                          const std::string&   name)
+      : name (name)
+    {
       /*
-       * The code block, if present is placed in the code conttainer if unique.
-       * If referenced by more than wrapper and duplicated a compiler error
-       * will be generated.
+       * A generator section optionally contain one or more records of:
+       *
+       * # headers     A list of sections containing headers or header records.
+       * # header      A list of include string that are single or double quoted.
+       * # defines     A list of sections containing defines or define record.
+       * # defines     A list of define string that are single or double quoted.
+       * # code-blocks A list of section names of code blocks.
+       * # includes    A list of files to include.
+       *
+       * @note The quoting and list spliting is a little weak because a delimiter
+       *       in a quote should not be seen as a delimiter.
        */
-      rld::strings::iterator ci;
-      code.push_back (rld::dequote (sec.get_record_item ("code")));
-      ci = std::unique (code.begin (), code.end ());
-      code.resize (std::distance (code.begin (), ci));
+      const rld::config::section& section = config.get_section (name);
+
+      config.includes (section);
+
+      parse (config, section, "headers",     "header", headers);
+      parse (config, section, "defines",     "define", defines);
+      parse (config, section, "code-blocks", "code",   code, false);
+
+      map_sym_prefix = section.get_record_item ("map-sym-prefix");
+      arg_trace = rld::dequote (section.get_record_item ("arg-trace"));
+      ret_trace = rld::dequote (section.get_record_item ("ret-trace"));
     }
 
     void
-    wrapper::parse (rld::config::config&        config,
-                    const rld::config::section& section,
-                    const std::string&          sec_name,
-                    const std::string&          rec_name,
-                    rld::strings&               items,
-                    int                         depth)
+    generator::dump (std::ostream& out) const
     {
-      if (depth > 32)
-        throw rld::error ("too deep", "parsing: " + sec_name + '/' + rec_name);
-
-      rld::config::parse_items (section, rec_name, items);
-
-      rld::strings sl;
-
-      rld::config::parse_items (section, sec_name, sl);
-
-      for (rld::strings::const_iterator sli = sl.begin ();
-           sli != sl.end ();
-           ++sli)
-      {
-        const rld::config::section& sec = config.get_section (*sli);
-        parse (config, sec, sec_name, rec_name, items, depth + 1);
-      }
-    }
-
-    void
-    wrapper::dump (std::ostream& out) const
-    {
-      out << "  Wrapper: " << name << std::endl
+      out << "  Generator: " << name << std::endl
           << "   Headers: " << headers.size () << std::endl;
       for (rld::strings::const_iterator hi = headers.begin ();
            hi != headers.end ();
@@ -416,13 +447,13 @@ namespace rld
       out << "   Mapping Symbol Prefix: " << map_sym_prefix << std::endl
           << "   Arg Trace Code: " << arg_trace << std::endl
           << "   Return Trace Code: " << ret_trace << std::endl
-          << "   Function Signatures: " << sigs.size () << std::endl;
-      for (function_sigs::const_iterator si = sigs.begin ();
-           si != sigs.end ();
-           ++si)
+          << "   Code blocks: " << std::endl;
+      for (rld::strings::const_iterator ci = code.begin ();
+           ci != code.end ();
+           ++ci)
       {
-        const function_sig& sig = (*si).second;
-        out << "    " << sig.name << ": " << sig.decl () << ';' << std::endl;
+        out << "      > "
+            << rld::find_replace (*ci, "\n", "\n      | ") << std::endl;
       }
     }
 
@@ -432,70 +463,76 @@ namespace rld
 
     void
     tracer::load (rld::config::config& config,
-                  const std::string&   section)
+                  const std::string&   tname)
     {
       /*
-       * The configuration must contain a "trace" section. This is the top level
-       * configuration and must the following fields:
+       * The configuration must contain a "section" section. This is the top level
+       * configuration and may contain:
        *
-       *  # name    The name of trace being linked.
-       *  # trace   The list of sections containing functions to trace.
-       *  # wrapper The list of sections containing wrapping details.
+       *  # name      The name of trace being linked.
+       *  # bsp       The architecture/bsp name of the BSP.
+       *  # options   A list of options as per the long command line args.
+       *  # traces    The list of sections containing function lists to trace.
+       *  # functions The list of sections containing function details.
+       *  # include   The list of files to include.
        *
-       * The following record are optional:
+       * The following records are required:
        *
-       *  # bdp     The BSP the executable is for. Can be supplied on the command
-       *            line.
-       *  # include Include the INI file.
-       *
-       * The following will throw an error is the section or records are not
-       * found.
+       *  # name
+       *  # bsp
+       *  # trace
+       *  # functions
        */
-      rld::strings ss;
+      const rld::config::section& section = config.get_section (tname);
 
-      const rld::config::section& tsec = config.get_section (section);
-      const rld::config::record&  nrec = tsec.get_record ("name");
-      const rld::config::record&  brec = tsec.get_record ("bsp");
-      const rld::config::record&  trec = tsec.get_record ("trace");
-      const rld::config::record&  wrec = tsec.get_record ("wrapper");
+      config.includes (section);
 
-      if (!nrec.single ())
-        throw rld::error ("duplicate", "trace names");
-      name = nrec.items[0].text;
+      name = section.get_record_item ("name");
+      bsp  = section.get_record_item ("bsp");
 
-      if (!brec.single ())
-        throw rld::error ("duplicate", "trace bsp");
-      bsp = brec.items[0].text;
+      load_functions (config, section);
+      load_traces (config, section);
+    }
 
-      /*
-       * Include any files.
-       */
-      config.includes (tsec);
-
-      /*
-       * Load the wrappers.
-       */
-      rld::strings wi;
-      rld::config::parse_items (wrec, wi);
-      for (rld::strings::const_iterator wsi = wi.begin ();
-           wsi != wi.end ();
-           ++wsi)
+    void
+    tracer::load_functions (rld::config::config&        config,
+                            const rld::config::section& section)
+    {
+      rld::strings fl;
+      rld::config::parse_items (section, "functions", fl, true);
+      for (rld::strings::const_iterator fli = fl.begin ();
+           fli != fl.end ();
+           ++fli)
       {
-        wrappers.push_back (wrapper (*wsi, code, config));
+        functions_.push_back (function (config, *fli));
+      }
+    }
+
+    void
+    tracer::load_traces (rld::config::config&        config,
+                         const rld::config::section& section)
+    {
+      parse (config, section, "traces", "trace", traces);
+
+      rld::strings gens;
+      std::string  gen;
+
+      parse (config, section, "traces", "generator", gens);
+
+      if (gens.size () > 1)
+        throw rld::error ("duplicate generators", "tracer: " + section.name);
+
+      if (gens.size () == 0)
+      {
+        gen =
+          config.get_section ("default-generator").get_record_item ("generator");
+      }
+      else
+      {
+        gen = gens[0];
       }
 
-      /*
-       * Load the trace functions.
-       */
-      rld::strings ti;
-      rld::config::parse_items (trec, ti);
-      for (rld::strings::const_iterator tsi = ti.begin ();
-           tsi != ti.end ();
-           ++tsi)
-      {
-        rld::config::parse_items (config, *tsi, "trace", traces, true);
-      }
-
+      generator_ = generator (config, gen);
     }
 
     void
@@ -515,24 +552,14 @@ namespace rld
         c.write_line (" *  Automatically generated.");
         c.write_line (" */");
 
-        for (wrappers::const_iterator wi = wrappers.begin ();
-             wi != wrappers.end ();
-             ++wi)
-        {
-          const wrapper& wrap = *wi;
-          c.write_line ("");
-          c.write_line ("/*");
-          c.write_line (" * Wrapper: " + wrap.name);
-          c.write_line (" */");
-          c.write_lines (wrap.defines);
-          c.write_lines (wrap.headers);
-        }
-
         c.write_line ("");
         c.write_line ("/*");
-        c.write_line (" * Code blocks");
+        c.write_line (" * Generator: " + generator_.name);
         c.write_line (" */");
-        c.write_lines (code);
+        c.write_lines (generator_.defines);
+        c.write_lines (generator_.headers);
+        c.write_line ("");
+        c.write_lines (generator_.code);
 
         generate_traces (c);
       }
@@ -548,28 +575,59 @@ namespace rld
     void
     tracer::generate_traces (rld::process::tempfile& c)
     {
+      for (functions::const_iterator fi = functions_.begin ();
+           fi != functions_.end ();
+           ++fi)
+      {
+        const function& funcs = *fi;
+
+        for (rld::strings::const_iterator ti = traces.begin ();
+             ti != traces.end ();
+             ++ti)
+        {
+          const std::string&         trace = *ti;
+          signatures::const_iterator si = funcs.signatures_.find (trace);
+
+          if (si != funcs.signatures_.end ())
+          {
+            c.write_line ("");
+            c.write_line ("/*");
+            c.write_line (" * Function: " + funcs.name);
+            c.write_line (" */");
+            c.write_lines (funcs.defines);
+            c.write_lines (funcs.headers);
+            break;
+          }
+        }
+      }
+
+      c.write_line ("");
+      c.write_line ("/*");
+      c.write_line (" * Wrappers.");
+      c.write_line (" */");
+
       for (rld::strings::const_iterator ti = traces.begin ();
            ti != traces.end ();
            ++ti)
       {
-        const std::string& func = *ti;
+        const std::string& trace = *ti;
         bool               found = false;
 
-        for (wrappers::const_iterator wi = wrappers.begin ();
-             wi != wrappers.end ();
-             ++wi)
+        for (functions::const_iterator fi = functions_.begin ();
+             fi != functions_.end ();
+             ++fi)
         {
-          const wrapper&                wrap = *wi;
-          function_sigs::const_iterator fsi = wrap.sigs.find (func);
+          const function&            funcs = *fi;
+          signatures::const_iterator si = funcs.signatures_.find (trace);
 
-          if (fsi != wrap.sigs.end ())
+          if (si != funcs.signatures_.end ())
           {
             found = true;
 
-            const function_sig& fs = (*fsi).second;
+            const signature& sig = (*si).second;
 
             c.write_line("");
-            c.write_line(fs.decl ());
+            c.write_line(sig.decl ());
             c.write_line("{");
 
             std::string l;
@@ -578,14 +636,14 @@ namespace rld
              * @todo Need to define as part of the function signature if ret
              *       processing is required.
              */
-            if (fs.ret != "void")
+            if (sig.ret != "void")
             {
-              c.write_line(" " + fs.ret + " ret;");
+              c.write_line(" " + sig.ret + " ret;");
               l = " ret =";
             }
 
-            l += " " + wrap.map_sym_prefix + fs.name + '(';
-            for (size_t a = 0; a < fs.args.size (); ++a)
+            l += " " + generator_.map_sym_prefix + sig.name + '(';
+            for (size_t a = 0; a < sig.args.size (); ++a)
             {
               if (a)
                 l += ", ";
@@ -594,7 +652,7 @@ namespace rld
             l += ");";
             c.write_line(l);
 
-            if (fs.ret != "void")
+            if (sig.ret != "void")
             {
               c.write_line(" return ret;");
             }
@@ -604,7 +662,7 @@ namespace rld
         }
 
         if (!found)
-          throw rld::error ("not found", "trace function: " + func);
+          throw rld::error ("not found", "trace function: " + trace);
       }
     }
 
@@ -612,21 +670,23 @@ namespace rld
     tracer::dump (std::ostream& out) const
     {
       out << " Tracer: " << name << std::endl
-          << "  BSP: " << bsp << std::endl;
-      for (wrappers::const_iterator wi = wrappers.begin ();
-           wi != wrappers.end ();
-           ++wi)
+          << "  BSP: " << bsp << std::endl
+          << "  Traces: " << traces.size () << std::endl;
+      for (rld::strings::const_iterator ti = traces.begin ();
+           ti != traces.end ();
+           ++ti)
       {
-        (*wi).dump (out);
+        out << "   " << (*ti) << std::endl;
       }
-      out << "  Code blocks: " << std::endl;
-      for (rld::strings::const_iterator ci = code.begin ();
-           ci != code.end ();
-           ++ci)
+      out << "  Functions: " << functions_.size () << std::endl;
+      for (functions::const_iterator fi = functions_.begin ();
+           fi != functions_.end ();
+           ++fi)
       {
-        out << "    > "
-            << rld::find_replace (*ci, "\n", "\n    | ") << std::endl;
+        (*fi).dump (out);
       }
+      out << "  Generator: " << std::endl;
+      generator_.dump (out);
     }
 
     linker::linker ()
@@ -639,13 +699,13 @@ namespace rld
     {
       config.clear ();
       config.load (path);
-      tracer.load (config, trace);
+      tracer_.load (config, trace);
     }
 
     void
     linker::generate_wrapper ()
     {
-      tracer.generate ();
+      tracer_.generate ();
     }
 
     void
@@ -660,7 +720,7 @@ namespace rld
         out << "  " << (*pi) << std::endl;
       }
 
-      tracer.dump (out);
+      tracer_.dump (out);
     }
   }
 }

@@ -150,7 +150,7 @@ namespace rld
      * index. This is used when adding the external symbols so the symbol's
      * value can be adjusted by the offset of the section in the RAP section.
      */
-    typedef std::map < const int, osection > osections;
+    typedef std::map < int, osection > osections;
 
     /**
      * An ordered container of object section indexes. We need the same

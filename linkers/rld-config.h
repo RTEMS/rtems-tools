@@ -62,13 +62,13 @@ namespace rld
     struct record
     {
       std::string name;   //< Name of the record.
-      items       items;  //< The record's items.
+      items       items_; //< The record's items.
 
       /**
        * Return true if there is only one item.
        */
       bool single () const {
-        return items.size () == 1;
+        return items_.size () == 1;
       }
     };
 
@@ -100,7 +100,7 @@ namespace rld
       /**
        * Return the list of items in a record in a strings container.
        */
-      void get_record_items (const std::string& name, rld::strings& items) const;
+      void get_record_items (const std::string& name, rld::strings& items_) const;
     };
 
     /**
@@ -154,24 +154,35 @@ namespace rld
 
     private:
 
-      paths    paths; /**< The path's of the loaded files. */
-      sections secs;  /**< The sections loaded from configuration files */
+      paths    paths_; /**< The path's of the loaded files. */
+      sections secs;   /**< The sections loaded from configuration files */
     };
 
     /**
      * Return the items from a record.
      */
     template < typename T >
-    void parse_items (const rld::config::record& record, T& items)
+    void parse_items (const rld::config::record& record,
+                      T&                         items_,
+                      bool                       clear = true,
+                      bool                       split = true)
     {
-      items.clear ();
-      for (rld::config::items::const_iterator ii = record.items.begin ();
-           ii != record.items.end ();
+      if (clear)
+        items_.clear ();
+      for (rld::config::items::const_iterator ii = record.items_.begin ();
+           ii != record.items_.end ();
            ++ii)
       {
-        rld::strings ss;
-        rld::split (ss, (*ii).text, ',');
-        std::copy (ss.begin (), ss.end (), std::back_inserter (items));
+        if (split)
+        {
+          rld::strings ss;
+          rld::split (ss, (*ii).text, ',');
+          std::copy (ss.begin (), ss.end (), std::back_inserter (items_));
+        }
+        else
+        {
+          items_.push_back ((*ii).text);
+        }
       }
     }
 
@@ -182,10 +193,13 @@ namespace rld
     template < typename T >
     void parse_items (const rld::config::section& section,
                       const std::string&          name,
-                      T&                          items,
-                      bool                        present = false)
+                      T&                          items_,
+                      bool                        present = false,
+                      bool                        clear = true,
+                      bool                        split = true)
     {
-      items.clear ();
+      if (clear)
+        items_.clear ();
       const rld::config::record* rec = 0;
       try
       {
@@ -202,7 +216,7 @@ namespace rld
       }
 
       if (rec)
-        parse_items (*rec, items);
+        parse_items (*rec, items_, clear, split);
     }
 
     /**
@@ -214,10 +228,10 @@ namespace rld
     void parse_items (const rld::config::config& config,
                       const std::string&         section,
                       const std::string&         record,
-                      T&                         items,
+                      T&                         items_,
                       bool                       present = false)
     {
-      items.clear ();
+      items_.clear ();
       const rld::config::section* sec = 0;
       try
       {
@@ -234,7 +248,7 @@ namespace rld
       }
 
       if (sec)
-        parse_items (*sec, record, items);
+        parse_items (*sec, record, items_);
     }
   }
 }

@@ -156,11 +156,16 @@ namespace rld
    */
   inline std::string dequote (const std::string& s)
   {
-    if ((s.front () == '"') || (s.front () == '\''))
+    if (!s.empty ())
     {
-      if (s.front () != s.back ())
-        throw rld::error ("invalid quoting", "string: " + s);
-      return s.substr (1, s.length () - (1 + 1));
+      char front = s[0];
+      char back = s[s.length () - 1];
+      if ((front == '"') || (front == '\''))
+      {
+        if (front != back)
+          throw rld::error ("invalid quoting", "string: " + s);
+        return s.substr (1, s.length () - (1 + 1));
+      }
     }
     return s;
   }

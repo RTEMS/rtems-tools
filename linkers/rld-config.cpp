@@ -60,9 +60,9 @@ namespace rld
     section::get_record_item (const std::string& rec_name) const
     {
       const record& rec = get_record (rec_name);
-      if (rec.items.size () != 1)
+      if (rec.items_.size () != 1)
         throw rld::error ("duplicate", "record item: " + name + '/' + rec_name);
-      return rec.items[0].text;
+      return rec.items_[0].text;
     }
 
     void
@@ -70,8 +70,8 @@ namespace rld
     {
       const record& rec = get_record (rec_name);
       items.clear ();
-      for (rld::config::items::const_iterator ii = rec.items.begin ();
-           ii != rec.items.end ();
+      for (rld::config::items::const_iterator ii = rec.items_.begin ();
+           ii != rec.items_.end ();
            ++ii)
       {
         items.push_back ((*ii).text);
@@ -100,7 +100,7 @@ namespace rld
       if (ini.LoadFile (path.c_str ()) != SI_OK)
         throw rld::error (::strerror (errno), "load config: " + path);
 
-      paths.push_back (path);
+      paths_.push_back (path);
 
       /*
        * Merge the loaded configuration into our configuration.
@@ -138,7 +138,7 @@ namespace rld
                vi != vals.end ();
                ++vi)
           {
-            rec.items.push_back (item ((*vi).pItem));
+            rec.items_.push_back (item ((*vi).pItem));
           }
 
           sec.recs.push_back (rec);
@@ -205,7 +205,7 @@ namespace rld
     const paths&
     config::get_paths () const
     {
-      return paths;
+      return paths_;
     }
   }
 }
