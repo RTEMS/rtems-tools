@@ -199,7 +199,7 @@ main (int argc, char* argv[])
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvwVMnb:E:o:O:L:l:a:c:e:d:u:C:W:R:P", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvwVMnsSb:E:o:O:L:l:a:c:e:d:u:C:W:R:P:", rld_opts, NULL);
       if (opt < 0)
         break;
 

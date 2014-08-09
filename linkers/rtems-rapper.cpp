@@ -1164,7 +1164,7 @@ main (int argc, char* argv[])
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvVnaHlsSroxf", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvVnaHmlsSroxf", rld_opts, NULL);
       if (opt < 0)
         break;
 
