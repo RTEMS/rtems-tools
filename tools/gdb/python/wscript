@@ -1,0 +1,23 @@
+#
+# Install the RTEMS gdb python
+#
+
+def configure(conf):
+    conf.load('python')
+
+def build(bld):
+    bld.install_files('${PREFIX}/share/gdb/python/rtems',
+                      ['chains.py',
+                       'classic.py',
+                       'classic_printer.py',
+                       'heaps.py',
+                       'helper.py',
+                       'main.py',
+                       'objects.py',
+                       'pretty.py',
+                       'rtems.py',
+                       'sparc.py',
+                       'supercore.py',
+                       'supercore_printer.py',
+                       'threads.py',
+                       'watchdog.py'])
