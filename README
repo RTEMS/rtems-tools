@@ -10,13 +10,15 @@ All tools are distributed as source code. They should work on a range of host
 computers. Windows support may be via cross building on suitable Unix systems.
 
 The tools contained in this package each come with documentation so please
-locate and refer to it.
+locate and refer to that.
 
 The RTEMS Tools Project has been developed for the RTEMS Project however these
-tools can be used for a range of things no relate to RTEMS. The RTEMS Project
-welcomes this and
+tools can be used for a range of things not related to RTEMS. The RTEMS Project
+welcomes this.
 
 If you have a problem or question post to rtems-user@rtems.org or drop by the
-RTEMS IRC channel #rtems on chat.freenode.net. Drop by and tell us is you are
-using this tools for other uses.
+RTEMS IRC channel #rtems on chat.freenode.net. Drop by and tell us if you are
+using these tools for other uses.
 
+If you have any patches please post them to the devel@rtems.org mailing list in
+git format patches with your details.
