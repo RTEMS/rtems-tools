@@ -1,8 +1,34 @@
+# RTEMS Tools Project (http://www.rtems.org/)
+# Copyright 2010-2014 Chris Johns (chrisj@rtems.org)
+# All rights reserved.
+#
+# This file is part of the RTEMS Tools package in 'rtems-tools'.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+
 #
 # RTEMS Classic API Support
-# Copyright 2010 Chris Johns (chrisj@rtems.org)
-#
-# $Id$
 #
 
 import gdb
@@ -16,7 +42,6 @@ import threads
 import watchdog
 import heaps
 import supercore
-import sparc
 
 class attribute:
     """The Classic API attribute."""
@@ -110,7 +135,8 @@ class semaphore:
     "Print a classic semaphore."
 
     def __init__(self, obj):
-        self.object = obj
+        self.reference = obj
+        self.object = obj.dereference()
         self.object_control = objects.control(self.object['Object'])
         self.attr = attribute(self.object['attribute_set'], 'semaphore')
 
@@ -152,29 +178,38 @@ class task:
     "Print a classic task"
 
     def __init__(self, obj):
-        self.object = obj
-        self.task = \
-            threads.control(self.object)
+        self.reference = obj
+        self.object = obj.dereference()
+        self.task = threads.control(self.reference)
         self.wait_info = self.task.wait_info()
-        # ToDo: Insert platform dep. code here.
-        self.regs = sparc.register(self.object['Registers'])
+        self.regs = self.task.registers()
+        #self.regs = sparc.register(self.object['Registers'])
 
     def show(self, from_tty):
-        print '     Name:', self.task.name()
-        print '    State:', self.task.current_state()
-        print '  Current:', self.task.current_priority()
-        print '     Real:', self.task.real_priority()
-        print '  Preempt:', self.task.preemptible()
-        print ' T Budget:', self.task.cpu_time_budget()
-        print ' Regsters:'
-        self.regs.show()
-
+        cpu = self.task.executing()
+        if cpu == -1:
+            cpu = 'not executing'
+        print '         Id:', '0x%08x' % (self.task.id())
+        print '       Name:', self.task.name()
+        print ' Active CPU:', cpu
+        print '      State:', self.task.current_state()
+        print '    Current:', self.task.current_priority()
+        print '       Real:', self.task.real_priority()
+        print '    Preempt:', self.task.preemptible()
+        print '   T Budget:', self.task.cpu_time_budget()
+        print '       Time:', self.task.cpu_time_used()
+        print '  Resources:', self.task.resource_count()
+        print '  Regsters:'
+        for name in self.regs.names():
+            val = self.regs.get(name)
+            print '    %20s: %08x (%d)' % (name, val, val)
 
 class message_queue:
     "Print classic messege queue"
 
-    def __init__(self,obj):
-        self.object = obj
+    def __init__(self, obj):
+        self.reference = obj
+        self.object = obj.dereference()
         self.object_control = objects.control(self.object['Object'])
         self.attr = attribute(self.object['attribute_set'], \
             'message_queue')
@@ -193,7 +228,8 @@ class timer:
     '''Print a classic timer'''
 
     def __init__(self, obj):
-        self.object = obj
+        self.reference = obj
+        self.object = obj.dereference()
         self.object_control = objects.control(self.object['Object'])
         self.watchdog = watchdog.control(self.object['Ticker'])
 
@@ -205,7 +241,8 @@ class partition:
     ''' Print a rtems partition '''
 
     def __init__(self, obj):
-        self.object = obj
+        self.reference = obj
+        self.object = obj.dereference()
         self.object_control = objects.control(self.object['Object'])
         self.attr = attribute(self.object['attribute_set'], 'partition')
         self.starting_addr = self.object['starting_address']
@@ -224,8 +261,9 @@ class partition:
 class region:
     "prints a classic region"
 
-    def __init__(self,obj):
-        self.object = obj
+    def __init__(self, obj):
+        self.reference = obj
+        self.object = obj.dereference()
         self.object_control = objects.control(self.object['Object'])
         self.attr = attribute(self.object['attribute_set'], 'region')
         self.wait_queue = threads.queue(self.object['Wait_queue'])
@@ -241,8 +279,9 @@ class region:
 class barrier:
     '''classic barrier abstraction'''
 
-    def __init__(self,obj):
-        self.object = obj
+    def __init__(self, obj):
+        self.reference = obj
+        self.object = obj.dereference()
         self.object_control = objects.control(self.object['Object'])
         self.attr = attribute(self.object['attribute_set'],'barrier')
         self.core_b_control = supercore.barrier_control(self.object['Barrier'])
@@ -257,5 +296,3 @@ class barrier:
 
         print '  Waiting:',self.core_b_control.waiting_threads()
         helper.tasks_printer_routine(self.core_b_control.tasks())
-
-

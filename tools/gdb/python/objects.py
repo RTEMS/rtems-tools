@@ -1,15 +1,41 @@
+# RTEMS Tools Project (http://www.rtems.org/)
+# Copyright 2010-2014 Chris Johns (chrisj@rtems.org)
+# All rights reserved.
+#
+# This file is part of the RTEMS Tools package in 'rtems-tools'.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+
 #
 # RTEMS Objects Support
-# Copyright 2010 Chris Johns (chrisj@rtems.org)
-#
-# $Id$
 #
 
 import gdb
 import itertools
 import re
 
-class infotables:
+class infotables():
     """Manage the object information tables."""
 
     tables_types = {
@@ -36,7 +62,7 @@ class infotables:
         self.tables = {}
 
     def name(self, api, _class):
-        return api + '/' + _class
+        return '%s/%s' % (api, _class)
 
     def load(self, n):
         if n in self.tables_types:
@@ -49,6 +75,16 @@ class infotables:
         if n in self.tables:
             return self.tables[n]
         return None
+
+    def minimum_id(self, api, _class):
+        n = self.name(api, _class)
+        self.load(n)
+        return int(self.tables[n]['minimum_id'])
+
+    def maximum_id(self, api, _class):
+        n = self.name(api, _class)
+        self.load(n)
+        return int(self.tables[n]['maximum_id'])
 
     def maximum(self, api, _class):
         n = self.name(api, _class)
@@ -71,18 +107,14 @@ class infotables:
     def object_return(self, api, _class, index=-1):
         n = self.name(api, _class)
         self.load(n)
-
         table_type = self.tables_types[n]
-
         if api == 'internal':
-            expr = '(' + table_type[0] + ')' + table_type[1]
-
+            expr = '(%s) %s' % (table_type[0], table_type[1])
         else:
             max = self.maximum(api, _class)
             if index > max:
                 raise IndexError('object index out of range (%d)' % (max))
-            expr = '(' + table_type[0] + '*)' + \
-                table_type[1] + '.local_table[' + str(index) + ']'
+            expr = '(%s*) %s.local_table[%d]' % (table_type[0], table_type[1], index)
         return gdb.parse_and_eval(expr)
 
     def is_string(self, api, _class):
@@ -98,7 +130,7 @@ class infotables:
 #
 information = infotables()
 
-class ident:
+class ident():
     "An RTEMS object id with support for its bit fields."
 
     bits = [
@@ -113,14 +145,13 @@ class ident:
         ]
 
     OBJECT_16_BITS = 0
-    OBJECT_31_BITS = 1
+    OBJECT_32_BITS = 1
 
     api_labels = [
         'none',
         'internal',
         'classic',
-        'posix',
-        'itron'
+        'posix'
         ]
 
     class_labels = {
@@ -150,15 +181,6 @@ class ident:
                    'barriers',
                    'spinlocks',
                    'rwlocks'),
-        'itron' : ('none',
-                   'tasks',
-                   'eventflags',
-                   'mailboxes',
-                   'message_buffers',
-                   'ports',
-                   'semaphores',
-                   'variable_memory_pools',
-                   'fixed_memory_pools')
         }
 
     def __init__(self, id):
@@ -170,7 +192,7 @@ class ident:
         if self.id.type.sizeof == 2:
             self.idSize = self.OBJECT_16_BITS
         else:
-            self.idSize = self.OBJECT_31_BITS
+            self.idSize = self.OBJECT_32_BITS
 
     def get(self, field):
         if field in self.bits[self.idSize]:
@@ -212,7 +234,7 @@ class ident:
     def valid(self):
         return self.api() != 'none' and self._class() != 'invalid'
 
-class name:
+class name():
     """The Objects_Name can either be told what the name is or can take a
     guess."""
 
@@ -220,6 +242,10 @@ class name:
         self.name = name
         if is_string == None:
             self.is_string = 'auto'
+            try:
+                self.name_p = self.name['name_p']
+            except gdb.Error:
+                self.is_string = 'no'
         else:
             if is_string:
                 self.is_string = 'yes'
@@ -227,25 +253,39 @@ class name:
                 self.is_string = 'no'
 
     def __str__(self):
+        return self.get()
+
+    def get(self):
         if self.is_string != 'yes':
             u32 = int(self.name['name_u32'])
-            s = chr((u32 >> 24) & 0xff) + \
-                chr((u32 >> 16) & 0xff) + chr((u32 >> 8) & 0xff) + \
-                chr(u32 & 0xff)
-            for c in range(0,4):
-                if s[c] < ' ' or s[c] > '~':
-                    s = None
-                    break
-            if s:
-                return s
-        return str(self.name['name_p'].dereference())
+            if u32 != 0:
+                s = chr((u32 >> 24) & 0xff) + \
+                    chr((u32 >> 16) & 0xff) + \
+                    chr((u32 >> 8) & 0xff) + \
+                    chr(u32 & 0xff)
+                for c in range(0, 4):
+                    if s[c] < ' ' or s[c] > '~':
+                        s = None
+                        break
+                if s:
+                    return s
+            if self.is_string == 'xno':
+                return None
+        try:
+            name_p = self.name['name_p']
+            return str(name_p.dereference())
+        except gdb.Error:
+            pass
+        return None
 
-class control:
+class control():
     """The Objects_Control structure."""
 
     def __init__(self, object):
         self.object = object
         self._id = ident(self.object['id'])
+        self._name = name(self.object['name'],
+                          information.is_string(self._id.api(), self._id._class()))
 
     def node(self):
         return self.object['Node']
@@ -254,12 +294,4 @@ class control:
         return self.object['id']
 
     def name(self):
-        is_string = information.is_string(self._id.api(), self._id._class())
-        val = str(name(self.object['name'],is_string))
-
-        # Normal comaprision is a bit tricky with quotes
-        # 0 '\000' in hex == '3020275c30303027'
-        if val.encode('hex') == '3020275c30303027':
-            val = ""
-
-        return val
+        return self._name.get()

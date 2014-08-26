@@ -73,7 +73,7 @@ class register:
 
             return val
 
-    def __init__(self,reg):
+    def __init__(self, reg):
         self.reg = reg
 
     def global_regs(self):

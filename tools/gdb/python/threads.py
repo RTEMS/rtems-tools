@@ -1,13 +1,41 @@
+# RTEMS Tools Project (http://www.rtems.org/)
+# Copyright 2010-2014 Chris Johns (chrisj@rtems.org)
+# All rights reserved.
+#
+# This file is part of the RTEMS Tools package in 'rtems-tools'.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# 1. Redistributions of source code must retain the above copyright notice,
+# this list of conditions and the following disclaimer.
+#
+# 2. Redistributions in binary form must reproduce the above copyright notice,
+# this list of conditions and the following disclaimer in the documentation
+# and/or other materials provided with the distribution.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+#
+
 #
 # RTEMS Threads Support
-# Copyright 2010 Chris Johns (chrisj@rtems.org)
-#
-# $Id$
 #
 
 import gdb
+
 import chains
 import objects
+import percpu
 
 def task_chain(chain):
     tasks = []
@@ -17,7 +45,7 @@ def task_chain(chain):
         node.next()
     return tasks
 
-class state:
+class state():
 
     ALL_SET = 0x000fffff
     READY = 0x00000000
@@ -100,7 +128,7 @@ class state:
                 s = self.masks[m] + ','
         return s[:-1]
 
-class wait_info:
+class wait_info():
 
     def __init__(self, info):
         self.info = info
@@ -123,11 +151,68 @@ class wait_info:
     def queue(self):
         return task_chain(chains.control(self.info['queue']))
 
-class control:
+class registers():
+
+    def __init__(self, regs):
+        self.regs = regs
+
+    def names(self):
+        return [field.name for field in self.regs.type.fields()]
+
+    def get(self, reg):
+        t = str(self.regs[reg].type)
+        if t in ['double']:
+            return float(self.regs[reg])
+        return int(self.regs[reg])
+
+
+    def format(self, reg):
+        t = self.regs[reg].type
+        if t in ['uint32_t', 'unsigned', 'unsigned long']:
+            return '%08x (%d)' % (val)
+
+class control():
+    '''
+    Thread_Control has the following fields:
+      Object              Objects_Control
+      RBNode              RBTree_Node
+      current_state       States_Control
+      current_priority    Priority_Control
+      real_priority       Priority_Control
+      resource_count      uint32_t
+      Wait                Thread_Wait_information
+      Timer               Watchdog_Control
+      receive_packet      MP_packet_Prefix*                   X
+      lock_mutex          Chain_Control                       X
+      Resource_node       Resource_Node                       X
+      is_global           bool                                X
+      is_preemptible      bool
+      Scheduler           Thread_Scheduler_control
+      rtems_ada_self      void*                               X
+      cpu_time_budget     uint32_t
+      budget_algorithm    Thread_CPU_budget_algorithms
+      budget_callout      Thread_CPU_budget_algorithm_callout
+      cpu_time_used       Thread_CPU_usage_t
+      Start               Thread_Start_information
+      Post_switch_actions Thread_Action_control
+      Registers           Context_Control
+      fp_context          Context_Control_fp*                 X
+      libc_reent          struct _reent*
+      API_Extensions      void*[THREAD_API_LAST + 1]
+      task_variables      rtems_task_variable_t*              X
+      Key_Chain           Chain_Control
+      Life                Thread_Life_control
+      extensions          void*[RTEMS_ZERO_LENGTH_ARRAY]
+
+    where 'X' means the field is condition and may no exist.
+    '''
 
     def __init__(self, ctrl):
-        self.ctrl = ctrl
+        self.reference = ctrl
+        self.ctrl = ctrl.dereference()
         self.object = objects.control(ctrl['Object'])
+        self._executing = percpu.thread_active(self.reference)
+        self._heir = percpu.thread_heir(self.reference)
 
     def id(self):
         return self.object.id()
@@ -138,6 +223,12 @@ class control:
             val = '*'
         return val
 
+    def executing(self):
+        return self._executing
+
+    def heir(self):
+        return self._heir
+
     def current_state(self):
         return state(self.ctrl['current_state']).to_string()
 
@@ -146,6 +237,15 @@ class control:
 
     def real_priority(self):
         return self.ctrl['real_priority']
+
+    def resource_count(self):
+        return self.ctrl['resource_count']
+
+    def cpu_time_budget(self):
+        return self.ctrl['cpu_time_budget']
+
+    def cpu_time_used(self):
+        return self.ctrl['cpu_time_used']
 
     def preemptible(self):
         return self.ctrl['is_preemptible']
@@ -156,11 +256,14 @@ class control:
     def wait_info(self):
         return wait_info(self.ctrl['Wait'])
 
+    def registers(self):
+        return registers(self.ctrl['Registers'])
+
     def brief(self):
         return "'%s' (c:%d, r:%d)" % \
             (self.name(), self.current_priority(), self.real_priority())
 
-class queue:
+class queue():
     """Manage the Thread_queue_Control."""
 
     priority_headers = 4
@@ -186,6 +289,3 @@ class queue:
                 t.extend(task_chain(chains.control( \
                     self.que['Queues']['Priority'][ph])))
         return t
-
-
-

@@ -1,4 +1,5 @@
 # RTEMS Tools Project (http://www.rtems.org/)
+# Copyright 2014 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -27,56 +28,30 @@
 #
 
 #
-# RTEMS pretty printers
+# RTEMS Per CPU Table
 #
 
-import re
-import helper
-import objects
+import gdb
 
-import supercore_printer
-import classic_printer
+import configuration
 
-pretty_printer = {
+def _table(cpu):
+    max_cpus = configuration.maximum_processors()
+    if cpu >= max_cpus:
+        raise IndexError('cpu index out of range (%d)' % (max_cpus))
+    return gdb.parse_and_eval('_Per_CPU_Information[%d].per_cpu' % (cpu))
 
-    '^rtems_id$'            : supercore_printer.id,
-    '^Objects_Id$'          : supercore_printer.id,
-    '^Objects_Name$'        : supercore_printer.name,
-    '^Objects_Control$'     : supercore_printer.control,
-    '^States_Control$'      : supercore_printer.state,
-    '^rtems_attribute$'     : classic_printer.attribute,
-    '^Semaphore_Control$'   : classic_printer.semaphore
-}
+def get(cpu):
+    return _table(cpu)
 
+def thread_active(thread):
+    for cpu in range(0, configuration.maximum_processors()):
+        if thread == _table(cpu)['executing']:
+            return cpu
+    return -1
 
-def build_pretty_printer ():
-    pp_dict = {}
-
-    for name in pretty_printer:
-        pp_dict[re.compile(name)] = pretty_printer[name]
-
-    return pp_dict
-
-def lookup_function (val):
-    "Look-up and return a pretty-printer that can print val."
-
-    global nesting
-
-    typename = str(helper.type_from_value(val))
-
-    for function in pp_dict:
-        if function.search (typename):
-            nesting += 1
-            result = pp_dict[function] (val)
-            nesting -= 1
-            if nesting == 0:
-                objects.information.invalidate()
-            return result
-
-    # Cannot find a pretty printer.  Return None.
-    return None
-
-# ToDo: properly document.
-nesting = 0
-
-pp_dict = build_pretty_printer()
+def thread_heir(thread):
+    for cpu in range(0, configuration.maximum_processors()):
+        if thread == _table(cpu)['heir']:
+            return cpu
+    return -1
