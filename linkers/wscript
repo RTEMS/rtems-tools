@@ -100,6 +100,7 @@ def build(bld):
                   'rld-cc.cpp',
                   'rld-compression.cpp',
                   'rld-outputter.cpp',
+                  'rld-path.cpp',
                   'rld-process.cpp',
                   'rld-resolver.cpp',
                   'rld-symbols.cpp',

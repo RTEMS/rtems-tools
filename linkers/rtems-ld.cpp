@@ -68,8 +68,7 @@ static struct option rld_opts[] = {
   { "base",        required_argument,      NULL,           'b' },
   { "cc",          required_argument,      NULL,           'C' },
   { "exec-prefix", required_argument,      NULL,           'E' },
-  { "march",       required_argument,      NULL,           'a' },
-  { "mcpu",        required_argument,      NULL,           'c' },
+  { "cflags",      required_argument,      NULL,           'c' },
   { "rap-strip",   no_argument,            NULL,           'S' },
   { "rpath",       required_argument,      NULL,           'R' },
   { "runtime-lib", required_argument,      NULL,           'P' },
@@ -112,8 +111,7 @@ usage (int exit_code)
             << "             image (also --base)" << std::endl
             << " -C file   : execute file as the target C compiler (also --cc)" << std::endl
             << " -E prefix : the RTEMS tool prefix (also --exec-prefix)" << std::endl
-            << " -a march  : machine architecture (also --march)" << std::endl
-            << " -c cpu    : machine architecture's CPU (also --mcpu)" << std::endl
+            << " -c cflags : C compiler flags (also --cflags)" << std::endl
             << " -S        : do not include file details (also --rap-strip)" << std::endl
             << " -R        : include file paths (also --rpath)" << std::endl
             << " -P        : place objects from archives (also --runtime-lib)" << std::endl
@@ -173,10 +171,10 @@ main (int argc, char* argv[])
     rld::files::cache    cache;
     rld::files::cache    base;
     rld::files::cache    cachera;
-    rld::files::paths    libpaths;
-    rld::files::paths    libs;
-    rld::files::paths    objects;
-    rld::files::paths    libraries;
+    rld::path::paths     libpaths;
+    rld::path::paths     libs;
+    rld::path::paths     objects;
+    rld::path::paths     libraries;
     rld::symbols::bucket defines;
     rld::symbols::bucket undefines;
     rld::symbols::table  base_symbols;
@@ -199,7 +197,7 @@ main (int argc, char* argv[])
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvwVMnsSb:E:o:O:L:l:a:c:e:d:u:C:W:R:P:", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvwVMnsSb:E:o:O:L:l:c:e:d:u:C:W:R:P:", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -274,12 +272,8 @@ main (int argc, char* argv[])
           rld::cc::exec_prefix = optarg;
           break;
 
-        case 'a':
-          rld::cc::march = optarg;
-          break;
-
         case 'c':
-          rld::cc::mcpu = optarg;
+          rld::cc::cflags = optarg;
           break;
 
         case 'e':
@@ -475,7 +469,7 @@ main (int argc, char* argv[])
                                        one_file);
           if (!outra.empty ())
           {
-            rld::files::paths ra_libs;
+            rld::path::paths ra_libs;
             bool ra_exist = false;
 
             /**

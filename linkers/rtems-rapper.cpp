@@ -638,7 +638,7 @@ namespace rap
   file::expand ()
   {
     std::string name = image.name ().full ();
-    std::string extension = rld::files::extension (image.name ().full ());
+    std::string extension = rld::path::extension (image.name ().full ());
 
     name = name.substr (0, name.size () - extension.size ()) + ".xrap";
 
@@ -703,17 +703,17 @@ namespace rap
 }
 
 void
-rap_show (rld::files::paths& raps,
-          bool               warnings,
-          bool               show_header,
-          bool               show_machine,
-          bool               show_layout,
-          bool               show_strings,
-          bool               show_symbols,
-          bool               show_relocs,
-          bool               show_details)
+rap_show (rld::path::paths& raps,
+          bool              warnings,
+          bool              show_header,
+          bool              show_machine,
+          bool              show_layout,
+          bool              show_strings,
+          bool              show_symbols,
+          bool              show_relocs,
+          bool              show_details)
 {
-  for (rld::files::paths::iterator pi = raps.begin();
+  for (rld::path::paths::iterator pi = raps.begin();
        pi != raps.end();
        ++pi)
   {
@@ -960,10 +960,10 @@ rap_show (rld::files::paths& raps,
 }
 
 void
-rap_overlay (rld::files::paths& raps, bool warnings)
+rap_overlay (rld::path::paths& raps, bool warnings)
 {
   std::cout << "Overlay .... " << std::endl;
-  for (rld::files::paths::iterator pi = raps.begin();
+  for (rld::path::paths::iterator pi = raps.begin();
        pi != raps.end();
        ++pi)
   {
@@ -1050,10 +1050,10 @@ rap_overlay (rld::files::paths& raps, bool warnings)
 }
 
 void
-rap_expander (rld::files::paths& raps, bool warnings)
+rap_expander (rld::path::paths& raps, bool warnings)
 {
   std::cout << "Expanding .... " << std::endl;
-  for (rld::files::paths::iterator pi = raps.begin();
+  for (rld::path::paths::iterator pi = raps.begin();
        pi != raps.end();
        ++pi)
   {
@@ -1149,18 +1149,18 @@ main (int argc, char* argv[])
 
   try
   {
-    rld::files::paths raps;
-    bool              warnings = true;
-    bool              show = false;
-    bool              show_header = false;
-    bool              show_machine = false;
-    bool              show_layout = false;
-    bool              show_strings = false;
-    bool              show_symbols = false;
-    bool              show_relocs = false;
-    bool              show_details = false;
-    bool              overlay = false;
-    bool              expand = false;
+    rld::path::paths raps;
+    bool             warnings = true;
+    bool             show = false;
+    bool             show_header = false;
+    bool             show_machine = false;
+    bool             show_layout = false;
+    bool             show_strings = false;
+    bool             show_symbols = false;
+    bool             show_relocs = false;
+    bool             show_details = false;
+    bool             overlay = false;
+    bool             expand = false;
 
     while (true)
     {

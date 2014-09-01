@@ -160,7 +160,7 @@ namespace rld
     void
     tempfile::open (bool writable)
     {
-      if ((fd < 0) && rld::files::check_file (_name))
+      if ((fd < 0) && rld::path::check_file (_name))
       {
         level = 0;
         fd = ::open (_name.c_str (), writable ? O_RDWR : O_RDONLY);

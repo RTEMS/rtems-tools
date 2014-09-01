@@ -188,7 +188,7 @@ namespace rld
         std::cout << "outputter:archive: " << name
                   << ", dependents: " << dependents.size () << std::endl;
 
-      std::string ext = files::extension (name);
+      std::string ext = path::extension (name);
       std::string mdname =
         name.substr (0, name.length () - ext.length ()) + "-metadata.o";
 

@@ -57,7 +57,7 @@ namespace rld
                      symbols::symtab&    unresolved,
                      const std::string&  fullname)
     {
-      const std::string name = files::basename (fullname);
+      const std::string name = path::basename (fullname);
 
       static int nesting = 0;
 

@@ -82,8 +82,7 @@ usage (int exit_code)
             << " -S        : search standard libraries (also --stdlibs)" << std::endl
             << " -C file   : execute file as the target C compiler (also --cc)" << std::endl
             << " -E prefix : the RTEMS tool prefix (also --exec-prefix)" << std::endl
-            << " -a march  : machine architecture (also --march)" << std::endl
-            << " -c cpu    : machine architecture's CPU (also --mcpu)" << std::endl;
+            << " -c cflags : C compiler flags (also --cflags)" << std::endl;
   ::exit (exit_code);
 }
 
@@ -131,10 +130,10 @@ main (int argc, char* argv[])
   try
   {
     rld::files::cache   cache;
-    rld::files::paths   libpaths;
-    rld::files::paths   libs;
-    rld::files::paths   objects;
-    rld::files::paths   libraries;
+    rld::path::paths    libpaths;
+    rld::path::paths    libs;
+    rld::path::paths    objects;
+    rld::path::paths    libraries;
     rld::symbols::table symbols;
     std::string         base_name;
     std::string         cc_name;
@@ -148,7 +147,7 @@ main (int argc, char* argv[])
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvwVSE:L:l:a:c:C:", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvwVSE:L:l:c:C:", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -199,12 +198,8 @@ main (int argc, char* argv[])
           rld::cc::exec_prefix = optarg;
           break;
 
-        case 'a':
-          rld::cc::march = optarg;
-          break;
-
         case 'c':
-          rld::cc::mcpu = optarg;
+          rld::cc::cflags = optarg;
           break;
 
         case '?':

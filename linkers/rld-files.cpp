@@ -73,97 +73,6 @@ namespace rld
       memcpy (string, oss.str ().c_str (), l);
     }
 
-    std::string
-    basename (const std::string& name)
-    {
-      size_t b = name.find_last_of (RLD_PATH_SEPARATOR);
-      if (b != std::string::npos)
-        return name.substr (b + 1);
-      return name;
-    }
-
-    std::string
-    dirname (const std::string& name)
-    {
-      size_t b = name.find_last_of (RLD_PATH_SEPARATOR);
-      if (b != std::string::npos)
-        return name.substr (0, b - 1);
-      return name;
-    }
-
-    std::string
-    extension (const std::string& name)
-    {
-      size_t b = name.find_last_of ('.');
-      if (b != std::string::npos)
-        return name.substr (b);
-      return name;
-    }
-
-    void
-    path_split (const std::string& path, rld::files::paths& paths)
-    {
-      strings ps;
-      rld::split (path, ps, RLD_PATHSTR_SEPARATOR);
-      if (ps.size ())
-      {
-        for (strings::iterator psi = ps.begin ();
-             psi != ps.end ();
-             ++psi)
-        {
-          if (check_directory (*psi))
-            paths.push_back (*psi);
-        }
-      }
-    }
-
-    void
-    path_join (const std::string& path_, const std::string& file_, std::string& joined)
-    {
-      if ((path_[path_.size () - 1] != RLD_PATH_SEPARATOR) &&
-          (file_[0] != RLD_PATH_SEPARATOR))
-        joined = path_ + RLD_PATH_SEPARATOR + file_;
-      else if ((path_[path_.size () - 1] == RLD_PATH_SEPARATOR) &&
-               (file_[0] == RLD_PATH_SEPARATOR))
-        joined = path_ + &file_[1];
-      else
-        joined = path_ + file_;
-    }
-
-    bool
-    check_file (const std::string& path)
-    {
-      struct stat sb;
-      if (::stat (path.c_str (), &sb) == 0)
-        if (S_ISREG (sb.st_mode))
-          return true;
-      return false;
-    }
-
-    bool
-    check_directory (const std::string& path)
-    {
-      struct stat sb;
-      if (::stat (path.c_str (), &sb) == 0)
-        if (S_ISDIR (sb.st_mode))
-          return true;
-      return false;
-    }
-
-    void
-    find_file (std::string& path, const std::string& name, paths& search_paths)
-    {
-      for (rld::files::paths::iterator pi = search_paths.begin ();
-           pi != search_paths.end ();
-           ++pi)
-      {
-        path_join (*pi, name, path);
-        if (check_file (path))
-          return;
-      }
-      path.clear ();
-    }
-
     file::file (const std::string& aname,
                 const std::string& oname,
                 off_t              offset,
@@ -244,7 +153,7 @@ namespace rld
     bool
     file::is_valid () const
     {
-      return !aname_.empty () || ~oname_.empty ();
+      return !aname_.empty () || !oname_.empty ();
     }
 
     bool
@@ -256,7 +165,7 @@ namespace rld
       bool result = false;
       const std::string p = path ();
       if (!p.empty ())
-        result = check_file (p);
+        result = path::check_file (p);
       return result;
     }
 
@@ -288,7 +197,7 @@ namespace rld
     const std::string
     file::basename () const
     {
-      return rld::files::basename (full ());
+      return rld::path::basename (full ());
     }
 
     const std::string&
@@ -843,7 +752,7 @@ namespace rld
              ++oi)
         {
           object& obj = *(*oi);
-          const std::string&  oname = basename (obj.name ().oname ());
+          const std::string&  oname = path::basename (obj.name ().oname ());
           if (oname.length () >= rld_archive_fname_size)
             extended_file_names += oname + '\n';
         }
@@ -868,7 +777,7 @@ namespace rld
 
           try
           {
-            std::string oname = basename (obj.name ().oname ());
+            std::string oname = path::basename (obj.name ().oname ());
 
             /*
              * Convert the file name to an offset into the extended file name
@@ -1391,18 +1300,18 @@ namespace rld
     }
 
     void
-    cache::add (paths& paths__)
+    cache::add (path::paths& paths__)
     {
-      for (paths::iterator pi = paths__.begin();
+      for (path::paths::iterator pi = paths__.begin();
            pi != paths__.end();
            ++pi)
         add (*pi);
     }
 
     void
-    cache::add_libraries (paths& paths__)
+    cache::add_libraries (path::paths& paths__)
     {
-      for (paths::iterator pi = paths__.begin();
+      for (path::paths::iterator pi = paths__.begin();
            pi != paths__.end();
            ++pi)
         input (*pi);
@@ -1459,7 +1368,7 @@ namespace rld
     void
     cache::collect_object_files ()
     {
-      for (paths::iterator ni = paths_.begin (); ni != paths_.end (); ++ni)
+      for (path::paths::iterator ni = paths_.begin (); ni != paths_.end (); ++ni)
         collect_object_files (*ni);
     }
 
@@ -1565,7 +1474,7 @@ namespace rld
     cache::get_objects (object_list& list) const
     {
       list.clear ();
-      for (paths::const_iterator pi = paths_.begin ();
+      for (path::paths::const_iterator pi = paths_.begin ();
            pi != paths_.end ();
            ++pi)
       {
@@ -1576,7 +1485,7 @@ namespace rld
       }
     }
 
-    const paths&
+    const path::paths&
     cache::get_paths () const
     {
       return paths_;
@@ -1639,24 +1548,26 @@ namespace rld
     }
 
     void
-    find_libraries (paths& libraries, paths& libpaths, paths& libs)
+    find_libraries (path::paths& libraries,
+                    path::paths& libpaths,
+                    path::paths& libs)
     {
       if (rld::verbose () >= RLD_VERBOSE_INFO)
         std::cout << "Finding libraries:." << std::endl;
       libraries.clear ();
-      for (paths::size_type l = 0; l < libs.size (); ++l)
+      for (path::paths::size_type l = 0; l < libs.size (); ++l)
       {
         std::string lib = "lib" + libs[l] + ".a";
         if (rld::verbose () >= RLD_VERBOSE_DETAILS)
           std::cout << " searching: " << lib << std::endl;
         bool found = false;
-        for (paths::size_type p = 0; p < libpaths.size (); ++p)
+        for (path::paths::size_type p = 0; p < libpaths.size (); ++p)
         {
           std::string plib;
-          path_join (libpaths[p], lib, plib);
+          path::path_join (libpaths[p], lib, plib);
           if (rld::verbose () >= RLD_VERBOSE_DETAILS)
               std::cout << " checking: " << plib << std::endl;
-          if (check_file (plib))
+          if (path::check_file (plib))
           {
             if (rld::verbose () >= RLD_VERBOSE_INFO)
               std::cout << " found: " << plib << std::endl;

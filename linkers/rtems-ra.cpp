@@ -99,8 +99,7 @@ usage (int exit_code)
             << " -n        : do not search standard libraries (also --no-stdlibs)" << std::endl
             << " -C file   : execute file as the target C compiler (also --cc)" << std::endl
             << " -E prefix : the RTEMS tool prefix (also --exec-prefix)" << std::endl
-            << " -a march  : machine architecture (also --march)" << std::endl
-            << " -c cpu    : machine architecture's CPU (also --mcpu)" << std::endl
+            << " -c cflags : C compiler flags (also --cflags)" << std::endl
             << " -S        : do not include file details (also --rap-strip)" << std::endl
             << " -R        : include file paths (also --rpath)" << std::endl
             << " -A        : Add rap files (also --Add-rap)" << std::endl
@@ -155,13 +154,13 @@ main (int argc, char* argv[])
 
   try
   {
-    rld::files::paths       libpaths;
-    rld::files::paths       libs;
-    rld::files::paths       libraries;
-    rld::files::paths       outra;
-    rld::files::paths       raps_add;
-    rld::files::paths       raps_replace;
-    rld::files::paths       raps_delete;
+    rld::path::paths        libpaths;
+    rld::path::paths        libs;
+    rld::path::paths        libraries;
+    rld::path::paths        outra;
+    rld::path::paths        raps_add;
+    rld::path::paths        raps_replace;
+    rld::path::paths        raps_delete;
     std::string             cc_name;
     std::string             entry;
     std::string             exit;
@@ -252,12 +251,8 @@ main (int argc, char* argv[])
           rld::cc::exec_prefix = optarg;
           break;
 
-        case 'a':
-          rld::cc::march = optarg;
-          break;
-
         case 'c':
-          rld::cc::mcpu = optarg;
+          rld::cc::cflags = optarg;
           break;
 
         case 'S':
@@ -325,11 +320,11 @@ main (int argc, char* argv[])
      /*
       * Convert ar file to ra file
       */
-      for (rld::files::paths::iterator p = libraries.begin (); p != libraries.end (); ++p)
+      for (rld::path::paths::iterator p = libraries.begin (); p != libraries.end (); ++p)
       {
-        rld::files::paths    library;
-        rld::symbols::table  symbols;
-        rld::files::cache*   cache = new rld::files::cache ();
+        rld::path::paths    library;
+        rld::symbols::table symbols;
+        rld::files::cache*  cache = new rld::files::cache ();
 
         library.clear ();
         library.push_back (*p);
@@ -350,7 +345,7 @@ main (int argc, char* argv[])
         {
 
           rld::files::objects& objs = cache->get_objects ();
-          rld::files::paths    raobjects;
+          rld::path::paths     raobjects;
 
           int pos = -1;
           std::string rap_name;
@@ -384,16 +379,16 @@ main (int argc, char* argv[])
           }
 
           dependents.clear ();
-          for (rld::files::paths::iterator ni = raobjects.begin (); ni != raobjects.end (); ++ni)
+          for (rld::path::paths::iterator ni = raobjects.begin (); ni != raobjects.end (); ++ni)
           {
             rld::files::object* obj = new rld::files::object (*ni);
             dependents.push_back (obj);
           }
 
-          bool ra_rap = true;
-          bool ra_exist = false;
+          bool              ra_rap = true;
+          bool              ra_exist = false;
           rld::files::cache cachera;
-          std::string raname = *p;
+          std::string       raname = *p;
 
           pos = -1;
           pos = raname.rfind ('/', raname.length ());
@@ -440,10 +435,10 @@ main (int argc, char* argv[])
      /*
       * Add, replace, delete files from the ra file.
       */
-      for (rld::files::paths::iterator pl = libs.begin (); pl != libs.end (); ++pl)
+      for (rld::path::paths::iterator pl = libs.begin (); pl != libs.end (); ++pl)
       {
-        rld::files::paths    library;
-        rld::files::cache*   cache = new rld::files::cache ();
+        rld::path::paths   library;
+        rld::files::cache* cache = new rld::files::cache ();
 
         library.clear ();
         library.push_back (*pl);
@@ -459,10 +454,10 @@ main (int argc, char* argv[])
         cache->add_libraries (library);
 
         rld::files::objects& objs = cache->get_objects ();
-        rld::files::paths    raobjects;
+        rld::path::paths     raobjects;
 
         std::string rap_name;
-        bool rap_delete = false;
+        bool        rap_delete = false;
 
         dependents.clear ();
         /*
@@ -477,7 +472,7 @@ main (int argc, char* argv[])
           rap_name = obj->name ().oname ();
           rap_delete = false;
 
-          for (rld::files::paths::iterator pa = raps_delete.begin ();
+          for (rld::path::paths::iterator pa = raps_delete.begin ();
                pa != raps_delete.end ();
                ++pa)
           {
@@ -495,9 +490,10 @@ main (int argc, char* argv[])
         /*
          * Add rap files into ra file, add supports replace.
          */
-        bool rap_exist = false;
-        rld::files::paths rap_objects;
-        for (rld::files::paths::iterator pa = raps_add.begin ();
+        rld::path::paths rap_objects;
+        bool             rap_exist = false;
+
+        for (rld::path::paths::iterator pa = raps_add.begin ();
              pa != raps_add.end ();
              ++pa)
         {
@@ -520,7 +516,7 @@ main (int argc, char* argv[])
             rap_objects.push_back (*pa);
         }
 
-        for (rld::files::paths::iterator pa = rap_objects.begin ();
+        for (rld::path::paths::iterator pa = rap_objects.begin ();
              pa != rap_objects.end ();
              ++pa)
         {
@@ -536,13 +532,13 @@ main (int argc, char* argv[])
         /*
          * Replace rap files in ra file
          */
-        bool rap_replace = false;
         rld::files::cache cachera;
+        bool              rap_replace = false;
 
         rap_objects.clear ();
         cachera.open ();
 
-        for (rld::files::paths::iterator pa = raps_replace.begin ();
+        for (rld::path::paths::iterator pa = raps_replace.begin ();
              pa != raps_replace.end ();
              ++pa)
         {
@@ -566,7 +562,7 @@ main (int argc, char* argv[])
             rap_objects.push_back (*pa);
         }
 
-        for (rld::files::paths::iterator pa = rap_objects.begin ();
+        for (rld::path::paths::iterator pa = rap_objects.begin ();
              pa != rap_objects.end ();
              ++pa)
         {

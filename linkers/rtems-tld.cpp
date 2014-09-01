@@ -755,8 +755,7 @@ usage (int exit_code)
             << " -w        : generate warnings (also --warn)" << std::endl
             << " -k        : keep temporary files (also --keep)" << std::endl
             << " -E prefix : the RTEMS tool prefix (also --exec-prefix)" << std::endl
-            << " -a march  : machine architecture (also --march)" << std::endl
-            << " -c cpu    : machine architecture's CPU (also --mcpu)" << std::endl
+            << " -c cflags : C compiler flags (also --cflags)" << std::endl
             << " -C ini    : user configuration INI file (also --config)" << std::endl;
   ::exit (exit_code);
 }
@@ -815,7 +814,7 @@ main (int argc, char* argv[])
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvwkVE:a:c:C:", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvwkVE:c:C:", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -846,12 +845,8 @@ main (int argc, char* argv[])
           rld::cc::exec_prefix = optarg;
           break;
 
-        case 'a':
-          rld::cc::march = optarg;
-          break;
-
         case 'c':
-          rld::cc::mcpu = optarg;
+          rld::cc::cflags = optarg;
           break;
 
         case 'C':

@@ -38,16 +38,12 @@
 #include <vector>
 
 #include <rld.h>
+#include <rld-path.h>
 
 namespace rld
 {
   namespace files
   {
-    /**
-     * Container of file paths.
-     */
-    typedef std::vector < std::string > paths;
-
     /**
      * Container of files.
      */
@@ -67,81 +63,6 @@ namespace rld
      * Container list of object files.
      */
     typedef std::list < object* > object_list;
-
-    /**
-     * Return the basename of the file name.
-     *
-     * @param name The full file name.
-     * @return std::string The basename of the file.
-     */
-    std::string basename (const std::string& name);
-
-    /**
-     * Return the dirname of the file name.
-     *
-     * @param name The full file name.
-     * @return std::string The dirname of the file.
-     */
-    std::string dirname (const std::string& name);
-
-    /**
-     * Return the extension of the file name.
-     *
-     * @param name The full file name.
-     * @return std::string The extension of the file.
-     */
-    std::string extension (const std::string& name);
-
-    /**
-     * Split a path from a string with a delimiter to the path container. Add
-     * only the paths that exist and ignore those that do not.
-     *
-     * @param path The paths as a single string delimited by the path
-     *             separator.
-     * @param paths The split path paths.
-     */
-    void path_split (const std::string& path,
-                     paths&             paths);
-
-    /**
-     * Make a path by joining the parts with required separator.
-     *
-     * @param path_ The path component to be joined.
-     * @param file_ The file name to add to the path.
-     * @param joined The joined path and file name with a path separator.
-     */
-    void path_join (const std::string& path_,
-                    const std::string& file_,
-                    std::string&       joined);
-
-    /**
-     * Check the path is a file using a stat call.
-     *
-     * @param path The path to check.
-     * @retval true The path is valid.
-     * @retval false The path is not valid.
-     */
-    bool check_file (const std::string& path);
-
-    /**
-     * Check if the path is a directory.
-     *
-     * @param path The path to check.
-     * @retval false The path is not a directory.
-     * @retval true The path is a directory.
-     */
-    bool check_directory (const std::string& path);
-
-    /**
-     * Find the file given a container of paths and file names.
-     *
-     * @param path The path of the file if found else empty.
-     * @param name The name of the file to search for.
-     * @param search_paths The container of paths to search.
-     */
-    void find_file (std::string&       path,
-                    const std::string& name,
-                    paths&             search_paths);
 
     /**
      * A file is a single object file that is either in an @ref archive or
@@ -924,12 +845,12 @@ namespace rld
       /**
        * Add a container of path to the cache.
        */
-      void add (paths& paths__);
+      void add (path::paths& paths__);
 
       /**
        * Add a container of path to the cache.
        */
-      void add_libraries (paths& paths__);
+      void add_libraries (path::paths& paths__);
 
       /**
        * Being a session on an archive.
@@ -993,7 +914,7 @@ namespace rld
       /**
        * Get the paths.
        */
-      const paths& get_paths () const;
+      const path::paths& get_paths () const;
 
       /**
        * Get the archive files.
@@ -1038,10 +959,10 @@ namespace rld
       virtual void input (const std::string& path);
 
     private:
-      paths    paths_;    //< The names of the files to process.
-      archives archives_; //< The archive files.
-      objects  objects_;  //< The object files.
-      bool     opened;    //< The cache is open.
+      path::paths paths_;    //< The names of the files to process.
+      archives    archives_; //< The archive files.
+      objects     objects_;  //< The object files.
+      bool        opened;    //< The cache is open.
     };
 
     /**
@@ -1057,7 +978,9 @@ namespace rld
      * Find the libraries given the list of libraries as bare name which
      * have 'lib' and '.a' added.
      */
-    void find_libraries (paths& libraries, paths& libpaths, paths& libs);
+    void find_libraries (path::paths& libraries,
+                         path::paths& libpaths,
+                         path::paths& libs);
 
   }
 }
