@@ -1,10 +1,10 @@
 /*
- * Copyright (c) 2011, Chris Johns <chrisj@rtems.org> 
+ * Copyright (c) 2011-2014, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
  * copyright notice and this permission notice appear in all copies.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
  * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
  * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
@@ -18,16 +18,17 @@
 #include <fstream>
 #include <string>
 
+#include <rld.h>
 #include <pkgconfig.h>
 
 namespace pkgconfig
 {
-  void tolower (std::string& str)
+  package::package (const std::string& name)
   {
-    std::transform (str.begin (), str.end (), str.begin (), ::tolower);
+    load (name);
   }
 
-  package::package (void)
+  package::package ()
   {
   }
 
@@ -41,7 +42,7 @@ namespace pkgconfig
       char buffer[1024];
 
       in.getline (buffer, sizeof (buffer));
-      
+
       std::string line (buffer);
       size_t      hash;
 
@@ -83,11 +84,8 @@ namespace pkgconfig
 
         if (d != std::string::npos)
         {
-          std::string lhs = line.substr (0, d);
+          std::string lhs = rld::tolower (line.substr (0, d));
           std::string rhs = line.substr (d + 1);
-
-          tolower (lhs);
-
           if (def)
             defines[lhs] = rhs;
           else
@@ -104,11 +102,9 @@ namespace pkgconfig
   {
     result.erase ();
 
-    std::string ll = label;
-    tolower (ll);
-    
+    std::string     ll = rld::tolower (label);
     table::iterator ti = fields.find (ll);
-    
+
     if (ti == fields.end ())
       return false;
 
@@ -122,12 +118,13 @@ namespace pkgconfig
      */
     bool expanded = true;
     while (expanded)
-    {        
+    {
       /*
        * Need to perform a regular expression search for '\$\{[^\}]+\}'. This
        * means look for every '${' then accept any character that is not a '}'
        * and finish with a '}'.
        */
+      expanded = false;
       size_t p = 0;
       while (p < s.length ())
       {
@@ -140,8 +137,18 @@ namespace pkgconfig
           size_t me = s.find ('}', ms);
           if (me != std::string::npos)
           {
-            std::string ml = s.substr (ms, me);
-            
+            std::string     ml = rld::tolower(s.substr (ms + 2, me - ms - 2));
+            table::iterator di = defines.find (ml);
+            if (di != defines.end ())
+            {
+              s = rld::find_replace (s, s.substr (ms, me - ms + 1),  di->second);
+              expanded = true;
+            }
+            p = me + 1;
+          }
+          else
+          {
+            p = ms + 2;
           }
         }
         else
@@ -150,7 +157,9 @@ namespace pkgconfig
         }
       }
     }
-    
+
+    result = s;
+
     return true;
   }
 }

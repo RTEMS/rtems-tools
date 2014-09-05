@@ -35,6 +35,14 @@ namespace pkgconfig
      */
     typedef std::map < std::string, std::string > table;
 
+    /**
+     * Constructor and load the file.
+     */
+    package (const std::string& name);
+
+    /**
+     * Default constructor.
+     */
     package ();
 
     /**
@@ -57,7 +65,6 @@ namespace pkgconfig
   private:
     table defines;  ///< The defines.
     table fields;   ///< The fields.
-
   };
 
 }
