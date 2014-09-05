@@ -18,14 +18,7 @@
 #include "config.h"
 #endif
 
-#include <algorithm>
-
-#include <errno.h>
-#include <fcntl.h>
-#include <stdio.h>
-#include <string.h>
 #include <sys/stat.h>
-#include <unistd.h>
 
 #include <rld.h>
 
@@ -78,16 +71,27 @@ namespace rld
     }
 
     void
-    path_join (const std::string& path_, const std::string& file_, std::string& joined)
+    path_join (const std::string& base, const std::string& part, std::string& joined)
     {
-      if ((path_[path_.size () - 1] != RLD_PATH_SEPARATOR) &&
-          (file_[0] != RLD_PATH_SEPARATOR))
-        joined = path_ + RLD_PATH_SEPARATOR + file_;
-      else if ((path_[path_.size () - 1] == RLD_PATH_SEPARATOR) &&
-               (file_[0] == RLD_PATH_SEPARATOR))
-        joined = path_ + &file_[1];
+      if ((base[base.size () - 1] != RLD_PATH_SEPARATOR) &&
+          (part[0] != RLD_PATH_SEPARATOR))
+        joined = base + RLD_PATH_SEPARATOR + part;
+      else if ((base[base.size () - 1] == RLD_PATH_SEPARATOR) &&
+               (part[0] == RLD_PATH_SEPARATOR))
+        joined = base + &part[1];
       else
-        joined = path_ + file_;
+        joined = base + part;
+    }
+
+    void path_join (const std::string& base, const paths& parts, std::string& joined)
+    {
+      joined = base;
+      for (paths::const_iterator pi = parts.begin ();
+           pi != parts.end ();
+           ++pi)
+      {
+        path_join (joined, *pi, joined);
+      }
     }
 
     bool

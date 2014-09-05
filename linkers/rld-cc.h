@@ -34,6 +34,17 @@ namespace rld
 {
   namespace cc
   {
+    /*
+     * Defintion of flags to be filtered.
+     */
+    enum flag_type
+    {
+      ft_cppflags = 1 << 0,
+      ft_cflags   = 1 << 1,
+      ft_cxxflags = 1 << 2,
+      ft_ldflags  = 1 << 3
+    };
+
     extern std::string cc;             //< The CC executable as absolute path.
     extern std::string cc_name;        //< The CC name, ie gcc, clang.
     extern std::string exec_prefix;    //< The CC executable prefix.
@@ -42,6 +53,11 @@ namespace rld
     extern std::string cflags;         //< The CC flags.
     extern std::string cxxflags;       //< The CXX flags.
     extern std::string ldflags;        //< The LD flags.
+
+    extern std::string warning_cflags; //< The warning flags in cflags.
+    extern std::string include_cflags; //< The include flags in cflags.
+    extern std::string machine_cflags; //< The machine flags in cflags.
+    extern std::string spec_cflags;    //< The spec flags in cflags.
 
     extern std::string install_path;   //< The CC reported install path.
     extern std::string programs_path;  //< The CC reported programs path.
@@ -71,6 +87,55 @@ namespace rld
      * If the ldflags has been set append to the arguments.
      */
     void add_ldflags (rld::process::arg_container& args);
+
+    /**
+     * Strip the flags of -O and -g options.
+     *
+     * @param flags The flags a space delimited list to strip.
+     * @return const std::string The stripped flags.
+     */
+    const std::string strip_cflags (const std::string& flags);
+
+    /**
+     * Filter the flags. Provide the type of flags being passed, the flags as a
+     * space separated list, the architure, and a path. Provide strings
+     * containers for the different flag groups so they can be sorted and
+     * returned.
+     *
+     * @param flags The flags a space delimited list to strip.
+     * @param arch The architecure per the OS specific name.
+     * @param path A path to adjust based on the architecture.
+     * @param type The type of flags being passed.
+     * @param warnings Return warning flags in this string.
+     * @param includes Return include flags in this string.
+     * @param machines Return machine flags in this string.
+     * @param specs Return spec flags in this string.
+     * @return const std::string The filtered flags.
+     */
+    const std::string filter_flags (const std::string& flags,
+                                    const std::string& arch,
+                                    const std::string& path,
+                                    flag_type          type,
+                                    std::string&       warnings,
+                                    std::string&       includes,
+                                    std::string&       machines,
+                                    std::string&       specs);
+
+    /**
+     * Filter the cflags and update the warnings, includes, machines and specs
+     * if the type of flags is cflags. Provide the cflags as a space separated
+     * list, the architure, and a path.
+     *
+     * @param flags The flags a space delimited list to strip.
+     * @param arch The architecure per the OS specific name.
+     * @param path A path to adjust based on the architecture.
+     * @param type The type of flags being passed.
+     * @return const std::string The filtered flags.
+     */
+    const std::string filter_flags (const std::string& flags,
+                                    const std::string& arch,
+                                    const std::string& path,
+                                    flag_type          type);
 
     /**
      * Get the standard libraries paths from the compiler.

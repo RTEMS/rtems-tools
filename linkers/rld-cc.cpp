@@ -33,6 +33,10 @@ namespace rld
     std::string cflags;
     std::string cxxflags;
     std::string ldflags;
+    std::string warning_cflags;
+    std::string include_cflags;
+    std::string machine_cflags;
+    std::string spec_cflags;
     std::string install_path;
     std::string programs_path;
     std::string libraries_path;
@@ -87,6 +91,183 @@ namespace rld
     {
       if (!ldflags.empty ())
         args.push_back (ldflags);
+    }
+
+    const std::string
+    strip_cflags (const std::string& flags)
+    {
+      std::string  oflags;
+      rld::strings flags_;
+      rld::split (flags_, flags);
+
+      for (rld::strings::iterator si = flags_.begin ();
+           si != flags_.end ();
+           ++si)
+      {
+        if (!rld::starts_with ((*si), "-O") && !rld::starts_with ((*si), "-g"))
+          oflags += ' ' + *si;
+      }
+
+      return rld::trim (oflags);
+    }
+
+    const std::string
+    filter_flags (const std::string& flags,
+                  const std::string& ,
+                  const std::string& ,
+                  flag_type          type,
+                  std::string&       warnings,
+                  std::string&       includes,
+                  std::string&       machines,
+                  std::string&       specs)
+    {
+      /*
+       * Defintion of flags to be filtered.
+       */
+      enum flag_group
+      {
+        fg_warning,
+        fg_include,
+        fg_machine,
+        fg_specs
+      };
+      struct flag_def
+      {
+        flag_group  group;  ///< The group this flag belong to.
+        const char* opt;    ///< Option start.
+        int         count;  ///< Number of arguments with the option.
+        bool        path;   ///< Is this a path ?
+        int         out;    ///< If the flag type is set drop the opt..
+      };
+      const flag_def flag_defs[] =
+        {
+          { fg_warning, "-W",       1, false, ft_cppflags | ft_cflags | ft_ldflags },
+          { fg_include, "-I",       2, true,  0 },
+          { fg_include, "-isystem", 2, true,  0 },
+          { fg_include, "-sysroot", 2, true,  0 },
+          { fg_machine, "-O",       1, false, 0 },
+          { fg_machine, "-m",       1, false, 0 },
+          { fg_machine, "-f",       1, false, 0 },
+          { fg_specs,   "-q",       1, false, 0 },
+          { fg_specs,   "-B",       2, true,  0 },
+          { fg_specs,   "--specs",  2, false, 0 }
+        };
+      const int flag_def_size = sizeof (flag_defs) / sizeof (flag_def);
+
+      std::string  oflags;
+      rld::strings flags_;
+
+      rld::split (flags_, strip_cflags (flags));
+
+      warnings.clear ();
+      includes.clear ();
+      machines.clear ();
+      specs.clear ();
+
+      for (rld::strings::iterator si = flags_.begin ();
+           si != flags_.end ();
+           ++si)
+      {
+        std::string  opts;
+        std::string& opt = *(si);
+        bool         in = true;
+
+        for (int fd = 0; fd < flag_def_size; ++fd)
+        {
+          if (rld::starts_with (opt, flag_defs[fd].opt))
+          {
+            int opt_count = flag_defs[fd].count;
+            if (opt_count > 1)
+            {
+              /*
+               * See if the flag is just the option. If is not take one less
+               * because the option's argument is joined to the option.
+               */
+              if (opt != flag_defs[fd].opt)
+              {
+                opt_count -= 1;
+                /*
+                 * @todo Path processing here. Not sure what it is needed for.
+                 */
+              }
+            }
+            opts += ' ' + opt;
+            while (opt_count > 1)
+            {
+              ++si;
+              /*
+               * @todo Path processing here. Not sure what it is needed for.
+               */
+              opts += ' ' + (*si);
+              --opt_count;
+            }
+            switch (flag_defs[fd].group)
+            {
+              case fg_warning:
+                warnings += ' ' + opts;
+                break;
+              case fg_include:
+                includes += ' ' + opts;
+                break;
+              case fg_machine:
+                machines += ' ' + opts;
+                break;
+              case fg_specs:
+                specs += ' ' + opts;
+                break;
+              default:
+                throw rld::error ("Invalid group", "flag group");
+            }
+            if ((flag_defs[fd].out & type) != 0)
+              in = false;
+            break;
+          }
+        }
+
+        if (in)
+          oflags += ' ' + opts;
+      }
+
+      rld::trim (warnings);
+      rld::trim (includes);
+      rld::trim (machines);
+      rld::trim (specs);
+
+      return rld::trim (oflags);
+    }
+
+    const std::string
+    filter_flags (const std::string& flags,
+                  const std::string& arch,
+                  const std::string& path,
+                  flag_type          type)
+    {
+      if (type != ft_cflags)
+      {
+        std::string warnings;
+        std::string includes;
+        std::string machines;
+        std::string specs;
+        return filter_flags (flags,
+                             arch,
+                             path,
+                             type,
+                             warnings,
+                             includes,
+                             machines,
+                             specs);
+      }
+      else
+      {
+        return filter_flags (flags,
+                             arch,
+                             path,
+                             type,
+                             warning_cflags,
+                             include_cflags,
+                             machine_cflags,
+                             spec_cflags);
+      }
     }
 
     static bool

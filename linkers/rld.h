@@ -122,6 +122,14 @@ namespace rld
   typedef std::vector < std::string > strings;
 
   /**
+   * Does a string start with another string ?
+   */
+  inline bool starts_with(const std::string& s1, const std::string& s2)
+  {
+    return s2.size () <= s1.size () && s1.compare (0, s2.size (), s2) == 0;
+  }
+
+  /**
    * Trim from start.
    */
   inline std::string& ltrim (std::string &s)
@@ -195,7 +203,7 @@ namespace rld
    */
   inline strings& split (strings&           se,
                          const std::string& s,
-                         char               delimiter,
+                         char               delimiter = ' ',
                          bool               strip_quotes = true,
                          bool               strip_whitespace = true,
                          bool               empty = false)
@@ -232,6 +240,16 @@ namespace rld
       if ((ssi != ss.begin ()) && (ssi != ss.end ()))
         s += separator;
     }
+    return s;
+  }
+
+  /**
+   * Convert a string to lower case.
+   */
+  inline std::string tolower (const std::string& sin)
+  {
+    std::string s = sin;
+    std::transform (s.begin (), s.end (), s.begin (), ::tolower);
     return s;
   }
 

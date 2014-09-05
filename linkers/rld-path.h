@@ -77,14 +77,26 @@ namespace rld
                      paths&             paths);
 
     /**
-     * Make a path by joining the parts with required separator.
+     * Make a path by joining the base and part with required separator.
      *
-     * @param path_ The path component to be joined.
-     * @param file_ The file name to add to the path.
+     * @param base The path component to be joined.
+     * @param part The file name to add to the path.
      * @param joined The joined path and file name with a path separator.
      */
-    void path_join (const std::string& path_,
-                    const std::string& file_,
+    void path_join (const std::string& base,
+                    const std::string& part,
+                    std::string&       joined);
+
+    /**
+     * Make a path by joining the parts with the base and the required
+     * separator.
+     *
+     * @param base The path component to be joined.
+     * @param parts The files to add to the path.
+     * @param joined The joined path and file name with a path separator.
+     */
+    void path_join (const std::string& base,
+                    const paths&       parts,
                     std::string&       joined);
 
     /**
