@@ -94,6 +94,7 @@ def build(bld):
     # RLD source.
     #
     rld_source = ['ConvertUTF.c',
+                  'pkgconfig.cpp',
                   'rld-config.cpp',
                   'rld-elf.cpp',
                   'rld-files.cpp',
@@ -103,6 +104,7 @@ def build(bld):
                   'rld-path.cpp',
                   'rld-process.cpp',
                   'rld-resolver.cpp',
+                  'rld-rtems.cpp',
                   'rld-symbols.cpp',
                   'rld-rap.cpp',
                   'rld.cpp']
@@ -132,7 +134,7 @@ def build(bld):
     # Build the linker.
     #
     bld.program(target = 'rtems-ld',
-                source = ['rtems-ld.cpp', 'pkgconfig.cpp'],
+                source = ['rtems-ld.cpp'],
                 defines = ['HAVE_CONFIG_H=1', 'RTEMS_VERSION=' + bld.env.RTEMS_VERSION],
                 includes = ['.'] + bld.includes,
                 cflags = bld.cflags + bld.warningflags,
@@ -144,7 +146,7 @@ def build(bld):
     # Build the ra linker.
     #
     bld.program(target = 'rtems-ra',
-                source = ['rtems-ra.cpp', 'pkgconfig.cpp'],
+                source = ['rtems-ra.cpp'],
                 defines = ['HAVE_CONFIG_H=1', 'RTEMS_VERSION=' + bld.env.RTEMS_VERSION],
                 includes = ['.'] + bld.includes,
                 cflags = bld.cflags + bld.warningflags,

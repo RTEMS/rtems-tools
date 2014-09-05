@@ -45,6 +45,7 @@
 #include <rld-cc.h>
 #include <rld-config.h>
 #include <rld-process.h>
+#include <rld-rtems.h>
 
 #ifndef HAVE_KILL
 #define kill(p,s) raise(s)
@@ -737,8 +738,9 @@ static struct option rld_opts[] = {
   { "warn",        no_argument,            NULL,           'w' },
   { "keep",        no_argument,            NULL,           'k' },
   { "exec-prefix", required_argument,      NULL,           'E' },
-  { "march",       required_argument,      NULL,           'a' },
-  { "mcpu",        required_argument,      NULL,           'c' },
+  { "cflags",      required_argument,      NULL,           'c' },
+  { "rtems",       required_argument,      NULL,           'r' },
+  { "rtems-bsp",   required_argument,      NULL,           'B' },
   { "config",      required_argument,      NULL,           'C' },
   { NULL,          0,                      NULL,            0 }
 };
@@ -756,6 +758,8 @@ usage (int exit_code)
             << " -k        : keep temporary files (also --keep)" << std::endl
             << " -E prefix : the RTEMS tool prefix (also --exec-prefix)" << std::endl
             << " -c cflags : C compiler flags (also --cflags)" << std::endl
+            << " -r path   : RTEMS path (also --rtems)" << std::endl
+            << " -B bsp    : RTEMS arch/bsp (also --rtems-bsp)" << std::endl
             << " -C ini    : user configuration INI file (also --config)" << std::endl;
   ::exit (exit_code);
 }
@@ -808,13 +812,11 @@ main (int argc, char* argv[])
     std::string        configuration;
     std::string        trace = "tracer";
     bool               exec_prefix_set = false;
-#if HAVE_WARNINGS
-    bool               warnings = false;
-#endif
+    bool               arch_bsp_load = false;
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvwkVE:c:C:", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvwkVE:c:C:r:B:", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -849,6 +851,15 @@ main (int argc, char* argv[])
           rld::cc::cflags = optarg;
           break;
 
+        case 'r':
+          rld::rtems::path = optarg;
+          break;
+
+        case 'B':
+          rld::rtems::arch_bsp = optarg;
+          arch_bsp_load = true;
+          break;
+
         case 'C':
           configuration = optarg;
           break;
@@ -868,6 +879,12 @@ main (int argc, char* argv[])
 
     if (rld::verbose ())
       std::cout << "RTEMS Trace Linker " << rld::version () << std::endl;
+
+    /*
+     * Load the arch/bsp value if provided.
+     */
+    if (arch_bsp_load)
+      rld::rtems::load_cc ();
 
     /*
      * Load the remaining command line arguments into the linker command line.
