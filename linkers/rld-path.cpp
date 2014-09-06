@@ -57,7 +57,7 @@ namespace rld
     path_split (const std::string& path, paths& paths)
     {
       strings ps;
-      rld::split (path, ps, RLD_PATHSTR_SEPARATOR);
+      rld::split (ps, path, RLD_PATHSTR_SEPARATOR);
       if (ps.size ())
       {
         for (strings::iterator psi = ps.begin ();
