@@ -180,6 +180,11 @@ namespace rld
     typedef std::vector < std::string > arg_container;
 
     /**
+     * Split a string and append to the arguments.
+     */
+    void args_append (arg_container& args, const std::string& str);
+
+    /**
      * Execute result.
      */
     struct status

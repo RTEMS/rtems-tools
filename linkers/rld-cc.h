@@ -35,7 +35,7 @@ namespace rld
   namespace cc
   {
     /*
-     * Defintion of flags to be filtered.
+     * The type of flags.
      */
     enum flag_type
     {
@@ -45,48 +45,16 @@ namespace rld
       ft_ldflags  = 1 << 3
     };
 
-    extern std::string cc;             //< The CC executable as absolute path.
-    extern std::string cc_name;        //< The CC name, ie gcc, clang.
-    extern std::string exec_prefix;    //< The CC executable prefix.
-
-    extern std::string cppflags;       //< The CPP flags.
-    extern std::string cflags;         //< The CC flags.
-    extern std::string cxxflags;       //< The CXX flags.
-    extern std::string ldflags;        //< The LD flags.
-
-    extern std::string warning_cflags; //< The warning flags in cflags.
-    extern std::string include_cflags; //< The include flags in cflags.
-    extern std::string machine_cflags; //< The machine flags in cflags.
-    extern std::string spec_cflags;    //< The spec flags in cflags.
-
-    extern std::string install_path;   //< The CC reported install path.
-    extern std::string programs_path;  //< The CC reported programs path.
-    extern std::string libraries_path; //< The CC reported libraries path.
-
-    /**
-     * Make a CC command from the set arguments.
+    /*
+     * Flags groups.
      */
-    void make_cc_command (rld::process::arg_container& args);
-
-    /**
-     * If the cppflags has been set append to the arguments.
-     */
-    void add_cppflags (rld::process::arg_container& args);
-
-    /**
-     * If the cflags has been set append to the arguments.
-     */
-    void add_cflags (rld::process::arg_container& args);
-
-    /**
-     * If the cxxflags has been set append to the arguments.
-     */
-    void add_cxxflags (rld::process::arg_container& args);
-
-    /**
-     * If the ldflags has been set append to the arguments.
-     */
-    void add_ldflags (rld::process::arg_container& args);
+    enum flag_group
+    {
+      fg_warning_flags,
+      fg_include_flags,
+      fg_machine_flags,
+      fg_spec_flags
+    };
 
     /**
      * Strip the flags of -O and -g options.
@@ -136,6 +104,78 @@ namespace rld
                                     const std::string& arch,
                                     const std::string& path,
                                     flag_type          type);
+
+    /**
+     * Set CC. The exec-prefix is ignored if this is set.
+     */
+    void set_cc (const std::string& cc);
+
+    /**
+     * Get the CC.
+     */
+    const std::string get_cc ();
+
+    /**
+     * Is the CC set ?
+     */
+    bool is_cc_set ();
+
+    /**
+     * Set the exec-prefix. If CC is set the exec-prefix is ignored.
+     */
+    void set_exec_prefix (const std::string& exec_prefix);
+
+    /**
+     * Get the exec-prefix.
+     */
+    const std::string get_exec_prefix ();
+
+    /**
+     * Is exec-prefix set ?
+     */
+    bool is_exec_prefix_set ();
+
+    /**
+     * Set the flags with a specific arch and include path.
+     */
+    void set_flags (const std::string& flags,
+                    const std::string& arch,
+                    const std::string& path,
+                    flag_type          type);
+
+    /**
+     * Set the flags.
+     */
+    void set_flags (const std::string& flags, flag_type type);
+
+    /**
+     * Append the flags with a specific arch and include path.
+     */
+    void append_flags (const std::string& flags,
+                       const std::string& arch,
+                       const std::string& path,
+                       flag_type          type);
+
+    /**
+     * Append the flags.
+     */
+    void append_flags (const std::string& flags, flag_type type);
+
+    /**
+     * Get the flags.
+     */
+    const std::string get_flags (flag_type type);
+    const std::string get_flags (flag_group group);
+
+    /**
+     * Append the flags if set.
+     */
+    void append_flags (flag_type type, rld::process::arg_container& args);
+
+    /**
+     * Make a CC command from the set arguments.
+     */
+    void make_cc_command (rld::process::arg_container& args);
 
     /**
      * Get the standard libraries paths from the compiler.

@@ -186,7 +186,7 @@ namespace rld
       /**
        * Generate the wrapper object file.
        */
-      void generate ();
+      const std::string generate ();
 
       /**
        * Generate the trace functions.
@@ -227,14 +227,21 @@ namespace rld
       void generate_wrapper ();
 
       /**
+       * Compile the C file.
+       */
+      void compile_wrapper ();
+
+      /**
        * Dump the linker.
        */
       void dump (std::ostream& out) const;
 
     private:
 
-      rld::config::config config;   /**< User configuration. */
-      tracer              tracer_;  /**< The tracer */
+      rld::config::config config;     /**< User configuration. */
+      tracer              tracer_;    /**< The tracer */
+      std::string         wrapper_c;  /**< Wrapper C source file. */
+      std::string         wrapper_o;  /**< Wrapper object file. */
     };
 
     /**
@@ -536,7 +543,7 @@ namespace rld
       generator_ = generator (config, gen);
     }
 
-    void
+    const std::string
     tracer::generate ()
     {
       rld::process::tempfile c (".c");
@@ -571,6 +578,8 @@ namespace rld
       }
 
       c.close ();
+
+      return c.name ();
     }
 
     void
@@ -706,7 +715,44 @@ namespace rld
     void
     linker::generate_wrapper ()
     {
-      tracer_.generate ();
+      wrapper_c = tracer_.generate ();
+    }
+
+    void
+    linker::compile_wrapper ()
+    {
+     rld::process::arg_container args;
+
+      rld::process::tempfile o (".o");
+
+      if (rld::verbose ())
+        std::cout << "wrapper O file: " << o.name () << std::endl;
+
+      rld::cc::make_cc_command (args);
+      rld::cc::append_flags (rld::cc::ft_cflags, args);
+
+      args.push_back ("-c");
+      args.push_back ("-o ");
+      args.push_back (o.name ());
+      args.push_back (wrapper_c);
+
+      rld::process::tempfile out;
+      rld::process::tempfile err;
+      rld::process::status   status;
+
+      status = rld::process::execute (rld::cc::get_cc (),
+                                      args,
+                                      out.name (),
+                                      err.name ());
+
+      if ((status.type != rld::process::status::normal) ||
+          (status.code != 0))
+      {
+        err.output (rld::cc::get_cc (), std::cout);
+        throw rld::error ("Compiler error", "compiling wrapper");
+      }
+
+      wrapper_o = o.name ();
     }
 
     void
@@ -811,7 +857,6 @@ main (int argc, char* argv[])
     std::string        ld_cmd;
     std::string        configuration;
     std::string        trace = "tracer";
-    bool               exec_prefix_set = false;
     bool               arch_bsp_load = false;
 
     while (true)
@@ -843,12 +888,11 @@ main (int argc, char* argv[])
           break;
 
         case 'E':
-          exec_prefix_set = true;
-          rld::cc::exec_prefix = optarg;
+          rld::cc::set_exec_prefix (optarg);
           break;
 
         case 'c':
-          rld::cc::cflags = optarg;
+          rld::cc::append_flags (optarg, rld::cc::ft_cflags);
           break;
 
         case 'r':
@@ -909,6 +953,7 @@ main (int argc, char* argv[])
     {
       linker.load_config (configuration, trace);
       linker.generate_wrapper ();
+      linker.compile_wrapper ();
 
       if (rld::verbose ())
         linker.dump (std::cout);

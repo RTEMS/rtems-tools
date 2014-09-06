@@ -190,10 +190,8 @@ main (int argc, char* argv[])
     std::string          output = "a.out";
     std::string          outra;
     std::string          base_name;
-    std::string          cc_name;
     std::string          output_type = "rap";
     bool                 standard_libs = true;
-    bool                 exec_prefix_set = false;
     bool                 map = false;
     bool                 warnings = false;
     bool                 one_file = false;
@@ -268,18 +266,19 @@ main (int argc, char* argv[])
           break;
 
         case 'C':
-          if (exec_prefix_set == true)
+          if (rld::cc::is_exec_prefix_set ())
             std::cerr << "warning: exec-prefix ignored when CC provided" << std::endl;
-          rld::cc::cc = optarg;
+          rld::cc::set_cc (optarg);
           break;
 
         case 'E':
-          exec_prefix_set = true;
-          rld::cc::exec_prefix = optarg;
+          if (rld::cc::is_cc_set ())
+            std::cerr << "warning: exec-prefix ignored when CC provided" << std::endl;
+          rld::cc::set_exec_prefix (optarg);
           break;
 
         case 'c':
-          rld::cc::cflags = optarg;
+          rld::cc::set_flags (optarg, rld::cc::ft_cflags);
           break;
 
         case 'e':
@@ -397,8 +396,8 @@ main (int argc, char* argv[])
      * types. This must be after we have added the object files because they
      * are used when detecting.
      */
-    if (rld::cc::cc.empty () && !exec_prefix_set)
-      rld::cc::exec_prefix = rld::elf::machine_type ();
+    if (!rld::cc::is_cc_set () && !rld::cc::is_exec_prefix_set ())
+      rld::cc::set_exec_prefix (rld::elf::machine_type ());
 
     /*
      * If we have a base image add it.

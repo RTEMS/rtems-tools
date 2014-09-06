@@ -88,6 +88,10 @@ namespace rld
 
       std::string name = temp;
 
+      name = rld::find_replace (name,
+                                RLD_PATH_SEPARATOR_STR RLD_PATH_SEPARATOR_STR,
+                                RLD_PATH_SEPARATOR_STR);
+
       tempfiles.push_back (name);
 
       return name;
@@ -332,6 +336,19 @@ namespace rld
     temporaries_clean_up ()
     {
       temporaries.clean_up ();
+    }
+
+    void
+    args_append (arg_container& args, const std::string& str)
+    {
+      rld::strings ss;
+      rld::split (ss, str);
+      for (rld::strings::iterator ssi = ss.begin ();
+           ssi != ss.end ();
+           ++ssi)
+      {
+        args.push_back (*ssi);
+      }
     }
 
     status

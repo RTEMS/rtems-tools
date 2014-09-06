@@ -138,7 +138,6 @@ main (int argc, char* argv[])
     std::string         base_name;
     std::string         cc_name;
     bool                standard_libs = false;
-    bool                exec_prefix_set = false;
 #if HAVE_WARNINGS
     bool                warnings = false;
 #endif
@@ -188,18 +187,19 @@ main (int argc, char* argv[])
           break;
 
         case 'C':
-          if (exec_prefix_set == true)
+          if (rld::cc::is_exec_prefix_set ())
             std::cerr << "warning: exec-prefix ignored when CC provided" << std::endl;
-          rld::cc::cc = optarg;
+          rld::cc::set_cc (optarg);
           break;
 
         case 'E':
-          exec_prefix_set = true;
-          rld::cc::exec_prefix = optarg;
+          if (rld::cc::is_cc_set ())
+            std::cerr << "warning: exec-prefix ignored when CC provided" << std::endl;
+          rld::cc::set_exec_prefix (optarg);
           break;
 
         case 'c':
-          rld::cc::cflags = optarg;
+          rld::cc::set_flags (optarg, rld::cc::ft_cflags);
           break;
 
         case '?':
@@ -246,8 +246,8 @@ main (int argc, char* argv[])
      * types. This must be after we have added the object files because they
      * are used when detecting.
      */
-    if (rld::cc::cc.empty () && !exec_prefix_set)
-      rld::cc::exec_prefix = rld::elf::machine_type ();
+    if (!rld::cc::is_cc_set () && !rld::cc::is_exec_prefix_set ())
+      rld::cc::set_exec_prefix (rld::elf::machine_type ());
 
     /*
      * Get the standard library paths

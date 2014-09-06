@@ -48,11 +48,15 @@ namespace rld
     }
 
     const std::string
-    rtems_bsp (const std::string& ab)
+    rtems_arch_prefix (const std::string& ab)
     {
-      const std::string a = arch (ab);
-      const std::string b = bsp (ab);
-      return a + "-rtems" + version + '-' + b;
+      return arch (ab) + "-rtems" + version;
+    }
+
+    const std::string
+    rtems_arch_bsp (const std::string& ab)
+    {
+      return rtems_arch_prefix (ab) + '-' + bsp (ab);
     }
 
     void
@@ -65,7 +69,7 @@ namespace rld
       if (path.empty ())
         throw rld::error ("Not set; see -r", "RTEMS path");
 
-      bsp = rtems_bsp (arch_bsp);
+      bsp = rtems_arch_bsp (arch_bsp);
 
       parts.push_back ("lib");
       parts.push_back ("pkgconfig");
@@ -86,61 +90,70 @@ namespace rld
 
       pkgconfig::package pkg (rtems_pkgconfig);
 
+      /*
+       * Check the pc file matches what we ask for.
+       */
+      std::string name;
+      if (!pkg.get ("name", name))
+        throw rld::error ("RTEMS BSP no name in pkgconfig file", arch_bsp);
+
+      if (name != bsp)
+        throw rld::error ("RTEMS BSP does not match the name in pkgconfig file", arch_bsp);
+
       std::string flags;
 
       if (pkg.get ("CPPFLAGS", flags))
       {
-        rld::cc::cppflags = rld::cc::filter_flags (flags,
-                                                   arch_bsp,
-                                                   path,
-                                                   rld::cc::ft_cppflags);
+        rld::cc::append_flags (flags, arch (arch_bsp), path, rld::cc::ft_cppflags);
         if (rld::verbose () >= RLD_VERBOSE_INFO)
           std::cout << " rtems: " << arch_bsp
-                    << ": CPPFLAGS=" << rld::cc::cppflags << std::endl;
+                    << ": CPPFLAGS="
+                    << rld::cc::get_flags (rld::cc::ft_cppflags)
+                    << std::endl;
       }
 
       if (pkg.get ("CFLAGS", flags))
       {
-        rld::cc::cflags = rld::cc::filter_flags (flags,
-                                                 arch_bsp,
-                                                 path,
-                                                 rld::cc::ft_cflags);
+        rld::cc::append_flags (flags, arch (arch_bsp), path, rld::cc::ft_cflags);
         if (rld::verbose () >= RLD_VERBOSE_INFO)
         {
           std::cout << " rtems: " << arch_bsp
-                    << ": CFLAGS=" << rld::cc::cflags << std::endl;
+                    << ": CFLAGS=" << rld::cc::get_flags (rld::cc::ft_cflags)
+                    << std::endl;
           std::cout << " rtems: " << arch_bsp
-                    << ": WARNINGS=" << rld::cc::warning_cflags << std::endl;
+                    << ": WARNINGS=" << rld::cc::get_flags (rld::cc::fg_warning_flags)
+                    << std::endl;
           std::cout << " rtems: " << arch_bsp
-                    << ": INCLUDES=" << rld::cc::include_cflags << std::endl;
+                    << ": INCLUDES=" << rld::cc::get_flags (rld::cc::fg_include_flags)
+                    << std::endl;
           std::cout << " rtems: " << arch_bsp
-                    << ": MACHINES=" << rld::cc::machine_cflags << std::endl;
+                    << ": MACHINES=" << rld::cc::get_flags (rld::cc::fg_machine_flags)
+                    << std::endl;
           std::cout << " rtems: " << arch_bsp
-                    << ": SPECS=" << rld::cc::spec_cflags << std::endl;
+                    << ": SPECS=" << rld::cc::get_flags (rld::cc::fg_spec_flags)
+                    << std::endl;
         }
       }
 
       if (pkg.get ("CXXFLAGS", flags))
       {
-        rld::cc::cxxflags = rld::cc::filter_flags (flags,
-                                                   arch_bsp,
-                                                   path,
-                                                   rld::cc::ft_cxxflags);
+        rld::cc::append_flags (flags, arch (arch_bsp), path, rld::cc::ft_cxxflags);
         if (rld::verbose () >= RLD_VERBOSE_INFO)
           std::cout << " rtems: " << arch_bsp
-                    << ": CXXFLAGS=" << rld::cc::cxxflags << std::endl;
+                    << ": CXXFLAGS=" << rld::cc::get_flags (rld::cc::ft_cxxflags)
+                    << std::endl;
       }
 
       if (pkg.get ("LDFLAGS", flags))
       {
-        rld::cc::ldflags = rld::cc::filter_flags (flags,
-                                                  arch_bsp,
-                                                  path,
-                                                  rld::cc::ft_ldflags);
+        rld::cc::append_flags (flags, arch (arch_bsp), path, rld::cc::ft_ldflags);
         if (rld::verbose () >= RLD_VERBOSE_INFO)
           std::cout << " rtems: " << arch_bsp
-                    << ": LDFLAGS=" << rld::cc::ldflags << std::endl;
+                    << ": LDFLAGS=" << rld::cc::get_flags (rld::cc::ft_ldflags)
+                    << std::endl;
       }
+
+      rld::cc::set_exec_prefix (arch (arch_bsp));
     }
   }
 }

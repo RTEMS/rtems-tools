@@ -26,20 +26,24 @@ namespace rld
 {
   namespace cc
   {
-    std::string cc;
-    std::string cc_name = "gcc";
-    std::string exec_prefix;
-    std::string cppflags;
-    std::string cflags;
-    std::string cxxflags;
-    std::string ldflags;
-    std::string warning_cflags;
-    std::string include_cflags;
-    std::string machine_cflags;
-    std::string spec_cflags;
-    std::string install_path;
-    std::string programs_path;
-    std::string libraries_path;
+    static std::string cc;              //< The CC executable as absolute path.
+    static bool        cc_set;          //< True when the CC has been set.
+    static std::string cc_name = "gcc"; //< The CC name, ie gcc, clang.
+    static std::string exec_prefix;     //< The CC executable prefix.
+
+    static std::string cppflags;        //< The CPP flags.
+    static std::string cflags;          //< The CC flags.
+    static std::string cxxflags;        //< The CXX flags.
+    static std::string ldflags;         //< The LD flags.
+
+    static std::string warning_cflags;  //< The warning flags in cflags.
+    static std::string include_cflags;  //< The include flags in cflags.
+    static std::string machine_cflags;  //< The machine flags in cflags.
+    static std::string spec_cflags;     //< The spec flags in cflags.
+
+    static std::string install_path;    //< The CC reported install path.
+    static std::string programs_path;   //< The CC reported programs path.
+    static std::string libraries_path;  //< The CC reported libraries path.
 
     /**
      * The list of standard libraries.
@@ -47,51 +51,6 @@ namespace rld
     #define RPS RLD_PATHSTR_SEPARATOR_STR
     static const char* std_lib_c         = "libgcc.a" RPS "libssp.a" RPS "libc.a";
     static const char* std_lib_cplusplus = "libstdc++.a";
-
-    void
-    make_cc_command (rld::process::arg_container& args)
-    {
-      /*
-       * Use the absolute path to CC if provided.
-       */
-      if (!cc.empty ())
-        args.push_back (cc);
-      else
-      {
-        std::string cmd = cc_name;
-        if (!exec_prefix.empty ())
-          cmd = exec_prefix + "-rtems" + rld::rtems_version () + '-' + cmd;
-        args.push_back (cmd);
-      }
-    }
-
-    void
-    add_cppflags (rld::process::arg_container& args)
-    {
-      if (!cppflags.empty ())
-        args.push_back (cppflags);
-    }
-
-    void
-    add_cflags (rld::process::arg_container& args)
-    {
-      if (!cflags.empty ())
-        args.push_back (cflags);
-    }
-
-    void
-    add_cxxflags (rld::process::arg_container& args)
-    {
-      if (!cxxflags.empty ())
-        args.push_back (cxxflags);
-    }
-
-    void
-    add_ldflags (rld::process::arg_container& args)
-    {
-      if (!ldflags.empty ())
-        args.push_back (ldflags);
-    }
 
     const std::string
     strip_cflags (const std::string& flags)
@@ -270,6 +229,205 @@ namespace rld
       }
     }
 
+    void
+    set_cc (const std::string& cc_)
+    {
+      cc = cc_;
+      cc_set = true;
+    }
+
+    const std::string
+    get_cc ()
+    {
+      return cc;
+    }
+
+    bool
+    is_cc_set ()
+    {
+      return cc_set;
+    }
+
+    void
+    set_exec_prefix (const std::string& exec_prefix_)
+    {
+      exec_prefix = exec_prefix_;
+    }
+
+    const std::string
+    get_exec_prefix ()
+    {
+      return exec_prefix;
+    }
+
+    bool is_exec_prefix_set ()
+    {
+      return !exec_prefix.empty ();
+    }
+
+    void
+    set_flags (const std::string& flags,
+               const std::string& arch,
+               const std::string& path,
+               flag_type          type)
+    {
+      std::string* oflags;
+      switch (type)
+      {
+        case ft_cppflags:
+          oflags = &cppflags;
+          break;
+        case ft_cflags:
+          oflags = &cflags;
+          break;
+        case ft_cxxflags:
+          oflags = &cxxflags;
+          break;
+        case ft_ldflags:
+          oflags = &ldflags;
+          break;
+        default:
+          throw rld::error ("Invalid flag type", "CC set flags");
+      }
+      (*oflags) = filter_flags (flags, arch, path, type);
+    }
+
+    void
+    set_flags (const std::string& flags, flag_type type)
+    {
+      std::string arch;
+      std::string path;
+      set_flags (flags, arch, path, type);
+    }
+
+    void
+    append_flags (const std::string& flags,
+                  const std::string& arch,
+                  const std::string& path,
+                  flag_type          type)
+    {
+      std::string* oflags;
+      switch (type)
+      {
+        case ft_cppflags:
+          oflags = &cppflags;
+          break;
+        case ft_cflags:
+          oflags = &cflags;
+          break;
+        case ft_cxxflags:
+          oflags = &cxxflags;
+          break;
+        case ft_ldflags:
+          oflags = &ldflags;
+          break;
+        default:
+          throw rld::error ("Invalid flag type", "CC set flags");
+      }
+      if (oflags->empty ())
+        *oflags += filter_flags (flags, arch, path, type);
+      else
+        *oflags += ' ' + filter_flags (flags, arch, path, type);
+    }
+
+    void
+    append_flags (const std::string& flags, flag_type type)
+    {
+      std::string arch;
+      std::string path;
+      append_flags (flags, arch, path, type);
+    }
+
+    const std::string
+    get_flags (flag_type type)
+    {
+      std::string* flags;
+      switch (type)
+      {
+        case ft_cppflags:
+          flags = &cppflags;
+          break;
+        case ft_cflags:
+          flags = &cflags;
+          break;
+        case ft_cxxflags:
+          flags = &cxxflags;
+          break;
+        case ft_ldflags:
+          flags = &ldflags;
+          break;
+        default:
+          throw rld::error ("Invalid flag type", "CC get flags");
+      }
+      return *flags;
+    }
+
+    const std::string
+    get_flags (flag_group group)
+    {
+      std::string* flags;
+      switch (group)
+      {
+        case fg_warning_flags:
+          flags = &warning_cflags;
+          break;
+        case fg_include_flags:
+          flags = &include_cflags;
+          break;
+        case fg_machine_flags:
+          flags = &machine_cflags;
+          break;
+        case fg_spec_flags:
+          flags = &spec_cflags;
+          break;
+        default:
+          throw rld::error ("Invalid flag group", "CC get flags");
+      }
+      return *flags;
+    }
+
+    void
+    append_flags (flag_type type, rld::process::arg_container& args)
+    {
+      const std::string* flags = 0;
+      switch (type)
+      {
+        case ft_cppflags:
+          flags = &cppflags;
+          break;
+        case ft_cflags:
+          flags = &cflags;
+          break;
+        case ft_cxxflags:
+          flags = &cxxflags;
+          break;
+        case ft_ldflags:
+          flags = &ldflags;
+          break;
+        default:
+          throw rld::error ("Invalid flag type", "CC append flags");
+      }
+      if (!flags->empty ())
+        rld::process::args_append (args, *flags);
+    }
+
+    void
+    make_cc_command (rld::process::arg_container& args)
+    {
+      /*
+       * Use the absolute path to CC if provided.
+       */
+      if (!cc.empty ())
+        args.push_back (cc);
+      else
+      {
+        std::string cmd = cc_name;
+        if (!exec_prefix.empty ())
+          cmd = exec_prefix + "-rtems" + rld::rtems_version () + '-' + cmd;
+        args.push_back (cmd);
+      }
+    }
+
     static bool
     match_and_trim (const char* prefix, std::string& line, std::string& result)
     {
@@ -290,8 +448,8 @@ namespace rld
       rld::process::arg_container args;
 
       make_cc_command (args);
-      add_cppflags (args);
-      add_cflags (args);
+      append_flags (ft_cppflags, args);
+      append_flags (ft_cflags, args);
       args.push_back ("-print-search-dirs");
 
       rld::process::tempfile out;
@@ -339,8 +497,8 @@ namespace rld
       rld::process::arg_container args;
 
       make_cc_command (args);
-      add_cflags (args);
-      add_ldflags (args);
+      append_flags (ft_cppflags, args);
+      append_flags (ft_cflags, args);
       args.push_back ("-print-file-name=" + name);
 
       rld::process::tempfile out;
@@ -370,7 +528,7 @@ namespace rld
     get_standard_libpaths (rld::path::paths& libpaths)
     {
       search_dirs ();
-      rld::split (libraries_path, libpaths, RLD_PATHSTR_SEPARATOR);
+      rld::split (libpaths, libraries_path, RLD_PATHSTR_SEPARATOR);
     }
 
     void
@@ -380,7 +538,7 @@ namespace rld
     {
       strings libnames;
 
-      rld::split (std_lib_c, libnames, RLD_PATHSTR_SEPARATOR);
+      rld::split (libnames, std_lib_c, RLD_PATHSTR_SEPARATOR);
       if (cplusplus)
         rld::path::path_split (std_lib_cplusplus, libnames);
 
