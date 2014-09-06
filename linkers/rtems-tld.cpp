@@ -186,7 +186,7 @@ namespace rld
       /**
        * Generate the wrapper object file.
        */
-      const std::string generate ();
+      void generate (rld::process::tempfile& c);
 
       /**
        * Generate the trace functions.
@@ -200,11 +200,11 @@ namespace rld
 
     private:
 
-      std::string  name;       /**< The name of the trace. */
-      std::string  bsp;        /**< The BSP we are linking to. */
-      rld::strings traces;     /**< The functions to trace. */
-      functions    functions_; /**< The functions that can be traced. */
-      generator    generator_; /**< The tracer's generator. */
+      std::string  name;        /**< The name of the trace. */
+      std::string  bsp;         /**< The BSP we are linking to. */
+      rld::strings traces;      /**< The functions to trace. */
+      functions    functions_;  /**< The functions that can be traced. */
+      generator    generator_;  /**< The tracer's generator. */
     };
 
     /**
@@ -224,12 +224,13 @@ namespace rld
       /**
        * Generate the C file.
        */
-      void generate_wrapper ();
+      void generate_wrapper (rld::process::tempfile& c);
 
       /**
        * Compile the C file.
        */
-      void compile_wrapper ();
+      void compile_wrapper (rld::process::tempfile& c,
+                            rld::process::tempfile& o);
 
       /**
        * Dump the linker.
@@ -238,10 +239,10 @@ namespace rld
 
     private:
 
-      rld::config::config config;     /**< User configuration. */
-      tracer              tracer_;    /**< The tracer */
-      std::string         wrapper_c;  /**< Wrapper C source file. */
-      std::string         wrapper_o;  /**< Wrapper object file. */
+      rld::config::config    config;     /**< User configuration. */
+      tracer                 tracer_;    /**< The tracer */
+      rld::process::tempfile c; /**< The C wrapper file */
+      rld::process::tempfile o; /**< The wrapper object file */
     };
 
     /**
@@ -543,11 +544,9 @@ namespace rld
       generator_ = generator (config, gen);
     }
 
-    const std::string
-    tracer::generate ()
+    void
+    tracer::generate (rld::process::tempfile& c)
     {
-      rld::process::tempfile c (".c");
-
       c.open (true);
 
       if (rld::verbose ())
@@ -578,8 +577,6 @@ namespace rld
       }
 
       c.close ();
-
-      return c.name ();
     }
 
     void
@@ -713,17 +710,16 @@ namespace rld
     }
 
     void
-    linker::generate_wrapper ()
+    linker::generate_wrapper (rld::process::tempfile& c)
     {
-      wrapper_c = tracer_.generate ();
+      tracer_.generate (c);
     }
 
     void
-    linker::compile_wrapper ()
+    linker::compile_wrapper (rld::process::tempfile& c,
+                             rld::process::tempfile& o)
     {
      rld::process::arg_container args;
-
-      rld::process::tempfile o (".o");
 
       if (rld::verbose ())
         std::cout << "wrapper O file: " << o.name () << std::endl;
@@ -734,7 +730,7 @@ namespace rld
       args.push_back ("-c");
       args.push_back ("-o ");
       args.push_back (o.name ());
-      args.push_back (wrapper_c);
+      args.push_back (c.name ());
 
       rld::process::tempfile out;
       rld::process::tempfile err;
@@ -751,8 +747,6 @@ namespace rld
         err.output (rld::cc::get_cc (), std::cout);
         throw rld::error ("Compiler error", "compiling wrapper");
       }
-
-      wrapper_o = o.name ();
     }
 
     void
@@ -951,9 +945,12 @@ main (int argc, char* argv[])
      */
     try
     {
+      rld::process::tempfile c (".c");
+      rld::process::tempfile o (".o");
+
       linker.load_config (configuration, trace);
-      linker.generate_wrapper ();
-      linker.compile_wrapper ();
+      linker.generate_wrapper (c);
+      linker.compile_wrapper (c, o);
 
       if (rld::verbose ())
         linker.dump (std::cout);
