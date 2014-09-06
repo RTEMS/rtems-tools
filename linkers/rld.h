@@ -38,12 +38,14 @@
  */
 #if __WIN32__
 #define RLD_PATH_SEPARATOR        '\\'
+#define RLD_PATH_SEPARATOR_STR    "\\"
 #define RLD_PATHSTR_SEPARATOR     ';'
 #define RLD_PATHSTR_SEPARATOR_STR ";"
 #define RLD_DRIVE_SEPARATOR       (1)
 #define RLD_LINE_SEPARATOR        "\r\n"
 #else
 #define RLD_PATH_SEPARATOR        '/'
+#define RLD_PATH_SEPARATOR_STR    "/"
 #define RLD_PATHSTR_SEPARATOR     ':'
 #define RLD_PATHSTR_SEPARATOR_STR ":"
 #define RLD_DRIVE_SEPARATOR       (0)
@@ -201,12 +203,12 @@ namespace rld
    *
    * @todo The split should optionally honour string quoting.
    */
-  inline strings& split (strings&           se,
-                         const std::string& s,
-                         char               delimiter = ' ',
-                         bool               strip_quotes = true,
-                         bool               strip_whitespace = true,
-                         bool               empty = false)
+  inline strings split (strings&           se,
+                        const std::string& s,
+                        char               delimiter = ' ',
+                        bool               strip_quotes = true,
+                        bool               strip_whitespace = true,
+                        bool               empty = false)
   {
     std::stringstream ss(s);
     std::string       e;
@@ -278,11 +280,6 @@ namespace rld
    * Container of strings to hold the results of a split.
    */
   typedef std::vector < std::string > strings;
-
-  /**
-   * Split a string into strings by the separator.
-   */
-  void split (const std::string& str, strings& strs, char separator);
 
   /**
    * Map of the symbol table.

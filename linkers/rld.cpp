@@ -93,24 +93,6 @@ namespace rld
   }
 
   void
-  split (const std::string& str, strings& strs, char separator)
-  {
-    if (str.size ())
-    {
-      std::string::size_type start = 0;
-      std::string::size_type end = 0;
-      while (start != std::string::npos)
-      {
-        end = str.find_first_of (separator, start);
-        if (end == std::string::npos)
-          end = str.size ();
-        strs.push_back (str.substr (start, end - start));
-        start = str.find_first_not_of (separator, end);
-      }
-    }
-  }
-
-  void
   map (rld::files::cache& cache, rld::symbols::table& symbols)
   {
     std::cout << "Archive files    : " << cache.archive_count () << std::endl;
