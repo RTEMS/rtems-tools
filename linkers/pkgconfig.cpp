@@ -158,7 +158,7 @@ namespace pkgconfig
       }
     }
 
-    result = s;
+    result = rld::trim (s);
 
     return true;
   }
