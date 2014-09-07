@@ -60,7 +60,7 @@ namespace rld
   namespace process
   {
     /**
-     * Keep the temporary files if true. Used to help debug a system.
+     * Global keep of temporary files if true. Used to help debug a system.
      */
     bool keep_temporary_files = false;
 
@@ -79,45 +79,26 @@ namespace rld
     }
 
     const std::string
-    temporary_files::get (const std::string& suffix)
+    temporary_files::get (const std::string& suffix, bool keep)
     {
       char* temp = ::make_temp_file (suffix.c_str ());
 
       if (!temp)
         throw rld::error ("bad temp name", "temp-file");
 
-      std::string name = temp;
-
-      name = rld::find_replace (name,
-                                RLD_PATH_SEPARATOR_STR RLD_PATH_SEPARATOR_STR,
-                                RLD_PATH_SEPARATOR_STR);
-
-      tempfiles.push_back (name);
-
+      const std::string name = rld::find_replace (temp,
+                                                  RLD_PATH_SEPARATOR_STR RLD_PATH_SEPARATOR_STR,
+                                                  RLD_PATH_SEPARATOR_STR);
+      tempfile_ref ref (name, keep);
+      tempfiles.push_back (ref);
       return name;
     }
 
     void
-    temporary_files::unlink (const std::string& name)
+    temporary_files::unlink (const tempfile_ref& ref)
     {
-      if (!keep_temporary_files)
-      {
-        struct stat sb;
-        if ((::stat (name.c_str (), &sb) >= 0) && S_ISREG (sb.st_mode))
-        {
-          int r;
-#if _WIN32
-          r = ::remove(name.c_str ());
-#else
-          r = ::unlink (name.c_str ());
-#endif
-          if (r < 0)
-          {
-            std::cerr << "error: unlinking temp file: " << name << std::endl;
-            ::exit (100);
-          }
-        }
-      }
+      if (!keep_temporary_files && !ref.keep)
+        rld::path::unlink (ref.name);
     }
 
     void
@@ -127,10 +108,25 @@ namespace rld
            tfi != tempfiles.end ();
            ++tfi)
       {
-        if (*tfi == name)
+        if ((*tfi).name == name)
         {
-          unlink (name);
+          unlink (*tfi);
           tempfiles.erase (tfi);
+          break;
+        }
+      }
+    }
+
+    void
+    temporary_files::keep (const std::string& name)
+    {
+      for (tempfile_container::iterator tfi = tempfiles.begin ();
+           tfi != tempfiles.end ();
+           ++tfi)
+      {
+        if ((*tfi).name == name)
+        {
+          (*tfi).keep = true;
           break;
         }
       }
@@ -147,12 +143,13 @@ namespace rld
       }
     }
 
-    tempfile::tempfile (const std::string& suffix)
+    tempfile::tempfile (const std::string& suffix, bool _keep)
       : suffix (suffix),
+        overridden (false),
         fd (-1),
         level (0)
     {
-      _name = temporaries.get (suffix);
+      _name = temporaries.get (suffix, _keep);
     }
 
     tempfile::~tempfile ()
@@ -164,10 +161,23 @@ namespace rld
     void
     tempfile::open (bool writable)
     {
-      if ((fd < 0) && rld::path::check_file (_name))
+      if (fd < 0)
       {
+        bool ok = rld::path::check_file (_name);
+        int  flags = writable ? O_RDWR : O_RDONLY;
+
+        if (overridden)
+        {
+          flags |= O_CREAT | O_TRUNC;
+        }
+        else
+        {
+          if (!ok)
+            throw rld::error ("Not found.", "tempfile open:" + _name);
+        }
+
         level = 0;
-        fd = ::open (_name.c_str (), writable ? O_RDWR : O_RDONLY);
+        fd = ::open (_name.c_str (), flags);
         if (fd < 0)
           throw rld::error (::strerror (errno), "tempfile open:" + _name);
       }
@@ -182,6 +192,22 @@ namespace rld
         fd = -1;
         level = 0;
       }
+    }
+
+    void
+    tempfile::override (const std::string& name_)
+    {
+      if (fd >= 0)
+        throw rld::error ("Already open", "tempfile override");
+      rld::path::unlink (_name);
+      overridden = true;
+      _name = name_ + suffix;
+    }
+
+    void
+    tempfile::keep ()
+    {
+      temporaries.keep (_name);
     }
 
     const std::string&

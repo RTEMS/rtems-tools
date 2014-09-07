@@ -34,6 +34,20 @@ namespace rld
   namespace process
   {
     /**
+     * Temporary file is a name and keep state.
+     */
+    struct tempfile_ref
+    {
+      const std::string name; //< The name of the tempfile.
+      bool              keep; //< If true do not delete this file.
+
+      tempfile_ref (const std::string& name, bool keep = false)
+        : name (name),
+          keep (keep) {
+      }
+    };
+
+    /**
      * Manage temporary files. We keep these so we can delete them when
      * we exit.
      */
@@ -43,7 +57,7 @@ namespace rld
       /**
        * Container of temporary file names.
        */
-      typedef std::list < std::string > tempfile_container;
+      typedef std::list < tempfile_ref > tempfile_container;
 
       /**
        * Construct the temporary files.
@@ -58,12 +72,18 @@ namespace rld
       /**
        * Get a new temporary file name.
        */
-      const std::string get (const std::string& suffix = ".rldxx");
+      const std::string get (const std::string& suffix = ".rldxx",
+                             bool               keep = false);
 
       /**
        * Remove the temporary file.
        */
       void erase (const std::string& name);
+
+      /**
+       * Set the tempfile reference keep state to true.
+       */
+      void keep (const std::string& name);
 
       /**
        * Remove all temporary files.
@@ -73,9 +93,9 @@ namespace rld
     private:
 
       /*
-       * Delete the file.
+       * Delete the tempfile given the reference if not keeping.
        */
-      void unlink (const std::string& name);
+      void unlink (const tempfile_ref& ref);
 
       tempfile_container tempfiles; //< The temporary files.
 
@@ -89,9 +109,9 @@ namespace rld
     public:
 
       /**
-       * Get a temporary file name.
+       * Get a temporary file name given a suffix.
        */
-      tempfile (const std::string& suffix = ".rldxx");
+      tempfile (const std::string& suffix = ".rldxx", bool keep = false);
 
       /**
        * Clean up the temporary file.
@@ -107,6 +127,17 @@ namespace rld
        * Close the temporary file.
        */
       void close ();
+
+      /**
+       * Override the temp file name automatically assigned with this name. The
+       * suffix is appended.
+       */
+      void override (const std::string& name);
+
+      /**
+       * Set the temp file keep state to true so it is not deleted.
+       */
+      void keep ();
 
       /**
        * The name of the temp file.
@@ -157,11 +188,12 @@ namespace rld
 
     private:
 
-      std::string       _name;    //< The name of the file.
-      const std::string suffix;   //< The temp file's suffix.
-      int               fd;       //< The file descriptor
-      char              buf[256]; //< The read buffer.
-      int               level;    //< The level of data in the buffer.
+      std::string       _name;      //< The name of the file.
+      const std::string suffix;     //< The temp file's suffix.
+      bool              overridden; //< The name is overridden; may no exist.
+      int               fd;         //< The file descriptor
+      char              buf[256];   //< The read buffer.
+      int               level;      //< The level of data in the buffer.
     };
 
     /**

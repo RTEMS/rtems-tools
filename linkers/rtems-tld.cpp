@@ -727,8 +727,10 @@ namespace rld
       rld::cc::make_cc_command (args);
       rld::cc::append_flags (rld::cc::ft_cflags, args);
 
+      args.push_back ("-O2");
+      args.push_back ("-g");
       args.push_back ("-c");
-      args.push_back ("-o ");
+      args.push_back ("-o");
       args.push_back (o.name ());
       args.push_back (c.name ());
 
@@ -782,6 +784,7 @@ static struct option rld_opts[] = {
   { "rtems",       required_argument,      NULL,           'r' },
   { "rtems-bsp",   required_argument,      NULL,           'B' },
   { "config",      required_argument,      NULL,           'C' },
+  { "wrapper",     required_argument,      NULL,           'W' },
   { NULL,          0,                      NULL,            0 }
 };
 
@@ -790,17 +793,18 @@ usage (int exit_code)
 {
   std::cout << "rtems-trace-ld [options] objects" << std::endl
             << "Options and arguments:" << std::endl
-            << " -h        : help (also --help)" << std::endl
-            << " -V        : print linker version number and exit (also --version)" << std::endl
-            << " -v        : verbose (trace import parts), can supply multiple times" << std::endl
-            << "             to increase verbosity (also --verbose)" << std::endl
-            << " -w        : generate warnings (also --warn)" << std::endl
-            << " -k        : keep temporary files (also --keep)" << std::endl
-            << " -E prefix : the RTEMS tool prefix (also --exec-prefix)" << std::endl
-            << " -c cflags : C compiler flags (also --cflags)" << std::endl
-            << " -r path   : RTEMS path (also --rtems)" << std::endl
-            << " -B bsp    : RTEMS arch/bsp (also --rtems-bsp)" << std::endl
-            << " -C ini    : user configuration INI file (also --config)" << std::endl;
+            << " -h         : help (also --help)" << std::endl
+            << " -V         : print linker version number and exit (also --version)" << std::endl
+            << " -v         : verbose (trace import parts), can supply multiple times" << std::endl
+            << "              to increase verbosity (also --verbose)" << std::endl
+            << " -w         : generate warnings (also --warn)" << std::endl
+            << " -k         : keep temporary files (also --keep)" << std::endl
+            << " -E prefix  : the RTEMS tool prefix (also --exec-prefix)" << std::endl
+            << " -c cflags  : C compiler flags (also --cflags)" << std::endl
+            << " -r path    : RTEMS path (also --rtems)" << std::endl
+            << " -B bsp     : RTEMS arch/bsp (also --rtems-bsp)" << std::endl
+            << " -W wrapper : Wrapper file name without ext (also --wrapper)" << std::endl
+            << " -C ini     : user configuration INI file (also --config)" << std::endl;
   ::exit (exit_code);
 }
 
@@ -851,11 +855,12 @@ main (int argc, char* argv[])
     std::string        ld_cmd;
     std::string        configuration;
     std::string        trace = "tracer";
+    std::string        wrapper;
     bool               arch_bsp_load = false;
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvwkVE:c:C:r:B:", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvwkVE:c:C:r:B:W:", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -902,6 +907,10 @@ main (int argc, char* argv[])
           configuration = optarg;
           break;
 
+        case 'W':
+          wrapper = optarg;
+          break;
+
         case '?':
           usage (3);
           break;
@@ -945,10 +954,19 @@ main (int argc, char* argv[])
      */
     try
     {
+      linker.load_config (configuration, trace);
+
       rld::process::tempfile c (".c");
       rld::process::tempfile o (".o");
 
-      linker.load_config (configuration, trace);
+      if (!wrapper.empty ())
+      {
+        c.override (wrapper);
+        c.keep ();
+        o.override (wrapper);
+        o.keep ();
+      }
+
       linker.generate_wrapper (c);
       linker.compile_wrapper (c, o);
 

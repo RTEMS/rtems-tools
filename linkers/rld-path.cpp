@@ -19,6 +19,7 @@
 #endif
 
 #include <sys/stat.h>
+#include <unistd.h>
 
 #include <rld.h>
 
@@ -83,7 +84,8 @@ namespace rld
         joined = base + part;
     }
 
-    void path_join (const std::string& base, const paths& parts, std::string& joined)
+    void
+    path_join (const std::string& base, const paths& parts, std::string& joined)
     {
       joined = base;
       for (paths::const_iterator pi = parts.begin ();
@@ -128,5 +130,29 @@ namespace rld
       path.clear ();
     }
 
+    void
+    unlink (const std::string& path, bool not_present_error)
+    {
+      struct stat sb;
+      if (::stat (path.c_str (), &sb) >= 0)
+      {
+        if (!S_ISREG (sb.st_mode))
+            throw rld::error ("Not a regular file", "unlinking: " + path);
+
+        int r;
+#if _WIN32
+        r = ::remove(path.c_str ());
+#else
+        r = ::unlink (path.c_str ());
+#endif
+        if (r < 0)
+          throw rld::error (::strerror (errno), "unlinking: " + path);
+      }
+      else
+      {
+        if (not_present_error)
+          throw rld::error ("Not found", "unlinking: " + path);
+      }
+    }
   }
 }

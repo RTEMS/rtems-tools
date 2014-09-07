@@ -272,7 +272,7 @@ namespace rld
   const std::string version ();
 
   /**
-   * The RTEMS version string.
+   * The RTEMS version string. @todo move to rld-rtems.
    */
   const std::string rtems_version ();
 

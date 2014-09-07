@@ -128,6 +128,13 @@ namespace rld
                     const std::string& name,
                     paths&             search_paths);
 
+    /**
+     * Unlink the file.
+     *
+     * @param path The path of the file to unlink.
+     */
+    void unlink (const std::string& path, bool not_present_error = false);
+
   }
 }
 
