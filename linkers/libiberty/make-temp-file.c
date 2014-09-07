@@ -57,7 +57,7 @@ extern int mkstemps (char *, int);
 
 /* Name of temporary file.
    mktemp requires 6 trailing X's.  */
-#define TEMP_FILE "ccXXXXXX"
+#define TEMP_FILE "rld--XXXXXX"
 #define TEMP_FILE_LEN (sizeof(TEMP_FILE) - 1)
 
 #if !defined(_WIN32) || defined(__CYGWIN__)
@@ -111,7 +111,7 @@ choose_tmpdir (void)
       const char *base = 0;
       char *tmpdir;
       unsigned int len;
-      
+
 #ifdef VMS
       /* Try VMS standard temp logical.  */
       base = try_dir ("/sys$scratch", base);
@@ -120,7 +120,7 @@ choose_tmpdir (void)
       base = try_dir (getenv ("TMP"), base);
       base = try_dir (getenv ("TEMP"), base);
 #endif
-      
+
 #ifdef P_tmpdir
       /* We really want a directory name here as if concatenated with say \dir
 	 we do not end up with a double \\ which defines an UNC path.  */
@@ -134,7 +134,7 @@ choose_tmpdir (void)
       base = try_dir (vartmp, base);
       base = try_dir (usrtmp, base);
       base = try_dir (tmp, base);
-      
+
       /* If all else fails, use the current directory!  */
       if (base == 0)
 	base = ".";
