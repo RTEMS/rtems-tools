@@ -185,6 +185,8 @@ main (int argc, char* argv[])
     rld::symbols::table  base_symbols;
     rld::symbols::table  symbols;
     rld::symbols::symtab undefined;
+    std::string          rtems_path;
+    std::string          rtems_arch_bsp;
     std::string          entry = "rtems";
     std::string          exit;
     std::string          output = "a.out";
@@ -195,7 +197,6 @@ main (int argc, char* argv[])
     bool                 map = false;
     bool                 warnings = false;
     bool                 one_file = false;
-    bool                 arch_bsp_load = false;
 
     libpaths.push_back (".");
 
@@ -311,12 +312,11 @@ main (int argc, char* argv[])
           break;
 
         case 'r':
-          rld::rtems::path = optarg;
+          rtems_path = optarg;
           break;
 
         case 'B':
-          rld::rtems::arch_bsp = optarg;
-          arch_bsp_load = true;
+          rtems_arch_bsp = optarg;
           break;
 
         case '?':
@@ -353,8 +353,13 @@ main (int argc, char* argv[])
     /*
      * Load the arch/bsp value if provided.
      */
-    if (arch_bsp_load)
-      rld::rtems::load_cc ();
+    if (!rtems_arch_bsp.empty ())
+    {
+      if (rtems_path.empty ())
+        throw rld::error ("arch/bsp provide and no RTEMS path", "options");
+      rld::rtems::set_path (rtems_path);
+      rld::rtems::set_arch_bsp (rtems_arch_bsp);
+    }
 
     /*
      * Load the remaining command line arguments into the cache as object

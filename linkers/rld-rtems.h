@@ -32,50 +32,54 @@ namespace rld
   namespace rtems
   {
     /**
-     * The RTEMS default version.
+     * Set the RTEMS version.
      */
-    extern std::string version;
+    void set_version (const std::string& version);
 
     /**
-     * The path to RTEMS.
+     * Set the arch/bsp string.
      */
-    extern std::string path;
+    void set_arch_bsp (const std::string& arch_bsp);
 
     /**
-     * Is the RTEMS installed.
+     * Set the path to RTEMS.
      */
-    extern bool installed;
+    void set_path (const std::string& path);
 
     /**
-     * The BSP name.
+     * Get the RTEMS version.
      */
-    extern std::string arch_bsp;
+    const std::string version ();
+
+    /**
+     * Return the arch/bsp string.
+     */
+    const std::string arch_bsp ();
 
     /**
      * Return the architecture given an arch/bsp string.
      */
-    const std::string arch (const std::string& ab);
+    const std::string arch ();
 
     /**
      * Return the bsp given an arch/bsp string.
      */
-    const std::string bsp (const std::string& ab);
+    const std::string bsp ();
 
     /**
-     * Return the RTEMS bsp string given an arch/bsp string.
+     * Get the RTEMS path.
      */
-    const std::string rtems_bsp (const std::string& ab);
+    const std::string path ();
 
     /**
-     * Load the configuration. Set the various values via the command or a
-     * configuration file then check the configuration.
+     * Return the RTEMS BSP prefix.
      */
-    void load_cc ();
+    const std::string rtems_arch_prefix ();
 
     /**
-     * Process the BSP name updating the various CC flags.
+     * Return the arch/bsp as an RTEMS prefix and BSP string.
      */
-    void set_cc (void);
+    const std::string rtems_arch_bsp ();
   }
 }
 

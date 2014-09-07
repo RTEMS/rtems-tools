@@ -21,6 +21,7 @@
 #include <rld.h>
 #include <rld-cc.h>
 #include <rld-process.h>
+#include <rld-rtems.h>
 
 namespace rld
 {
@@ -423,7 +424,7 @@ namespace rld
       {
         std::string cmd = cc_name;
         if (!exec_prefix.empty ())
-          cmd = exec_prefix + "-rtems" + rld::rtems_version () + '-' + cmd;
+          cmd = exec_prefix + "-rtems" + rld::rtems::version () + '-' + cmd;
         args.push_back (cmd);
       }
     }

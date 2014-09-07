@@ -272,11 +272,6 @@ namespace rld
   const std::string version ();
 
   /**
-   * The RTEMS version string. @todo move to rld-rtems.
-   */
-  const std::string rtems_version ();
-
-  /**
    * Container of strings to hold the results of a split.
    */
   typedef std::vector < std::string > strings;

@@ -233,6 +233,12 @@ namespace rld
                             rld::process::tempfile& o);
 
       /**
+       * Link the application.
+       */
+      void link (rld::process::tempfile& o,
+                 const std::string&      ld_cmds);
+
+      /**
        * Dump the linker.
        */
       void dump (std::ostream& out) const;
@@ -752,6 +758,13 @@ namespace rld
     }
 
     void
+    linker::link (rld::process::tempfile& o,
+                  const std::string&      ld_cmds)
+    {
+
+    }
+
+    void
     linker::dump (std::ostream& out) const
     {
       const rld::config::paths& cpaths = config.get_paths ();
@@ -779,6 +792,7 @@ static struct option rld_opts[] = {
   { "verbose",     no_argument,            NULL,           'v' },
   { "warn",        no_argument,            NULL,           'w' },
   { "keep",        no_argument,            NULL,           'k' },
+  { "linker",      required_argument,      NULL,           'l' },
   { "exec-prefix", required_argument,      NULL,           'E' },
   { "cflags",      required_argument,      NULL,           'c' },
   { "rtems",       required_argument,      NULL,           'r' },
@@ -799,11 +813,12 @@ usage (int exit_code)
             << "              to increase verbosity (also --verbose)" << std::endl
             << " -w         : generate warnings (also --warn)" << std::endl
             << " -k         : keep temporary files (also --keep)" << std::endl
+            << " -l linker  : target linker is not standard (also --linker)" << std::endl
             << " -E prefix  : the RTEMS tool prefix (also --exec-prefix)" << std::endl
             << " -c cflags  : C compiler flags (also --cflags)" << std::endl
             << " -r path    : RTEMS path (also --rtems)" << std::endl
             << " -B bsp     : RTEMS arch/bsp (also --rtems-bsp)" << std::endl
-            << " -W wrapper : Wrapper file name without ext (also --wrapper)" << std::endl
+            << " -W wrapper : wrapper file name without ext (also --wrapper)" << std::endl
             << " -C ini     : user configuration INI file (also --config)" << std::endl;
   ::exit (exit_code);
 }
@@ -852,15 +867,17 @@ main (int argc, char* argv[])
   try
   {
     rld::trace::linker linker;
+    std::string        ld;
     std::string        ld_cmd;
     std::string        configuration;
     std::string        trace = "tracer";
     std::string        wrapper;
-    bool               arch_bsp_load = false;
+    std::string        rtems_path;
+    std::string        rtems_arch_bsp;
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvwkVE:c:C:r:B:W:", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvwkVl:E:c:C:r:B:W:", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -886,6 +903,10 @@ main (int argc, char* argv[])
           rld::process::set_keep_temporary_files ();
           break;
 
+        case 'l':
+          ld = optarg;
+          break;
+
         case 'E':
           rld::cc::set_exec_prefix (optarg);
           break;
@@ -895,12 +916,11 @@ main (int argc, char* argv[])
           break;
 
         case 'r':
-          rld::rtems::path = optarg;
+          rtems_path = optarg;
           break;
 
         case 'B':
-          rld::rtems::arch_bsp = optarg;
-          arch_bsp_load = true;
+          rtems_arch_bsp = optarg;
           break;
 
         case 'C':
@@ -930,18 +950,20 @@ main (int argc, char* argv[])
     /*
      * Load the arch/bsp value if provided.
      */
-    if (arch_bsp_load)
-      rld::rtems::load_cc ();
+    if (!rtems_arch_bsp.empty ())
+    {
+      if (rtems_path.empty ())
+        throw rld::error ("arch/bsp provide and no RTEMS path", "options");
+      rld::rtems::set_path (rtems_path);
+      rld::rtems::set_arch_bsp (rtems_arch_bsp);
+    }
 
     /*
      * Load the remaining command line arguments into the linker command line.
      */
     while (argc--)
-    {
-      if (ld_cmd.length () != 0)
-        ld_cmd += " ";
-      ld_cmd += *argv++;
-    }
+      ld_cmd += ' ' + *argv++;
+    ld_cmd = rld::trim (ld_cmd);
 
     /*
      * If there are no object files there is nothing to link.
@@ -969,6 +991,7 @@ main (int argc, char* argv[])
 
       linker.generate_wrapper (c);
       linker.compile_wrapper (c, o);
+      linker.link (o, ld_cmd);
 
       if (rld::verbose ())
         linker.dump (std::cout);
