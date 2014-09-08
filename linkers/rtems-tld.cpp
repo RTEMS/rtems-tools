@@ -135,7 +135,9 @@ namespace rld
       std::string  name;            /**< The name of this wrapper. */
       rld::strings headers;         /**< Include statements. */
       rld::strings defines;         /**< Define statements. */
+      std::string  entry_trace;     /**< Code template to trace the function entry. */
       std::string  arg_trace;       /**< Code template to trace an argument. */
+      std::string  exit_trace;      /**< Code template to trace the function exit. */
       std::string  ret_trace;       /**< Code template to trace the return value. */
       rld::strings code;            /**< Code block inserted before the trace code. */
 
@@ -440,8 +442,14 @@ namespace rld
       parse (config, section, "defines",     "define", defines);
       parse (config, section, "code-blocks", "code",   code, false);
 
-      arg_trace = rld::dequote (section.get_record_item ("arg-trace"));
-      ret_trace = rld::dequote (section.get_record_item ("ret-trace"));
+      if (section.has_record ("entry-trace"))
+        entry_trace = rld::dequote (section.get_record_item ("entry-trace"));
+      if (section.has_record ("arg-trace"))
+        arg_trace = rld::dequote (section.get_record_item ("arg-trace"));
+      if (section.has_record ("exit-trace"))
+        exit_trace = rld::dequote (section.get_record_item ("exit-trace"));
+      if (section.has_record ("ret-trace"))
+        ret_trace = rld::dequote (section.get_record_item ("ret-trace"));
     }
 
     void
@@ -639,6 +647,8 @@ namespace rld
 
             const signature& sig = (*si).second;
 
+            c.write_line(sig.decl () + ";");
+
             c.write_line("");
             c.write_line(sig.decl ("__wrap_"));
             c.write_line("{");
@@ -654,15 +664,26 @@ namespace rld
 
             std::string l;
 
-            for (size_t a = 0; a < sig.args.size (); ++a)
+            if (!generator_.entry_trace.empty ())
             {
-              std::string l = ' ' + generator_.arg_trace;
-              std::string n = rld::to_string ((int) (a + 1));
-              l = rld::find_replace (l, "@ARG_NUM@", n);
-              l = rld::find_replace (l, "@ARG_TYPE@", '"' + sig.args[0] + '"');
-              l = rld::find_replace (l, "@ARG_SIZE@", "sizeof(" + sig.args[0] + ')');
-              l = rld::find_replace (l, "@ARG_LABEL@", "a" + n);
+              std::string l = ' ' + generator_.entry_trace;
+              l = rld::find_replace (l, "@FUNC_NAME@", '"' + sig.name + '"');
+              l = rld::find_replace (l, "@FUNC_LABEL@", sig.name);
               c.write_line(l);
+            }
+
+            if (!generator_.arg_trace.empty ())
+            {
+              for (size_t a = 0; a < sig.args.size (); ++a)
+              {
+                std::string l = ' ' + generator_.arg_trace;
+                std::string n = rld::to_string ((int) (a + 1));
+                l = rld::find_replace (l, "@ARG_NUM@", n);
+                l = rld::find_replace (l, "@ARG_TYPE@", '"' + sig.args[0] + '"');
+                l = rld::find_replace (l, "@ARG_SIZE@", "sizeof(" + sig.args[0] + ')');
+                l = rld::find_replace (l, "@ARG_LABEL@", "a" + n);
+                c.write_line(l);
+              }
             }
 
             l.clear ();
@@ -680,7 +701,15 @@ namespace rld
             l += ");";
             c.write_line(l);
 
-            if (has_ret)
+            if (!generator_.exit_trace.empty ())
+            {
+              std::string l = ' ' + generator_.exit_trace;
+              l = rld::find_replace (l, "@FUNC_NAME@", '"' + sig.name + '"');
+              l = rld::find_replace (l, "@FUNC_LABEL@", sig.name);
+              c.write_line(l);
+            }
+
+            if (has_ret && !generator_.ret_trace.empty ())
             {
               std::string l = ' ' + generator_.ret_trace;
               l = rld::find_replace (l, "@RET_TYPE@", '"' + sig.ret + '"');

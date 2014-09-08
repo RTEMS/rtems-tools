@@ -42,6 +42,19 @@ namespace rld
     {
     }
 
+    bool
+    section::has_record (const std::string& name) const
+    {
+      for (records::const_iterator ri = recs.begin ();
+           ri != recs.end ();
+           ++ri)
+      {
+        if ((*ri).name == name)
+          return true;
+      }
+      return false;
+    }
+
     const record&
     section::get_record (const std::string& name) const
     {
@@ -53,7 +66,7 @@ namespace rld
           return *ri;
       }
 
-      throw error ("not found", "config record: " + this->name + '/' + name);
+      throw rld::error ("not found", "config record: " + this->name + '/' + name);
     }
 
     const std::string

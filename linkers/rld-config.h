@@ -87,6 +87,11 @@ namespace rld
       records     recs;  //< The section's records.
 
       /**
+       * Has the section got a record ?
+       */
+      bool has_record (const std::string& name) const;
+
+      /**
        * Find a record and throw an error if not found.
        */
       const record& get_record (const std::string& name) const;
