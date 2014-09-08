@@ -135,7 +135,6 @@ namespace rld
       std::string  name;            /**< The name of this wrapper. */
       rld::strings headers;         /**< Include statements. */
       rld::strings defines;         /**< Define statements. */
-      std::string  map_sym_prefix;  /**< Mapping symbol prefix. */
       std::string  arg_trace;       /**< Code template to trace an argument. */
       std::string  ret_trace;       /**< Code template to trace the return value. */
       rld::strings code;            /**< Code block inserted before the trace code. */
@@ -441,7 +440,6 @@ namespace rld
       parse (config, section, "defines",     "define", defines);
       parse (config, section, "code-blocks", "code",   code, false);
 
-      map_sym_prefix = section.get_record_item ("map-sym-prefix");
       arg_trace = rld::dequote (section.get_record_item ("arg-trace"));
       ret_trace = rld::dequote (section.get_record_item ("ret-trace"));
     }
@@ -464,8 +462,7 @@ namespace rld
       {
         out << "    " << (*di) << std::endl;
       }
-      out << "   Mapping Symbol Prefix: " << map_sym_prefix << std::endl
-          << "   Arg Trace Code: " << arg_trace << std::endl
+      out << "   Arg Trace Code: " << arg_trace << std::endl
           << "   Return Trace Code: " << ret_trace << std::endl
           << "   Code blocks: " << std::endl;
       for (rld::strings::const_iterator ci = code.begin ();
@@ -646,17 +643,32 @@ namespace rld
             c.write_line(sig.decl ("__wrap_"));
             c.write_line("{");
 
-            std::string l;
-
             /*
              * @todo Need to define as part of the function signature if ret
              *       processing is required.
              */
-            if (sig.ret != "void")
-            {
+            bool has_ret = sig.ret != "void";
+
+            if (has_ret)
               c.write_line(" " + sig.ret + " ret;");
-              l = " ret =";
+
+            std::string l;
+
+            for (size_t a = 0; a < sig.args.size (); ++a)
+            {
+              std::string l = ' ' + generator_.arg_trace;
+              std::string n = rld::to_string ((int) (a + 1));
+              l = rld::find_replace (l, "@ARG_NUM@", n);
+              l = rld::find_replace (l, "@ARG_TYPE@", '"' + sig.args[0] + '"');
+              l = rld::find_replace (l, "@ARG_SIZE@", "sizeof(" + sig.args[0] + ')');
+              l = rld::find_replace (l, "@ARG_LABEL@", "a" + n);
+              c.write_line(l);
             }
+
+            l.clear ();
+
+            if (has_ret)
+              l = " ret =";
 
             l += " __real_" + sig.name + '(';
             for (size_t a = 0; a < sig.args.size (); ++a)
@@ -668,8 +680,13 @@ namespace rld
             l += ");";
             c.write_line(l);
 
-            if (sig.ret != "void")
+            if (has_ret)
             {
+              std::string l = ' ' + generator_.ret_trace;
+              l = rld::find_replace (l, "@RET_TYPE@", '"' + sig.ret + '"');
+              l = rld::find_replace (l, "@RET_SIZE@", "sizeof(" + sig.ret + ')');
+              l = rld::find_replace (l, "@RET_LABEL@", "ret");
+              c.write_line(l);
               c.write_line(" return ret;");
             }
 
@@ -785,15 +802,14 @@ namespace rld
       if (rld::verbose ())
         std::cout << "linking: " << o.name () << std::endl;
 
-      std::string wrap = " -Wl,--wrap -Wl,";
+      std::string wrap = " -Wl,--wrap=";
 
       rld::cc::make_ld_command (args);
 
-      args.push_back (o.name ());
-
-      rld::process::args_append (args, ld_cmd);
       rld::process::args_append (args,
                                  wrap + rld::join (tracer_.get_traces (), wrap));
+      args.push_back (o.name ());
+      rld::process::args_append (args, ld_cmd);
 
       rld::process::tempfile out;
       rld::process::tempfile err;
@@ -807,9 +823,10 @@ namespace rld
       if ((status.type != rld::process::status::normal) ||
           (status.code != 0))
       {
-        err.output (rld::cc::get_cc (), std::cout);
+        err.output (rld::cc::get_ld (), std::cout);
         throw rld::error ("Linker error", "linking");
       }
+      err.output (rld::cc::get_ld (), std::cout);
     }
 
     void
