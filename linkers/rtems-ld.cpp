@@ -198,6 +198,8 @@ main (int argc, char* argv[])
     bool                 warnings = false;
     bool                 one_file = false;
 
+    rld::set_cmdline (argc, argv);
+
     libpaths.push_back (".");
 
     while (true)
@@ -329,11 +331,19 @@ main (int argc, char* argv[])
       }
     }
 
+    /*
+     * Set the program name.
+     */
+    rld::set_progname (argv[0]);
+
     argc -= optind;
     argv += optind;
 
     if (rld::verbose () || map)
+    {
       std::cout << "RTEMS Linker " << rld::version () << std::endl;
+      std::cout << " " << rld::get_cmdline () << std::endl;
+    }
 
     /*
      * If there are no object files there is nothing to link.
@@ -355,9 +365,13 @@ main (int argc, char* argv[])
      */
     if (!rtems_arch_bsp.empty ())
     {
-      if (rtems_path.empty ())
+      const std::string& prefix = rld::get_prefix ();
+      if (rtems_path.empty () && prefix.empty ())
         throw rld::error ("No RTEMS path provide with arch/bsp", "options");
-      rld::rtems::set_path (rtems_path);
+      if (!rtems_path.empty ())
+        rld::rtems::set_path (rtems_path);
+      else
+        rld::rtems::set_path (prefix);
       rld::rtems::set_arch_bsp (rtems_arch_bsp);
     }
 

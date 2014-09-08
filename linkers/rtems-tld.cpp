@@ -972,6 +972,8 @@ main (int argc, char* argv[])
     std::string        rtems_path;
     std::string        rtems_arch_bsp;
 
+    rld::set_cmdline (argc, argv);
+
     while (true)
     {
       int opt = ::getopt_long (argc, argv, "hvwkVc:l:E:f:C:r:B:W:", rld_opts, NULL);
@@ -1051,16 +1053,23 @@ main (int argc, char* argv[])
     argv += optind;
 
     if (rld::verbose ())
+    {
       std::cout << "RTEMS Trace Linker " << rld::version () << std::endl;
+      std::cout << " " << rld::get_cmdline () << std::endl;
+    }
 
     /*
      * Load the arch/bsp value if provided.
      */
     if (!rtems_arch_bsp.empty ())
     {
-      if (rtems_path.empty ())
+      const std::string& prefix = rld::get_prefix ();
+      if (rtems_path.empty () && prefix.empty ())
         throw rld::error ("No RTEMS path provide with arch/bsp", "options");
-      rld::rtems::set_path (rtems_path);
+      if (!rtems_path.empty ())
+        rld::rtems::set_path (rtems_path);
+      else
+        rld::rtems::set_path (prefix);
       rld::rtems::set_arch_bsp (rtems_arch_bsp);
     }
 

@@ -39,6 +39,15 @@
 namespace rld
 {
   static int verbose_level = 0;
+
+  /**
+   * The program's command line.
+   */
+  static std::string cmdline;
+
+  /**
+   * The program name as set by the caller.
+   */
   static std::string progname;
 
   /**
@@ -206,6 +215,24 @@ namespace rld
   }
 
   void
+  set_cmdline (int argc, char* argv[])
+  {
+    cmdline.clear ();
+    for (int arg = 0; arg < argc; ++arg)
+    {
+      std::string a = argv[arg];
+      cmdline += ' ' + a;
+    }
+    cmdline = rld::trim (cmdline);
+  }
+
+  const std::string
+  get_cmdline ()
+  {
+    return cmdline;
+  }
+
+  void
   set_progname (const std::string& progname_)
   {
     progname = rld::path::path_abs (progname_);
@@ -233,10 +260,9 @@ namespace rld
   get_prefix ()
   {
     std::string pp = get_program_path ();
-    std::cout << "PP=" << pp << std::endl;
     if (rld::path::basename (pp) == "bin")
-      pp = rld::path::dirname (pp);
-    return pp;
+      return rld::path::dirname (pp);
+    return "";
   }
 
   void

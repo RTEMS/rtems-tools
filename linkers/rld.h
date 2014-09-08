@@ -200,6 +200,16 @@ namespace rld
   typedef std::vector < std::string > strings;
 
   /**
+   * Set the command line.
+   */
+  void set_cmdline (int argc, char* argv[]);
+
+  /**
+   * Get the command line.
+   */
+  const std::string get_cmdline ();
+
+  /**
    * Set the progname.
    */
   void set_progname (const std::string& progname);
