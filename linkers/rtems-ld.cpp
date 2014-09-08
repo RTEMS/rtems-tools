@@ -356,7 +356,7 @@ main (int argc, char* argv[])
     if (!rtems_arch_bsp.empty ())
     {
       if (rtems_path.empty ())
-        throw rld::error ("arch/bsp provide and no RTEMS path", "options");
+        throw rld::error ("No RTEMS path provide with arch/bsp", "options");
       rld::rtems::set_path (rtems_path);
       rld::rtems::set_arch_bsp (rtems_arch_bsp);
     }

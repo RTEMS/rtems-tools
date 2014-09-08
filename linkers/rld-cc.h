@@ -121,6 +121,21 @@ namespace rld
     bool is_cc_set ();
 
     /**
+     * Set LD. The exec-prefix is ignored if this is set.
+     */
+    void set_ld (const std::string& ld);
+
+    /**
+     * Get the LD.
+     */
+    const std::string get_ld ();
+
+    /**
+     * Is the LD set ?
+     */
+    bool is_ld_set ();
+
+    /**
      * Set the exec-prefix. If CC is set the exec-prefix is ignored.
      */
     void set_exec_prefix (const std::string& exec_prefix);
@@ -176,6 +191,11 @@ namespace rld
      * Make a CC command from the set arguments.
      */
     void make_cc_command (rld::process::arg_container& args);
+
+    /**
+     * Make a LD command from the set arguments.
+     */
+    void make_ld_command (rld::process::arg_container& args);
 
     /**
      * Get the standard libraries paths from the compiler.

@@ -39,6 +39,7 @@
 namespace rld
 {
   static int verbose_level = 0;
+  static std::string progname;
 
   /**
    * The option container.
@@ -63,7 +64,119 @@ namespace rld
   /**
    * The output passed on the command line.
    */
-  static std::string output;
+  //static std::string output;
+
+  bool
+  starts_with(const std::string& s1, const std::string& s2)
+  {
+    return s2.size () <= s1.size () && s1.compare (0, s2.size (), s2) == 0;
+  }
+
+  const std::string
+  ltrim (const std::string& s)
+  {
+    std::string t = s;
+    t.erase (t.begin (),
+             std::find_if (t.begin (), t.end (),
+                         std::not1 (std::ptr_fun < int, int > (std::isspace))));
+    return t;
+  }
+
+  const std::string
+  rtrim (const std::string& s)
+  {
+    std::string t = s;
+    t.erase (std::find_if (t.rbegin (), t.rend (),
+                           std::not1 (std::ptr_fun < int, int > (std::isspace))).base(),
+             t.end());
+    return t;
+  }
+
+  const std::string
+  trim (const std::string& s)
+  {
+    return ltrim (rtrim (s));
+  }
+
+  const std::string
+  dequote (const std::string& s)
+  {
+    if (!s.empty ())
+    {
+      char front = s[0];
+      char back = s[s.length () - 1];
+      if ((front == '"') || (front == '\''))
+      {
+        if (front != back)
+          throw rld::error ("invalid quoting", "string: " + s);
+        return s.substr (1, s.length () - (1 + 1));
+      }
+    }
+    return s;
+  }
+
+  const std::string
+  find_replace(const std::string& sin,
+               const std::string& out,
+               const std::string& in)
+  {
+    std::string s = sin;
+    size_t      pos = 0;
+    while ((pos = s.find (out, pos)) != std::string::npos)
+    {
+      s.replace (pos, out.length (), in);
+      pos += in.length ();
+    }
+    return s;
+  }
+
+  const strings
+  split (strings&           se,
+         const std::string& s,
+         char               delimiter,
+         bool               strip_quotes,
+         bool               strip_whitespace,
+         bool               empty)
+  {
+    std::stringstream ss(s);
+    std::string       e;
+    se.clear ();
+    while (std::getline (ss, e, delimiter))
+    {
+      if (strip_whitespace)
+        e = trim (e);
+      if (strip_quotes)
+        e = dequote (e);
+      if (empty || !e.empty ())
+      {
+        se.push_back (e);
+      }
+    }
+    return se;
+  }
+
+  const std::string
+  join (const strings& ss, const std::string& separator)
+  {
+    std::string s;
+    for (strings::const_iterator ssi = ss.begin ();
+         ssi != ss.end ();
+         ++ssi)
+    {
+      s += *ssi;
+      if ((ssi + 1) != ss.end ())
+        s += separator;
+    }
+    return s;
+  }
+
+  const std::string
+  tolower (const std::string& sin)
+  {
+    std::string s = sin;
+    std::transform (s.begin (), s.end (), s.begin (), ::tolower);
+    return s;
+  }
 
   void
   verbose_inc ()
@@ -90,6 +203,40 @@ namespace rld
   rtems_version ()
   {
     return rld::to_string (RTEMS_VERSION);
+  }
+
+  void
+  set_progname (const std::string& progname_)
+  {
+    progname = rld::path::path_abs (progname_);
+  }
+
+  const std::string
+  get_progname ()
+  {
+    return progname;
+  }
+
+  const std::string
+  get_program_name ()
+  {
+    return rld::path::basename (progname);
+  }
+
+  const std::string
+  get_program_path ()
+  {
+    return rld::path::dirname (progname);
+  }
+
+  const std::string
+  get_prefix ()
+  {
+    std::string pp = get_program_path ();
+    std::cout << "PP=" << pp << std::endl;
+    if (rld::path::basename (pp) == "bin")
+      pp = rld::path::dirname (pp);
+    return pp;
   }
 
   void

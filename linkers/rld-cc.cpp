@@ -30,7 +30,12 @@ namespace rld
     static std::string cc;              //< The CC executable as absolute path.
     static bool        cc_set;          //< True when the CC has been set.
     static std::string cc_name = "gcc"; //< The CC name, ie gcc, clang.
-    static std::string exec_prefix;     //< The CC executable prefix.
+
+    static std::string ld;              //< The LD executable as absolute path.
+    static bool        ld_set;          //< True when the LD has been set.
+    static std::string ld_name = "gcc"; //< The LD name, ie gcc, clang.
+
+    static std::string exec_prefix;     //< The CC/LD executable prefix.
 
     static std::string cppflags;        //< The CPP flags.
     static std::string cflags;          //< The CC flags.
@@ -250,6 +255,25 @@ namespace rld
     }
 
     void
+    set_ld (const std::string& ld_)
+    {
+      ld = ld_;
+      ld_set = true;
+    }
+
+    const std::string
+    get_ld ()
+    {
+      return ld;
+    }
+
+    bool
+    is_ld_set ()
+    {
+      return ld_set;
+    }
+
+    void
     set_exec_prefix (const std::string& exec_prefix_)
     {
       exec_prefix = exec_prefix_;
@@ -418,11 +442,32 @@ namespace rld
       /*
        * Use the absolute path to CC if provided.
        */
-      if (!cc.empty ())
+      if (is_cc_set ())
+      {
         args.push_back (cc);
+      }
       else
       {
         std::string cmd = cc_name;
+        if (!exec_prefix.empty ())
+          cmd = exec_prefix + "-rtems" + rld::rtems::version () + '-' + cmd;
+        args.push_back (cmd);
+      }
+    }
+
+    void
+    make_ld_command (rld::process::arg_container& args)
+    {
+      /*
+       * Use the absolute path to LD if provided.
+       */
+      if (is_ld_set ())
+      {
+        args.push_back (get_ld ());
+      }
+      else
+      {
+        std::string cmd = ld_name;
         if (!exec_prefix.empty ())
           cmd = exec_prefix + "-rtems" + rld::rtems::version () + '-' + cmd;
         args.push_back (cmd);

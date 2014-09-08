@@ -27,7 +27,7 @@ namespace rld
 {
   namespace path
   {
-    std::string
+    const std::string
     basename (const std::string& name)
     {
       size_t b = name.find_last_of (RLD_PATH_SEPARATOR);
@@ -36,16 +36,16 @@ namespace rld
       return name;
     }
 
-    std::string
+    const std::string
     dirname (const std::string& name)
     {
       size_t b = name.find_last_of (RLD_PATH_SEPARATOR);
       if (b != std::string::npos)
-        return name.substr (0, b - 1);
+        return name.substr (0, b);
       return name;
     }
 
-    std::string
+    const std::string
     extension (const std::string& name)
     {
       size_t b = name.find_last_of ('.');
@@ -94,6 +94,60 @@ namespace rld
       {
         path_join (joined, *pi, joined);
       }
+    }
+
+    const std::string
+    path_abs (const std::string& path)
+    {
+      std::string apath;
+
+      if (path[0] == RLD_PATH_SEPARATOR)
+      {
+        apath = path;
+      }
+      else
+      {
+        char* buf = 0;
+        try
+        {
+          buf = new char[32 * 1024];
+          if (!::getcwd (buf, 132 * 1024))
+            throw rld::error (::strerror (errno), "get current working directory");
+          path_join (buf, path, apath);
+        }
+        catch (...)
+        {
+          delete [] buf;
+          throw;
+        }
+      }
+
+      strings ps;
+      strings aps;
+
+      rld::split (ps, apath, RLD_PATH_SEPARATOR);
+
+      for (strings::iterator psi = ps.begin ();
+           psi != ps.end ();
+           ++psi)
+      {
+        const std::string& dir = *psi;
+
+        if (dir.empty () || dir == ".")
+        {
+          /* do nothing */
+        }
+        else if (dir == "..")
+        {
+          aps.pop_back ();
+        }
+        else
+        {
+          aps.push_back (dir);
+        }
+      }
+
+      return RLD_PATH_SEPARATOR + rld::join (aps, RLD_PATH_SEPARATOR_STR);
     }
 
     bool

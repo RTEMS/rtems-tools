@@ -90,7 +90,7 @@ namespace rld
       /**
        * Return the function's declaration.
        */
-      const std::string decl () const;
+      const std::string decl (const std::string& prefix = "") const;
     };
 
     /**
@@ -192,6 +192,11 @@ namespace rld
        * Generate the trace functions.
        */
       void generate_traces (rld::process::tempfile& c);
+
+      /**
+       * Get the traces.
+       */
+      const rld::strings& get_traces () const;
 
       /**
        * Dump the wrapper.
@@ -321,9 +326,9 @@ namespace rld
     }
 
     const std::string
-    signature::decl () const
+    signature::decl (const std::string& prefix) const
     {
-      std::string ds = ret + ' ' + name + '(';
+      std::string ds = ret + ' ' + prefix + name + '(';
       int         arg = 0;
       for (function_args::const_iterator ai = args.begin ();
            ai != args.end ();
@@ -485,7 +490,6 @@ namespace rld
        * configuration and may contain:
        *
        *  # name      The name of trace being linked.
-       *  # bsp       The architecture/bsp name of the BSP.
        *  # options   A list of options as per the long command line args.
        *  # traces    The list of sections containing function lists to trace.
        *  # functions The list of sections containing function details.
@@ -503,7 +507,6 @@ namespace rld
       config.includes (section);
 
       name = section.get_record_item ("name");
-      bsp  = section.get_record_item ("bsp");
 
       load_functions (config, section);
       load_traces (config, section);
@@ -640,7 +643,7 @@ namespace rld
             const signature& sig = (*si).second;
 
             c.write_line("");
-            c.write_line(sig.decl ());
+            c.write_line(sig.decl ("__wrap_"));
             c.write_line("{");
 
             std::string l;
@@ -655,7 +658,7 @@ namespace rld
               l = " ret =";
             }
 
-            l += " " + generator_.map_sym_prefix + sig.name + '(';
+            l += " __real_" + sig.name + '(';
             for (size_t a = 0; a < sig.args.size (); ++a)
             {
               if (a)
@@ -677,6 +680,12 @@ namespace rld
         if (!found)
           throw rld::error ("not found", "trace function: " + trace);
       }
+    }
+
+    const rld::strings&
+    tracer::get_traces () const
+    {
+      return traces;
     }
 
     void
@@ -710,6 +719,16 @@ namespace rld
     linker::load_config (const std::string& path,
                          const std::string& trace)
     {
+      std::string sp = get_prefix ();
+
+      rld::path::path_join (sp, "share", sp);
+      rld::path::path_join (sp, "rtems", sp);
+      rld::path::path_join (sp, "trace-linker", sp);
+
+      if (rld::verbose () || true)
+        std::cout << "search path: " << sp << std::endl;
+
+      config.set_search_path (sp);
       config.clear ();
       config.load (path);
       tracer_.load (config, trace);
@@ -759,9 +778,38 @@ namespace rld
 
     void
     linker::link (rld::process::tempfile& o,
-                  const std::string&      ld_cmds)
+                  const std::string&      ld_cmd)
     {
+     rld::process::arg_container args;
 
+      if (rld::verbose ())
+        std::cout << "linking: " << o.name () << std::endl;
+
+      std::string wrap = " -Wl,--wrap -Wl,";
+
+      rld::cc::make_ld_command (args);
+
+      args.push_back (o.name ());
+
+      rld::process::args_append (args, ld_cmd);
+      rld::process::args_append (args,
+                                 wrap + rld::join (tracer_.get_traces (), wrap));
+
+      rld::process::tempfile out;
+      rld::process::tempfile err;
+      rld::process::status   status;
+
+      status = rld::process::execute (rld::cc::get_ld (),
+                                      args,
+                                      out.name (),
+                                      err.name ());
+
+      if ((status.type != rld::process::status::normal) ||
+          (status.code != 0))
+      {
+        err.output (rld::cc::get_cc (), std::cout);
+        throw rld::error ("Linker error", "linking");
+      }
     }
 
     void
@@ -792,9 +840,10 @@ static struct option rld_opts[] = {
   { "verbose",     no_argument,            NULL,           'v' },
   { "warn",        no_argument,            NULL,           'w' },
   { "keep",        no_argument,            NULL,           'k' },
+  { "compiler",    required_argument,      NULL,           'c' },
   { "linker",      required_argument,      NULL,           'l' },
   { "exec-prefix", required_argument,      NULL,           'E' },
-  { "cflags",      required_argument,      NULL,           'c' },
+  { "cflags",      required_argument,      NULL,           'f' },
   { "rtems",       required_argument,      NULL,           'r' },
   { "rtems-bsp",   required_argument,      NULL,           'B' },
   { "config",      required_argument,      NULL,           'C' },
@@ -807,19 +856,20 @@ usage (int exit_code)
 {
   std::cout << "rtems-trace-ld [options] objects" << std::endl
             << "Options and arguments:" << std::endl
-            << " -h         : help (also --help)" << std::endl
-            << " -V         : print linker version number and exit (also --version)" << std::endl
-            << " -v         : verbose (trace import parts), can supply multiple times" << std::endl
-            << "              to increase verbosity (also --verbose)" << std::endl
-            << " -w         : generate warnings (also --warn)" << std::endl
-            << " -k         : keep temporary files (also --keep)" << std::endl
-            << " -l linker  : target linker is not standard (also --linker)" << std::endl
-            << " -E prefix  : the RTEMS tool prefix (also --exec-prefix)" << std::endl
-            << " -c cflags  : C compiler flags (also --cflags)" << std::endl
-            << " -r path    : RTEMS path (also --rtems)" << std::endl
-            << " -B bsp     : RTEMS arch/bsp (also --rtems-bsp)" << std::endl
-            << " -W wrapper : wrapper file name without ext (also --wrapper)" << std::endl
-            << " -C ini     : user configuration INI file (also --config)" << std::endl;
+            << " -h          : help (also --help)" << std::endl
+            << " -V          : print linker version number and exit (also --version)" << std::endl
+            << " -v          : verbose (trace import parts), can supply multiple times" << std::endl
+            << "               to increase verbosity (also --verbose)" << std::endl
+            << " -w          : generate warnings (also --warn)" << std::endl
+            << " -k          : keep temporary files (also --keep)" << std::endl
+            << " -c compiler : target compiler is not standard (also --compiler)" << std::endl
+            << " -l linker   : target linker is not standard (also --linker)" << std::endl
+            << " -E prefix   : the RTEMS tool prefix (also --exec-prefix)" << std::endl
+            << " -f cflags   : C compiler flags (also --cflags)" << std::endl
+            << " -r path     : RTEMS path (also --rtems)" << std::endl
+            << " -B bsp      : RTEMS arch/bsp (also --rtems-bsp)" << std::endl
+            << " -W wrappe r : wrapper file name without ext (also --wrapper)" << std::endl
+            << " -C ini      : user configuration INI file (also --config)" << std::endl;
   ::exit (exit_code);
 }
 
@@ -867,6 +917,7 @@ main (int argc, char* argv[])
   try
   {
     rld::trace::linker linker;
+    std::string        cc;
     std::string        ld;
     std::string        ld_cmd;
     std::string        configuration;
@@ -877,7 +928,7 @@ main (int argc, char* argv[])
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvwkVl:E:c:C:r:B:W:", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvwkVc:l:E:f:C:r:B:W:", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -903,6 +954,10 @@ main (int argc, char* argv[])
           rld::process::set_keep_temporary_files ();
           break;
 
+        case 'c':
+          cc = optarg;
+          break;
+
         case 'l':
           ld = optarg;
           break;
@@ -911,7 +966,7 @@ main (int argc, char* argv[])
           rld::cc::set_exec_prefix (optarg);
           break;
 
-        case 'c':
+        case 'f':
           rld::cc::append_flags (optarg, rld::cc::ft_cflags);
           break;
 
@@ -941,6 +996,11 @@ main (int argc, char* argv[])
       }
     }
 
+    /*
+     * Set the program name.
+     */
+    rld::set_progname (argv[0]);
+
     argc -= optind;
     argv += optind;
 
@@ -953,16 +1013,30 @@ main (int argc, char* argv[])
     if (!rtems_arch_bsp.empty ())
     {
       if (rtems_path.empty ())
-        throw rld::error ("arch/bsp provide and no RTEMS path", "options");
+        throw rld::error ("No RTEMS path provide with arch/bsp", "options");
       rld::rtems::set_path (rtems_path);
       rld::rtems::set_arch_bsp (rtems_arch_bsp);
     }
+
+    /**
+     * Set the compiler and/or linker if provided.
+     */
+    if (!cc.empty ())
+      rld::cc::set_cc (cc);
+    if (!ld.empty ())
+      rld::cc::set_ld (ld);
 
     /*
      * Load the remaining command line arguments into the linker command line.
      */
     while (argc--)
-      ld_cmd += ' ' + *argv++;
+    {
+      /*
+       * Create this value because 'ld_cmd += ' ' + *argv++' fails on clang.
+       */
+      std::string av = *argv++;
+      ld_cmd += ' ' + av;
+    }
     ld_cmd = rld::trim (ld_cmd);
 
     /*

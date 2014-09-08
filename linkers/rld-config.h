@@ -95,7 +95,7 @@ namespace rld
        * Return the single item in a record. If the record is duplicated an
        * error is thrown.
        */
-      std::string get_record_item (const std::string& name) const;
+      const std::string get_record_item (const std::string& name) const;
 
       /**
        * Return the list of items in a record in a strings container.
@@ -122,8 +122,17 @@ namespace rld
       /**
        * Construct an empty configuration.
        */
-      config();
+      config(const std::string& search_path = "");
+
+      /**
+       * Desctruct the configuration object.
+       */
       virtual ~config();
+
+      /**
+       * Set the search path.
+       */
+      void set_search_path (const std::string& search_path);
 
       /**
        * Clear the current configuration.
@@ -154,8 +163,9 @@ namespace rld
 
     private:
 
-      paths    paths_; /**< The path's of the loaded files. */
-      sections secs;   /**< The sections loaded from configuration files */
+      paths    search; //< The paths to search for config files in.
+      paths    paths_; //< The path's of the loaded files.
+      sections secs;   //< The sections loaded from configuration files
     };
 
     /**

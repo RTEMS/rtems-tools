@@ -45,29 +45,29 @@ namespace rld
      * Return the basename of the file name.
      *
      * @param name The full file name.
-     * @return std::string The basename of the file.
+     * @return const std::string The basename of the file.
      */
-    std::string basename (const std::string& name);
+    const std::string basename (const std::string& name);
 
     /**
      * Return the dirname of the file name.
      *
      * @param name The full file name.
-     * @return std::string The dirname of the file.
+     * @return const std::string The dirname of the file.
      */
-    std::string dirname (const std::string& name);
+    const std::string dirname (const std::string& name);
 
     /**
      * Return the extension of the file name.
      *
      * @param name The full file name.
-     * @return std::string The extension of the file.
+     * @return const std::string The extension of the file.
      */
-    std::string extension (const std::string& name);
+    const std::string extension (const std::string& name);
 
     /**
-     * Split a path from a string with a delimiter to the path container. Add
-     * only the paths that exist and ignore those that do not.
+     * Split a path from a string with the path seperator to the path
+     * container. Add only the paths that exist and ignore those that do not.
      *
      * @param path The paths as a single string delimited by the path
      *             separator.
@@ -98,6 +98,15 @@ namespace rld
     void path_join (const std::string& base,
                     const paths&       parts,
                     std::string&       joined);
+
+    /**
+     * Return the absolute path given a path and using the current working
+     * directory. The path is flattened removing any '..' sequences.
+     *
+     * @param path The path to be return as absolute.
+     * @return const std::string The absolute path.
+     */
+    const std::string path_abs (const std::string& path);
 
     /**
      * Check the path is a file using a stat call.

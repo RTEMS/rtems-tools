@@ -126,76 +126,34 @@ namespace rld
   /**
    * Does a string start with another string ?
    */
-  inline bool starts_with(const std::string& s1, const std::string& s2)
-  {
-    return s2.size () <= s1.size () && s1.compare (0, s2.size (), s2) == 0;
-  }
+  bool starts_with(const std::string& s1, const std::string& s2);
 
   /**
    * Trim from start.
    */
-  inline std::string& ltrim (std::string &s)
-  {
-    s.erase (s.begin (),
-            std::find_if (s.begin (), s.end (),
-                         std::not1 (std::ptr_fun < int, int > (std::isspace))));
-    return s;
-  }
+  const std::string ltrim (const std::string& s);
 
   /**
    * Trim from end.
    */
-  inline std::string& rtrim (std::string &s)
-  {
-    s.erase (std::find_if (s.rbegin (), s.rend (),
-                           std::not1 (std::ptr_fun < int, int > (std::isspace))).base(),
-             s.end());
-    return s;
-  }
+  const std::string rtrim (const std::string& s);
 
   /**
    * Trim from both ends.
    */
-  inline std::string& trim (std::string &s)
-  {
-    return ltrim (rtrim (s));
-  }
+  const std::string trim (const std::string& s);
 
   /**
    * Dequote a string.
    */
-  inline std::string dequote (const std::string& s)
-  {
-    if (!s.empty ())
-    {
-      char front = s[0];
-      char back = s[s.length () - 1];
-      if ((front == '"') || (front == '\''))
-      {
-        if (front != back)
-          throw rld::error ("invalid quoting", "string: " + s);
-        return s.substr (1, s.length () - (1 + 1));
-      }
-    }
-    return s;
-  }
+  const std::string dequote (const std::string& s);
 
   /**
    * Find and replace.
    */
-  inline std::string find_replace(const std::string& sin,
-                                  const std::string& out,
-                                  const std::string& in)
-  {
-    std::string s = sin;
-    size_t      pos = 0;
-    while ((pos = s.find (out, pos)) != std::string::npos)
-    {
-      s.replace (pos, out.length (), in);
-      pos += in.length ();
-    }
-    return s;
-  }
+  const std::string find_replace(const std::string& sin,
+                                 const std::string& out,
+                                 const std::string& in);
 
   /**
    * Split the string in a contain of strings based on the the
@@ -203,57 +161,22 @@ namespace rld
    *
    * @todo The split should optionally honour string quoting.
    */
-  inline strings split (strings&           se,
-                        const std::string& s,
-                        char               delimiter = ' ',
-                        bool               strip_quotes = true,
-                        bool               strip_whitespace = true,
-                        bool               empty = false)
-  {
-    std::stringstream ss(s);
-    std::string       e;
-    se.clear ();
-    while (std::getline (ss, e, delimiter))
-    {
-      if (strip_whitespace)
-        trim (e);
-      if (strip_quotes)
-        e = dequote (e);
-      if (empty || !e.empty ())
-      {
-        se.push_back (e);
-      }
-    }
-    return se;
-  }
+  const strings split (strings&           se,
+                       const std::string& s,
+                       char               delimiter = ' ',
+                       bool               strip_quotes = true,
+                       bool               strip_whitespace = true,
+                       bool               empty = false);
 
   /**
    * Join the strings together with the separator.
    */
-  inline std::string join (const strings&     ss,
-                           const std::string& separator)
-  {
-    std::string s;
-    for (strings::const_iterator ssi = ss.begin ();
-         ssi != ss.end ();
-         ++ssi)
-    {
-      s += *ssi;
-      if ((ssi != ss.begin ()) && (ssi != ss.end ()))
-        s += separator;
-    }
-    return s;
-  }
+  const std::string join (const strings& ss, const std::string& separator);
 
   /**
    * Convert a string to lower case.
    */
-  inline std::string tolower (const std::string& sin)
-  {
-    std::string s = sin;
-    std::transform (s.begin (), s.end (), s.begin (), ::tolower);
-    return s;
-  }
+  const std::string tolower (const std::string& sin);
 
   /**
    * Increment the verbose level.
@@ -277,12 +200,40 @@ namespace rld
   typedef std::vector < std::string > strings;
 
   /**
+   * Set the progname.
+   */
+  void set_progname (const std::string& progname);
+
+  /**
+   * Get the progname. This is an absolute path.
+   */
+  const std::string get_progname ();
+
+  /**
+   * Get the program name.
+   */
+  const std::string get_program_name ();
+
+  /**
+   * Get the program path.
+   */
+  const std::string get_program_path ();
+
+  /**
+   * Get the current install prefix. If the path to the executable has 'bin' as
+   * the executable's parent directory it is assumed the executable has been
+   * installed under a standard PREFIX. If "bin" is not found return the
+   * executable's absolute path.
+   */
+  const std::string get_prefix ();
+
+  /**
    * Map of the symbol table.
    */
   void map (rld::files::cache& cache, rld::symbols::table& symbols);
 
   /**
-   * Warn is externals in referenced object files are not used.
+   * Warn if externals in referenced object files are not used.
    */
   void warn_unused_externals (rld::files::object_list& objects);
 }

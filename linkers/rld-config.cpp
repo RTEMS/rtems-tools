@@ -56,7 +56,7 @@ namespace rld
       throw error ("not found", "config record: " + this->name + '/' + name);
     }
 
-    std::string
+    const std::string
     section::get_record_item (const std::string& rec_name) const
     {
       const record& rec = get_record (rec_name);
@@ -78,12 +78,20 @@ namespace rld
       }
     }
 
-    config::config()
+    config::config(const std::string& search_path)
     {
+      set_search_path (search_path);
     }
 
     config::~config()
     {
+    }
+
+    void
+    config::set_search_path (const std::string& search_path)
+    {
+      if (!search_path.empty ())
+        rld::path::path_split (search_path, search);
     }
 
     void
@@ -97,10 +105,34 @@ namespace rld
     {
       CSimpleIniCaseA ini (false, true, true);
 
-      if (ini.LoadFile (path.c_str ()) != SI_OK)
+      std::string checked_path;
+
+      if (rld::path::check_file (path))
+      {
+        checked_path = path;
+      }
+      else
+      {
+        bool found = false;
+        for (rld::path::paths::const_iterator spi = search.begin ();
+             spi != search.end ();
+             ++spi)
+        {
+          rld::path::path_join (*spi, path, checked_path);
+          if (rld::path::check_file (checked_path))
+          {
+            found = true;
+            break;
+          }
+        }
+        if (!found)
+          throw rld::error ("Not found.", "load config: " + path);
+      }
+
+      if (ini.LoadFile (checked_path.c_str ()) != SI_OK)
         throw rld::error (::strerror (errno), "load config: " + path);
 
-      paths_.push_back (path);
+      paths_.push_back (checked_path);
 
       /*
        * Merge the loaded configuration into our configuration.
@@ -162,12 +194,7 @@ namespace rld
         have_includes = true;
 
         /*
-         * Include records are a path which we can just load.
-         *
-         * @todo Add a search path. See 'rld::files' for details. We can default
-         *       the search path to the install $prefix of this tool and we can
-         *       then provide a default set of function signatures for RTEMS
-         *       APIs.
+         * Include records are a paths which we can load.
          */
 
         for (rld::strings::const_iterator isi = is.begin ();

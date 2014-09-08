@@ -165,6 +165,8 @@ def build(bld):
                 cxxflags = bld.cxxflags + bld.warningflags,
                 linkflags = bld.linkflags,
                 use = modules)
+    bld.install_files('${PREFIX}/share/rtems/trace-linker',
+                      ['rtems.ini', 'rtld-base.ini'])
 
     #
     # Build the symbols.
