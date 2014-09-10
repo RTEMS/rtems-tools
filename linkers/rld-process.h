@@ -193,7 +193,7 @@ namespace rld
       bool              overridden; //< The name is overridden; may no exist.
       int               fd;         //< The file descriptor
       char              buf[256];   //< The read buffer.
-      int               level;      //< The level of data in the buffer.
+      size_t            level;      //< The level of data in the buffer.
     };
 
     /**

@@ -48,6 +48,14 @@
 #define WSTOPSIG WEXITSTATUS
 #endif
 
+#if __WIN32__
+#define CREATE_MODE (S_IRUSR | S_IWUSR)
+#define OPEN_FLAGS  (O_BINARY)
+#else
+#define CREATE_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH)
+#define OPEN_FLAGS  (0)
+#endif
+
 #include <iostream>
 
 #include "rld.h"
@@ -165,10 +173,11 @@ namespace rld
       {
         bool ok = rld::path::check_file (_name);
         int  flags = writable ? O_RDWR : O_RDONLY;
+        int  mode = writable ? CREATE_MODE : 0;
 
-        if (overridden)
+        if (writable && overridden)
         {
-          flags |= O_CREAT | O_TRUNC;
+          flags |= O_CREAT | O_TRUNC | O_APPEND;
         }
         else
         {
@@ -177,7 +186,7 @@ namespace rld
         }
 
         level = 0;
-        fd = ::open (_name.c_str (), flags);
+        fd = ::open (_name.c_str (), flags, mode);
         if (fd < 0)
           throw rld::error (::strerror (errno), "tempfile open:" + _name);
       }
@@ -257,29 +266,34 @@ namespace rld
       line.clear ();
       if (fd != -1)
       {
-        if (level)
-          line.append (buf, level);
-        level = 0;
-        while (true)
+        bool reading = true;
+        while (reading)
         {
-          int read = ::read (fd, buf, sizeof (buf));
-          if (read < 0)
-            throw rld::error (::strerror (errno), "tempfile read:" + _name);
-          else if (read == 0)
-            break;
-          else
+          if (level < (sizeof (buf) - 1))
+          {
+            memset (buf + level, 0, sizeof (buf) - level);
+            int read = ::read (fd, buf + level, sizeof (buf) - level - 1);
+            if (read < 0)
+              throw rld::error (::strerror (errno), "tempfile read:" + _name);
+            else if (read == 0)
+              reading = false;
+            else
+              level += read;
+          }
+          if (level)
           {
             char* lf = ::strchr (buf, '\n');
+            int   len = level;
             if (lf)
+              len = lf - &buf[0] + 1;
+            if (lf || !reading)
             {
-              int len = lf - &buf[0] + 1;
               line.append (buf, len);
-              level = read - len;
-              if (level)
-                ::memmove (buf, &buf[len], level);
-              break;
+              level -= len;
             }
-            line.append (buf, read);
+            if (level)
+              ::memmove (buf, &buf[len], level + 1);
+            reading = false;
           }
         }
       }
@@ -343,10 +357,10 @@ namespace rld
           if (line.empty ())
             break;
           if (!prefix.empty ())
-            out << prefix << ':';
+            out << prefix << ": ";
           if (line_numbers)
-            out << lc << ':';
-          out << line;
+            out << lc << ": ";
+          out << line << std::flush;
         }
         close ();
       }
@@ -394,7 +408,7 @@ namespace rld
              const std::string&   outname,
              const std::string&   errname)
     {
-      if (rld::verbose () >= RLD_VERBOSE_TRACE)
+      if (rld::verbose (RLD_VERBOSE_TRACE))
       {
         std::cout << "execute: ";
         for (size_t a = 0; a < args.size (); ++a)
@@ -429,28 +443,28 @@ namespace rld
 
       status _status;
 
-      if (rld::verbose () >= RLD_VERBOSE_TRACE)
+      if (rld::verbose (RLD_VERBOSE_TRACE))
         std::cout << "execute: status: ";
 
       if (WIFEXITED (s))
       {
         _status.type = status::normal;
         _status.code = WEXITSTATUS (s);
-        if (rld::verbose () >= RLD_VERBOSE_TRACE)
+        if (rld::verbose (RLD_VERBOSE_TRACE))
           std::cout << _status.code << std::endl;
       }
       else if (WIFSIGNALED (s))
       {
         _status.type = status::signal;
         _status.code = WTERMSIG (s);
-        if (rld::verbose () >= RLD_VERBOSE_TRACE)
+        if (rld::verbose (RLD_VERBOSE_TRACE))
           std::cout << "signal: " << _status.code << std::endl;
       }
       else if (WIFSTOPPED (s))
       {
         _status.type = status::stopped;
         _status.code = WSTOPSIG (s);
-        if (rld::verbose () >= RLD_VERBOSE_TRACE)
+        if (rld::verbose (RLD_VERBOSE_TRACE))
           std::cout << "stopped: " << _status.code << std::endl;
       }
       else
