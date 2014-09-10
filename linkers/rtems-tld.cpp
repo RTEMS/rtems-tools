@@ -591,6 +591,12 @@ namespace rld
       }
 
       c.close ();
+
+      if (rld::verbose (RLD_VERBOSE_DETAILS))
+      {
+        std::cout << "Generated C file:" << std::endl;
+        c.output (" ", std::cout, true);
+      }
     }
 
     void
@@ -647,9 +653,9 @@ namespace rld
 
             const signature& sig = (*si).second;
 
-            c.write_line(sig.decl () + ";");
-
             c.write_line("");
+            c.write_line(sig.decl () + ";");
+            c.write_line(sig.decl ("__real_") + ";");
             c.write_line(sig.decl ("__wrap_"));
             c.write_line("{");
 
@@ -679,8 +685,8 @@ namespace rld
                 std::string l = ' ' + generator_.arg_trace;
                 std::string n = rld::to_string ((int) (a + 1));
                 l = rld::find_replace (l, "@ARG_NUM@", n);
-                l = rld::find_replace (l, "@ARG_TYPE@", '"' + sig.args[0] + '"');
-                l = rld::find_replace (l, "@ARG_SIZE@", "sizeof(" + sig.args[0] + ')');
+                l = rld::find_replace (l, "@ARG_TYPE@", '"' + sig.args[a] + '"');
+                l = rld::find_replace (l, "@ARG_SIZE@", "sizeof(" + sig.args[a] + ')');
                 l = rld::find_replace (l, "@ARG_LABEL@", "a" + n);
                 c.write_line(l);
               }
@@ -1065,7 +1071,7 @@ main (int argc, char* argv[])
     {
       const std::string& prefix = rld::get_prefix ();
       if (rtems_path.empty () && prefix.empty ())
-        throw rld::error ("No RTEMS path provide with arch/bsp", "options");
+        throw rld::error ("No RTEMS path provided with arch/bsp", "options");
       if (!rtems_path.empty ())
         rld::rtems::set_path (rtems_path);
       else
