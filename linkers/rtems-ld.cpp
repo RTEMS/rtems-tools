@@ -367,7 +367,7 @@ main (int argc, char* argv[])
     {
       const std::string& prefix = rld::get_prefix ();
       if (rtems_path.empty () && prefix.empty ())
-        throw rld::error ("No RTEMS path provide with arch/bsp", "options");
+        throw rld::error ("No RTEMS path provided with arch/bsp", "options");
       if (!rtems_path.empty ())
         rld::rtems::set_path (rtems_path);
       else
