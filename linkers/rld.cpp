@@ -194,9 +194,9 @@ namespace rld
   }
 
   int
-  verbose ()
+  verbose (int level)
   {
-    return verbose_level;
+    return verbose_level && (verbose_level >= level) ? verbose_level : 0;
   }
 
   const std::string

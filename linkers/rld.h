@@ -187,7 +187,7 @@ namespace rld
    * Return the verbose level. Setting the flag more than once raises the
    * level.
    */
-  int verbose ();
+  int verbose (int level = 0);
 
   /**
    * The version string.
