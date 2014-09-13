@@ -50,7 +50,7 @@ def build(bld):
     #
     # The list of modules.
     #
-    modules = ['rld', 'fastlz', 'elf', 'iberty']
+    modules = ['rld', 'elf', 'iberty']
 
     #
     # Build the linker.

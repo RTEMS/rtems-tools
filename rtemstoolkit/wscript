@@ -54,7 +54,6 @@ def build(bld):
     # Create each of the modules as object files each with their own
     # configurations.
     #
-    bld_fastlz(bld, conf)
     bld_libelf(bld, conf)
     bld_libiberty(bld, conf)
 
@@ -83,12 +82,19 @@ def build(bld):
     rtems_utils = ['rtems-utils.cpp']
 
     #
+    # Compression.
+    #
+    compression = ['fastlz.c']
+
+    #
     # RTL static library
     #
     bld.stlib(target = 'rld',
               install_path = None,
-              source = rld_source + rtems_utils,
-              defines = ['HAVE_CONFIG_H=1', 'RTEMS_VERSION=' + bld.env.RTEMS_VERSION],
+              source = rld_source + rtems_utils + compression,
+              defines = ['HAVE_CONFIG_H=1',
+                         'RTEMS_VERSION=' + bld.env.RTEMS_VERSION,
+                         'FASTLZ_LEVEL=1'],
               includes = ['.'] + conf['includes'],
               cflags = conf['cflags'] + conf['warningflags'],
               cxxflags = conf['cxxflags'] + conf['warningflags'],
@@ -106,13 +112,6 @@ def tags(ctx):
 #
 def conf_libelf(conf):
     pass
-
-def bld_fastlz(bld, conf):
-    bld(target = 'fastlz',
-        features = 'c',
-        source = 'fastlz.c',
-        cflags = conf['cflags'],
-        defines = ['FASTLZ_LEVEL=1'])
 
 def bld_libelf(bld, conf):
     libelf = 'elftoolchain/libelf/'
