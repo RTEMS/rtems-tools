@@ -28,7 +28,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-subdirs = ['linkers',
+subdirs = ['rtemstoolkit',
+           'linkers',
            'tester',
            'tools/gdb/python']
 
@@ -37,9 +38,23 @@ def recurse(ctx):
         ctx.recurse(sd)
 
 def options(ctx):
+    ctx.add_option('--rtems-version',
+                   default = '4.11',
+                   dest='rtems_version',
+                   help = 'Set the RTEMS version')
+    ctx.add_option('--c-opts',
+                   default = '-O2',
+                   dest='c_opts',
+                   help = 'Set build options, default: -O2.')
     recurse(ctx)
 
 def configure(ctx):
+    try:
+        ctx.load("doxygen", tooldir = 'waf-tools')
+    except:
+        pass
+    ctx.env.C_OPTS = ctx.options.c_opts.split(',')
+    ctx.env.RTEMS_VERSION = ctx.options.rtems_version
     recurse(ctx)
 
 def build(ctx):
@@ -50,3 +65,15 @@ def install(ctx):
 
 def clean(ctx):
     recurse(ctx)
+
+def rebuild(ctx):
+    import waflib.Options
+    waflib.Options.commands.extend(['clean', 'build'])
+
+#
+# The doxy command.
+#
+from waflib import Build
+class doxy(Build.BuildContext):
+    fun = 'build'
+    cmd = 'doxy'
