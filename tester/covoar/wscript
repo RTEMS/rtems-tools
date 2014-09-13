@@ -109,9 +109,3 @@ def build(bld):
                 use = 'ccovoar',
                 cflags = ['-O2', '-g'],
                 includes = ['.'])
-
-    bld.program(target = 'covoar',
-                source = ['covoar.cc'],
-                use = 'ccovoar',
-                cflags = ['-O2', '-g'],
-                includes = ['.'])

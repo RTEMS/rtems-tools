@@ -16,9 +16,29 @@ The RTEMS Tools Project has been developed for the RTEMS Project however these
 tools can be used for a range of things not related to RTEMS. The RTEMS Project
 welcomes this.
 
-If you have a problem or question post to rtems-user@rtems.org or drop by the
-RTEMS IRC channel #rtems on chat.freenode.net. Drop by and tell us if you are
-using these tools for other uses.
+If you have a problem or question post to user@rtems.org or visit the RTEMS IRC
+channel #rtems on chat.freenode.net. Drop by and tell us if you are using these
+tools for other uses.
 
 If you have any patches please post them to the devel@rtems.org mailing list in
 git format patches with your details.
+
+Building
+--------
+
+To build and install:
+
+ $ ./waf configure --prefix=$HOME/development/rtems/4.11
+ $ ./waf build install
+
+Waf
+---
+
+The Waf project can be found here:
+
+ http://code.google.com/p/waf/
+
+Simple instructions on How to set up Waf is here:
+
+ http://www.rtems.org/ftp/pub/rtems/people/chrisj/rtl/rtems-linker/waf.html
+

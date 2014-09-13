@@ -220,10 +220,10 @@ def bld_libelf(bld):
     # understand.
     #
     if sys.platform == 'win32':
-        m4_rule = 'type ${SRC} | m4 -D SRCDIR=../' + libelf[:-1] + '> ${TGT}"'
+        m4_rule = 'type ${SRC} | m4 -D SRCDIR=../linkers/' + libelf[:-1] + '> ${TGT}"'
         includes = ['win32']
     else:
-        m4_rule = 'm4 -D SRCDIR=../' + libelf[:-1] + ' ${SRC} > ${TGT}'
+        m4_rule = 'm4 -D SRCDIR=../linkers/' + libelf[:-1] + ' ${SRC} > ${TGT}'
         includes = []
 
     bld(target = 'libelf_convert.c', source = libelf + 'libelf_convert.m4', rule = m4_rule)

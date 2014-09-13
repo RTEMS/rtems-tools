@@ -2,6 +2,9 @@
 # Install the RTEMS gdb python
 #
 
+def options(opt):
+    pass
+
 def configure(conf):
     conf.load('python')
 
