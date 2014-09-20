@@ -777,7 +777,7 @@ namespace rld
       rld::path::path_join (sp, "rtems", sp);
       rld::path::path_join (sp, "trace-linker", sp);
 
-      if (rld::verbose () || true)
+      if (rld::verbose ())
         std::cout << "search path: " << sp << std::endl;
 
       config.set_search_path (sp);
