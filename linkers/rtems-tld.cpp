@@ -59,6 +59,11 @@ namespace rld
   namespace trace
   {
     /**
+     * Dump on error user option.
+     */
+    bool dump_on_error;
+
+    /**
      * A container of arguments.
      */
     typedef std::vector < std::string > function_args;
@@ -86,6 +91,16 @@ namespace rld
        * Construct the signature loading it from the configuration.
        */
       signature (const rld::config::record& record);
+
+      /**
+       * Has the signature got a return value ?
+       */
+      bool has_ret () const;
+
+      /**
+       * Has the signature got any arguments ?
+       */
+      bool has_args () const;
 
       /**
        * Return the function's declaration.
@@ -173,6 +188,11 @@ namespace rld
                  const std::string&   section);
 
       /**
+       * Process any script based options.
+       */
+      void load_options (const rld::config::section& section);
+
+      /**
        * The the functions for the trace.
        */
       void load_functions (rld::config::config&        config,
@@ -206,11 +226,10 @@ namespace rld
 
     private:
 
-      std::string  name;        /**< The name of the trace. */
-      std::string  bsp;         /**< The BSP we are linking to. */
-      rld::strings traces;      /**< The functions to trace. */
-      functions    functions_;  /**< The functions that can be traced. */
-      generator    generator_;  /**< The tracer's generator. */
+      std::string  name;          /**< The name of the trace. */
+      rld::strings traces;        /**< The functions to trace. */
+      functions    functions_;    /**< The functions that can be traced. */
+      generator    generator_;    /**< The tracer's generator. */
     };
 
     /**
@@ -317,28 +336,53 @@ namespace rld
       rld::config::parse_items (record, si);
 
       if (si.size () == 0)
-        throw rld::error ("no return value", "signature: " + record.name);
+        throw rld::error ("no return value", "signature: " + name);
       if (si.size () == 1)
-          throw rld::error ("no arguments", "signature: " + record.name);
+          throw rld::error ("no arguments", "signature: " + name);
 
       ret = si[0];
       args.resize (si.size () - 1);
       std::copy (si.begin ()  + 1, si.end (), args.begin ());
     }
 
+    bool
+    signature::has_ret () const
+    {
+      /*
+       * @todo Need to define as part of the function signature if ret
+       *       processing is required.
+       */
+      return ret != "void";
+    }
+
+    bool
+    signature::has_args () const
+    {
+      if (args.empty ())
+          return false;
+      return ((args.size() == 1) && (args[0] == "void")) ? false : true;
+    }
+
     const std::string
     signature::decl (const std::string& prefix) const
     {
       std::string ds = ret + ' ' + prefix + name + '(';
-      int         arg = 0;
-      for (function_args::const_iterator ai = args.begin ();
-           ai != args.end ();
-           ++ai)
+      if (has_args ())
+      {
+        int arg = 0;
+        for (function_args::const_iterator ai = args.begin ();
+             ai != args.end ();
+             ++ai)
         {
           if (ai != args.begin ())
             ds += ", ";
           ds += (*ai) + " a" + rld::to_string (++arg);
         }
+      }
+      else
+      {
+        ds += "void";
+      }
       ds += ')';
       return ds;
     }
@@ -374,13 +418,21 @@ namespace rld
            sli != sig_list.end ();
            ++sli)
       {
-        const rld::config::section& sig_sec = config.get_section (*sli);
-        for (rld::config::records::const_iterator si = sig_sec.recs.begin ();
-             si != sig_sec.recs.end ();
-             ++si)
+        rld::strings sigs;
+        rld::split(sigs, *sli, ',');
+
+        for (rld::strings::const_iterator ssi = sigs.begin ();
+             ssi != sigs.end ();
+             ++ssi)
         {
-          signature sig (*si);
-          signatures_[sig.name] = sig;
+          const rld::config::section& sig_sec = config.get_section (*ssi);
+          for (rld::config::records::const_iterator si = sig_sec.recs.begin ();
+               si != sig_sec.recs.end ();
+               ++si)
+          {
+            signature sig (*si);
+            signatures_[sig.name] = sig;
+          }
         }
       }
     }
@@ -503,18 +555,74 @@ namespace rld
        * The following records are required:
        *
        *  # name
-       *  # bsp
-       *  # trace
+       *  # traces
        *  # functions
        */
       const rld::config::section& section = config.get_section (tname);
 
-      config.includes (section);
-
       name = section.get_record_item ("name");
-
+      load_options (section);
+      config.includes (section);
       load_functions (config, section);
       load_traces (config, section);
+    }
+
+    void
+    tracer::load_options (const rld::config::section& section)
+    {
+      rld::strings ol;
+      rld::config::parse_items (section, "options", ol, true);
+
+      for (rld::strings::const_iterator oli = ol.begin ();
+           oli != ol.end ();
+           ++oli)
+      {
+        rld::strings opts;
+        rld::split(opts, *oli, ',');
+        for (rld::strings::const_iterator oi = opts.begin ();
+             oi != opts.end ();
+             ++oi)
+        {
+          const std::string& opt = *oi;
+          if (opt == "dump-on-error")
+            dump_on_error = true;
+          else if (opt == "verbose")
+            rld::verbose_inc ();
+          else if (opt == "prefix")
+          {
+            rld::strings prefix;
+            rld::split (prefix, opt, '=');
+            if (prefix.size () != 2)
+              throw rld::error ("invalid option", "option: " + opt);
+            rld::cc::set_exec_prefix (prefix[1]);
+          }
+          else if (opt == "cc")
+          {
+            rld::strings cc;
+            rld::split (cc, opt, '=');
+            if (cc.size () != 2)
+              throw rld::error ("invalid option", "option: " + opt);
+            rld::cc::set_cc (cc[1]);
+          }
+          else if (opt == "ld")
+          {
+            rld::strings ld;
+            rld::split (ld, opt, '=');
+            if (ld.size () != 2)
+              throw rld::error ("invalid option", "option: " + opt);
+            rld::cc::set_ld (ld[1]);
+          }
+          else if (opt == "cflags")
+          {
+            rld::strings cflags;
+            rld::split (cflags, opt, '=');
+            if (cflags.size () < 2)
+              throw rld::error ("invalid option", "option: " + opt);
+            cflags.erase (cflags.begin ());
+            rld::cc::append_flags (rld::join (cflags, "="), rld::cc::ft_cflags);
+          }
+        }
+      }
     }
 
     void
@@ -543,12 +651,17 @@ namespace rld
       parse (config, section, "traces", "generator", gens);
 
       if (gens.size () > 1)
+      {
+        if (dump_on_error)
+          dump (std::cout);
         throw rld::error ("duplicate generators", "tracer: " + section.name);
+      }
 
       if (gens.size () == 0)
       {
-        gen =
-          config.get_section ("default-generator").get_record_item ("generator");
+        const rld::config::section& dg_section = config.get_section ("default-generator");
+        gen = dg_section.get_record_item ("generator");
+        config.includes (dg_section);
       }
       else
       {
@@ -587,6 +700,8 @@ namespace rld
       catch (...)
       {
         c.close ();
+        if (dump_on_error)
+          dump (std::cout);
         throw;
       }
 
@@ -659,13 +774,7 @@ namespace rld
             c.write_line(sig.decl ("__wrap_"));
             c.write_line("{");
 
-            /*
-             * @todo Need to define as part of the function signature if ret
-             *       processing is required.
-             */
-            bool has_ret = sig.ret != "void";
-
-            if (has_ret)
+            if (sig.has_ret ())
               c.write_line(" " + sig.ret + " ret;");
 
             std::string l;
@@ -678,7 +787,7 @@ namespace rld
               c.write_line(l);
             }
 
-            if (!generator_.arg_trace.empty ())
+            if (sig.has_args ())
             {
               for (size_t a = 0; a < sig.args.size (); ++a)
               {
@@ -694,15 +803,18 @@ namespace rld
 
             l.clear ();
 
-            if (has_ret)
+            if (sig.has_ret ())
               l = " ret =";
 
             l += " __real_" + sig.name + '(';
-            for (size_t a = 0; a < sig.args.size (); ++a)
+            if (sig.has_args ())
             {
-              if (a)
-                l += ", ";
-              l += "a" + rld::to_string ((int) (a + 1));
+              for (size_t a = 0; a < sig.args.size (); ++a)
+              {
+                if (a)
+                  l += ", ";
+                l += "a" + rld::to_string ((int) (a + 1));
+              }
             }
             l += ");";
             c.write_line(l);
@@ -715,7 +827,7 @@ namespace rld
               c.write_line(l);
             }
 
-            if (has_ret && !generator_.ret_trace.empty ())
+            if (sig.has_ret () && !generator_.ret_trace.empty ())
             {
               std::string l = ' ' + generator_.ret_trace;
               l = rld::find_replace (l, "@RET_TYPE@", '"' + sig.ret + '"');
@@ -744,7 +856,6 @@ namespace rld
     tracer::dump (std::ostream& out) const
     {
       out << " Tracer: " << name << std::endl
-          << "  BSP: " << bsp << std::endl
           << "  Traces: " << traces.size () << std::endl;
       for (rld::strings::const_iterator ti = traces.begin ();
            ti != traces.end ();
@@ -824,6 +935,8 @@ namespace rld
           (status.code != 0))
       {
         err.output (rld::cc::get_cc (), std::cout);
+        if (dump_on_error)
+          dump (std::cout);
         throw rld::error ("Compiler error", "compiling wrapper");
       }
     }
@@ -920,7 +1033,7 @@ usage (int exit_code)
             << " -f cflags   : C compiler flags (also --cflags)" << std::endl
             << " -r path     : RTEMS path (also --rtems)" << std::endl
             << " -B bsp      : RTEMS arch/bsp (also --rtems-bsp)" << std::endl
-            << " -W wrappe r : wrapper file name without ext (also --wrapper)" << std::endl
+            << " -W wrapper  : wrapper file name without ext (also --wrapper)" << std::endl
             << " -C ini      : user configuration INI file (also --config)" << std::endl;
   ::exit (exit_code);
 }

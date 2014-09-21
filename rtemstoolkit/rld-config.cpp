@@ -190,6 +190,9 @@ namespace rld
         }
 
         secs.push_back (sec);
+
+        if (sec.name == "includes")
+          includes(sec);
       }
     }
 

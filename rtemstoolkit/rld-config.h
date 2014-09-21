@@ -154,7 +154,7 @@ namespace rld
        * any records named 'include' split the items and include the
        * configuration files.
        */
-      void includes (const section& sec, bool must_exist = false);
+      void includes (const section& sec, bool must_exist = true);
 
       /**
        * Get the section and throw an error if not found.
