@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012, Chris Johns <chrisj@rtems.org>
+ * Copyright (c) 2011-2014, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -26,6 +26,8 @@
 #include "config.h"
 #endif
 
+#include <fstream>
+#include <iomanip>
 #include <iostream>
 
 #include <cxxabi.h>
@@ -40,11 +42,189 @@
 #include <rld-cc.h>
 #include <rld-outputter.h>
 #include <rld-process.h>
-#include <rld-resolver.h>
+#include <rld-symbols.h>
 
 #ifndef HAVE_KILL
 #define kill(p,s) raise(s)
 #endif
+
+/**
+ * Header text.
+ */
+static const char* c_header[] =
+{
+  "/*",
+  " * RTEMS Global Symbol Table",
+  " *  Automatically generated so no point in hacking on it.",
+  " */",
+  "",
+  "#if __bfin__ || __h8300__ || __v850__",
+  " extern unsigned char _rtems_rtl_base_globals[];",
+  " extern unsigned int _rtems_rtl_base_globals_size;",
+  "#else",
+  " extern unsigned char __rtems_rtl_base_globals[];",
+  " extern unsigned int __rtems_rtl_base_globals_size;",
+  "#endif",
+  "",
+  "asm(\"  .align   4\");",
+  "asm(\"__rtems_rtl_base_globals:\");",
+  0
+};
+
+static const char* c_trailer[] =
+{
+  "asm(\"  .byte    0\");",
+  "#if __mips__",
+  " asm(\"  .align 0\");",
+  "#else",
+  " asm(\"  .balign 1\");",
+  "#endif",
+  "asm(\"  .ascii \\\"\\xde\\xad\\xbe\\xef\\\"\");",
+  "asm(\"  .align   4\");",
+  "asm(\"__rtems_rtl_base_globals_size:\");",
+  "asm(\"  .long __rtems_rtl_base_globals_size - __rtems_rtl_base_globals\");",
+  "",
+  "void rtems_rtl_base_sym_global_add (const unsigned char* , unsigned int );",
+  0
+};
+
+static const char* c_rtl_call_body[] =
+{
+  "{",
+  "#if __bfin__ || __h8300__ || __v850__",
+  "  rtems_rtl_base_sym_global_add (_rtems_rtl_base_globals,",
+  "                                 _rtems_rtl_base_globals_size);",
+  "#else",
+  "  rtems_rtl_base_sym_global_add (__rtems_rtl_base_globals,",
+  "                                 __rtems_rtl_base_globals_size);",
+  "#endif",
+  "}",
+  0
+};
+
+/**
+ * Paint the data to the temporary file.
+ */
+static void
+temporary_file_paint (rld::process::tempfile& t, const char* lines[])
+{
+  for (int l = 0; lines[l]; ++l)
+    t.write_line (lines[l]);
+}
+
+/**
+ * The constructor trailer.
+ */
+static void
+c_constructor_trailer (rld::process::tempfile& c)
+{
+  temporary_file_paint (c, c_trailer);
+  c.write_line ("static void init(void) __attribute__ ((constructor));");
+  c.write_line ("static void init(void)");
+  temporary_file_paint (c, c_rtl_call_body);
+}
+
+/**
+ * The embedded trailer.
+ */
+static void
+c_embedded_trailer(rld::process::tempfile& c)
+{
+  temporary_file_paint (c, c_trailer);
+  c.write_line ("void rtems_rtl_base_global_syms_init(void);");
+  c.write_line ("void rtems_rtl_base_global_syms_init(void)");
+  temporary_file_paint (c, c_rtl_call_body);
+}
+
+/**
+ * Generate the symbol map object file for loading or linking into
+ * a running RTEMS machine.
+ */
+static void
+generate_asm (rld::process::tempfile& c,
+              rld::symbols::table&    symbols,
+              bool                    embed)
+{
+  temporary_file_paint (c, c_header);
+
+  for (rld::symbols::symtab::const_iterator si = symbols.externals ().begin ();
+       si != symbols.externals ().end ();
+       ++si)
+  {
+    const rld::symbols::symbol& sym = *((*si).second);
+
+    if (!sym.name ().empty ())
+    {
+      c.write_line ("asm(\"  .asciz \\\"" + sym.name () + "\\\"\");");
+
+      if (embed)
+      {
+        c.write_line ("#if __mips__");
+        c.write_line ("asm(\"  .align 0\");");
+        c.write_line ("#else");
+        c.write_line ("asm(\"  .balign 1\");");
+        c.write_line ("#endif");
+        c.write_line ("asm(\"  .long " + sym.name () + "\");");
+      }
+      else
+      {
+        std::stringstream oss;
+        oss << std::hex << std::setfill ('0') << std::setw (8) << sym.value ();
+        c.write_line ("asm(\"  .long 0x" + oss.str () + "\");");
+      }
+    }
+  }
+
+  if (embed)
+    c_embedded_trailer (c);
+  else
+    c_constructor_trailer (c);
+}
+
+static void
+generate_symmap (rld::process::tempfile& c,
+                 const std::string&      output,
+                 rld::symbols::table&    symbols,
+                 bool                    embed)
+{
+  c.open (true);
+
+  if (rld::verbose ())
+    std::cout << "symbol C file: " << c.name () << std::endl;
+
+  generate_asm (c, symbols, embed);
+
+  if (rld::verbose ())
+    std::cout << "symbol O file: " << output << std::endl;
+
+  rld::process::arg_container args;
+
+  rld::cc::make_cc_command (args);
+  rld::cc::append_flags (rld::cc::ft_cflags, args);
+
+  args.push_back ("-O2");
+  args.push_back ("-g");
+  args.push_back ("-c");
+  args.push_back ("-o");
+  args.push_back (output);
+  args.push_back (c.name ());
+
+  rld::process::tempfile out;
+  rld::process::tempfile err;
+  rld::process::status   status;
+
+  status = rld::process::execute (rld::cc::get_cc (),
+                                  args,
+                                  out.name (),
+                                  err.name ());
+
+  if ((status.type != rld::process::status::normal) ||
+      (status.code != 0))
+  {
+    err.output (rld::cc::get_cc (), std::cout);
+    throw rld::error ("Compiler error", "compiling wrapper");
+  }
+}
 
 /**
  * RTEMS Linker options. This needs to be rewritten to be like cc where only a
@@ -55,31 +235,32 @@ static struct option rld_opts[] = {
   { "version",     no_argument,            NULL,           'V' },
   { "verbose",     no_argument,            NULL,           'v' },
   { "warn",        no_argument,            NULL,           'w' },
-  { "lib-path",    required_argument,      NULL,           'L' },
-  { "lib",         required_argument,      NULL,           'l' },
-  { "no-stdlibs",  no_argument,            NULL,           'n' },
+  { "keep",        no_argument,            NULL,           'k' },
+  { "embed",       no_argument,            NULL,           'e' },
+  { "symc",        required_argument,      NULL,           'S' },
+  { "output",      required_argument,      NULL,           'o' },
+  { "map",         required_argument,      NULL,           'm' },
   { "cc",          required_argument,      NULL,           'C' },
   { "exec-prefix", required_argument,      NULL,           'E' },
-  { "march",       required_argument,      NULL,           'a' },
-  { "mcpu",        required_argument,      NULL,           'c' },
+  { "cflags",      required_argument,      NULL,           'c' },
   { NULL,          0,                      NULL,            0 }
 };
 
 void
 usage (int exit_code)
 {
-  std::cout << "rtems-syms [options] objects" << std::endl
+  std::cout << "rtems-syms [options] kernel" << std::endl
             << "Options and arguments:" << std::endl
             << " -h        : help (also --help)" << std::endl
             << " -V        : print linker version number and exit (also --version)" << std::endl
             << " -v        : verbose (trace import parts), can supply multiple times" << std::endl
             << "             to increase verbosity (also --verbose)" << std::endl
             << " -w        : generate warnings (also --warn)" << std::endl
-            << " -L path   : path to a library, add multiple for more than" << std::endl
-            << "             one path (also --lib-path)" << std::endl
-            << " -l lib    : add lib to the libraries searched, add multiple" << std::endl
-            << "             for more than one library (also --lib)" << std::endl
-            << " -S        : search standard libraries (also --stdlibs)" << std::endl
+            << " -k        : keep temporary files (also --keep)" << std::endl
+            << " -e        : embedded symbol table (also --embed)" << std::endl
+            << " -S        : symbol's C file (also --symc)" << std::endl
+            << " -o file   : output object file (also --output)" << std::endl
+            << " -m file   : output a map file (also --map)" << std::endl
             << " -C file   : execute file as the target C compiler (also --cc)" << std::endl
             << " -E prefix : the RTEMS tool prefix (also --exec-prefix)" << std::endl
             << " -c cflags : C compiler flags (also --cflags)" << std::endl;
@@ -129,24 +310,21 @@ main (int argc, char* argv[])
 
   try
   {
-    rld::files::cache   cache;
-    rld::path::paths    libpaths;
-    rld::path::paths    libs;
-    rld::path::paths    objects;
-    rld::path::paths    libraries;
+    rld::files::cache   kernel;
     rld::symbols::table symbols;
-    std::string         base_name;
-    std::string         cc_name;
-    bool                standard_libs = false;
-#if HAVE_WARNINGS
+    std::string         kernel_name;
+    std::string         output;
+    std::string         map;
+    std::string         cc;
+    std::string         symc;
+    bool                embed = false;
     bool                warnings = false;
-#endif
 
-    libpaths.push_back (".");
+    rld::set_cmdline (argc, argv);
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvwVSE:L:l:c:C:", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvVwS:o:m:E:c:C:", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -163,27 +341,23 @@ main (int argc, char* argv[])
           break;
 
         case 'w':
-#if HAVE_WARNINGS
           warnings = true;
-#endif
           break;
 
-        case 'l':
-          /*
-           * The order is important. It is the search order.
-           */
-          libs.push_back (optarg);
+        case 'k':
+          rld::process::set_keep_temporary_files ();
           break;
 
-        case 'L':
-          if ((optarg[::strlen (optarg) - 1] == '/') ||
-              (optarg[::strlen (optarg) - 1] == '\\'))
-            optarg[::strlen (optarg) - 1] = '\0';
-          libpaths.push_back (optarg);
+        case 'e':
+          embed = true;
           break;
 
-        case 'S':
-          standard_libs = true;
+        case 'o':
+          output = optarg;
+          break;
+
+        case 'm':
+          map = optarg;
           break;
 
         case 'C':
@@ -202,6 +376,10 @@ main (int argc, char* argv[])
           rld::cc::set_flags (optarg, rld::cc::ft_cflags);
           break;
 
+        case 'S':
+          symc = optarg;
+          break;
+
         case '?':
           usage (3);
           break;
@@ -212,91 +390,90 @@ main (int argc, char* argv[])
       }
     }
 
+    /*
+     * Set the program name.
+     */
+    rld::set_progname (argv[0]);
+
     argc -= optind;
     argv += optind;
 
-    std::cout << "RTEMS Symbols " << rld::version () << std::endl;
+    if (rld::verbose ())
+      std::cout << "RTEMS Kernel Symbols " << rld::version () << std::endl;
 
     /*
      * If there are no object files there is nothing to link.
      */
     if (argc == 0)
-      throw rld::error ("no object files", "options");
+      throw rld::error ("no kernel file", "options");
+    if (argc != 1)
+      throw rld::error ("only one kernel file", "options");
+    if (output.empty ())
+      throw rld::error ("no output file", "options");
+
+    kernel_name = *argv;
+
+    if (rld::verbose ())
+      std::cout << "kernel: " << kernel_name << std::endl;
 
     /*
-     * Load the remaining command line arguments into the cache as object
-     * files.
-     */
-    while (argc--)
-      objects.push_back (*argv++);
-
-    /*
-     * Add the object files to the cache.
-     */
-    cache.add (objects);
-
-    /*
-     * Open the cache.
-     */
-    cache.open ();
-
-    /*
-     * If the full path to CC is not provided and the exec-prefix is not set by
-     * the command line see if it can be detected from the object file
-     * types. This must be after we have added the object files because they
-     * are used when detecting.
-     */
-    if (!rld::cc::is_cc_set () && !rld::cc::is_exec_prefix_set ())
-      rld::cc::set_exec_prefix (rld::elf::machine_type ());
-
-    /*
-     * Get the standard library paths
-     */
-    if (standard_libs)
-      rld::cc::get_standard_libpaths (libpaths);
-
-    /*
-     * Get the command line libraries.
-     */
-    rld::files::find_libraries (libraries, libpaths, libs);
-
-    /*
-     * Are we to load standard libraries ?
-     */
-    if (standard_libs)
-      rld::cc::get_standard_libs (libraries, libpaths);
-
-    /*
-     * Load the library to the cache.
-     */
-    cache.add_libraries (libraries);
-
-    /*
-     * Begin the archive session. This opens the archives and leaves them open
-     * while we the symbol table is being used. The symbols reference object
-     * files and the object files may reference archives and it is assumed they
-     * are open and available. It is also assumed the number of library
-     * archives being managed is less than the maximum file handles this
-     * process can have open at any one time. If this is not the case this
-     * approach would need to be reconsidered and the overhead of opening and
-     * closing archives added.
+     * Load the symbols from the kernel.
      */
     try
     {
-      /*
-       * Load the symbol table.
-       */
-      cache.load_symbols (symbols);
+      kernel.open ();
+      kernel.add (kernel_name);
+      kernel.load_symbols (symbols, true);
 
-      rld::map (cache, symbols);
+      /*
+       * If the full path to CC is not provided and the exec-prefix is not set
+       * by the command line see if it can be detected from the object file
+       * types. This must be after we have added the object files because they
+       * are used when detecting.
+       */
+      if (!cc.empty ())
+        rld::cc::set_cc (cc);
+      if (!rld::cc::is_cc_set () && !rld::cc::is_exec_prefix_set ())
+        rld::cc::set_exec_prefix (rld::elf::machine_type ());
+
+      rld::process::tempfile c (".c");
+
+      if (!symc.empty ())
+      {
+        c.override (symc);
+        c.keep ();
+      }
+
+      /*
+       * Generate and compile the symbol map.
+       */
+      generate_symmap (c, output, symbols, embed);
+
+      /*
+       * Create a map file is asked to.
+       */
+      if (!map.empty ())
+      {
+        std::ofstream mout;
+        mout.open (map);
+        if (!mout.is_open ())
+          throw rld::error ("map file open failed", "map");
+        mout << "RTEMS Kernel Symbols Map" << std::endl
+             << " kernel: " << kernel_name << std::endl
+             << std::endl;
+        rld::symbols::output (mout, symbols);
+        mout.close ();
+      }
+
+      kernel.close ();
     }
     catch (...)
     {
-      cache.archives_end ();
+      kernel.close ();
       throw;
     }
 
-    cache.archives_end ();
+    kernel.close ();
   }
   catch (rld::error re)
   {
