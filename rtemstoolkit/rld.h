@@ -238,7 +238,7 @@ namespace rld
   const std::string get_prefix ();
 
   /**
-   * Map of the symbol table.
+   * Map of the cache and the symbol table.
    */
   void map (rld::files::cache& cache, rld::symbols::table& symbols);
 
