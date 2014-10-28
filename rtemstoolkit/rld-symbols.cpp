@@ -247,7 +247,7 @@ namespace rld
           break;
       }
 
-      out << std::setw (4) << index_
+      out << std::setw (5) << index_
           << ' ' << binding
           << ' ' << type
           << ' ' << std::setw(6) << es.st_shndx
@@ -373,7 +373,7 @@ namespace rld
     void
     output (std::ostream& out, const symtab& symbols)
     {
-      std::cout << " No.  Scope      Type        Address    Size    Name" << std::endl;
+      out << " No.  Index Scope      Type        SHNDX  Address    Size    Name" << std::endl;
       int index = 0;
       for (symtab::const_iterator si = symbols.begin ();
            si != symbols.end ();
