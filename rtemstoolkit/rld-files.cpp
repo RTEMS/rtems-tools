@@ -1040,24 +1040,26 @@ namespace rld
 
       rld::symbols::pointers syms;
 
-      elf ().get_symbols (syms, false, local, false, true);
-
-      if (rld::verbose () >= RLD_VERBOSE_TRACE_SYMS)
-        std::cout << "object:load-sym: exported: total "
-                  << syms.size () << std::endl;
-
-      for (symbols::pointers::iterator si = syms.begin ();
-           si != syms.end ();
-           ++si)
+      if (local)
       {
-        symbols::symbol& sym = *(*si);
+        elf ().get_symbols (syms, false, true, false, false);
 
         if (rld::verbose () >= RLD_VERBOSE_TRACE_SYMS)
-          std::cout << "object:load-sym: exported: " << sym << std::endl;
+          std::cout << "object:load-sym: local: total "
+                    << syms.size () << std::endl;
 
-        sym.set_object (*this);
-        symbols.add_external (sym);
-        externals.push_back (&sym);
+        for (symbols::pointers::iterator si = syms.begin ();
+             si != syms.end ();
+             ++si)
+        {
+          symbols::symbol& sym = *(*si);
+
+          if (rld::verbose () >= RLD_VERBOSE_TRACE_SYMS)
+            std::cout << "object:load-sym: local: " << sym << std::endl;
+
+          sym.set_object (*this);
+          symbols.add_local (sym);
+        }
       }
 
       elf ().get_symbols (syms, false, false, true, false);
@@ -1077,6 +1079,26 @@ namespace rld
 
         sym.set_object (*this);
         symbols.add_weak (sym);
+        externals.push_back (&sym);
+      }
+
+      elf ().get_symbols (syms, false, false, false, true);
+
+      if (rld::verbose () >= RLD_VERBOSE_TRACE_SYMS)
+        std::cout << "object:load-sym: global: total "
+                  << syms.size () << std::endl;
+
+      for (symbols::pointers::iterator si = syms.begin ();
+           si != syms.end ();
+           ++si)
+      {
+        symbols::symbol& sym = *(*si);
+
+        if (rld::verbose () >= RLD_VERBOSE_TRACE_SYMS)
+          std::cout << "object:load-sym: global: " << sym << std::endl;
+
+        sym.set_object (*this);
+        symbols.add_global (sym);
         externals.push_back (&sym);
       }
 

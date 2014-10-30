@@ -55,49 +55,52 @@ static const char* c_header[] =
 {
   "/*",
   " * RTEMS Global Symbol Table",
-  " *  Automatically generated so no point in hacking on it.",
+  " *  Automatically generated. Do not edit..",
   " */",
   "",
-  "#if __bfin__ || __h8300__ || __v850__",
-  " extern unsigned char _rtems_rtl_base_globals[];",
-  " extern unsigned int _rtems_rtl_base_globals_size;",
-  "#else",
-  " extern unsigned char __rtems_rtl_base_globals[];",
-  " extern unsigned int __rtems_rtl_base_globals_size;",
-  "#endif",
+  "extern const unsigned char rtems__rtl_base_globals[];",
+  "extern const unsigned int rtems__rtl_base_globals_size;",
+  "",
+  "void rtems_rtl_base_sym_global_add (const unsigned char* , unsigned int );",
+  "",
+  "asm(\".section \\\".rodata\\\"\");",
   "",
   "asm(\"  .align   4\");",
-  "asm(\"__rtems_rtl_base_globals:\");",
+  "asm(\"  .local   rtems__rtl_base_globals\");",
+  "asm(\"rtems__rtl_base_globals:\");",
+  "#if __mips__",
+  " asm(\"  .align 0\");",
+  "#else",
+  " asm(\"  .balign 1\");",
+  "#endif",
   0
 };
 
 static const char* c_trailer[] =
 {
   "asm(\"  .byte    0\");",
-  "#if __mips__",
-  " asm(\"  .align 0\");",
-  "#else",
-  " asm(\"  .balign 1\");",
-  "#endif",
-  "asm(\"  .ascii \\\"\\xde\\xad\\xbe\\xef\\\"\");",
-  "asm(\"  .align   4\");",
-  "asm(\"__rtems_rtl_base_globals_size:\");",
-  "asm(\"  .long __rtems_rtl_base_globals_size - __rtems_rtl_base_globals\");",
+  "asm(\"  .ascii   \\\"\\xde\\xad\\xbe\\xef\\\"\");",
+  "asm(\"  .type    rtems__rtl_base_globals, #object\");",
+  "asm(\"  .size    rtems__rtl_base_globals, . - rtems__rtl_base_globals\");",
   "",
-  "void rtems_rtl_base_sym_global_add (const unsigned char* , unsigned int );",
+  "/*",
+  " * Symbol table size.",
+  " */",
+  "asm(\"  .align   4\");",
+  "asm(\"  .local   rtems__rtl_base_globals_size\");",
+  "asm(\"  .type    rtems__rtl_base_globals_size, #object\");",
+  "asm(\"  .size    rtems__rtl_base_globals_size, 4\");",
+  "asm(\"rtems__rtl_base_globals_size:\");",
+  "asm(\"  .long rtems__rtl_base_globals_size - rtems__rtl_base_globals\");",
+  "",
   0
 };
 
 static const char* c_rtl_call_body[] =
 {
   "{",
-  "#if __bfin__ || __h8300__ || __v850__",
-  "  rtems_rtl_base_sym_global_add (_rtems_rtl_base_globals,",
-  "                                 _rtems_rtl_base_globals_size);",
-  "#else",
-  "  rtems_rtl_base_sym_global_add (__rtems_rtl_base_globals,",
-  "                                 __rtems_rtl_base_globals_size);",
-  "#endif",
+  "  rtems_rtl_base_sym_global_add ((const unsigned char*) &rtems__rtl_base_globals,",
+  "                                 rtems__rtl_base_globals_size);",
   "}",
   0
 };
@@ -118,7 +121,6 @@ temporary_file_paint (rld::process::tempfile& t, const char* lines[])
 static void
 c_constructor_trailer (rld::process::tempfile& c)
 {
-  temporary_file_paint (c, c_trailer);
   c.write_line ("static void init(void) __attribute__ ((constructor));");
   c.write_line ("static void init(void)");
   temporary_file_paint (c, c_rtl_call_body);
@@ -128,9 +130,8 @@ c_constructor_trailer (rld::process::tempfile& c)
  * The embedded trailer.
  */
 static void
-c_embedded_trailer(rld::process::tempfile& c)
+c_embedded_trailer (rld::process::tempfile& c)
 {
-  temporary_file_paint (c, c_trailer);
   c.write_line ("void rtems_rtl_base_global_syms_init(void);");
   c.write_line ("void rtems_rtl_base_global_syms_init(void)");
   temporary_file_paint (c, c_rtl_call_body);
@@ -141,39 +142,33 @@ c_embedded_trailer(rld::process::tempfile& c)
  * a running RTEMS machine.
  */
 static void
-generate_asm (rld::process::tempfile& c,
-              rld::symbols::table&    symbols,
-              bool                    embed)
+generate_c (rld::process::tempfile& c,
+              rld::symbols::table&  symbols,
+              bool                  embed)
 {
   temporary_file_paint (c, c_header);
 
-  for (rld::symbols::symtab::const_iterator si = symbols.externals ().begin ();
-       si != symbols.externals ().end ();
+  for (rld::symbols::symtab::const_iterator si = symbols.globals ().begin ();
+       si != symbols.globals ().end ();
        ++si)
   {
     const rld::symbols::symbol& sym = *((*si).second);
 
-    if (!sym.name ().empty ())
-    {
-      c.write_line ("asm(\"  .asciz \\\"" + sym.name () + "\\\"\");");
+    c.write_line ("asm(\"  .asciz \\\"" + sym.name () + "\\\"\");");
 
-      if (embed)
-      {
-        c.write_line ("#if __mips__");
-        c.write_line ("asm(\"  .align 0\");");
-        c.write_line ("#else");
-        c.write_line ("asm(\"  .balign 1\");");
-        c.write_line ("#endif");
-        c.write_line ("asm(\"  .long " + sym.name () + "\");");
-      }
-      else
-      {
-        std::stringstream oss;
-        oss << std::hex << std::setfill ('0') << std::setw (8) << sym.value ();
-        c.write_line ("asm(\"  .long 0x" + oss.str () + "\");");
-      }
+    if (embed)
+    {
+      c.write_line ("asm(\"  .long " + sym.name () + "\");");
+    }
+    else
+    {
+      std::stringstream oss;
+      oss << std::hex << std::setfill ('0') << std::setw (8) << sym.value ();
+      c.write_line ("asm(\"  .long 0x" + oss.str () + "\");");
     }
   }
+
+  temporary_file_paint (c, c_trailer);
 
   if (embed)
     c_embedded_trailer (c);
@@ -192,7 +187,7 @@ generate_symmap (rld::process::tempfile& c,
   if (rld::verbose ())
     std::cout << "symbol C file: " << c.name () << std::endl;
 
-  generate_asm (c, symbols, embed);
+  generate_c (c, symbols, embed);
 
   if (rld::verbose ())
     std::cout << "symbol O file: " << output << std::endl;
@@ -203,7 +198,6 @@ generate_symmap (rld::process::tempfile& c,
   rld::cc::append_flags (rld::cc::ft_cflags, args);
 
   args.push_back ("-O2");
-  args.push_back ("-g");
   args.push_back ("-c");
   args.push_back ("-o");
   args.push_back (output);
@@ -217,6 +211,7 @@ generate_symmap (rld::process::tempfile& c,
                                   args,
                                   out.name (),
                                   err.name ());
+
 
   if ((status.type != rld::process::status::normal) ||
       (status.code != 0))
@@ -324,7 +319,7 @@ main (int argc, char* argv[])
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvVwS:o:m:E:c:C:", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvVwkef:S:o:m:E:c:C:", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -408,8 +403,8 @@ main (int argc, char* argv[])
       throw rld::error ("no kernel file", "options");
     if (argc != 1)
       throw rld::error ("only one kernel file", "options");
-    if (output.empty ())
-      throw rld::error ("no output file", "options");
+    if (output.empty () && map.empty ())
+      throw rld::error ("no output or map", "options");
 
     kernel_name = *argv;
 
@@ -421,6 +416,9 @@ main (int argc, char* argv[])
      */
     try
     {
+      /*
+       * Load the kernel ELF file symbol table.
+       */
       kernel.open ();
       kernel.add (kernel_name);
       kernel.load_symbols (symbols, true);
@@ -436,21 +434,8 @@ main (int argc, char* argv[])
       if (!rld::cc::is_cc_set () && !rld::cc::is_exec_prefix_set ())
         rld::cc::set_exec_prefix (rld::elf::machine_type ());
 
-      rld::process::tempfile c (".c");
-
-      if (!symc.empty ())
-      {
-        c.override (symc);
-        c.keep ();
-      }
-
       /*
-       * Generate and compile the symbol map.
-       */
-      generate_symmap (c, output, symbols, embed);
-
-      /*
-       * Create a map file is asked to.
+       * Create a map file if asked too.
        */
       if (!map.empty ())
       {
@@ -463,6 +448,25 @@ main (int argc, char* argv[])
              << std::endl;
         rld::symbols::output (mout, symbols);
         mout.close ();
+      }
+
+      /*
+       * Create an output file if asked too.
+       */
+      if (!output.empty ())
+      {
+        rld::process::tempfile c (".c");
+
+        if (!symc.empty ())
+        {
+          c.override (symc);
+          c.keep ();
+        }
+
+        /*
+         * Generate and compile the symbol map.
+         */
+        generate_symmap (c, output, symbols, embed);
       }
 
       kernel.close ();

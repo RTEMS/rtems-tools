@@ -22,8 +22,8 @@
  *
  */
 
-#if !defined (_MEMORY_DUMP_H_)
-#define _MEMORY_DUMP_H_
+#if !defined (_RTEMS_UTILS_H_)
+#define _RTEMS_UTILS_H_
 
 #include <stdint.h>
 

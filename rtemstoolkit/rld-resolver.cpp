@@ -108,7 +108,7 @@ namespace rld
         if ((urs.binding () != STB_WEAK) && urs.object ())
           continue;
 
-        symbols::symbol* es = base_symbols.find_external (urs.name ());
+        symbols::symbol* es = base_symbols.find_global (urs.name ());
         bool             base = true;
 
         if (rld::verbose () >= RLD_VERBOSE_INFO)
@@ -120,7 +120,7 @@ namespace rld
 
         if (!es)
         {
-          es = symbols.find_external (urs.name ());
+          es = symbols.find_global (urs.name ());
           if (!es)
           {
             es = symbols.find_weak (urs.name ());

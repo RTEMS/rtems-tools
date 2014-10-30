@@ -271,7 +271,7 @@ namespace rld
         {
           if (level < (sizeof (buf) - 1))
           {
-            memset (buf + level, 0, sizeof (buf) - level);
+            ::memset (buf + level, 0, sizeof (buf) - level);
             int read = ::read (fd, buf + level, sizeof (buf) - level - 1);
             if (read < 0)
               throw rld::error (::strerror (errno), "tempfile read:" + _name);
@@ -285,15 +285,14 @@ namespace rld
             char* lf = ::strchr (buf, '\n');
             int   len = level;
             if (lf)
-              len = lf - &buf[0] + 1;
-            if (lf || !reading)
             {
-              line.append (buf, len);
-              level -= len;
+              len = lf - &buf[0] + 1;
+              reading = false;
             }
+            line.append (buf, len);
+            level -= len;
             if (level)
               ::memmove (buf, &buf[len], level + 1);
-            reading = false;
           }
         }
       }
@@ -354,7 +353,7 @@ namespace rld
         {
           read_line (line);
           ++lc;
-          if (line.empty ())
+          if (line.empty () && (level == 0))
             break;
           if (!prefix.empty ())
             out << prefix << ": ";

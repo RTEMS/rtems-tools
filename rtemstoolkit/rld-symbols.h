@@ -101,6 +101,21 @@ namespace rld
       bool is_cplusplus () const;
 
       /**
+       * Is the symbol binding is local ?
+       */
+      bool is_local () const;
+
+      /**
+       * Is the symbol binding weak ?
+       */
+      bool is_weak () const;
+
+      /**
+       * Is the symbol binding global ?
+       */
+      bool is_global () const;
+
+      /**
        * The symbol's type.
        */
       int type () const;
@@ -190,7 +205,7 @@ namespace rld
     typedef std::map < std::string, symbol* > symtab;
 
     /**
-     * A symbols contains a symbol table of externals and weak symbols.
+     * A symbols contains a symbol table of global, weak and local symbols.
      */
     class table
     {
@@ -206,9 +221,9 @@ namespace rld
       ~table ();
 
       /**
-       * Add an external symbol.
+       * Add a global symbol.
        */
-      void add_external (symbol& sym);
+      void add_global (symbol& sym);
 
       /**
        * Add a weak symbol.
@@ -216,9 +231,14 @@ namespace rld
       void add_weak (symbol& sym);
 
       /**
-       * Find an external symbol.
+       * Add a local symbol.
        */
-      symbol* find_external (const std::string& name);
+      void add_local (symbol& sym);
+
+      /**
+       * Find a global symbol.
+       */
+      symbol* find_global (const std::string& name);
 
       /**
        * Find an weak symbol.
@@ -226,19 +246,29 @@ namespace rld
       symbol* find_weak (const std::string& name);
 
       /**
+       * Find an local symbol.
+       */
+      symbol* find_local (const std::string& name);
+
+      /**
        * Return the size of the symbols loaded.
        */
       size_t size () const;
 
       /**
-       * Return the externals symbol table.
+       * Return the globals symbol table.
        */
-      const symtab& externals () const;
+      const symtab& globals () const;
 
       /**
        * Return the weaks symbol table.
        */
       const symtab& weaks () const;
+
+      /**
+       * Return the locals symbol table.
+       */
+      const symtab& locals () const;
 
     private:
 
@@ -248,14 +278,19 @@ namespace rld
       table (const table& orig);
 
       /**
-       * A table of external symbols.
+       * A table of global symbols.
        */
-      symtab _externals;
+      symtab globals_;
 
       /**
        * A table of weak symbols.
        */
-      symtab _weaks;
+      symtab weaks_;
+
+      /**
+       * A table of local symbols.
+       */
+      symtab locals_;
     };
 
     /**

@@ -132,6 +132,24 @@ namespace rld
       return (name_[0] == '_') && (name_[1] == 'Z');
     }
 
+    bool
+    symbol::is_local () const
+    {
+      return binding () == STB_LOCAL;
+    }
+
+    bool
+    symbol::is_weak () const
+    {
+      return binding () == STB_WEAK;
+    }
+
+    bool
+    symbol::is_global () const
+    {
+      return binding () == STB_GLOBAL;
+    }
+
     int
     symbol::type () const
     {
@@ -275,22 +293,28 @@ namespace rld
     }
 
     void
-    table::add_external (symbol& sym)
+    table::add_global (symbol& sym)
     {
-      _externals[sym.name ()] = &sym;
+      globals_[sym.name ()] = &sym;
     }
 
     void
     table::add_weak (symbol& sym)
     {
-      _weaks[sym.name ()] = &sym;
+      weaks_[sym.name ()] = &sym;
+    }
+
+    void
+    table::add_local (symbol& sym)
+    {
+      locals_[sym.name ()] = &sym;
     }
 
     symbol*
-    table::find_external (const std::string& name)
+    table::find_global (const std::string& name)
     {
-      symtab::iterator sti = _externals.find (name);
-      if (sti == _externals.end ())
+      symtab::iterator sti = globals_.find (name);
+      if (sti == globals_.end ())
         return 0;
       return (*sti).second;
     }
@@ -298,8 +322,17 @@ namespace rld
     symbol*
     table::find_weak (const std::string& name)
     {
-      symtab::iterator sti = _weaks.find (name);
-      if (sti == _weaks.end ())
+      symtab::iterator sti = weaks_.find (name);
+      if (sti == weaks_.end ())
+        return 0;
+      return (*sti).second;
+    }
+
+    symbol*
+    table::find_local (const std::string& name)
+    {
+      symtab::iterator sti = locals_.find (name);
+      if (sti == locals_.end ())
         return 0;
       return (*sti).second;
     }
@@ -307,19 +340,25 @@ namespace rld
     size_t
     table::size () const
     {
-      return _externals.size () + _weaks.size ();
+      return globals_.size () + weaks_.size () + locals_.size ();
     }
 
     const symtab&
-    table::externals () const
+    table::globals () const
     {
-      return _externals;
+      return globals_;
     }
 
     const symtab&
     table::weaks () const
     {
-      return _weaks;
+      return weaks_;
+    }
+
+    const symtab&
+    table::locals () const
+    {
+      return locals_;
     }
 
     void
@@ -329,7 +368,7 @@ namespace rld
            sbi != bucket_.end ();
            ++sbi)
       {
-        table_.add_external (*sbi);
+        table_.add_global (*sbi);
       }
     }
 
@@ -364,10 +403,12 @@ namespace rld
     void
     output (std::ostream& out, const table& symbols)
     {
-      out << "Externals:" << std::endl;
-      output (out, symbols.externals ());
+      out << "Globals:" << std::endl;
+      output (out, symbols.globals ());
       out << "Weaks:" << std::endl;
       output (out, symbols.weaks ());
+      out << "Locals:" << std::endl;
+      output (out, symbols.locals ());
     }
 
     void
