@@ -440,7 +440,7 @@ main (int argc, char* argv[])
       if (!map.empty ())
       {
         std::ofstream mout;
-        mout.open (map);
+        mout.open (map.c_str());
         if (!mout.is_open ())
           throw rld::error ("map file open failed", "map");
         mout << "RTEMS Kernel Symbols Map" << std::endl
