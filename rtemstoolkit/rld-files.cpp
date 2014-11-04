@@ -1575,7 +1575,7 @@ namespace rld
                     path::paths& libs)
     {
       if (rld::verbose () >= RLD_VERBOSE_INFO)
-        std::cout << "Finding libraries:." << std::endl;
+        std::cout << "Finding libraries:" << std::endl;
       libraries.clear ();
       for (path::paths::size_type l = 0; l < libs.size (); ++l)
       {

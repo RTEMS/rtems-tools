@@ -222,8 +222,7 @@ generate_symmap (rld::process::tempfile& c,
 }
 
 /**
- * RTEMS Linker options. This needs to be rewritten to be like cc where only a
- * single '-' and long options is present.
+ * RTEMS Symbols options.
  */
 static struct option rld_opts[] = {
   { "help",        no_argument,            NULL,           'h' },

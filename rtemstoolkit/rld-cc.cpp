@@ -285,7 +285,8 @@ namespace rld
       return exec_prefix;
     }
 
-    bool is_exec_prefix_set ()
+    bool
+    is_exec_prefix_set ()
     {
       return !exec_prefix.empty ();
     }
@@ -574,7 +575,9 @@ namespace rld
     get_standard_libpaths (rld::path::paths& libpaths)
     {
       search_dirs ();
-      rld::split (libpaths, libraries_path, RLD_PATHSTR_SEPARATOR);
+      rld::path::paths stdlibpaths;
+      rld::split (stdlibpaths, libraries_path, RLD_PATHSTR_SEPARATOR);
+      libpaths.insert (libpaths.end (), stdlibpaths.begin (), stdlibpaths.end ());
     }
 
     void
