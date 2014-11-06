@@ -80,16 +80,20 @@ static const char* c_trailer[] =
 {
   "asm(\"  .byte    0\");",
   "asm(\"  .ascii   \\\"\\xde\\xad\\xbe\\xef\\\"\");",
+#if BROKEN_ON_SOME_ASSEMBLERS
   "asm(\"  .type    rtems__rtl_base_globals, #object\");",
   "asm(\"  .size    rtems__rtl_base_globals, . - rtems__rtl_base_globals\");",
+#endif
   "",
   "/*",
   " * Symbol table size.",
   " */",
   "asm(\"  .align   4\");",
   "asm(\"  .local   rtems__rtl_base_globals_size\");",
+#if BROKEN_ON_SOME_ASSEMBLERS
   "asm(\"  .type    rtems__rtl_base_globals_size, #object\");",
   "asm(\"  .size    rtems__rtl_base_globals_size, 4\");",
+#endif
   "asm(\"rtems__rtl_base_globals_size:\");",
   "asm(\"  .long rtems__rtl_base_globals_size - rtems__rtl_base_globals\");",
   "",
