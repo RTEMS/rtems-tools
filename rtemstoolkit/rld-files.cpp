@@ -1502,7 +1502,7 @@ namespace rld
       {
         objects::const_iterator oi = objects_.find (*pi);
         if (oi == objects_.end ())
-          throw rld_error_at ("path not found in objects");
+          throw rld::error ("Not located or a valid format", *pi);
         list.push_back ((*oi).second);
       }
     }
