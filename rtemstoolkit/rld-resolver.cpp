@@ -237,6 +237,21 @@ namespace rld
                                    object.unresolved_symbols (),
                                    object.name ().full ());
       }
+
+      if (rld::verbose () >= RLD_VERBOSE_INFO)
+      {
+        std::cout << "resolver:resolving: dependents: "
+                  << dependents.size () << std::endl;
+        int count = 1;
+        for (files::object_list::iterator di = dependents.begin ();
+             di != dependents.end ();
+             ++di)
+        {
+          files::object& obj = *(*di);
+          std::cout << std::setw (3) << count++
+                    << ": " << obj.name ().basename () << std::endl;
+        }
+      }
     }
   }
 
