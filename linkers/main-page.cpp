@@ -13,6 +13,7 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+
 /**
  * @mainpage RTEMS Linker Tools
  *
@@ -162,7 +163,7 @@
  *
  * ### Archive (AR) Library Files
  *
- * The @ref rtems-rtl can load from archive ior library type files. The file
+ * The @ref rtems-rtl can load from archive or library type files. The file
  * name syntax lets a user reference a file in an archive. The format is:
  *
  * @par
