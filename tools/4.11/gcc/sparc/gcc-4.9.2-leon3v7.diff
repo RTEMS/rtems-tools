@@ -1,0 +1,288 @@
+From cd763e49bec71fd5ecda42c3fcd7a27fbcbddc5e Mon Sep 17 00:00:00 2001
+From: danielh <danielh@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Thu, 6 Nov 2014 10:58:33 +0000
+Subject: [PATCH] 	Backport from mainline 	2014-11-06  Daniel Hellstrom 
+ <daniel@gaisler.com>
+
+	* config.gcc (sparc*-*-*): Accept mcpu=leon3v7 processor.
+	* doc/invoke.texi (SPARC options): Add mcpu=leon3v7 comment.
+	* config/sparc/leon.md (leon3_load, leon_store, leon_fp_*): Handle
+	leon3v7 as leon3.
+	* config/sparc/sparc-opts.h (enum processor_type): Add LEON3V7.
+	* config/sparc/sparc.c (sparc_option_override): Add leon3v7 support.
+	* config/sparc/sparc.h (TARGET_CPU_leon3v7): New define.
+	* config/sparc/sparc.md (cpu): Add leon3v7.
+	* config/sparc/sparc.opt (enum processor_type): Add leon3v7.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-4_9-branch@217187 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/config.gcc                |  5 ++++-
+ gcc/config/sparc/leon.md      | 14 +++++++-------
+ gcc/config/sparc/sparc-opts.h |  1 +
+ gcc/config/sparc/sparc.c      |  3 +++
+ gcc/config/sparc/sparc.h      | 40 +++++++++++++++++++++++++---------------
+ gcc/config/sparc/sparc.md     |  1 +
+ gcc/config/sparc/sparc.opt    |  3 +++
+ gcc/doc/invoke.texi           | 16 ++++++++--------
+ 9 files changed, 64 insertions(+), 31 deletions(-)
+
+diff --git a/gcc/config.gcc b/gcc/config.gcc
+index 9d3fa57..b36da74 100644
+--- a/gcc/config.gcc
++++ b/gcc/config.gcc
+@@ -3205,6 +3205,9 @@ if test x$with_cpu = x ; then
+ 	*-leon[3-9]*)
+ 	  with_cpu=leon3
+ 	  ;;
++	*-leon[3-9]v7*)
++	  with_cpu=leon3v7
++	  ;;
+ 	*)
+ 	  with_cpu="`echo ${target} | sed 's/-.*$//'`"
+ 	  ;;
+@@ -3993,7 +3996,7 @@ case "${target}" in
+ 			case ${val} in
+ 			"" | sparc | sparcv9 | sparc64 \
+ 			| v7 | cypress \
+-			| v8 | supersparc | hypersparc | leon | leon3 \
++			| v8 | supersparc | hypersparc | leon | leon3 | leon3v7 \
+ 			| sparclite | f930 | f934 | sparclite86x \
+ 			| sparclet | tsc701 \
+ 			| v9 | ultrasparc | ultrasparc3 | niagara | niagara2 \
+diff --git a/gcc/config/sparc/leon.md b/gcc/config/sparc/leon.md
+index 82b6a0d..ad22e3b 100644
+--- a/gcc/config/sparc/leon.md
++++ b/gcc/config/sparc/leon.md
+@@ -29,11 +29,11 @@
+ 
+ ;; Use a double reservation to work around the load pipeline hazard on UT699.
+ (define_insn_reservation "leon3_load" 1
+-  (and (eq_attr "cpu" "leon3") (eq_attr "type" "load,sload"))
++  (and (eq_attr "cpu" "leon3,leon3v7") (eq_attr "type" "load,sload"))
+   "leon_memory*2")
+ 
+ (define_insn_reservation "leon_store" 2
+-  (and (eq_attr "cpu" "leon,leon3") (eq_attr "type" "store"))
++  (and (eq_attr "cpu" "leon,leon3,leon3v7") (eq_attr "type" "store"))
+   "leon_memory*2")
+ 
+ ;; This describes Gaisler Research's FPU
+@@ -44,21 +44,21 @@
+ (define_cpu_unit "grfpu_ds" "grfpu")
+ 
+ (define_insn_reservation "leon_fp_alu" 4
+-  (and (eq_attr "cpu" "leon,leon3") (eq_attr "type" "fp,fpcmp,fpmul"))
++  (and (eq_attr "cpu" "leon,leon3,leon3v7") (eq_attr "type" "fp,fpcmp,fpmul"))
+   "grfpu_alu, nothing*3")
+ 
+ (define_insn_reservation "leon_fp_divs" 16
+-  (and (eq_attr "cpu" "leon,leon3") (eq_attr "type" "fpdivs"))
++  (and (eq_attr "cpu" "leon,leon3,leon3v7") (eq_attr "type" "fpdivs"))
+   "grfpu_ds*14, nothing*2")
+ 
+ (define_insn_reservation "leon_fp_divd" 17
+-  (and (eq_attr "cpu" "leon,leon3") (eq_attr "type" "fpdivd"))
++  (and (eq_attr "cpu" "leon,leon3,leon3v7") (eq_attr "type" "fpdivd"))
+   "grfpu_ds*15, nothing*2")
+ 
+ (define_insn_reservation "leon_fp_sqrts" 24
+-  (and (eq_attr "cpu" "leon,leon3") (eq_attr "type" "fpsqrts"))
++  (and (eq_attr "cpu" "leon,leon3,leon3v7") (eq_attr "type" "fpsqrts"))
+   "grfpu_ds*22, nothing*2")
+ 
+ (define_insn_reservation "leon_fp_sqrtd" 25
+-  (and (eq_attr "cpu" "leon,leon3") (eq_attr "type" "fpsqrtd"))
++  (and (eq_attr "cpu" "leon,leon3,leon3v7") (eq_attr "type" "fpsqrtd"))
+   "grfpu_ds*23, nothing*2")
+diff --git a/gcc/config/sparc/sparc-opts.h b/gcc/config/sparc/sparc-opts.h
+index 13b375a..26017ed 100644
+--- a/gcc/config/sparc/sparc-opts.h
++++ b/gcc/config/sparc/sparc-opts.h
+@@ -31,6 +31,7 @@ enum processor_type {
+   PROCESSOR_HYPERSPARC,
+   PROCESSOR_LEON,
+   PROCESSOR_LEON3,
++  PROCESSOR_LEON3V7,
+   PROCESSOR_SPARCLITE,
+   PROCESSOR_F930,
+   PROCESSOR_F934,
+diff --git a/gcc/config/sparc/sparc.c b/gcc/config/sparc/sparc.c
+index 5b00cca..b77e808 100644
+--- a/gcc/config/sparc/sparc.c
++++ b/gcc/config/sparc/sparc.c
+@@ -1246,6 +1246,7 @@ sparc_option_override (void)
+     { TARGET_CPU_hypersparc, PROCESSOR_HYPERSPARC },
+     { TARGET_CPU_leon, PROCESSOR_LEON },
+     { TARGET_CPU_leon3, PROCESSOR_LEON3 },
++    { TARGET_CPU_leon3v7, PROCESSOR_LEON3V7 },
+     { TARGET_CPU_sparclite, PROCESSOR_F930 },
+     { TARGET_CPU_sparclite86x, PROCESSOR_SPARCLITE86X },
+     { TARGET_CPU_sparclet, PROCESSOR_TSC701 },
+@@ -1274,6 +1275,7 @@ sparc_option_override (void)
+     { "hypersparc",	MASK_ISA, MASK_V8|MASK_FPU },
+     { "leon",		MASK_ISA, MASK_V8|MASK_LEON|MASK_FPU },
+     { "leon3",		MASK_ISA, MASK_V8|MASK_LEON3|MASK_FPU },
++    { "leon3v7",	MASK_ISA, MASK_LEON3|MASK_FPU },
+     { "sparclite",	MASK_ISA, MASK_SPARCLITE },
+     /* The Fujitsu MB86930 is the original sparclite chip, with no FPU.  */
+     { "f930",		MASK_ISA|MASK_FPU, MASK_SPARCLITE },
+@@ -1526,6 +1528,7 @@ sparc_option_override (void)
+       sparc_costs = &leon_costs;
+       break;
+     case PROCESSOR_LEON3:
++    case PROCESSOR_LEON3V7:
+       sparc_costs = &leon3_costs;
+       break;
+     case PROCESSOR_SPARCLET:
+diff --git a/gcc/config/sparc/sparc.h b/gcc/config/sparc/sparc.h
+index dd2b5ad..79dbba2 100644
+--- a/gcc/config/sparc/sparc.h
++++ b/gcc/config/sparc/sparc.h
+@@ -137,21 +137,22 @@ extern enum cmodel sparc_cmodel;
+ #define TARGET_CPU_hypersparc	3
+ #define TARGET_CPU_leon		4
+ #define TARGET_CPU_leon3	5
+-#define TARGET_CPU_sparclite	6
+-#define TARGET_CPU_f930		6       /* alias */
+-#define TARGET_CPU_f934		6       /* alias */
+-#define TARGET_CPU_sparclite86x	7
+-#define TARGET_CPU_sparclet	8
+-#define TARGET_CPU_tsc701	8       /* alias */
+-#define TARGET_CPU_v9		9	/* generic v9 implementation */
+-#define TARGET_CPU_sparcv9	9	/* alias */
+-#define TARGET_CPU_sparc64	9	/* alias */
+-#define TARGET_CPU_ultrasparc	10
+-#define TARGET_CPU_ultrasparc3	11
+-#define TARGET_CPU_niagara	12
+-#define TARGET_CPU_niagara2	13
+-#define TARGET_CPU_niagara3	14
+-#define TARGET_CPU_niagara4	15
++#define TARGET_CPU_leon3v7	6
++#define TARGET_CPU_sparclite	7
++#define TARGET_CPU_f930		7       /* alias */
++#define TARGET_CPU_f934		7       /* alias */
++#define TARGET_CPU_sparclite86x	8
++#define TARGET_CPU_sparclet	9
++#define TARGET_CPU_tsc701	9       /* alias */
++#define TARGET_CPU_v9		10	/* generic v9 implementation */
++#define TARGET_CPU_sparcv9	10	/* alias */
++#define TARGET_CPU_sparc64	10	/* alias */
++#define TARGET_CPU_ultrasparc	11
++#define TARGET_CPU_ultrasparc3	12
++#define TARGET_CPU_niagara	13
++#define TARGET_CPU_niagara2	14
++#define TARGET_CPU_niagara3	15
++#define TARGET_CPU_niagara4	16
+ 
+ #if TARGET_CPU_DEFAULT == TARGET_CPU_v9 \
+  || TARGET_CPU_DEFAULT == TARGET_CPU_ultrasparc \
+@@ -239,6 +240,11 @@ extern enum cmodel sparc_cmodel;
+ #define ASM_CPU32_DEFAULT_SPEC AS_LEON_FLAG
+ #endif
+ 
++#if TARGET_CPU_DEFAULT == TARGET_CPU_leon3v7
++#define CPP_CPU32_DEFAULT_SPEC "-D__leon__"
++#define ASM_CPU32_DEFAULT_SPEC AS_LEONV7_FLAG
++#endif
++
+ #endif
+ 
+ #if !defined(CPP_CPU32_DEFAULT_SPEC) || !defined(CPP_CPU64_DEFAULT_SPEC)
+@@ -285,6 +291,7 @@ extern enum cmodel sparc_cmodel;
+ %{mcpu=hypersparc:-D__hypersparc__ -D__sparc_v8__} \
+ %{mcpu=leon:-D__leon__ -D__sparc_v8__} \
+ %{mcpu=leon3:-D__leon__ -D__sparc_v8__} \
++%{mcpu=leon3v7:-D__leon__} \
+ %{mcpu=v9:-D__sparc_v9__} \
+ %{mcpu=ultrasparc:-D__sparc_v9__} \
+ %{mcpu=ultrasparc3:-D__sparc_v9__} \
+@@ -334,6 +341,7 @@ extern enum cmodel sparc_cmodel;
+ %{mcpu=hypersparc:-Av8} \
+ %{mcpu=leon:" AS_LEON_FLAG "} \
+ %{mcpu=leon3:" AS_LEON_FLAG "} \
++%{mcpu=leon3v7:" AS_LEONV7_FLAG "} \
+ %{mv8plus:-Av8plus} \
+ %{mcpu=v9:-Av9} \
+ %{mcpu=ultrasparc:%{!mv8plus:-Av9a}} \
+@@ -1760,8 +1768,10 @@ extern int sparc_indent_opcode;
+ 
+ #ifdef HAVE_AS_LEON
+ #define AS_LEON_FLAG "-Aleon"
++#define AS_LEONV7_FLAG "-Aleon"
+ #else
+ #define AS_LEON_FLAG "-Av8"
++#define AS_LEONV7_FLAG "-Av7"
+ #endif
+ 
+ /* We use gcc _mcount for profiling.  */
+diff --git a/gcc/config/sparc/sparc.md b/gcc/config/sparc/sparc.md
+index 76c3315..954c297 100644
+--- a/gcc/config/sparc/sparc.md
++++ b/gcc/config/sparc/sparc.md
+@@ -221,6 +221,7 @@
+    hypersparc,
+    leon,
+    leon3,
++   leon3v7,
+    sparclite,
+    f930,
+    f934,
+diff --git a/gcc/config/sparc/sparc.opt b/gcc/config/sparc/sparc.opt
+index 64e4095..3cd2b60 100644
+--- a/gcc/config/sparc/sparc.opt
++++ b/gcc/config/sparc/sparc.opt
+@@ -153,6 +153,9 @@ EnumValue
+ Enum(sparc_processor_type) String(leon3) Value(PROCESSOR_LEON3)
+ 
+ EnumValue
++Enum(sparc_processor_type) String(leon3v7) Value(PROCESSOR_LEON3V7)
++
++EnumValue
+ Enum(sparc_processor_type) String(sparclite) Value(PROCESSOR_SPARCLITE)
+ 
+ EnumValue
+diff --git a/gcc/doc/invoke.texi b/gcc/doc/invoke.texi
+index bea8be2..7bb83ed 100644
+--- a/gcc/doc/invoke.texi
++++ b/gcc/doc/invoke.texi
+@@ -21099,8 +21099,8 @@ the rules of the ABI@.
+ Set the instruction set, register set, and instruction scheduling parameters
+ for machine type @var{cpu_type}.  Supported values for @var{cpu_type} are
+ @samp{v7}, @samp{cypress}, @samp{v8}, @samp{supersparc}, @samp{hypersparc},
+-@samp{leon}, @samp{leon3}, @samp{sparclite}, @samp{f930}, @samp{f934},
+-@samp{sparclite86x}, @samp{sparclet}, @samp{tsc701}, @samp{v9},
++@samp{leon}, @samp{leon3}, @samp{leon3v7}, @samp{sparclite}, @samp{f930},
++@samp{f934}, @samp{sparclite86x}, @samp{sparclet}, @samp{tsc701}, @samp{v9},
+ @samp{ultrasparc}, @samp{ultrasparc3}, @samp{niagara}, @samp{niagara2},
+ @samp{niagara3} and @samp{niagara4}.
+ 
+@@ -21118,7 +21118,7 @@ implementations.
+ 
+ @table @asis
+ @item v7
+-cypress
++cypress, leon3v7
+ 
+ @item v8
+ supersparc, hypersparc, leon, leon3
+@@ -21183,11 +21183,11 @@ option @option{-mcpu=@var{cpu_type}} does.
+ The same values for @option{-mcpu=@var{cpu_type}} can be used for
+ @option{-mtune=@var{cpu_type}}, but the only useful values are those
+ that select a particular CPU implementation.  Those are @samp{cypress},
+-@samp{supersparc}, @samp{hypersparc}, @samp{leon}, @samp{leon3}, @samp{f930},
+-@samp{f934}, @samp{sparclite86x}, @samp{tsc701}, @samp{ultrasparc},
+-@samp{ultrasparc3}, @samp{niagara}, @samp{niagara2}, @samp{niagara3} and
+-@samp{niagara4}.  With native Solaris and GNU/Linux toolchains, @samp{native}
+-can also be used.
++@samp{supersparc}, @samp{hypersparc}, @samp{leon}, @samp{leon3},
++@samp{leon3v7}, @samp{f930}, @samp{f934}, @samp{sparclite86x}, @samp{tsc701},
++@samp{ultrasparc}, @samp{ultrasparc3}, @samp{niagara}, @samp{niagara2},
++@samp{niagara3} and @samp{niagara4}.  With native Solaris and GNU/Linux
++toolchains, @samp{native} can also be used.
+ 
+ @item -mv8plus
+ @itemx -mno-v8plus
+-- 
+1.8.4.5
+

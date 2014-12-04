@@ -1,0 +1,54 @@
+From 1058bd03943203e30e205c5fffe527794b54e9af Mon Sep 17 00:00:00 2001
+From: danielh <danielh@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Fri, 7 Nov 2014 16:40:16 +0000
+Subject: [PATCH] 2014-11-07  Daniel Hellstrom  <daniel@gaisler.com>
+
+	Backport from mainline
+	* config.gcc (sparc-*-rtems*): Clean away unused t-elf.
+	* config/sparc/t-rtems: Add leon3v7 and muser-mode multilibs.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-4_9-branch@217232 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/config.gcc           |  2 +-
+ gcc/config/sparc/t-rtems | 13 +++++++++++--
+ 3 files changed, 18 insertions(+), 3 deletions(-)
+
+diff --git a/gcc/config.gcc b/gcc/config.gcc
+index b36da74..90d4f71 100644
+--- a/gcc/config.gcc
++++ b/gcc/config.gcc
+@@ -2662,7 +2662,7 @@ sparc-*-elf*)
+ 	;;
+ sparc-*-rtems*)
+ 	tm_file="${tm_file} dbxelf.h elfos.h sparc/sysv4.h sparc/sp-elf.h sparc/rtemself.h rtems.h newlib-stdint.h"
+-	tmake_file="${tmake_file} sparc/t-sparc sparc/t-elf sparc/t-rtems"
++	tmake_file="${tmake_file} sparc/t-sparc sparc/t-rtems"
+ 	;;
+ sparc-*-linux*)
+ 	tm_file="${tm_file} dbxelf.h elfos.h sparc/sysv4.h gnu-user.h linux.h glibc-stdint.h sparc/tso.h"
+diff --git a/gcc/config/sparc/t-rtems b/gcc/config/sparc/t-rtems
+index 86a2302..ae7a33a 100644
+--- a/gcc/config/sparc/t-rtems
++++ b/gcc/config/sparc/t-rtems
+@@ -17,6 +17,15 @@
+ # <http://www.gnu.org/licenses/>.
+ #
+ 
+-MULTILIB_OPTIONS = msoft-float mcpu=v8/mcpu=leon3
+-MULTILIB_DIRNAMES = soft v8 leon3
++MULTILIB_OPTIONS = msoft-float mcpu=v8/mcpu=leon3/mcpu=leon3v7 muser-mode
++MULTILIB_DIRNAMES = soft v8 leon3 leon3v7 user-mode
+ MULTILIB_MATCHES = msoft-float=mno-fpu
++
++MULTILIB_EXCEPTIONS = muser-mode
++MULTILIB_EXCEPTIONS += mcpu=leon3
++MULTILIB_EXCEPTIONS += mcpu=leon3v7
++MULTILIB_EXCEPTIONS += msoft-float/mcpu=leon3
++MULTILIB_EXCEPTIONS += msoft-float/mcpu=leon3v7
++MULTILIB_EXCEPTIONS += msoft-float/muser-mode
++MULTILIB_EXCEPTIONS += msoft-float/mcpu=v8/muser-mode
++MULTILIB_EXCEPTIONS += mcpu=v8/muser-mode
+-- 
+1.8.4.5
+
