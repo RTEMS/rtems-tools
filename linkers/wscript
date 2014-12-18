@@ -88,7 +88,9 @@ def build(bld):
                 linkflags = conf['linkflags'],
                 use = modules)
     bld.install_files('${PREFIX}/share/rtems/trace-linker',
-                      ['rtems.ini',
+                      ['libc.ini',
+                       'libc-heap.ini',
+                       'rtems.ini',
                        'rtems-api.ini',
                        'rtems-score.ini',
                        'rtems-score-object.ini',
