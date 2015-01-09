@@ -1,0 +1,45 @@
+From c2c78a7d98b9349ea96e860e094e4a97ba0b5842 Mon Sep 17 00:00:00 2001
+From: sh <sh@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Fri, 9 Jan 2015 14:18:35 +0000
+Subject: [PATCH 2/3] RTEMS: Fix MPC8540 multilibs for PowerPC
+
+GCC generates SPE instructions even if -msoft-float is specified.
+Explicitly add -mno-spe to prevent generation of SPE instructions.  This
+multilib variant must not lead to a usage of the SPE.
+
+gcc/ChangeLog
+
+	* config/rs6000/t-rtems: Add -mno-spe to soft-float multilib for
+	MPC8540.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-4_9-branch@219390 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/config/rs6000/t-rtems | 5 ++++-
+ 2 files changed, 12 insertions(+), 1 deletion(-)
+
+diff --git a/gcc/config/rs6000/t-rtems b/gcc/config/rs6000/t-rtems
+index 3ebcfaa..e935947 100644
+--- a/gcc/config/rs6000/t-rtems
++++ b/gcc/config/rs6000/t-rtems
+@@ -30,6 +30,9 @@ MULTILIB_DIRNAMES += m403 m505 m603e m604 m860 m7400 m8540
+ MULTILIB_OPTIONS += msoft-float/mfloat-gprs=double
+ MULTILIB_DIRNAMES += nof gprsdouble
+ 
++MULTILIB_OPTIONS += mno-spe
++MULTILIB_DIRNAMES += nospe
++
+ MULTILIB_MATCHES  	+= ${MULTILIB_MATCHES_ENDIAN}
+ MULTILIB_MATCHES	+= ${MULTILIB_MATCHES_SYSV}
+ # Map 405 to 403
+@@ -66,6 +69,6 @@ MULTILIB_REQUIRED += mcpu=604/msoft-float
+ MULTILIB_REQUIRED += mcpu=7400
+ MULTILIB_REQUIRED += mcpu=7400/msoft-float
+ MULTILIB_REQUIRED += mcpu=8540
+-MULTILIB_REQUIRED += mcpu=8540/msoft-float
++MULTILIB_REQUIRED += mcpu=8540/msoft-float/mno-spe
+ MULTILIB_REQUIRED += mcpu=8540/mfloat-gprs=double
+ MULTILIB_REQUIRED += mcpu=860
+-- 
+1.8.4.5
+

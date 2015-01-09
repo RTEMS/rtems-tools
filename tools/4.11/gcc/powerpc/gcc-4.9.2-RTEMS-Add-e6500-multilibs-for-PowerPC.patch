@@ -1,0 +1,71 @@
+From febe0c54031b437f713716251d6788dd481d5229 Mon Sep 17 00:00:00 2001
+From: sh <sh@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Fri, 9 Jan 2015 14:19:47 +0000
+Subject: [PATCH 3/3] RTEMS: Add e6500 multilibs for PowerPC
+
+Use 32-bit instructions only since currently there is no demand for a
+larger address space.  Provide one multilib with FPU and AltiVec support
+and one without.
+
+gcc/ChangeLog
+
+	* config/rs6000/rtems.h (CPP_OS_RTEMS_SPEC): Define __PPC_CPU_E6500__
+	for -mcpu=e6500.
+	* config/rs6000/t-rtems: Add e6500 multilibs.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-4_9-branch@219391 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/config/rs6000/rtems.h |  3 ++-
+ gcc/config/rs6000/t-rtems | 13 +++++++++----
+ 3 files changed, 20 insertions(+), 5 deletions(-)
+
+diff --git a/gcc/config/rs6000/rtems.h b/gcc/config/rs6000/rtems.h
+index 2402d53..0464880 100644
+--- a/gcc/config/rs6000/rtems.h
++++ b/gcc/config/rs6000/rtems.h
+@@ -52,7 +52,8 @@
+ %{mcpu=750:  %{!Dppc*: %{!Dmpc*: -Dmpc750}  } } \
+ %{mcpu=821:  %{!Dppc*: %{!Dmpc*: -Dmpc821}  } } \
+ %{mcpu=860:  %{!Dppc*: %{!Dmpc*: -Dmpc860}  } } \
+-%{mcpu=8540: %{!Dppc*: %{!Dmpc*: -Dppc8540}  } }" 
++%{mcpu=8540: %{!Dppc*: %{!Dmpc*: -Dppc8540}  } } \
++%{mcpu=e6500: -D__PPC_CPU_E6500__}"
+ 
+ #undef  SUBSUBTARGET_EXTRA_SPECS
+ #define SUBSUBTARGET_EXTRA_SPECS \
+diff --git a/gcc/config/rs6000/t-rtems b/gcc/config/rs6000/t-rtems
+index e935947..eadda0d 100644
+--- a/gcc/config/rs6000/t-rtems
++++ b/gcc/config/rs6000/t-rtems
+@@ -24,14 +24,17 @@ MULTILIB_MATCHES =
+ MULTILIB_EXCEPTIONS =
+ MULTILIB_REQUIRED =
+ 
+-MULTILIB_OPTIONS += mcpu=403/mcpu=505/mcpu=603e/mcpu=604/mcpu=860/mcpu=7400/mcpu=8540
+-MULTILIB_DIRNAMES += m403 m505 m603e m604 m860 m7400 m8540
++MULTILIB_OPTIONS += mcpu=403/mcpu=505/mcpu=603e/mcpu=604/mcpu=860/mcpu=7400/mcpu=8540/mcpu=e6500
++MULTILIB_DIRNAMES += m403 m505 m603e m604 m860 m7400 m8540 me6500
++
++MULTILIB_OPTIONS += m32
++MULTILIB_DIRNAMES += m32
+ 
+ MULTILIB_OPTIONS += msoft-float/mfloat-gprs=double
+ MULTILIB_DIRNAMES += nof gprsdouble
+ 
+-MULTILIB_OPTIONS += mno-spe
+-MULTILIB_DIRNAMES += nospe
++MULTILIB_OPTIONS += mno-spe/mno-altivec
++MULTILIB_DIRNAMES += nospe noaltivec
+ 
+ MULTILIB_MATCHES  	+= ${MULTILIB_MATCHES_ENDIAN}
+ MULTILIB_MATCHES	+= ${MULTILIB_MATCHES_SYSV}
+@@ -72,3 +75,5 @@ MULTILIB_REQUIRED += mcpu=8540
+ MULTILIB_REQUIRED += mcpu=8540/msoft-float/mno-spe
+ MULTILIB_REQUIRED += mcpu=8540/mfloat-gprs=double
+ MULTILIB_REQUIRED += mcpu=860
++MULTILIB_REQUIRED += mcpu=e6500/m32
++MULTILIB_REQUIRED += mcpu=e6500/m32/msoft-float/mno-altivec
+-- 
+1.8.4.5
+

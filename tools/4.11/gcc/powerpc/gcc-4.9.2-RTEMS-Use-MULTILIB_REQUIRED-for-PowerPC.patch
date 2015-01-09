@@ -1,0 +1,102 @@
+From 49af75fdde43dccda427eef272b3fac13cb0102c Mon Sep 17 00:00:00 2001
+From: sh <sh@138bc75d-0d04-0410-961f-82ee72b054a4>
+Date: Fri, 9 Jan 2015 14:14:22 +0000
+Subject: [PATCH 1/3] RTEMS: Use MULTILIB_REQUIRED for PowerPC
+
+gcc/ChangeLog
+
+	* config/rs6000/t-rtems: Use MULTILIB_REQUIRED instead of
+	MULTILIB_EXCEPTIONS.
+
+
+git-svn-id: svn+ssh://gcc.gnu.org/svn/gcc/branches/gcc-4_9-branch@219389 138bc75d-0d04-0410-961f-82ee72b054a4
+---
+ gcc/config/rs6000/t-rtems | 65 +++++++++++++++++------------------------------
+ 2 files changed, 32 insertions(+), 41 deletions(-)
+
+diff --git a/gcc/config/rs6000/t-rtems b/gcc/config/rs6000/t-rtems
+index 426f75a..3ebcfaa 100644
+--- a/gcc/config/rs6000/t-rtems
++++ b/gcc/config/rs6000/t-rtems
+@@ -18,16 +18,18 @@
+ # along with GCC; see the file COPYING3.  If not see
+ # <http://www.gnu.org/licenses/>.
+ 
+-MULTILIB_OPTIONS	= \
+-mcpu=403/mcpu=505/mcpu=603e/mcpu=604/mcpu=860/mcpu=7400/mcpu=8540 \
+-msoft-float/mfloat-gprs=double
++MULTILIB_OPTIONS =
++MULTILIB_DIRNAMES =
++MULTILIB_MATCHES =
++MULTILIB_EXCEPTIONS =
++MULTILIB_REQUIRED =
++
++MULTILIB_OPTIONS += mcpu=403/mcpu=505/mcpu=603e/mcpu=604/mcpu=860/mcpu=7400/mcpu=8540
++MULTILIB_DIRNAMES += m403 m505 m603e m604 m860 m7400 m8540
+ 
+-MULTILIB_DIRNAMES	= \
+-m403 m505 m603e m604 m860 m7400 m8540 \
+-nof gprsdouble
++MULTILIB_OPTIONS += msoft-float/mfloat-gprs=double
++MULTILIB_DIRNAMES += nof gprsdouble
+ 
+-# MULTILIB_MATCHES	= ${MULTILIB_MATCHES_FLOAT}
+-MULTILIB_MATCHES	=
+ MULTILIB_MATCHES  	+= ${MULTILIB_MATCHES_ENDIAN}
+ MULTILIB_MATCHES	+= ${MULTILIB_MATCHES_SYSV}
+ # Map 405 to 403
+@@ -52,37 +54,18 @@ MULTILIB_MATCHES	+= mcpu?8540=mcpu?8548
+ # (mfloat-gprs=single is implicit default)
+ MULTILIB_MATCHES	+= mcpu?8540=mcpu?8540/mfloat-gprs?single
+ 
+-# Soft-float only, default implies msoft-float
+-# NOTE: Must match with MULTILIB_MATCHES_FLOAT and MULTILIB_MATCHES
+-MULTILIB_SOFTFLOAT_ONLY = \
+-*mcpu=401/*msoft-float* \
+-*mcpu=403/*msoft-float* \
+-*mcpu=405/*msoft-float* \
+-*mcpu=801/*msoft-float* \
+-*mcpu=821/*msoft-float* \
+-*mcpu=823/*msoft-float* \
+-*mcpu=860/*msoft-float*
+-
+-# Hard-float only, take out msoft-float
+-MULTILIB_HARDFLOAT_ONLY = \
+-*mcpu=505/*msoft-float*
+-
+-# Targets which do not support gprs
+-MULTILIB_NOGPRS = \
+-mfloat-gprs=* \
+-*mcpu=403/*mfloat-gprs=* \
+-*mcpu=505/*mfloat-gprs=* \
+-*mcpu=603e/*mfloat-gprs=* \
+-*mcpu=604/*mfloat-gprs=* \
+-*mcpu=860/*mfloat-gprs=* \
+-*mcpu=7400/*mfloat-gprs=*
+-
+-MULTILIB_EXCEPTIONS =
+-
+-# Disallow -Dppc and -Dmpc without other options
+-MULTILIB_EXCEPTIONS 	+= Dppc* Dmpc*
++# Enumeration of multilibs
+ 
+-MULTILIB_EXCEPTIONS	+= \
+-${MULTILIB_SOFTFLOAT_ONLY} \
+-${MULTILIB_HARDFLOAT_ONLY} \
+-${MULTILIB_NOGPRS}
++MULTILIB_REQUIRED += msoft-float
++MULTILIB_REQUIRED += mcpu=403
++MULTILIB_REQUIRED += mcpu=505
++MULTILIB_REQUIRED += mcpu=603e
++MULTILIB_REQUIRED += mcpu=603e/msoft-float
++MULTILIB_REQUIRED += mcpu=604
++MULTILIB_REQUIRED += mcpu=604/msoft-float
++MULTILIB_REQUIRED += mcpu=7400
++MULTILIB_REQUIRED += mcpu=7400/msoft-float
++MULTILIB_REQUIRED += mcpu=8540
++MULTILIB_REQUIRED += mcpu=8540/msoft-float
++MULTILIB_REQUIRED += mcpu=8540/mfloat-gprs=double
++MULTILIB_REQUIRED += mcpu=860
+-- 
+1.8.4.5
+
