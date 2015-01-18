@@ -38,7 +38,7 @@ def build(bld):
     # The include paths.
     #
     conf['includes'] = ['elftoolchain/libelf', 'elftoolchain/common', 'libiberty']
-    if sys.platform == 'win32':
+    if bld.env.DEST_OS == 'win32':
         conf['includes'] += ['win32']
 
     #
@@ -122,9 +122,11 @@ def bld_libelf(bld, conf):
     #
     if sys.platform == 'win32':
         m4_rule = 'type ${SRC} | m4 -D SRCDIR=../rtemstoolkit/' + libelf[:-1] + '> ${TGT}"'
-        includes = ['win32']
     else:
         m4_rule = 'm4 -D SRCDIR=../rtemstoolkit/' + libelf[:-1] + ' ${SRC} > ${TGT}'
+    if bld.env.DEST_OS == 'win32':
+        includes = ['win32']
+    else:
         includes = []
 
     bld(target = 'libelf_convert.c', source = libelf + 'libelf_convert.m4', rule = m4_rule)
@@ -133,21 +135,22 @@ def bld_libelf(bld, conf):
 
     host_source = []
 
-    if sys.platform == 'linux2':
+    if bld.env.DEST_OS == 'linux2':
         common = 'elftoolchain/common/'
         bld(target = common + 'native-elf-format.h',
             source = common + 'native-elf-format',
             name = 'native-elf-format',
             rule   = './${SRC} > ${TGT}')
         bld.add_group ()
-    elif sys.platform == 'win32':
+    elif bld.env.DEST_OS == 'win32':
         host_source += [libelf + 'mmap_win32.c']
 
     bld.stlib(target = 'elf',
               features = 'c',
               install_path = None,
               uses = ['native-elf-format'],
-              includes = [bld.bldnode.abspath(), 'elftoolchain/libelf', 'elftoolchain/common'] + includes,
+              includes = [bld.bldnode.abspath(),
+                          'elftoolchain/libelf', 'elftoolchain/common'] + includes,
               cflags = conf['cflags'],
               source =[libelf + 'elf.c',
                        libelf + 'elf_begin.c',
@@ -230,7 +233,7 @@ def conf_libiberty(conf):
     conf.write_config_header('libiberty/config.h')
 
 def bld_libiberty(bld, conf):
-    if sys.platform == 'win32':
+    if bld.env.DEST_OS == 'win32':
         pex_host = 'libiberty/pex-win32.c'
     else:
         pex_host = 'libiberty/pex-unix.c'

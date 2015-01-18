@@ -41,6 +41,8 @@ def build(bld):
                         rtemstoolkit + '/elftoolchain/libelf',
                         rtemstoolkit + '/elftoolchain/common',
                         rtemstoolkit + '/libiberty']
+    if bld.env.DEST_OS == 'win32':
+        conf['includes'] += [rtemstoolkit + '/win32']
     conf['warningflags'] = ['-Wall', '-Wextra', '-pedantic']
     conf['optflags'] = bld.env.C_OPTS
     conf['cflags'] = ['-pipe', '-g'] + conf['optflags']

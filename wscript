@@ -46,7 +46,23 @@ def options(ctx):
                    default = '-O2',
                    dest='c_opts',
                    help = 'Set build options, default: -O2.')
+    ctx.add_option('--host',
+                   default = 'native',
+                   dest='host',
+                   help = 'Set host to build for, default: none.')
     recurse(ctx)
+
+def init(ctx):
+    try:
+        import waflib.Options
+        import waflib.ConfigSet
+        env = waflib.ConfigSet.ConfigSet()
+        env.load(waflib.Options.lockfile)
+        check_options(ctx, env.options['host'])
+        for sd in subdirs:
+            ctx.recurse(sd)
+    except:
+        pass
 
 def configure(ctx):
     try:
@@ -55,6 +71,7 @@ def configure(ctx):
         pass
     ctx.env.C_OPTS = ctx.options.c_opts.split(',')
     ctx.env.RTEMS_VERSION = ctx.options.rtems_version
+    check_options(ctx, ctx.options.host)
     recurse(ctx)
 
 def build(ctx):
@@ -69,6 +86,16 @@ def clean(ctx):
 def rebuild(ctx):
     import waflib.Options
     waflib.Options.commands.extend(['clean', 'build'])
+
+def check_options(ctx, host):
+    if host in ['mingw32']:
+        ctx.env.HOST = host
+        ctx.env.CC = '%s-gcc' % (host)
+        ctx.env.CXX = '%s-g++' % (host)
+        ctx.env.AR = '%s-ar' % (host)
+        ctx.env.PYTHON = 'python'
+    elif host is not 'native':
+        ctx.fatal('unknown host: %s' % (host));
 
 #
 # The doxy command.
