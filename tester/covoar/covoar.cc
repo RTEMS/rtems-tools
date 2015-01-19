@@ -2,8 +2,6 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <list>
-#include <netdb.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,6 +9,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+
+#include <list>
 
 #include "app_common.h"
 #include "CoverageFactory.h"
@@ -119,7 +119,7 @@ bool isTrue(const char *value)
     _t = CoverageConfiguration->getOption(_opt); \
     if ( _t ) _val = _t; \
   } while(0)
-  
+
 
 void check_configuration(void)
 {
@@ -160,7 +160,7 @@ int main(
   const char*                                    singleExecutable = NULL;
 
   CoverageConfiguration = new Configuration::FileReader(Options);
-  
+
   //
   // Process command line options.
   //
@@ -438,7 +438,7 @@ int main(
   //
   if (Verbose)
     fprintf( stderr, "Generating Gcov reports...\n");
-  gcnosFile = fopen ( gcnosFileName , "r" );	
+  gcnosFile = fopen ( gcnosFileName , "r" );
 
   if ( !gcnosFile ) {
     fprintf( stderr, "Unable to open %s\n", gcnosFileName );

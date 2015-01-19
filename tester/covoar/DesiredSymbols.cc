@@ -1,7 +1,7 @@
 /*! @file DesiredSymbols.cc
  *  @brief DesiredSymbols Implementation
  *
- *  This file contains the implementation of the functions 
+ *  This file contains the implementation of the functions
  *  which provide the functionality of the DesiredSymbols.
  */
 
@@ -64,7 +64,7 @@ namespace Coverage {
       symInfo = new SymbolInformation;
 
       // Skip blank lines between symbols
-      do { 
+      do {
         inputBuffer[0] = '\0';
         inputBuffer2[0] = '\0';
         cStatus = fscanf( sFile, "%s %s", inputBuffer, inputBuffer2 );
@@ -92,7 +92,7 @@ namespace Coverage {
         }
 
         // Add this to the set of symbols.
-        else 
+        else
           set[ inputBuffer ] = *symInfo;
       }
     }
@@ -162,7 +162,7 @@ namespace Coverage {
       while (a <= endAddress) {
 
         // If we are at the start of instruction increment
-        // instruction type counters as needed. 
+        // instruction type counters as needed.
         if ( theCoverageMap->isStartOfInstruction( a ) ) {
 
           stats.sizeInInstructions++;
@@ -180,13 +180,13 @@ namespace Coverage {
             stats.branchesExecuted++;
             sitr->second.stats.branchesExecuted++;
           }
- 
+
         }
- 
+
         if (!theCoverageMap->wasExecuted( a )) {
           stats.uncoveredBytes++;
           sitr->second.stats.uncoveredBytes++;
-        }       
+        }
         a++;
 
       }
@@ -251,7 +251,7 @@ namespace Coverage {
       endAddress = sitr->second.stats.sizeInBytes - 1;
       a = 0;
       while (a <= endAddress) {
-        
+
         // If an address was NOT executed, find consecutive unexecuted
         // addresses and add them to the uncovered ranges.
         if (!theCoverageMap->wasExecuted( a )) {
@@ -501,6 +501,9 @@ namespace Coverage {
       inputBuffer[ strlen(inputBuffer) - 1] = '\0';
 
       // Use only the base filename without directory path.
+#if WIN32
+      #define realpath(N,R) _fullpath((R),(N),_MAX_PATH)
+#endif
       realpath( inputBuffer, rpath );
       base = basename( rpath );
 
@@ -610,9 +613,9 @@ namespace Coverage {
   {
     if (set.find( symbolName ) == set.end()) {
       #if 0
-        fprintf( stderr, 
-          "Warning: Unable to find symbol %s\n", 
-          symbolName.c_str() 
+        fprintf( stderr,
+          "Warning: Unable to find symbol %s\n",
+          symbolName.c_str()
         );
       #endif
       return false;
@@ -633,7 +636,7 @@ namespace Coverage {
     uint32_t              sBaseAddress;
     uint32_t              sMapSize;
     uint32_t              executionCount;
-    
+
     // Ensure that the symbol is a desired symbol.
     itr = set.find( symbolName );
 
