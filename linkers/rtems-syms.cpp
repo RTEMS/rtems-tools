@@ -316,7 +316,6 @@ main (int argc, char* argv[])
     std::string         cc;
     std::string         symc;
     bool                embed = false;
-    bool                warnings = false;
 
     rld::set_cmdline (argc, argv);
 
@@ -339,7 +338,6 @@ main (int argc, char* argv[])
           break;
 
         case 'w':
-          warnings = true;
           break;
 
         case 'k':
