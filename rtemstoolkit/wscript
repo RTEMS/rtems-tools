@@ -135,7 +135,7 @@ def bld_libelf(bld, conf):
 
     host_source = []
 
-    if bld.env.DEST_OS == 'linux2':
+    if bld.env.DEST_OS == 'linux':
         common = 'elftoolchain/common/'
         bld(target = common + 'native-elf-format.h',
             source = common + 'native-elf-format',
