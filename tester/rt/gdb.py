@@ -209,7 +209,7 @@ class gdb(object):
             if self.trace:
                 print 'gdb done', ec
             if ec > 0:
-                raise error.general('gdb exec: %s' % (os.strerror(ec)))
+                raise error.general('gdb exec: %s: %s' % (cmds[0], os.strerror(ec)))
         except:
             raise
         self._lock('_open')

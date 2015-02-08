@@ -65,7 +65,7 @@ class test(object):
             raise error.general('cannot find executable: %s' % (executable))
         self.opts.defaults['test_executable'] = executable
         if rtems_tools:
-            rtems_tools_bin = path.join(rtems_tools, 'bin')
+            rtems_tools_bin = path.join(self.opts.defaults.expand(rtems_tools), 'bin')
             if not path.isdir(rtems_tools_bin):
                 raise error.general('cannot find RTEMS tools path: %s' % (rtems_tools_bin))
             self.opts.defaults['rtems_tools'] = rtems_tools_bin
@@ -219,10 +219,14 @@ def run(command_path = None):
         job_trace = 'jobs' in debug_trace.split(',')
         rtems_tools = opts.find_arg('--rtems-tools')
         if rtems_tools:
+            if len(rtems_tools) != 2:
+                raise error.general('invalid RTEMS tools option')
             rtems_tools = rtems_tools[1]
+        else:
+            rtems_tools = '%{_prefix}'
         bsp = opts.find_arg('--rtems-bsp')
-        if bsp is None:
-            raise error.general('no RTEMS BSP provided')
+        if bsp is None or len(bsp) != 2:
+            raise error.general('RTEMS BSP not provided or invalid option')
         opts.defaults.load('%%{_configdir}/bsps/%s.mc' % (bsp[1]))
         bsp = opts.defaults.get('%{bsp}')
         if not bsp:

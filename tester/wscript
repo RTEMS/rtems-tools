@@ -72,10 +72,13 @@ def build(bld):
     #
     # Install the tester configuration files.
     #
-    config = bld.path.find_dir('rtems')
+    config = bld.path.find_dir('config')
+    bld.install_files('${PREFIX}/share/rtems/tester/config',
+                      config.ant_glob('**/*'), cwd = config,
+                      relative_trick = True)
+    rtems = bld.path.find_dir('rtems')
     bld.install_files('${PREFIX}/share/rtems/tester/rtems',
-                      config.ant_glob('**', excl=['*~']),
-                      cwd = config,
+                      rtems.ant_glob('**/*'), cwd = rtems,
                       relative_trick = True)
 
 def install(ctx):

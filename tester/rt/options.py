@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2013-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2013-2015 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -89,7 +89,6 @@ def load(args, optargs = None,
     # the tester being run from within the git repo. If not found assume the tools
     # have been installed and the defaults is in the install prefix.
     #
-    print path.join(command_path, defaults_mc)
     if path.exists(path.join(command_path, defaults_mc)):
         rtdir = command_path
     else:
