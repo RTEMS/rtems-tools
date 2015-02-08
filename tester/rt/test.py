@@ -307,7 +307,7 @@ def run(command_path = None):
     except error.exit, eerr:
         sys.exit(2)
     except KeyboardInterrupt:
-        if opts.find_arg('--stacktrace'):
+        if opts is not None and opts.find_arg('--stacktrace'):
             print '}} dumping:', threading.active_count()
             for t in threading.enumerate():
                 print '}} ', t.name

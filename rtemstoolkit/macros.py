@@ -33,6 +33,7 @@
 #
 
 import copy
+import inspect
 import re
 import os
 import string
@@ -71,11 +72,21 @@ class macros:
             self.read_maps = []
             self.read_map_locked = False
             self.write_map = 'global'
+            self.rtpath = path.abspath(path.dirname(inspect.getfile(macros)))
+            if path.dirname(self.rtpath).endswith('/share/rtems'):
+                self.prefix = path.dirname(self.rtpath)[:-len('/share/rtems')]
+            else:
+                self.prefix = '.'
             self.macros['global'] = {}
             self.macros['global']['nil'] = ('none', 'none', '')
-            self.macros['global']['_cwd'] = ('dir', 'required', path.abspath(os.getcwd()))
-            self.macros['global']['_rtdir'] = ('dir', 'required', path.abspath(rtdir))
-            self.macros['global']['_rttop'] = ('dir', 'required', path.abspath(path.dirname(rtdir)))
+            self.macros['global']['_cwd'] = ('dir',
+                                             'required',
+                                             path.abspath(os.getcwd()))
+            self.macros['global']['_prefix'] = ('dir', 'required', self.prefix)
+            self.macros['global']['_rtdir'] = ('dir',
+                                               'required',
+                                               path.abspath(self.expand(rtdir)))
+            self.macros['global']['_rttop'] = ('dir', 'required', self.prefix)
         else:
             self.macros = {}
             for m in original.macros:
@@ -419,14 +430,19 @@ class macros:
 
     def expand(self, _str):
         """Simple basic expander of config file macros."""
+        start_str = _str
         expanded = True
+        count = 0
         while expanded:
+            count += 1
+            if count > 1000:
+                raise error.general('expansion looped over 1000 times "%s"' %
+                                    (start_str))
             expanded = False
             for m in self.macro_filter.findall(_str):
                 name = m[2:-1]
                 macro = self.get(name)
                 if macro is None:
-                    print self.macros
                     raise error.general('cannot expand default macro: %s in "%s"' %
                                         (m, _str))
                 _str = _str.replace(m, macro[2])
@@ -474,6 +490,7 @@ class macros:
 if __name__ == "__main__":
     import copy
     import sys
+    print inspect.getfile(macros)
     m = macros(name = 'defaults.mc')
     d = copy.copy(m)
     m['test1'] = 'something'

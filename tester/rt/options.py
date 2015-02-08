@@ -48,6 +48,11 @@ from rtemstoolkit import path
 
 import version
 
+#
+# The path for the defaults.
+#
+defaults_mc = 'rtems/testing/defaults.mc'
+
 class command_line(options.command_line):
     """Process the command line in a common way for all Tool Builder commands."""
 
@@ -71,7 +76,7 @@ class command_line(options.command_line):
 
 def load(args, optargs = None,
          command_path = None,
-         defaults = '%{_rtdir}/rtems/testing/defaults.mc'):
+         defaults = '%s' % (defaults_mc)):
     #
     # The path to this command if not supplied by the upper layers.
     #
@@ -80,20 +85,30 @@ def load(args, optargs = None,
         if len(command_path) == 0:
             command_path = '.'
     #
+    # Check if there is a defaults.mc file under the command path. If so this is
+    # the tester being run from within the git repo. If not found assume the tools
+    # have been installed and the defaults is in the install prefix.
+    #
+    print path.join(command_path, defaults_mc)
+    if path.exists(path.join(command_path, defaults_mc)):
+        rtdir = command_path
+    else:
+        rtdir = '%{_prefix}/share/rtems/tester'
+    defaults = '%s/%s' % (rtdir, defaults_mc)
+    #
     # The command line contains the base defaults object all build objects copy
     # and modify by loading a configuration.
     #
     opts = command_line(args,
                         optargs,
-                        macros.macros(name = defaults,
-                                      rtdir = command_path),
+                        macros.macros(name = defaults, rtdir = rtdir),
                         command_path)
     options.load(opts)
     return opts
 
 def run(args):
     try:
-        _opts = load(args = args, defaults = 'rtems/testing/defaults.mc')
+        _opts = load(args = args, defaults = defaults_mc)
         log.notice('RTEMS Test - Defaults, v%s' % (version.str()))
         _opts.log_info()
         log.notice('Options:')

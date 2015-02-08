@@ -14,12 +14,12 @@ top = '.'
 out = 'build-' + sys.platform
 
 def options(opt):
-    opt.load("g++")
-    opt.load("gcc")
+    opt.load('compiler_c')
+    opt.load('compiler_cxx')
 
 def configure(conf):
-    conf.load("g++")
-    conf.load("gcc")
+    conf.load('compiler_c')
+    conf.load('compiler_cxx')
     conf_libiberty(conf)
     conf_libelf(conf)
 
@@ -99,6 +99,29 @@ def build(bld):
               cflags = conf['cflags'] + conf['warningflags'],
               cxxflags = conf['cxxflags'] + conf['warningflags'],
               linkflags = conf['linkflags'])
+
+    #
+    # The Python toolkit.
+    #
+    bld(features = 'py',
+        source = ['__init__.py',
+                  'check.py',
+                  'config.py',
+                  'darwin.py',
+                  'error.py',
+                  'execute.py',
+                  'freebsd.py',
+                  'git.py',
+                  'linux.py',
+                  'log.py',
+                  'macros.py',
+                  'mailer.py',
+                  'options.py',
+                  'path.py',
+                  'stacktraces.py',
+                  'version.py',
+                  'windows.py'],
+        install_path = '${PREFIX}/share/rtems/rtemstoolkit')
 
 def rebuild(ctx):
     import waflib.Options

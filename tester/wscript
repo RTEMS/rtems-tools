@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2015 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -34,14 +34,49 @@ def recurse(ctx):
     for sd in subdirs:
         ctx.recurse(sd)
 
-def options(ctx):
-    recurse(ctx)
+def options(opt):
+    recurse(opt)
+    opt.load('python')
 
 def configure(ctx):
     recurse(ctx)
+    conf.load('python')
+    conf.check_python_version((2,7,3))
 
-def build(ctx):
-    recurse(ctx)
+def build(bld):
+    recurse(bld)
+
+    #
+    # Install the tester code.
+    #
+    bld(features = 'py',
+        source = ['rt/__init__.py',
+                  'rt/bsps.py',
+                  'rt/config.py',
+                  'rt/console.py',
+                  'rt/gdb.py',
+                  'rt/options.py',
+                  'rt/report.py',
+                  'rt/stty.py',
+                  'rt/test.py',
+                  'rt/version.py'],
+        install_path = '${PREFIX}/share/rtems/rt')
+    bld(features = 'py',
+        source = ['rt/pygdb/__init__.py',
+                  'rt/pygdb/mi_parser.py',
+                  'rt/pygdb/spark.py'],
+        install_path = '${PREFIX}/share/rtems/rt/pygdb')
+    bld.install_files('${PREFIX}/bin', ['rtems-test'], chmod = 0755)
+    bld.install_files('${PREFIX}/bin', ['rtems-test'], chmod = 0755)
+
+    #
+    # Install the tester configuration files.
+    #
+    config = bld.path.find_dir('rtems')
+    bld.install_files('${PREFIX}/share/rtems/tester/rtems',
+                      config.ant_glob('**', excl=['*~']),
+                      cwd = config,
+                      relative_trick = True)
 
 def install(ctx):
     recurse(ctx)

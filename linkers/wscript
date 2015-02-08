@@ -8,12 +8,12 @@ version_minor = 0
 version_revision = 0
 
 def options(opt):
-    opt.load("g++")
-    opt.load("gcc")
+    opt.load('compiler_c')
+    opt.load('compiler_cxx')
 
 def configure(conf):
-    conf.load("g++")
-    conf.load("gcc")
+    conf.load('compiler_c')
+    conf.load('compiler_cxx')
 
     conf.env.C_OPTS = conf.options.c_opts.split(',')
     conf.env.RTEMS_VERSION = conf.options.rtems_version
