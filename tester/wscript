@@ -38,8 +38,8 @@ def options(opt):
     recurse(opt)
     opt.load('python')
 
-def configure(ctx):
-    recurse(ctx)
+def configure(conf):
+    recurse(conf)
     conf.load('python')
     conf.check_python_version((2,7,3))
 
