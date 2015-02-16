@@ -15,7 +15,7 @@
 #include "ReportsHtml.h"
 
 #if WIN32
-#include <io.h>
+#include <direct.h>
 #endif
 
 namespace Coverage {
