@@ -41,7 +41,7 @@ def options(opt):
 def configure(conf):
     recurse(conf)
     conf.load('python')
-    conf.check_python_version((2,7,3))
+    conf.check_python_version((2,6,6))
 
 def build(bld):
     recurse(bld)
