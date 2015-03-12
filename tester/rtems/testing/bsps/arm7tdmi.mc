@@ -42,15 +42,15 @@
 #
 
 #
-# The arm920 BSP
+# The arm7tdmi BSP
 #
 [global]
-bsp:                 none,    none,     'arm920'
+bsp:                 none,    none,     'arm7tdmi'
 
-[arm920]
-arm920:                 none,    none,     '%{_rtscripts}/gdb.cfg'
-arm920_arch:            none,    none,     'arm'
-gdb_script:          none,    none,     'arm920_gdb_script'
-arm920_gdb_script:      none,    none,     '''target sim
+[arm7tdmi]
+arm7tdmi:                 none,    none,     '%{_rtscripts}/gdb.cfg'
+arm7tdmi_arch:            none,    none,     'arm'
+gdb_script:          none,    none,     'arm7tdmi_gdb_script'
+arm7tdmi_gdb_script:      none,    none,     '''target sim
                                            load
                                            run'''

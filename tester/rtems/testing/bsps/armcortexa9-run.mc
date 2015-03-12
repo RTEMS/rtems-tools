@@ -42,15 +42,13 @@
 #
 
 #
-# The arm920 BSP
+# The armcortexa9 BSP
 #
 [global]
-bsp:                 none,    none,     'arm920'
+bsp:              none,    none,     'armcortexa9'
 
-[arm920]
-arm920:                 none,    none,     '%{_rtscripts}/gdb.cfg'
-arm920_arch:            none,    none,     'arm'
-gdb_script:          none,    none,     'arm920_gdb_script'
-arm920_gdb_script:      none,    none,     '''target sim
-                                           load
-                                           run'''
+[armcortexa9]
+armcortexa9:              none,    none,     '%{_rtscripts}/run.cfg'
+armcortexa9_arch:         none,    none,     'arm'
+bsp_run_cmd:      none,    none,     '%{rtems_tools}/%{bsp_arch}-rtems%{rtems_version}-run'
+bsp_run_opts:     none,    none,     '-a -nouartrx'

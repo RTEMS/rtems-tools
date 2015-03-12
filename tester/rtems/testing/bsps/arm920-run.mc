@@ -45,12 +45,10 @@
 # The arm920 BSP
 #
 [global]
-bsp:                 none,    none,     'arm920'
+bsp:              none,    none,     'arm920'
 
 [arm920]
-arm920:                 none,    none,     '%{_rtscripts}/gdb.cfg'
-arm920_arch:            none,    none,     'arm'
-gdb_script:          none,    none,     'arm920_gdb_script'
-arm920_gdb_script:      none,    none,     '''target sim
-                                           load
-                                           run'''
+arm920:              none,    none,     '%{_rtscripts}/run.cfg'
+arm920_arch:         none,    none,     'arm'
+bsp_run_cmd:      none,    none,     '%{rtems_tools}/%{bsp_arch}-rtems%{rtems_version}-run'
+bsp_run_opts:     none,    none,     '-a -nouartrx'

@@ -42,15 +42,15 @@
 #
 
 #
-# The arm920 BSP
+# The arm1136js BSP
 #
 [global]
-bsp:                 none,    none,     'arm920'
+bsp:                 none,    none,     'arm1136js'
 
-[arm920]
-arm920:                 none,    none,     '%{_rtscripts}/gdb.cfg'
-arm920_arch:            none,    none,     'arm'
-gdb_script:          none,    none,     'arm920_gdb_script'
-arm920_gdb_script:      none,    none,     '''target sim
+[arm1136js]
+arm1136js:                 none,    none,     '%{_rtscripts}/gdb.cfg'
+arm1136js_arch:            none,    none,     'arm'
+gdb_script:          none,    none,     'arm1136js_gdb_script'
+arm1136js_gdb_script:      none,    none,     '''target sim
                                            load
                                            run'''
