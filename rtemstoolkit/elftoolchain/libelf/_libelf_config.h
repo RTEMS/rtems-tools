@@ -117,7 +117,7 @@
 
 #ifdef __APPLE__
 
-#define	LIBELF_VCSID(ID) 
+#define	LIBELF_VCSID(ID)
 
 #if	defined(__amd64__)
 
@@ -174,9 +174,9 @@
 
 #endif /* defined(__linux__) || defined(__GNU__) || defined(__GLIBC__) */
 
-#ifdef __WIN32__
+#if defined(__WIN32__) || defined(__CYGWIN__)
 
-#define	LIBELF_VCSID(ID) 
+#define	LIBELF_VCSID(ID)
 
 #if	defined(__amd64__)
 
