@@ -1,5 +1,5 @@
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2015 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -36,13 +36,25 @@ import gdb
 import chains
 import objects
 import percpu
+import rbtrees
+import time
 
 def task_chain(chain):
     tasks = []
-    node = chain.first()
+    if not chain.empty():
+        node = chain.first()
+        while not node.null():
+            t = control(node.cast('Thread_Control'))
+            tasks.append(t)
+            node = node(node.next())
+    return tasks
+
+def task_tree(tree):
+    tasks = []
+    node = tree.first(rbtrees.rbt_left)
     while not node.null():
         tasks.append(control(node.cast('Thread_Control')))
-        node.next()
+        node = node.next(rbtrees.rbt_left)
     return tasks
 
 class state():
@@ -128,6 +140,17 @@ class state():
                 s = self.masks[m] + ','
         return s[:-1]
 
+class cpu_usage():
+
+    def __init__(self, time_):
+        self.time = time.time(time_)
+
+    def __str__(self):
+        return self.time.tostring()
+
+    def get(self):
+        return self.time.get()
+
 class wait_info():
 
     def __init__(self, info):
@@ -164,7 +187,6 @@ class registers():
         if t in ['double']:
             return float(self.regs[reg])
         return int(self.regs[reg])
-
 
     def format(self, reg):
         t = self.regs[reg].type
@@ -208,8 +230,12 @@ class control():
     '''
 
     def __init__(self, ctrl):
-        self.reference = ctrl
-        self.ctrl = ctrl.dereference()
+        if ctrl.type.code == gdb.TYPE_CODE_PTR:
+            self.reference = ctrl
+            self.ctrl = ctrl.dereference()
+        else:
+            self.ctrl = ctrl
+            self.reference = ctrl.address
         self.object = objects.control(ctrl['Object'])
         self._executing = percpu.thread_active(self.reference)
         self._heir = percpu.thread_heir(self.reference)
@@ -245,7 +271,7 @@ class control():
         return self.ctrl['cpu_time_budget']
 
     def cpu_time_used(self):
-        return self.ctrl['cpu_time_used']
+        return cpu_usage(self.ctrl['cpu_time_used'])
 
     def preemptible(self):
         return self.ctrl['is_preemptible']
@@ -259,6 +285,9 @@ class control():
     def registers(self):
         return registers(self.ctrl['Registers'])
 
+    def is_idle(self):
+        return (self.id() & 0xff000000) == 0x90000000
+
     def brief(self):
         return "'%s' (c:%d, r:%d)" % \
             (self.name(), self.current_priority(), self.real_priority())
@@ -266,10 +295,13 @@ class control():
 class queue():
     """Manage the Thread_queue_Control."""
 
-    priority_headers = 4
-
     def __init__(self, que):
-        self.que = que
+        if que.type.code == gdb.TYPE_CODE_PTR:
+            self.reference = que
+            self.que = que.dereference()
+        else:
+            self.que = que
+            self.reference = que.address
 
     def fifo(self):
         return str(self.que['discipline']) == 'THREAD_QUEUE_DISCIPLINE_FIFO'
@@ -284,8 +316,5 @@ class queue():
         if self.fifo():
             t = task_chain(chains.control(self.que['Queues']['Fifo']))
         else:
-            t = []
-            for ph in range(0, self.priority_headers):
-                t.extend(task_chain(chains.control( \
-                    self.que['Queues']['Priority'][ph])))
+            t =  task_tree(rbtrees.control(self.que['Queues']['Priority']))
         return t

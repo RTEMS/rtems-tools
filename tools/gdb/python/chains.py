@@ -37,7 +37,18 @@ class node:
     """Manage the Chain_Node."""
 
     def __init__(self, node_val):
-        self.node_val = node_val
+        if node_val:
+            if node_val.type.code == gdb.TYPE_CODE_PTR:
+                self.reference = node_val
+                self.node_val = node_val.dereference()
+            else:
+                self.node_val = node_val
+                self.reference = node_val.address
+        else:
+            self.node_val = node_val
+
+    def __str__(self):
+        return self.to_string()
 
     def null(self):
         if not self.node_val:
@@ -46,11 +57,11 @@ class node:
 
     def next(self):
         if not self.null():
-            self.node_val = self.node_val['next']
+            return self.node_val['next']
 
     def previous(self):
         if not self.null():
-            self.node_val = self.node_val['previous']
+            return self.node_val['previous']
 
     def cast(self, typename):
         if not self.null():
@@ -59,21 +70,31 @@ class node:
         return None
 
     def to_string(self):
-        return self.node_val['next'] + "Prev: "+self.node_val['previous']
+        if self.null():
+            return 'NULL'
+        return 'Node:%s Next:%s Prev:%s' % (self.reference,
+                                            self.node_val['next'],
+                                            self.node_val['previous'])
 
 class control:
     """Manage the Chain_Control."""
 
     def __init__(self, ctrl):
-        self.ctrl = ctrl
+        if ctrl.type.code == gdb.TYPE_CODE_PTR:
+            self.reference = ctrl
+            self.ctrl = ctrl.dereference()
+        else:
+            self.ctrl = ctrl
+            self.reference = ctrl.address
 
     def first(self):
         t = node(self.ctrl['Head']['Node'])
         return t
 
-    def last(self):
+    def tail(self):
         return node(self.ctrl['Tail']['Node'])
 
     def empty(self):
-        if self.last() == self.first().next():
+        if self.tail().previous() == self.reference:
             return True
+        return False

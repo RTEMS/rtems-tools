@@ -72,17 +72,18 @@ class rtems_object(gdb.Command):
                                            gdb.COMPLETE_SYMBOL)
 
     def invoke(self, arg, from_tty):
+        vald = False
         for num in arg.split():
             try:
                 val = gdb.parse_and_eval(num)
                 num = int(val)
             except:
                 print 'error: "%s" is not a number' % (num)
-                return
+                return True
             id = objects.ident(num)
             if not id.valid():
                 print 'Invalid object id'
-                return
+                return True
 
             print 'API:%s Class:%s Node:%d Index:%d Id:%08X' % \
                 (id.api(), id._class(), id.node(), id.index(), id.value())
@@ -91,8 +92,9 @@ class rtems_object(gdb.Command):
             obj = objects.information.object(id).dereference()
             if objectname in self.objects:
                 object = self.objects[objectname](obj)
-                object.show(from_tty)
+                valid = object.show(from_tty)
         objects.information.invalidate()
+        return valid
 
 class rtems_index(gdb.Command):
     '''Print object by index'''
@@ -113,8 +115,9 @@ class rtems_index(gdb.Command):
     def invoke(self, arg, from_tty):
         maximum = objects.information.maximum(self.api, self._class)
         minimum_id = objects.ident(objects.information.minimum_id(self.api, self._class))
-        maximum_id = objects.ident(objects.information.minimum_id(self.api, self._class))
+        maximum_id = objects.ident(objects.information.maximum_id(self.api, self._class))
         args = arg.split()
+        valid = False
         if len(args):
             for val in args:
                 try:
@@ -137,15 +140,18 @@ class rtems_index(gdb.Command):
                     print "error: index %s is invalid" % (index)
                     return
                 instance = self.instance(obj)
-                instance.show(from_tty)
+                valid = instance.show(from_tty)
             objects.information.invalidate()
         else:
             print '-' * 70
             print ' %s: %d [%08x -> %08x]' % (objects.information.name(self.api, self._class),
                                              maximum, minimum_id.value(), maximum_id.value())
+            valid = True
             for index in range(minimum_id.index(), minimum_id.index() + maximum):
-                print '-' * 70
-                self.invoke(str(index), from_tty)
+                if valid:
+                    print '-' * 70
+                valid = self.invoke(str(index), from_tty)
+        return valid
 
 class rtems_semaphore(rtems_index):
     '''semaphore subcommand'''
@@ -242,11 +248,9 @@ class rtems_tod(gdb.Command):
                     ('rtems tod', gdb.COMMAND_STATUS,gdb.COMPLETE_NONE)
 
     def invoke(self, arg, from_tty):
-
         if arg:
             print "warning: commad takes no arguments!"
-
-        obj = objects.information.object_return(self.api,self._class)
+        obj = objects.information.object_return(self.api, self._class)
         instance = supercore.time_of_day(obj)
         instance.show()
         objects.information.invalidate()

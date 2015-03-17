@@ -37,11 +37,12 @@ import re
 #ToDo This shouldn't be here
 import helper
 
+import heaps
+import mutex
 import objects
+import supercore
 import threads
 import watchdog
-import heaps
-import supercore
 
 class attribute:
     """The Classic API attribute."""
@@ -111,7 +112,7 @@ class attribute:
 
     #ToDo: Move this out
     def to_string(self):
-        s = '0x%08x,' % (self.attr)
+        s = '(0x%08x) ' % (self.attr)
         if self.attrtype != 'none':
             for m in self.groups[self.attrtype]:
                 v = self.attr & self.masks[m]
@@ -135,44 +136,42 @@ class semaphore:
     "Print a classic semaphore."
 
     def __init__(self, obj):
-        self.reference = obj
-        self.object = obj.dereference()
+        if obj.type.code == gdb.TYPE_CODE_PTR:
+            self.reference = obj
+            self.object = obj.dereference()
+        else:
+            self.object = obj
+            self.reference = obj.address
         self.object_control = objects.control(self.object['Object'])
         self.attr = attribute(self.object['attribute_set'], 'semaphore')
 
     def show(self, from_tty):
-        print '     Name:', self.object_control.name()
-        print '     Attr:', self.attr.to_string()
-        if self.attr.test('semaphore-type', 'bin-sema') or \
-                self.attr.test('semaphore-type', 'simple-bin-sema'):
-            core_mutex = self.object['Core_control']['mutex']
-            locked = core_mutex['lock'] == 0
-            if locked:
-                s = 'locked'
-            else:
-                s = 'unlocked'
-            print '     Lock:', s
-            print '  Nesting:', core_mutex['nest_count']
-            print '  Blocked:', core_mutex['blocked_count']
-            print '   Holder:',
-            holder = core_mutex['holder']
-            if holder and locked:
-                holder = threads.control(holder.dereference())
-                print holder.brief()
-            elif holder == 0 and locked:
-                print 'locked but no holder'
-            else:
-                print 'unlocked'
-            wait_queue = threads.queue(core_mutex['Wait_queue'])
-            tasks = wait_queue.tasks()
-            print '    Queue: len = %d, state = %s' % (len(tasks),
-                                                       wait_queue.state())
-            print '    Tasks:'
-            print '    Name (c:current, r:real), (id)'
-            for t in range(0, len(tasks)):
-                print '      ', tasks[t].brief(), ' (%08x)' % (tasks[t].id())
-        else:
-            print 'semaphore'
+        if self.object_control.id() != 0:
+            print '     Name:', self.object_control.name()
+            print '       Id: 0x%08x (@ 0x%08x)' % (self.object_control.id(),
+                                                   self.reference)
+            print '     Attr:', self.attr.to_string()
+            if self.attr.test('semaphore-type', 'bin-sema') or \
+               self.attr.test('semaphore-type', 'simple-bin-sema'):
+                core_mutex = mutex.control(self.object['Core_control']['mutex'])
+                print '  Nesting:', core_mutex.nest_count()
+                print '   Holder:',
+                holder = core_mutex.holder()
+                if holder:
+                    print '%s (id 0x%08x)' % (holder.brief(), holder.id())
+                else:
+                    print 'no holder (unlocked)'
+                wait_queue = core_mutex.wait_queue()
+                tasks = wait_queue.tasks()
+                print '    Queue: len = %d, state = %s' % (len(tasks),
+                                                           wait_queue.state())
+                if len(tasks) > 0:
+                    print '    Tasks:'
+                    print '    Name (c:current, r:real), (id)'
+                    for t in range(0, len(tasks)):
+                        print '      ', tasks[t].brief(), ' (%08x)' % (tasks[t].id())
+                return True
+        return False
 
 class task:
     "Print a classic task"
@@ -186,23 +185,27 @@ class task:
         #self.regs = sparc.register(self.object['Registers'])
 
     def show(self, from_tty):
-        cpu = self.task.executing()
-        if cpu == -1:
-            cpu = 'not executing'
-        print '         Id:', '0x%08x' % (self.task.id())
-        print '       Name:', self.task.name()
-        print ' Active CPU:', cpu
-        print '      State:', self.task.current_state()
-        print '    Current:', self.task.current_priority()
-        print '       Real:', self.task.real_priority()
-        print '    Preempt:', self.task.preemptible()
-        print '   T Budget:', self.task.cpu_time_budget()
-        print '       Time:', self.task.cpu_time_used()
-        print '  Resources:', self.task.resource_count()
-        print '  Regsters:'
-        for name in self.regs.names():
-            val = self.regs.get(name)
-            print '    %20s: %08x (%d)' % (name, val, val)
+        if self.task.id() != 0:
+            cpu = self.task.executing()
+            if cpu == -1:
+                cpu = 'not executing'
+            print '         Id:', '0x%08x (@ 0x%08x)' % (self.task.id(),
+                                                         self.task.reference)
+            print '       Name:', self.task.name()
+            print ' Active CPU:', cpu
+            print '      State:', self.task.current_state()
+            print '    Current:', self.task.current_priority()
+            print '       Real:', self.task.real_priority()
+            print '    Preempt:', self.task.preemptible()
+            print '   T Budget:', self.task.cpu_time_budget()
+            print '       Time:', self.task.cpu_time_used()
+            print '  Resources:', self.task.resource_count()
+            print '  Regsters:'
+            for name in self.regs.names():
+                val = self.regs.get(name)
+                print '    %20s: %08x (%d)' % (name, val, val)
+            return True
+        return False
 
 class message_queue:
     "Print classic messege queue"
