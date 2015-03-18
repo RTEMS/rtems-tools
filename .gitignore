@@ -3,5 +3,8 @@
 *.log
 log_*
 .waf-*
+.waf3-*
+waf-*
+waf3-*
 .lock-waf*
 build
