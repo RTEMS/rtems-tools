@@ -87,7 +87,7 @@ mmap(void* addr, size_t len, int prot, int flags, int fd, off_t offset)
    */
   if (prot & PROT_EXEC)
     return MAP_FAILED;
-  
+
   /*
    * Map the protection.
    */
@@ -106,8 +106,8 @@ mmap(void* addr, size_t len, int prot, int flags, int fd, off_t offset)
     flProtect = PAGE_READWRITE;
     dwDesiredAccess = FILE_MAP_WRITE;
   }
-  
-  fh = (HANDLE) _get_osfhandle (fd);
+
+  fh = (HANDLE) (intptr_t) _get_osfhandle (fd);
   if (fh == (HANDLE) -1)
     return MAP_FAILED;
 
@@ -133,9 +133,9 @@ mmap(void* addr, size_t len, int prot, int flags, int fd, off_t offset)
   {
     DWORD low;
     DWORD high;
-    
+
     low = GetFileSize (fh, &high);
-    
+
     /*
      * Low might just happen to have the value INVALID_FILE_SIZE; so we need to
      *  check the last error also.
@@ -147,7 +147,7 @@ mmap(void* addr, size_t len, int prot, int flags, int fd, off_t offset)
     }
 
     size = (((uint64_t) high) << 32) + low;
-    
+
     if (offset >= size)
     {
       free (map);
@@ -170,7 +170,7 @@ mmap(void* addr, size_t len, int prot, int flags, int fd, off_t offset)
   size_lo = (DWORD)(size & 0xFFFFFFFF);
   off_hi = (DWORD)(0);
   off_lo = (DWORD)(offset & 0xFFFFFFFF);
-  
+
   /*
    * For files, it would be sufficient to pass 0 as size. For anonymous maps,
    * we have to pass the size explicitly.
@@ -186,7 +186,7 @@ mmap(void* addr, size_t len, int prot, int flags, int fd, off_t offset)
     free (map);
     return MAP_FAILED;
   }
-  
+
   map->data = (char *) MapViewOfFileEx (map->map_handle,
                                         dwDesiredAccess,
                                         off_hi,
@@ -205,7 +205,7 @@ mmap(void* addr, size_t len, int prot, int flags, int fd, off_t offset)
    */
   map->next = map_head;
   map_head = map;
-  
+
   return map->data;
 }
 
