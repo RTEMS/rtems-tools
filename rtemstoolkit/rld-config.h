@@ -70,6 +70,13 @@ namespace rld
       bool single () const {
         return items_.size () == 1;
       }
+
+      /**
+       * Operator to get an item.
+       */
+      const std::string& operator [] (int index) const {
+        return items_[index].text;
+      }
     };
 
     /**
