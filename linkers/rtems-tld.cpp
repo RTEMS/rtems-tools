@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2014, Chris Johns <chrisj@rtems.org>
+ * Copyright (c) 2014-2015, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -30,6 +30,7 @@
 #include <cctype>
 #include <functional>
 #include <iostream>
+#include <iomanip>
 #include <locale>
 #include <sstream>
 
@@ -72,6 +73,28 @@ namespace rld
      * The return value.
      */
     typedef std::string function_return;
+
+    /**
+     * An option is a name and value pair. We consider options as global.
+     */
+    struct option
+    {
+      std::string name;      /**< The name of this option. */
+      std::string value;     /**< The option's value.. */
+
+      /**
+       * Load the option.
+       */
+      option (const std::string& name, const std::string& value)
+        : name (name),
+          value (value) {
+      }
+    };
+
+    /**
+     * A container of options.
+     */
+    typedef std::vector < option > options;
 
     /**
      * A function's signature.
@@ -190,19 +213,43 @@ namespace rld
       /**
        * Process any script based options.
        */
-      void load_options (const rld::config::section& section);
+      void load_options (rld::config::config&        config,
+                         const rld::config::section& section);
 
       /**
-       * The the functions for the trace.
+       * The defines for the trace.
+       */
+      void load_defines (rld::config::config&        config,
+                         const rld::config::section& section);
+
+      /**
+       * The functions for the trace.
        */
       void load_functions (rld::config::config&        config,
                            const rld::config::section& section);
 
       /**
-       * The the traces for the tracer.
+       * The enables for the tracer.
+       */
+      void load_enables (rld::config::config&        config,
+                         const rld::config::section& section);
+
+      /**
+       * The triggers for the tracer.
+       */
+      void load_triggers (rld::config::config&        config,
+                          const rld::config::section& section);
+
+      /**
+       * The traces for the tracer.
        */
       void load_traces (rld::config::config&        config,
                         const rld::config::section& section);
+
+      /**
+       * Get option from the options section.
+       */
+      const std::string get_option (const std::string& name) const;
 
       /**
        * Generate the wrapper object file.
@@ -210,9 +257,32 @@ namespace rld
       void generate (rld::process::tempfile& c);
 
       /**
+       * Generate the trace names as a string table.
+       */
+      void generate_names (rld::process::tempfile& c);
+
+      /**
+       * Generate the enabled trace bitmap.
+       */
+      void generate_enables (rld::process::tempfile& c);
+
+      /**
+       * Generate the triggered trace bitmap.
+       */
+      void generate_triggers (rld::process::tempfile& c);
+
+      /**
        * Generate the trace functions.
        */
       void generate_traces (rld::process::tempfile& c);
+
+      /**
+       * Generate a bitmap.
+       */
+      void generate_bitmap (rld::process::tempfile& c,
+                            const rld::strings&     names,
+                            const std::string&      label,
+                            const bool              global_set);
 
       /**
        * Get the traces.
@@ -227,7 +297,11 @@ namespace rld
     private:
 
       std::string  name;          /**< The name of the trace. */
+      rld::strings defines;       /**< Define statements. */
+      rld::strings enables;       /**< The default enabled functions. */
+      rld::strings triggers;      /**< The default trigger functions. */
       rld::strings traces;        /**< The functions to trace. */
+      options      options_;      /**< The options. */
       functions    functions_;    /**< The functions that can be traced. */
       generator    generator_;    /**< The tracer's generator. */
     };
@@ -243,8 +317,9 @@ namespace rld
       /**
        * Load the user's configuration.
        */
-      void load_config (const std::string& path,
-                        const std::string& trace);
+      void load_config (const std::string& name,
+                        const std::string& trace,
+                        const std::string& path);
 
       /**
        * Generate the C file.
@@ -479,7 +554,7 @@ namespace rld
        * # headers     A list of sections containing headers or header records.
        * # header      A list of include string that are single or double quoted.
        * # defines     A list of sections containing defines or define record.
-       * # defines     A list of define string that are single or double quoted.
+       * # define      A list of define string that are single or double quoted.
        * # code-blocks A list of section names of code blocks.
        * # includes    A list of files to include.
        *
@@ -547,7 +622,11 @@ namespace rld
        * configuration and may contain:
        *
        *  # name      The name of trace being linked.
-       *  # options   A list of options as per the long command line args.
+       *  # options   A list of option sections.
+       *  # defines   A list of sections containing defines or define record.
+       *  # define    A list of define string that are single or double quoted.
+       *  # enables   The list of sections containing enabled functions to trace.
+       *  # triggers  The list of sections containing enabled functions to trigger trace on.
        *  # traces    The list of sections containing function lists to trace.
        *  # functions The list of sections containing function details.
        *  # include   The list of files to include.
@@ -561,68 +640,93 @@ namespace rld
       const rld::config::section& section = config.get_section (tname);
 
       name = section.get_record_item ("name");
-      load_options (section);
+      load_options (config, section);
       config.includes (section);
+      load_defines (config, section);
       load_functions (config, section);
+      load_enables (config, section);
+      load_triggers (config, section);
       load_traces (config, section);
     }
 
     void
-    tracer::load_options (const rld::config::section& section)
+    tracer::load_options (rld::config::config&        config,
+                          const rld::config::section& section)
     {
-      rld::strings ol;
-      rld::config::parse_items (section, "options", ol, true);
+      rld::strings opts;
+      rld::config::parse_items (section, "options", opts, false, true, true);
 
-      for (rld::strings::const_iterator oli = ol.begin ();
-           oli != ol.end ();
-           ++oli)
+      if (rld::verbose ())
+        std::cout << "options: " << section.name << ": " << opts.size () << std::endl;
+
+      options_.clear ();
+
+      for (rld::strings::const_iterator osi = opts.begin ();
+           osi != opts.end ();
+           ++osi)
       {
-        rld::strings opts;
-        rld::split(opts, *oli, ',');
-        for (rld::strings::const_iterator oi = opts.begin ();
-             oi != opts.end ();
-             ++oi)
+        const rld::config::section& osec = config.get_section (*osi);
+
+        if (rld::verbose ())
+          std::cout << " options: " << osec.name
+                    << ": recs:" << osec.recs.size () << std::endl;
+
+        for (rld::config::records::const_iterator ori = osec.recs.begin ();
+             ori != osec.recs.end ();
+             ++ori)
         {
-          const std::string& opt = *oi;
-          if (opt == "dump-on-error")
+          const rld::config::record& opt = *ori;
+
+          if (!opt.single ())
+              throw rld::error ("mode than one option specified", "option: " + opt.name);
+
+          options_.push_back (option (opt.name, opt[0]));
+
+          if (opt.name == "dump-on-error")
+          {
             dump_on_error = true;
-          else if (opt == "verbose")
-            rld::verbose_inc ();
-          else if (opt == "prefix")
-          {
-            rld::strings prefix;
-            rld::split (prefix, opt, '=');
-            if (prefix.size () != 2)
-              throw rld::error ("invalid option", "option: " + opt);
-            rld::cc::set_exec_prefix (prefix[1]);
           }
-          else if (opt == "cc")
+          else if (opt.name == "verbose")
           {
-            rld::strings cc;
-            rld::split (cc, opt, '=');
-            if (cc.size () != 2)
-              throw rld::error ("invalid option", "option: " + opt);
-            rld::cc::set_cc (cc[1]);
+            int level = ::strtoul(opt[0].c_str (), 0, 0);
+            if (level == 0)
+              level = 1;
+            for (int l = 0; l < level; ++l)
+              rld::verbose_inc ();
           }
-          else if (opt == "ld")
+          else if (opt.name == "prefix")
           {
-            rld::strings ld;
-            rld::split (ld, opt, '=');
-            if (ld.size () != 2)
-              throw rld::error ("invalid option", "option: " + opt);
-            rld::cc::set_ld (ld[1]);
+            rld::cc::set_exec_prefix (opt[0]);
           }
-          else if (opt == "cflags")
+          else if (opt.name == "cc")
           {
-            rld::strings cflags;
-            rld::split (cflags, opt, '=');
-            if (cflags.size () < 2)
-              throw rld::error ("invalid option", "option: " + opt);
-            cflags.erase (cflags.begin ());
-            rld::cc::append_flags (rld::join (cflags, "="), rld::cc::ft_cflags);
+            rld::cc::set_cc (opt[0]);
+          }
+          else if (opt.name == "ld")
+          {
+            rld::cc::set_ld (opt[0]);
+          }
+          else if (opt.name == "cflags")
+          {
+            rld::cc::append_flags (opt[0], rld::cc::ft_cflags);
+          }
+          else if (opt.name == "rtems-path")
+          {
+            rld::rtems::set_path(opt[0]);
+          }
+          else if (opt.name == "rtems-bsp")
+          {
+            rld::rtems::set_arch_bsp(opt[0]);
           }
         }
       }
+    }
+
+    void
+    tracer::load_defines (rld::config::config&        config,
+                          const rld::config::section& section)
+    {
+      parse (config, section, "defines", "define", defines);
     }
 
     void
@@ -637,6 +741,20 @@ namespace rld
       {
         functions_.push_back (function (config, *fli));
       }
+    }
+
+    void
+    tracer::load_enables (rld::config::config&        config,
+                          const rld::config::section& section)
+    {
+      parse (config, section, "enables", "enable", enables);
+    }
+
+    void
+    tracer::load_triggers (rld::config::config&        config,
+                           const rld::config::section& section)
+    {
+      parse (config, section, "triggers", "trigger", triggers);
     }
 
     void
@@ -668,7 +786,27 @@ namespace rld
         gen = gens[0];
       }
 
+      sort (traces.begin (), traces.end ());
+
       generator_ = generator (config, gen);
+    }
+
+    const std::string
+    tracer::get_option (const std::string& name) const
+    {
+      std::string value;
+      for (options::const_iterator oi = options_.begin ();
+           oi != options_.end ();
+           ++oi)
+      {
+        const option& opt = *oi;
+        if (opt.name == name)
+        {
+          value = opt.value;
+          break;
+        }
+      }
+      return value;
     }
 
     void
@@ -688,10 +826,20 @@ namespace rld
 
         c.write_line ("");
         c.write_line ("/*");
+        c.write_line (" * Tracer: " + name);
+        c.write_line (" */");
+        c.write_lines (defines);
+
+        c.write_line ("");
+        c.write_line ("/*");
         c.write_line (" * Generator: " + generator_.name);
         c.write_line (" */");
         c.write_lines (generator_.defines);
         c.write_lines (generator_.headers);
+        c.write_line ("");
+        generate_names (c);
+        generate_enables (c);
+        generate_triggers (c);
         c.write_line ("");
         c.write_lines (generator_.code);
 
@@ -712,6 +860,82 @@ namespace rld
         std::cout << "Generated C file:" << std::endl;
         c.output (" ", std::cout, true);
       }
+    }
+
+    void
+    tracer::generate_names (rld::process::tempfile& c)
+    {
+      const std::string opt = get_option ("gen-names");
+
+      if (opt == "disable")
+        return;
+
+      c.write_line ("");
+      c.write_line ("/*");
+      c.write_line (" * Names.");
+      c.write_line (" */");
+
+      std::stringstream sss;
+      sss << "const char const* __rld_trace_names[" << traces.size() << "] = " << std::endl
+          << "{";
+      c.write_line (sss.str ());
+
+      int count = 0;
+
+      for (rld::strings::const_iterator ti = traces.begin ();
+           ti != traces.end ();
+           ++ti)
+      {
+        const std::string& trace = *ti;
+        sss.str (std::string ());
+        sss << "  /* " << std::setw (3) << count << " */ \"" << trace << "\",";
+        c.write_line (sss.str ());
+        ++count;
+      }
+
+      c.write_line ("};");
+    }
+
+    void
+    tracer::generate_enables (rld::process::tempfile& c)
+    {
+      const std::string opt = get_option ("gen-enables");
+      bool              global_state = false;
+
+      if (opt == "disable")
+        return;
+
+      if (opt == "global-on")
+        global_state = true;
+
+      c.write_line ("");
+      c.write_line ("/*");
+      c.write_line (" * Enables.");
+      c.write_line (" */");
+
+      generate_bitmap (c, enables, "enables", global_state);
+    }
+
+    void
+    tracer::generate_triggers (rld::process::tempfile& c)
+    {
+      const std::string opt = get_option ("gen-triggers");
+      bool              global_state = false;
+
+      if (opt == "disable")
+        return;
+
+      if (opt == "global-on")
+        global_state = true;
+
+      c.write_line ("");
+      c.write_line ("/*");
+      c.write_line (" * Triggers.");
+      c.write_line (" */");
+
+      generate_bitmap (c, triggers, "triggers", global_state);
+
+      c.write_line ("");
     }
 
     void
@@ -748,6 +972,8 @@ namespace rld
       c.write_line (" * Wrappers.");
       c.write_line (" */");
 
+      size_t count = 0;
+
       for (rld::strings::const_iterator ti = traces.begin ();
            ti != traces.end ();
            ++ti)
@@ -777,12 +1003,16 @@ namespace rld
             if (sig.has_ret ())
               c.write_line(" " + sig.ret + " ret;");
 
+            std::stringstream lss;
+            lss << count;
+
             std::string l;
 
             if (!generator_.entry_trace.empty ())
             {
-              std::string l = ' ' + generator_.entry_trace;
+              std::string       l = ' ' + generator_.entry_trace;
               l = rld::find_replace (l, "@FUNC_NAME@", '"' + sig.name + '"');
+              l = rld::find_replace (l, "@FUNC_INDEX@", lss.str ());
               l = rld::find_replace (l, "@FUNC_LABEL@", sig.name);
               c.write_line(l);
             }
@@ -823,6 +1053,7 @@ namespace rld
             {
               std::string l = ' ' + generator_.exit_trace;
               l = rld::find_replace (l, "@FUNC_NAME@", '"' + sig.name + '"');
+              l = rld::find_replace (l, "@FUNC_INDEX@", lss.str ());
               l = rld::find_replace (l, "@FUNC_LABEL@", sig.name);
               c.write_line(l);
             }
@@ -843,7 +1074,62 @@ namespace rld
 
         if (!found)
           throw rld::error ("not found", "trace function: " + trace);
+
+        ++count;
       }
+    }
+
+    void
+    tracer::generate_bitmap (rld::process::tempfile& c,
+                             const rld::strings&     names,
+                             const std::string&      label,
+                             const bool              global_set)
+    {
+      uint32_t bitmap_size = ((traces.size () - 1) / (4 * 8)) + 1;
+
+      std::stringstream ss;
+
+      ss << "const uint32_t __rtld_trace_" << label << "[" << bitmap_size << "] = " << std::endl
+         << "{" << std::endl;
+
+      size_t   count = 0;
+      size_t   bit = 0;
+      uint32_t bitmask = 0;
+
+      for (rld::strings::const_iterator ti = traces.begin ();
+           ti != traces.end ();
+           ++ti)
+      {
+        const std::string& trace = *ti;
+        bool               set = global_set;
+        if (!global_set)
+        {
+          for (rld::strings::const_iterator ni = names.begin ();
+               ni != names.end ();
+               ++ni)
+          {
+            const std::string& name = *ni;
+            if (trace == name)
+              set = true;
+          }
+        }
+        if (set)
+          bitmask |= 1 << bit;
+        ++bit;
+        ++count;
+        if ((bit >= 32) || (count >= traces.size ()))
+        {
+          ss << " 0x" << std::hex << std::setfill ('0') << std::setw (8) << bitmask << ',';
+          if ((count % 4) == 0)
+            ss << std::endl;
+          bit = 0;
+          bitmask = 0;
+        }
+      }
+
+      c.write_line (ss.str ());
+
+      c.write_line ("};");
     }
 
     const rld::strings&
@@ -879,8 +1165,9 @@ namespace rld
     }
 
     void
-    linker::load_config (const std::string& path,
-                         const std::string& trace)
+    linker::load_config (const std::string& name,
+                         const std::string& trace,
+                         const std::string& path)
     {
       std::string sp = get_prefix ();
 
@@ -888,12 +1175,15 @@ namespace rld
       rld::path::path_join (sp, "rtems", sp);
       rld::path::path_join (sp, "trace-linker", sp);
 
+      if (!path.empty ())
+        sp = path + ':' + sp;
+
       if (rld::verbose ())
         std::cout << "search path: " << sp << std::endl;
 
       config.set_search_path (sp);
       config.clear ();
-      config.load (path);
+      config.load (name);
       tracer_.load (config, trace);
     }
 
@@ -1012,6 +1302,7 @@ static struct option rld_opts[] = {
   { "rtems",       required_argument,      NULL,           'r' },
   { "rtems-bsp",   required_argument,      NULL,           'B' },
   { "config",      required_argument,      NULL,           'C' },
+  { "path",        required_argument,      NULL,           'P' },
   { "wrapper",     required_argument,      NULL,           'W' },
   { NULL,          0,                      NULL,            0 }
 };
@@ -1034,7 +1325,8 @@ usage (int exit_code)
             << " -r path     : RTEMS path (also --rtems)" << std::endl
             << " -B bsp      : RTEMS arch/bsp (also --rtems-bsp)" << std::endl
             << " -W wrapper  : wrapper file name without ext (also --wrapper)" << std::endl
-            << " -C ini      : user configuration INI file (also --config)" << std::endl;
+            << " -C ini      : user configuration INI file (also --config)" << std::endl
+            << " -P path     : user configuration file search path (also --path)" << std::endl;
   ::exit (exit_code);
 }
 
@@ -1086,6 +1378,7 @@ main (int argc, char* argv[])
     std::string        ld;
     std::string        ld_cmd;
     std::string        configuration;
+    std::string        path;
     std::string        trace = "tracer";
     std::string        wrapper;
     std::string        rtems_path;
@@ -1095,7 +1388,7 @@ main (int argc, char* argv[])
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvwkVc:l:E:f:C:r:B:W:", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvwkVc:l:E:f:C:P:r:B:W:", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -1147,6 +1440,12 @@ main (int argc, char* argv[])
 
         case 'C':
           configuration = optarg;
+          break;
+
+        case 'P':
+          if (!path.empty ())
+            path += ":";
+          path += optarg;
           break;
 
         case 'W':
@@ -1224,7 +1523,7 @@ main (int argc, char* argv[])
      */
     try
     {
-      linker.load_config (configuration, trace);
+      linker.load_config (configuration, trace, path);
 
       rld::process::tempfile c (".c");
       rld::process::tempfile o (".o");
