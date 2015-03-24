@@ -171,6 +171,11 @@ namespace rld
     struct generator
     {
       std::string  name;            /**< The name of this wrapper. */
+      std::string  lock_local;      /**< Code template to declare a local lock variable. */
+      std::string  lock_acquire;    /**< The lock acquire if provided. */
+      std::string  lock_release;    /**< The lock release if provided. */
+      std::string  buffer_local;    /**< Code template to declare a local buffer variable. */
+      std::string  buffer_alloc;    /**< Code template to perform a buffer allocation. */
       rld::strings headers;         /**< Include statements. */
       rld::strings defines;         /**< Define statements. */
       std::string  entry_trace;     /**< Code template to trace the function entry. */
@@ -551,12 +556,75 @@ namespace rld
       /*
        * A generator section optionally contain one or more records of:
        *
-       * # headers     A list of sections containing headers or header records.
-       * # header      A list of include string that are single or double quoted.
-       * # defines     A list of sections containing defines or define record.
-       * # define      A list of define string that are single or double quoted.
-       * # code-blocks A list of section names of code blocks.
-       * # includes    A list of files to include.
+       * # headers      A list of sections containing headers or header records.
+       * # header       A list of include string that are single or double quoted.
+       * # defines      A list of sections containing defines or define record.
+       * # define       A list of define string that are single or double quoted.
+       * # entry-trace  The wrapper call made on a function's entry.  Returns `bool
+       *                where `true` is the function is being traced. This call is made
+       *                without the lock being held if a lock is defined.
+       * # arg-trace    The wrapper call made for each argment to the trace function if
+       *                the function is being traced. This call is made without the
+       *                lock being held if a lock is defined.
+       * # exit-trace   The wrapper call made after a function's exit. Returns `bool
+       *                where `true` is the function is being traced. This call is made
+       *                without the lock being held if a lock is defined.
+       * # ret-trace    The wrapper call made to log the return value if the funciton
+       *                is being traced. This call is made without the lock being held
+       *                if a lock is defined.
+       * # lock-local   The wrapper code to declare a local lock variable.
+       * # lock-acquire The wrapper code to acquire the lock.
+       * # lock-release The wrapper code to release the lock.
+       * # buffer-local The wrapper code to declare a buffer index local variable.
+       * # buffer-alloc The wrapper call made with a lock held if defined to allocate
+       *                buffer space to hold the trace data. A suitable 32bit buffer
+       *                index is returned. If there is no space an invalid index is
+       *                returned. The generator must handle any overhead space needed.
+       *                the generator needs to make sure the space is available before
+       *                making the alloc all.
+       * # code-blocks  A list of code blcok section names.
+       * # code         A code block in `<<CODE ... CODE` (without the single quote).
+       * # includes     A list of files to include.
+       *
+       * The following macros can be used in specific wrapper calls. The lists of
+       * where you can use them is listed before. The macros are:
+       *
+       * # @FUNC_NAME@      The trace function name as a quote C string.
+       * # @FUNC_INDEX@     The trace function index as a held in the sorted list
+       *                    of trace functions by teh trace linker. It can be
+       *                    used to index the `names`, `enables` and `triggers`
+       *                    data.
+       * # @FUNC_LABEL@     The trace function name as a C label that can be
+       *                     referenced. You can take the address of the label.
+       * # @FUNC_DATA_SIZE@ The size of the daya in bytes.
+       * # @ARG_NUM@        The argument number to the trace function.
+       * # @ARG_TYPE@       The type of the argument as a C string.
+       * # @ARG_SIZE@       The size of the type of the argument in bytes.
+       * # @ARG_LABEL@      The argument as a C label that can be referenced.
+       * # @RET_TYPE@       The type of the return value as a C string.
+       * # @RET_SIZE@       The size of the type of the return value in bytes.
+       * # @RET_LABEL@      The retrun value as a C label that can be referenced.
+       *
+       * The `buffer-alloc`, `entry-trace` and `exit-trace` can be transformed using
+       *  the following  macros:
+       *
+       * # @FUNC_NAME@
+       * # @FUNC_INDEX@
+       * # @FUNC_LABEL@
+       * # @FUNC_DATA_SZIE@
+       *
+       * The `arg-trace` can be transformed using the following macros:
+       *
+       * # @ARG_NUM@
+       * # @ARG_TYPE@
+       * # @ARG_SIZE@
+       * # @ARG_LABEL@
+       *
+       * The `ret-trace` can be transformed using the following macros:
+       *
+       * # @RET_TYPE@
+       * # @RET_SIZE@
+       * # @RET_LABEL@
        *
        * @note The quoting and list spliting is a little weak because a delimiter
        *       in a quote should not be seen as a delimiter.
@@ -569,6 +637,16 @@ namespace rld
       parse (config, section, "defines",     "define", defines);
       parse (config, section, "code-blocks", "code",   code, false);
 
+      if (section.has_record ("lock-local"))
+        lock_local = rld::dequote (section.get_record_item ("lock-local"));
+      if (section.has_record ("lock-acquire"))
+        lock_acquire = rld::dequote (section.get_record_item ("lock-acquire"));
+      if (section.has_record ("lock-release"))
+        lock_release = rld::dequote (section.get_record_item ("lock-release"));
+      if (section.has_record ("buffer-local"))
+        buffer_local = rld::dequote (section.get_record_item ("buffer-local"));
+      if (section.has_record ("buffer-local"))
+        buffer_alloc = rld::dequote (section.get_record_item ("buffer-alloc"));
       if (section.has_record ("entry-trace"))
         entry_trace = rld::dequote (section.get_record_item ("entry-trace"));
       if (section.has_record ("arg-trace"))
@@ -994,26 +1072,79 @@ namespace rld
 
             const signature& sig = (*si).second;
 
-            c.write_line("");
-            c.write_line(sig.decl () + ";");
-            c.write_line(sig.decl ("__real_") + ";");
-            c.write_line(sig.decl ("__wrap_"));
-            c.write_line("{");
-
-            if (sig.has_ret ())
-              c.write_line(" " + sig.ret + " ret;");
-
             std::stringstream lss;
             lss << count;
 
             std::string l;
 
-            if (!generator_.entry_trace.empty ())
+            c.write_line("");
+
+            if (sig.has_args () || (sig.has_ret () && !generator_.ret_trace.empty ()))
             {
-              std::string       l = ' ' + generator_.entry_trace;
+              bool added = false;
+              l = "#define FUNC_DATA_SIZE_" + sig.name + " (";
+              if (sig.has_args ())
+              {
+                for (size_t a = 0; a < sig.args.size (); ++a)
+                {
+                  if (added)
+                    l += " + ";
+                  else
+                    added = true;
+                  l += "sizeof(" + sig.args[a] + ')';
+                }
+              }
+              if (sig.has_ret () && !generator_.ret_trace.empty ())
+              {
+                if (added)
+                  l += " + ";
+                else
+                  added = true;
+                l += "sizeof(" + sig.ret + ')';
+              }
+              if (!added)
+                l += '0';
+              l += ')';
+              c.write_line(l);
+            }
+
+            c.write_line(sig.decl () + ";");
+            c.write_line(sig.decl ("__real_") + ";");
+            c.write_line(sig.decl ("__wrap_"));
+            c.write_line("{");
+
+            if (!generator_.lock_local.empty ())
+              c.write_line(generator_.lock_local);
+
+            if (!generator_.buffer_local.empty ())
+              c.write_line(generator_.buffer_local);
+
+            if (sig.has_ret ())
+              c.write_line(" " + sig.ret + " ret;");
+
+            if (!generator_.lock_acquire.empty ())
+              c.write_line(generator_.lock_acquire);
+
+            if (!generator_.buffer_alloc.empty ())
+            {
+              l = " " + generator_.buffer_alloc;
               l = rld::find_replace (l, "@FUNC_NAME@", '"' + sig.name + '"');
               l = rld::find_replace (l, "@FUNC_INDEX@", lss.str ());
               l = rld::find_replace (l, "@FUNC_LABEL@", sig.name);
+              l = rld::find_replace (l, "@FUNC_DATA_SIZE@", "FUNC_DATA_SIZE_" + sig.name);
+              c.write_line(l);
+            }
+
+            if (!generator_.lock_release.empty ())
+              c.write_line(generator_.lock_release);
+
+            if (!generator_.entry_trace.empty ())
+            {
+              l = " " + generator_.entry_trace;
+              l = rld::find_replace (l, "@FUNC_NAME@", '"' + sig.name + '"');
+              l = rld::find_replace (l, "@FUNC_INDEX@", lss.str ());
+              l = rld::find_replace (l, "@FUNC_LABEL@", sig.name);
+              l = rld::find_replace (l, "@FUNC_DATA_SIZE@", "FUNC_DATA_SIZE_" + sig.name);
               c.write_line(l);
             }
 
@@ -1021,8 +1152,8 @@ namespace rld
             {
               for (size_t a = 0; a < sig.args.size (); ++a)
               {
-                std::string l = ' ' + generator_.arg_trace;
                 std::string n = rld::to_string ((int) (a + 1));
+                l = " " + generator_.arg_trace;
                 l = rld::find_replace (l, "@ARG_NUM@", n);
                 l = rld::find_replace (l, "@ARG_TYPE@", '"' + sig.args[a] + '"');
                 l = rld::find_replace (l, "@ARG_SIZE@", "sizeof(" + sig.args[a] + ')');
@@ -1051,7 +1182,7 @@ namespace rld
 
             if (!generator_.exit_trace.empty ())
             {
-              std::string l = ' ' + generator_.exit_trace;
+              l = " " + generator_.exit_trace;
               l = rld::find_replace (l, "@FUNC_NAME@", '"' + sig.name + '"');
               l = rld::find_replace (l, "@FUNC_INDEX@", lss.str ());
               l = rld::find_replace (l, "@FUNC_LABEL@", sig.name);
@@ -1060,7 +1191,7 @@ namespace rld
 
             if (sig.has_ret () && !generator_.ret_trace.empty ())
             {
-              std::string l = ' ' + generator_.ret_trace;
+              std::string l = " " + generator_.ret_trace;
               l = rld::find_replace (l, "@RET_TYPE@", '"' + sig.ret + '"');
               l = rld::find_replace (l, "@RET_SIZE@", "sizeof(" + sig.ret + ')');
               l = rld::find_replace (l, "@RET_LABEL@", "ret");
