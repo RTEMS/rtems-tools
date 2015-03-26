@@ -1,0 +1,564 @@
+From 335799e56181cd0d1ff8128b20b01835e344ee43 Mon Sep 17 00:00:00 2001
+From: Jiri Gaisler <jiri@gaisler.se>
+Date: Sat, 30 Aug 2014 23:39:33 +0200
+Subject: [PATCH 10/23] sim/erc32: Switched emulated memory to host endian
+ order.
+
+	Change data ordering in emulated memory from target order (big endian)
+	to host order. Improves performance and simplifies most memory
+	operations. Requires some byte twisting during stores on little
+	endian hosts (intel).
+
+	* erc32.c (fetch_bytes) Remove. (store_bytes) Remove byte twisting.
+	(memory_read) Access memory directly. (extract_short,
+	extract_short_signed, extract_byte, extract_byte_signed) New
+	function for for sub-word LD instructions.
+
+	* func.c (disp_ctrl, dis_mem) Ajust print-out to new data endian.
+
+	* interf.c (sim_open) Convert endian when gdb writes to memory.
+---
+ sim/erc32/erc32.c  | 167 ++++++++++++-----------------------------------------
+ sim/erc32/exec.c   |  58 ++++++++++++++++---
+ sim/erc32/func.c   |  33 +++++++----
+ sim/erc32/interf.c |  29 ++++++++++
+ sim/erc32/sis.c    |   4 ++
+ 5 files changed, 142 insertions(+), 149 deletions(-)
+
+diff --git a/sim/erc32/erc32.c b/sim/erc32/erc32.c
+index 0f3e870..7c80e13 100644
+--- a/sim/erc32/erc32.c
++++ b/sim/erc32/erc32.c
+@@ -297,11 +297,8 @@ static void	gpt_reload_set (uint32 val);
+ static void	timer_ctrl (uint32 val);
+ static unsigned char *
+ 		get_mem_ptr (uint32 addr, uint32 size);
+-
+-static void	fetch_bytes (int asi, unsigned char *mem,
+-			     uint32 *data, int sz);
+-
+-static void	store_bytes (unsigned char *mem, uint32 *data, int sz);
++static void	store_bytes (unsigned char *mem, uint32 waddr,
++			uint32 *data, int sz, int32 *ws);
+ 
+ extern int	ext_irl;
+ 
+@@ -1525,123 +1522,44 @@ timer_ctrl(val)
+ 	gpt_start();
+ }
+ 
+-
+-/* Retrieve data from target memory.  MEM points to location from which
+-   to read the data; DATA points to words where retrieved data will be
+-   stored in host byte order.  SZ contains log(2) of the number of bytes
+-   to retrieve, and can be 0 (1 byte), 1 (one half-word), 2 (one word),
+-   or 3 (two words). */
++/* Store data in host byte order.  MEM points to the beginning of the
++   emulated memory; WADDR contains the index the emulated memory,
++   DATA points to words in host byte order to be stored.  SZ contains log(2)
++   of the number of bytes to retrieve, and can be 0 (1 byte), 1 (one half-word),
++   2 (one word), or 3 (two words); WS should return the number of wait-states. */
+ 
+ static void
+-fetch_bytes (asi, mem, data, sz)
+-    int		    asi;
++store_bytes (mem, waddr, data, sz, ws)
+     unsigned char  *mem;
++    uint32	   waddr;
+     uint32	   *data;
+-    int		    sz;
++    int32	    sz;
++    int32	   *ws;
+ {
+-    if (CURRENT_TARGET_BYTE_ORDER == BIG_ENDIAN
+-	|| asi == 8 || asi == 9) {
+-	switch (sz) {
+-	case 3:
+-	    data[1] =  (((uint32) mem[7]) & 0xff) |
+-		      ((((uint32) mem[6]) & 0xff) <<  8) |
+-		      ((((uint32) mem[5]) & 0xff) << 16) |
+-		      ((((uint32) mem[4]) & 0xff) << 24);
+-	    /* Fall through to 2 */
+-	case 2:
+-	    data[0] =  (((uint32) mem[3]) & 0xff) |
+-		      ((((uint32) mem[2]) & 0xff) <<  8) |
+-		      ((((uint32) mem[1]) & 0xff) << 16) |
+-		      ((((uint32) mem[0]) & 0xff) << 24);
+-	    break;
+-	case 1:
+-	    data[0] =  (((uint32) mem[1]) & 0xff) |
+-		      ((((uint32) mem[0]) & 0xff) << 8);
+-	    break;
++    switch (sz) {
+ 	case 0:
+-	    data[0] = mem[0] & 0xff;
+-	    break;
+-	    
+-	}
+-    } else {
+-	switch (sz) {
+-	case 3:
+-	    data[1] = ((((uint32) mem[7]) & 0xff) << 24) |
+-		      ((((uint32) mem[6]) & 0xff) << 16) |
+-		      ((((uint32) mem[5]) & 0xff) <<  8) |
+-		       (((uint32) mem[4]) & 0xff);
+-	    /* Fall through to 4 */
+-	case 2:
+-	    data[0] = ((((uint32) mem[3]) & 0xff) << 24) |
+-		      ((((uint32) mem[2]) & 0xff) << 16) |
+-		      ((((uint32) mem[1]) & 0xff) <<  8) |
+-		       (((uint32) mem[0]) & 0xff);
++#ifdef HOST_LITTLE_ENDIAN
++	    waddr ^= 3;
++#endif
++	    mem[waddr] = *data & 0x0ff;
++	    *ws = mem_ramw_ws + 3;
+ 	    break;
+ 	case 1:
+-	    data[0] = ((((uint32) mem[1]) & 0xff) <<  8) |
+-		       (((uint32) mem[0]) & 0xff);
+-	    break;
+-	case 0:
+-	    data[0] = mem[0] & 0xff;
++#ifdef HOST_LITTLE_ENDIAN
++	    waddr ^= 2;
++#endif
++	    *((unsigned short *) &(mem[waddr])) = *data & 0x0ffff;
++	    *ws = mem_ramw_ws + 3;
+ 	    break;
+-	}
+-    }
+-}
+-
+-
+-/* Store data in target byte order.  MEM points to location to store data;
+-   DATA points to words in host byte order to be stored.  SZ contains log(2)
+-   of the number of bytes to retrieve, and can be 0 (1 byte), 1 (one half-word),
+-   2 (one word), or 3 (two words). */
+-
+-static void
+-store_bytes (mem, data, sz)
+-    unsigned char  *mem;
+-    uint32	   *data;
+-    int		    sz;
+-{
+-    if (CURRENT_TARGET_BYTE_ORDER == LITTLE_ENDIAN) {
+-	switch (sz) {
+-	case 3:
+-	    mem[7] = (data[1] >> 24) & 0xff;
+-	    mem[6] = (data[1] >> 16) & 0xff;
+-	    mem[5] = (data[1] >>  8) & 0xff;
+-	    mem[4] = data[1] & 0xff;
+-	    /* Fall through to 2 */
+ 	case 2:
+-	    mem[3] = (data[0] >> 24) & 0xff;
+-	    mem[2] = (data[0] >> 16) & 0xff;
+-	    /* Fall through to 1 */
+-	case 1:
+-	    mem[1] = (data[0] >>  8) & 0xff;
+-	    /* Fall through to 0 */
+-	case 0:
+-	    mem[0] = data[0] & 0xff;
++	    *((uint32 *) &(mem[waddr])) = *data;
++	    *ws = mem_ramw_ws;
+ 	    break;
+-	}
+-    } else {
+-	switch (sz) {
+ 	case 3:
+-	    mem[7] = data[1] & 0xff;
+-	    mem[6] = (data[1] >>  8) & 0xff;
+-	    mem[5] = (data[1] >> 16) & 0xff;
+-	    mem[4] = (data[1] >> 24) & 0xff;
+-	    /* Fall through to 2 */
+-	case 2:
+-	    mem[3] = data[0] & 0xff;
+-	    mem[2] = (data[0] >>  8) & 0xff;
+-	    mem[1] = (data[0] >> 16) & 0xff;
+-	    mem[0] = (data[0] >> 24) & 0xff;
+-	    break;
+-	case 1:
+-	    mem[1] = data[0] & 0xff;
+-	    mem[0] = (data[0] >> 8) & 0xff;
+-	    break;
+-	case 0:
+-	    mem[0] = data[0] & 0xff;
++	    *((uint32 *) &(mem[waddr])) = data[0];
++	    *((uint32 *) &(mem[waddr + 4])) = data[1];
++	    *ws = 2 * mem_ramw_ws + STD_WS;
+ 	    break;
+-	    
+-	}
+     }
+ }
+ 
+@@ -1671,7 +1589,7 @@ memory_read(asi, addr, data, sz, ws)
+ #endif
+ 
+     if ((addr >= mem_ramstart) && (addr < (mem_ramstart + mem_ramsz))) {
+-	fetch_bytes (asi, &ramb[addr & mem_rammask], data, sz);
++        *data = *((uint32 *) & (ramb[addr & mem_rammask & ~3]));
+ 	*ws = mem_ramr_ws;
+ 	return (0);
+     } else if ((addr >= MEC_START) && (addr < MEC_END)) {
+@@ -1689,7 +1607,7 @@ memory_read(asi, addr, data, sz, ws)
+     } else if (era) {
+     	if ((addr < 0x100000) || 
+ 	    ((addr>= 0x80000000) && (addr < 0x80100000))) {
+-	    fetch_bytes (asi, &romb[addr & ROM_MASK], data, sz);
++            *data = *((uint32 *) & (romb[addr & ROM_MASK & ~3]));
+ 	    *ws = 4;
+ 	    return (0);
+ 	} else if ((addr >= 0x10000000) && 
+@@ -1700,13 +1618,13 @@ memory_read(asi, addr, data, sz, ws)
+ 	}
+ 	
+     } else  if (addr < mem_romsz) {
+-	    fetch_bytes (asi, &romb[addr], data, sz);
++            *data = *((uint32 *) & (romb[addr & ~3]));
+ 	    *ws = mem_romr_ws;
+ 	    return (0);
+ 
+ #else
+     } else if (addr < mem_romsz) {
+-	fetch_bytes (asi, &romb[addr], data, sz);
++        *data = *((uint32 *) & (romb[addr & ~3]));
+ 	*ws = mem_romr_ws;
+ 	return (0);
+ #endif
+@@ -1769,21 +1687,10 @@ memory_write(asi, addr, data, sz, ws)
+ 	    }
+ 	}
+ 
+-	store_bytes (&ramb[addr & mem_rammask], data, sz);
+-
+-	switch (sz) {
+-	case 0:
+-	case 1:
+-	    *ws = mem_ramw_ws + 3;
+-	    break;
+-	case 2:
+-	    *ws = mem_ramw_ws;
+-	    break;
+-	case 3:
+-	    *ws = 2 * mem_ramw_ws + STD_WS;
+-	    break;
+-	}
++	waddr = addr & mem_rammask;
++	store_bytes (ramb, waddr, data, sz, ws);
+ 	return (0);
++
+     } else if ((addr >= MEC_START) && (addr < MEC_END)) {
+ 	if ((sz != 2) || (asi != 0xb)) {
+ 	    set_sfsr(MEC_ACC, addr, asi, 0);
+@@ -1806,7 +1713,7 @@ memory_write(asi, addr, data, sz, ws)
+ 	((addr < 0x100000) || ((addr >= 0x80000000) && (addr < 0x80100000)))) {
+ 	    addr &= ROM_MASK;
+ 	    *ws = sz == 3 ? 8 : 4;
+-	    store_bytes (&romb[addr], data, sz);
++	    store_bytes (romb, addr, data, sz, ws);
+             return (0);
+ 	} else if ((addr >= 0x10000000) && 
+ 		   (addr < (0x10000000 + (512 << (mec_iocr & 0x0f)))) &&
+@@ -1822,7 +1729,7 @@ memory_write(asi, addr, data, sz, ws)
+ 	*ws = mem_romw_ws + 1;
+ 	if (sz == 3)
+ 	    *ws += mem_romw_ws + STD_WS;
+-	store_bytes (&romb[addr], data, sz);
++	store_bytes (romb, addr, data, sz, ws);
+         return (0);
+ 
+ #else
+@@ -1833,7 +1740,7 @@ memory_write(asi, addr, data, sz, ws)
+ 	*ws = mem_romw_ws + 1;
+ 	if (sz == 3)
+             *ws += mem_romw_ws + STD_WS;
+-	store_bytes (&romb[addr], data, sz);
++	store_bytes (romb, addr, data, sz, ws);
+         return (0);
+ 
+ #endif
+diff --git a/sim/erc32/exec.c b/sim/erc32/exec.c
+index 07f3586..e80e02a 100644
+--- a/sim/erc32/exec.c
++++ b/sim/erc32/exec.c
+@@ -371,6 +371,36 @@ div64 (uint32 n1_hi, uint32 n1_low, uint32 n2, uint32 *result, int msigned)
+ }
+ 
+ 
++static int
++extract_short(uint32 data, uint32 address)
++{
++    return((data>>((2 - (address & 2))*8)) & 0xffff);
++}
++
++static int
++extract_short_signed(uint32 data, uint32 address)
++{
++    uint32 tmp;
++    tmp = ((data>>((2 - (address & 2))*8)) & 0xffff);
++    if (tmp & 0x8000) tmp |= 0xffff0000;
++    return(tmp);
++}
++
++static int
++extract_byte(uint32 data, uint32 address)
++{
++    return((data>>((3 - (address & 3))*8)) & 0xff);
++}
++
++static int
++extract_byte_signed(uint32 data, uint32 address)
++{
++    uint32 tmp;
++    tmp = ((data>>((3 - (address & 3))*8)) & 0xff);
++    if (tmp & 0x80) tmp |= 0xffffff00;
++    return(tmp);
++}
++
+ int
+ dispatch_instruction(sregs)
+     struct pstate  *sregs;
+@@ -1078,7 +1108,8 @@ dispatch_instruction(sregs)
+ 		    sregs->trap = TRAP_PRIVI;
+ 		    break;
+ 		}
+-		sregs->psr = (rs1 ^ operand2) & 0x00f03fff;
++		sregs->psr = (sregs->psr & 0xff000000) |
++			(rs1 ^ operand2) & 0x00f03fff;
+ 		break;
+ 	    case WRWIM:
+ 		if (!(sregs->psr & PSR_S)) {
+@@ -1214,8 +1245,10 @@ dispatch_instruction(sregs)
+ 		else
+ 		    rdd = &(sregs->g[rd]);
+ 	    }
+-	    mexc = memory_read(asi, address, ddata, 3, &ws);
+-	    sregs->hold += ws * 2;
++	    mexc = memory_read(asi, address, ddata, 2, &ws);
++	    sregs->hold += ws;
++	    mexc |= memory_read(asi, address+4, &ddata[1], 2, &ws);
++	    sregs->hold += ws;
+ 	    sregs->icnt = T_LDD;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1253,6 +1286,7 @@ dispatch_instruction(sregs)
+ 		sregs->trap = TRAP_DEXC;
+ 		break;
+ 	    }
++	    data = extract_byte(data, address);
+ 	    *rdd = data;
+ 	    data = 0x0ff;
+ 	    mexc = memory_write(asi, address, &data, 0, &ws);
+@@ -1275,8 +1309,10 @@ dispatch_instruction(sregs)
+ 		sregs->trap = TRAP_DEXC;
+ 		break;
+ 	    }
+-	    if ((op3 == LDSB) && (data & 0x80))
+-		data |= 0xffffff00;
++	    if (op3 == LDSB)
++	        data = extract_byte_signed(data, address);
++	    else
++	        data = extract_byte(data, address);
+ 	    *rdd = data;
+ 	    break;
+ 	case LDSHA:
+@@ -1294,8 +1330,10 @@ dispatch_instruction(sregs)
+ 		sregs->trap = TRAP_DEXC;
+ 		break;
+ 	    }
+-	    if ((op3 == LDSH) && (data & 0x8000))
+-		data |= 0xffff0000;
++	    if (op3 == LDSH)
++	        data = extract_short_signed(data, address);
++	    else
++	        data = extract_short(data, address);
+ 	    *rdd = data;
+ 	    break;
+ 	case LDF:
+@@ -1338,8 +1376,10 @@ dispatch_instruction(sregs)
+ 		    ((sregs->frs2 >> 1) == (rd >> 1)))
+ 		    sregs->fhold += (sregs->ftime - ebase.simtime);
+ 	    }
+-	    mexc = memory_read(asi, address, ddata, 3, &ws);
+-	    sregs->hold += ws * 2;
++	    mexc = memory_read(asi, address, ddata, 2, &ws);
++	    sregs->hold += ws;
++	    mexc |= memory_read(asi, address+4, &ddata[1], 2, &ws);
++	    sregs->hold += ws;
+ 	    sregs->icnt = T_LDD;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+diff --git a/sim/erc32/func.c b/sim/erc32/func.c
+index a715f0f..bcccf6d 100644
+--- a/sim/erc32/func.c
++++ b/sim/erc32/func.c
+@@ -785,15 +785,15 @@ disp_ctrl(sregs)
+     struct pstate  *sregs;
+ {
+ 
+-    unsigned char           i[4];
++    uint32           i;
+ 
+     printf("\n psr: %08X   wim: %08X   tbr: %08X   y: %08X\n",
+ 	   sregs->psr, sregs->wim, sregs->tbr, sregs->y);
+-    sis_memory_read(sregs->pc, i, 4);
+-    printf("\n  pc: %08X = %02X%02X%02X%02X    ", sregs->pc,i[0],i[1],i[2],i[3]);
++    sis_memory_read(sregs->pc, (char *) &i, 4);
++    printf("\n  pc: %08X = %08X    ", sregs->pc, i);
+     print_insn_sparc_sis(sregs->pc, &dinfo);
+-    sis_memory_read(sregs->npc, i, 4);
+-    printf("\n npc: %08X = %02X%02X%02X%02X    ",sregs->npc,i[0],i[1],i[2],i[3]);
++    sis_memory_read(sregs->npc, (char *) &i, 4);
++    printf("\n npc: %08X = %08X    ", sregs->npc, i);
+     print_insn_sparc_sis(sregs->npc, &dinfo);
+     if (sregs->err_mode)
+ 	printf("\n IU in error mode");
+@@ -808,21 +808,28 @@ disp_mem(addr, len)
+ 
+     uint32          i;
+     unsigned char   data[4];
++    uint32          *wdata = (uint32 *) data;
+     uint32          mem[4], j;
+     char           *p;
++    int		   end;
+ 
++#ifdef HOST_LITTLE_ENDIAN
++    end = 3;
++#else
++    end = 0;
++#endif
+     for (i = addr & ~3; i < ((addr + len) & ~3); i += 16) {
+ 	printf("\n %8X  ", i);
+ 	for (j = 0; j < 4; j++) {
+ 	    sis_memory_read((i + (j * 4)), data, 4);
+-	    printf("%02x%02x%02x%02x  ", data[0],data[1],data[2],data[3]);
++	    printf("%08x  ", *wdata);
+ 	    mem[j] = *((int *) &data);
+ 	}
+ 	printf("  ");
+ 	p = (char *) mem;
+ 	for (j = 0; j < 16; j++) {
+-	    if (isprint(p[j]))
+-		putchar(p[j]);
++	    if (isprint(p[j^end]))
++		putchar(p[j^end]);
+ 	    else
+ 		putchar('.');
+ 	}
+@@ -838,10 +845,11 @@ dis_mem(addr, len, info)
+ {
+     uint32          i;
+     unsigned char   data[4];
++    uint32          *wdata = (uint32 *) data;
+ 
+     for (i = addr & -3; i < ((addr & -3) + (len << 2)); i += 4) {
+ 	sis_memory_read(i, data, 4);
+-	printf(" %08x  %02x%02x%02x%02x  ", i, data[0],data[1],data[2],data[3]);
++	printf(" %08x  %08x  ", i, *wdata);
+ 	print_insn_sparc_sis(i, info);
+         if (i >= 0xfffffffc) break;
+ 	printf("\n");
+@@ -1040,6 +1048,7 @@ bfd_load(fname)
+     asection       *section;
+     bfd            *pbfd;
+     const bfd_arch_info_type *arch;
++    int            i;
+ 
+     pbfd = bfd_openr(fname, 0);
+ 
+@@ -1113,13 +1122,17 @@ bfd_load(fname)
+ 		fptr = 0;
+ 
+ 		while (section_size > 0) {
+-		    char            buffer[1024];
+ 		    int             count;
++		    char            buffer[1024];
++		    uint32          *wbuffer = (uint32 *) buffer;
+ 
+ 		    count = min(section_size, 1024);
+ 
+ 		    bfd_get_section_contents(pbfd, section, buffer, fptr, count);
+ 
++#ifdef HOST_LITTLE_ENDIAN
++		    for (i=0;i<count/4;i++) wbuffer[i] = ntohl(wbuffer[i]); // endian swap
++#endif
+ 		    sis_memory_write(section_address, buffer, count);
+ 
+ 		    section_address += count;
+diff --git a/sim/erc32/interf.c b/sim/erc32/interf.c
+index 38a2a0d..3a72e7f 100644
+--- a/sim/erc32/interf.c
++++ b/sim/erc32/interf.c
+@@ -265,7 +265,11 @@ sim_open (kind, callback, abfd, argv)
+     sregs.freq = freq ? freq : 15;
+     termsave = fcntl(0, F_GETFL, 0);
+     INIT_DISASSEMBLE_INFO(dinfo, stdout,(fprintf_ftype)fprintf);
++#ifdef HOST_LITTLE_ENDIAN
++    dinfo.endian = BFD_ENDIAN_LITTLE;
++#else
+     dinfo.endian = BFD_ENDIAN_BIG;
++#endif
+     reset_all();
+     ebase.simtime = 0;
+     init_sim();
+@@ -355,7 +359,19 @@ sim_write(sd, mem, buf, length)
+     const unsigned char  *buf;
+     int             length;
+ {
++#ifdef HOST_LITTLE_ENDIAN
++    int *ibufp = (int *) buf;
++    int ibuf[8192];
++    int i, len;
++
++    if (length >= 4)
++      for (i=0; i<length; i+=4) {
++        ibuf[i] = ntohl(ibufp[i]);
++      }
++    return (sis_memory_write(mem, (char *) ibuf, length));
++#else
+     return (sis_memory_write(mem, buf, length));
++#endif
+ }
+ 
+ int
+@@ -365,7 +381,20 @@ sim_read(sd, mem, buf, length)
+      unsigned char *buf;
+      int length;
+ {
++#ifdef HOST_LITTLE_ENDIAN
++    int *ibuf = (int *) buf;
++    int i, len;
++
++    len = sis_memory_read(mem, buf, length);
++    if (length >= 4)
++      for (i=0; i<length; i+=4) {
++        *ibuf = htonl(*ibuf);
++        ibuf++;
++      }
++    return (len);
++#else
+     return (sis_memory_read(mem, buf, length));
++#endif
+ }
+ 
+ void
+diff --git a/sim/erc32/sis.c b/sim/erc32/sis.c
+index 7c18c1e..523d8aa 100644
+--- a/sim/erc32/sis.c
++++ b/sim/erc32/sis.c
+@@ -236,7 +236,11 @@ main(argc, argv)
+     sregs.freq = freq;
+ 
+     INIT_DISASSEMBLE_INFO(dinfo, stdout, (fprintf_ftype) fprintf);
++#ifdef HOST_LITTLE_ENDIAN
++    dinfo.endian = BFD_ENDIAN_LITTLE;
++#else
+     dinfo.endian = BFD_ENDIAN_BIG;
++#endif
+ 
+     termsave = fcntl(0, F_GETFL, 0);
+     using_history();
+-- 
+1.9.1
+

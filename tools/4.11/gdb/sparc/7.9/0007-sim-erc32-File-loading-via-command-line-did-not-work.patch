@@ -1,0 +1,43 @@
+From bdf71b87a2aff21de63accd86f8814b576f8a766 Mon Sep 17 00:00:00 2001
+From: Jiri Gaisler <jiri@gaisler.se>
+Date: Sat, 30 Aug 2014 23:00:43 +0200
+Subject: [PATCH 07/23] sim/erc32: File loading via command line did not work
+
+	* sis.c (main) load binary file from argv parameters
+---
+ sim/erc32/sis.c | 5 ++++-
+ 1 file changed, 4 insertions(+), 1 deletion(-)
+
+diff --git a/sim/erc32/sis.c b/sim/erc32/sis.c
+index f2aed78..d7fa245 100644
+--- a/sim/erc32/sis.c
++++ b/sim/erc32/sis.c
+@@ -171,6 +171,7 @@ main(argc, argv)
+     char           *cmdq[HIST_LEN];
+     int             cmdi = 0;
+     int             i;
++    int             lfile = 0;
+ 
+     cfile = 0;
+     for (i = 0; i < 64; i++)
+@@ -219,7 +220,7 @@ main(argc, argv)
+ 		exit(1);
+ 	    }
+ 	} else {
+-	    last_load_addr = bfd_load(argv[stat]);
++	    lfile = stat;
+ 	}
+ 	stat++;
+     }
+@@ -241,6 +242,8 @@ main(argc, argv)
+     reset_all();
+     init_bpt(&sregs);
+     init_sim();
++    if (lfile)
++        last_load_addr = bfd_load(argv[lfile]);
+ #ifdef STAT
+     reset_stat(&sregs);
+ #endif
+-- 
+1.9.1
+

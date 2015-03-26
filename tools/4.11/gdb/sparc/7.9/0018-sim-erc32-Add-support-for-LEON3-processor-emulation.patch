@@ -1,0 +1,2434 @@
+From d3e77f683adc96e3fc8395f21b8e440ee923a092 Mon Sep 17 00:00:00 2001
+From: Jiri Gaisler <jiri@gaisler.se>
+Date: Wed, 18 Feb 2015 22:47:49 +0100
+Subject: [PATCH 18/23] sim/erc32: Add support for LEON3 processor emulation.
+
+	Added memory and I/O sub-system to emulate a LEON3 processor.
+	The cache and MMU are not emulated but enough functionallity
+	is provided to run any RTEMS and BCC compiled application.
+	The code is based on erc32.c and modified to emulate the
+	LEON3 address space and peripheral operations.
+---
+ sim/erc32/Makefile.in  |    4 +-
+ sim/erc32/README.leon3 |   53 +++
+ sim/erc32/README.sis   |   81 ++--
+ sim/erc32/erc32.c      |   48 ++-
+ sim/erc32/exec.c       |  228 +++++++++--
+ sim/erc32/func.c       |   57 +--
+ sim/erc32/grlib.c      |   98 +++++
+ sim/erc32/grlib.h      |   57 +++
+ sim/erc32/interf.c     |   26 +-
+ sim/erc32/leon3.c      | 1066 ++++++++++++++++++++++++++++++++++++++++++++++++
+ sim/erc32/sis.c        |   22 +-
+ sim/erc32/sis.h        |   49 ++-
+ 12 files changed, 1660 insertions(+), 129 deletions(-)
+ create mode 100644 sim/erc32/README.leon3
+ create mode 100644 sim/erc32/grlib.c
+ create mode 100644 sim/erc32/grlib.h
+ create mode 100644 sim/erc32/leon3.c
+
+diff --git a/sim/erc32/Makefile.in b/sim/erc32/Makefile.in
+index 4f86017..e40eb79 100644
+--- a/sim/erc32/Makefile.in
++++ b/sim/erc32/Makefile.in
+@@ -21,7 +21,7 @@
+ TERMCAP_LIB = @TERMCAP@
+ READLINE_LIB = @READLINE@
+ 
+-SIM_OBJS = exec.o erc32.o func.o help.o float.o interf.o
++SIM_OBJS = exec.o erc32.o func.o help.o float.o interf.o leon3.o grlib.o
+ SIM_EXTRA_LIBS = $(READLINE_LIB) $(TERMCAP_LIB) -lm
+ SIM_EXTRA_ALL = sis
+ SIM_EXTRA_INSTALL = install-sis
+@@ -35,7 +35,7 @@ SIM_EXTRA_CFLAGS = -DFAST_UART -I$(srcroot)
+ ## COMMON_POST_CONFIG_FRAG
+ 
+ # `sis' doesn't need interf.o.
+-SIS_OFILES = exec.o erc32.o func.o help.o float.o
++SIS_OFILES = exec.o erc32.o func.o help.o float.o grlib.o leon3.o
+ 
+ sis: sis.o $(SIS_OFILES) $(COMMON_OBJS) $(LIBDEPS)
+ 	$(CC) $(ALL_CFLAGS) -o sis \
+diff --git a/sim/erc32/README.leon3 b/sim/erc32/README.leon3
+new file mode 100644
+index 0000000..f6701a5
+--- /dev/null
++++ b/sim/erc32/README.leon3
+@@ -0,0 +1,53 @@
++
++1. LEON3 emulation
++
++The file 'leon3.c' contains a model of simple LEON3 sub-system. It
++contains 16 Mbyte ROM and 16 Mbyte RAM. Standard peripherals
++such as interrupt controller, UART and timer are provided.
++The model can execute leon3 binaries that do not require an
++MMU.
++
++To start sis in Leon3 mode, add the -leon3 switch. In gdb,
++use 'target sim -leon3' .
++
++1.1 UART
++
++The UART emulates an APBUART and is located at address 0x80000100.
++The following registers are implemeted:
++
++- UART RX and TX register	(0x80000100)
++- UART status register		(0x80000104)
++
++The UART generates interrupt 3.
++
++1.2 Timer unit (GPTIMER)
++
++The GPTIMER programmable counter is emulated and located at
++address 0x80000300. It is configured with two timers and separate
++interrupts (8 and 9).
++
++1.3 Interrupt controller
++
++The IRQMP interrupt controller is implemented as described in the
++GRLIB IP manual, with the exception of the interrupt level register.
++Extended interrupts are not supported. The registers are located
++at address 0x80000200.
++
++1.5 Memory interface
++
++The following memory areas are valid for the Leon3 simulator:
++
++0x00000000 - 0x01000000		ROM (16 Mbyte, loaded at start-up)
++0x40000000 - 0x41000000		RAM (16 Mbyte, loaded at start-up)
++0x80000000 - 0x81000000		APB bus, including plug&play
++0xFFFFF000 - 0xFFFFFFFF		AHB plug&play area
++
++Access to non-existing memory will result in a memory exception trap.
++
++1.8 Power-down mode
++
++The Leon3 power-down feature (%asr19) is supported. When power-down is
++entered, time is skipped forward until the next event in the event queue.
++However, if the simulator event queue is empty, power-down mode is not
++entered since no interrupt would be generated to exit from the mode. A
++Ctrl-C in the simulator window will exit the power-down mode.
+diff --git a/sim/erc32/README.sis b/sim/erc32/README.sis
+index b119f03..124e577 100644
+--- a/sim/erc32/README.sis
++++ b/sim/erc32/README.sis
+@@ -1,10 +1,10 @@
+ 
+-SIS - Sparc Instruction Simulator README file  (v2.0, 05-02-1996)
++SIS - Sparc Instruction Simulator README file  (v2.8, 10-11-2014)
+ -------------------------------------------------------------------
+ 
+ 1. Introduction
+ 
+-The SIS is a SPARC V7 architecture simulator. It consist of two parts,
++The SIS is a SPARC V7/V8 architecture simulator. It consist of two parts,
+ the simulator core and a user defined memory module. The simulator
+ core executes the instructions while the memory module emulates memory
+ and peripherals. 
+@@ -13,28 +13,28 @@ and peripherals.
+ 
+ The simulator is started as follows: 
+ 
+-sis [-uart1 uart_device1] [-uart2 uart_device2] 
++sis [-leon3] [-uart1 uart_device1] [-uart2 uart_device2]
+     [-nfp] [-freq frequency] [-c batch_file] [files] 
+ 
+-The default uart devices for SIS are /dev/ptypc and /dev/ptypd. The
+--uart[1,2] switch can be used to connect the uarts to other devices.
+-Use 'tip /dev/ttypc'  to connect a terminal emulator to the uarts.
++By default, SIS emulates an ERC32 system. The -leon3 switch
++enables emulation of a LEON3 SOC system.
++
++The emulated console uart is connected to stdin/stdout. The -uart[1,2]
++switch can be used to connect the uarts to other devices.
++
+ The '-nfp' will disable the simulated FPU, so each FPU instruction will
+ generate a FPU disabled trap. The '-freq' switch can be used to define
+ which "frequency" the simulator runs at. This is used by the 'perf'
+ command to calculated the MIPS figure for a particular configuration.
+-The give frequency must be an integer indicating the frequency in MHz.
++The frequency must be an integer indicating the frequency in MHz.
+ 
+ The -c option indicates that sis commands should be read from 'batch_file' 
+ at startup.
+ 
+-Files to be loaded must be in one of the supported formats (see INSTALLATION),
+-and will be loaded into the simulated memory. The file formats are
+-automatically recognised.
++Files to be loaded must be in one of the supported formats (elf, a.out, srec),
++and will be loaded into the simulated memory.
+ 
+-The script 'startsim' will start the simulator in one xterm window and
+-open a terminal emulator (tip) connected to the UART A in a second
+-xterm window. Below is description of commands  that are recognized by 
++Below is description of commands  that are recognized by
+ the simulator. The command-line is parsed using GNU readline. A command
+ history of 64 commands is maintained. Use the up/down arrows to recall
+ previous commands. For more details, see the readline documentation.
+@@ -77,8 +77,8 @@ Prints the FPU registers
+ go <address> [inst_count]
+ 
+ The go command will set pc to <address> and npc to <address> + 4, and start
+-execution. No other initialisation will be done. If inst_count is given, 
+-execution will stop after the specified number of instructions.
++execution. If inst_count is given, execution will stop after the specified
++number of instructions.
+ 
+ help
+ 
+@@ -146,14 +146,20 @@ interpreted as 'cont'.
+ 
+ 3. Simulator core
+ 
+-The SIS emulates the behavior of the 90C601E and 90C602E sparc IU and
+-FPU from Matra MHS. These are roughly equivalent to the Cypress C601
+-and C602.  The simulator is cycle true, i.e a simulator time is
+-maintained and inremented according the IU and FPU instruction timing.
++In ERC32 mode, SIS emulates the behavior of the 90C601E and 90C602E
++sparc IU and FPU from Matra MHS. These are roughly equivalent to the
++Cypress C601 and C602. The simulator is cycle true, i.e a simulator time is
++maintained and incremented according the IU and FPU instruction timing.
+ The parallel execution between the IU and FPU is modelled, as well as
+-stalls due to operand dependencies (FPU). The core interacts with the
+-user-defined memory modules through a number of functions. The memory
+-module must provide the following functions:
++stalls due to operand dependencies (FPU).
++
++In Leon3 mode, the core emulates the Leon3 SPARC V8 core from
++Gaisler Research. All SPARC V8 instructions are supported but
++emulation is not fully cycle-true as the cache is not emulated.
++
++The core interacts with the user-defined memory modules through
++a number of functions. The memory module must provide the following
++functions:
+ 
+ int memory_read(asi,addr,data,ws)
+ int asi;
+@@ -272,7 +278,7 @@ See 'erc32.c' for examples on how to use events and interrupts.
+ 
+ 5. Memory module
+ 
+-The supplied memory module (erc32.c) emulates the functions of memory and
++The ERC32 memory module (erc32.c) emulates the functions of memory and
+ the MEC asic developed for the 90C601/2. It includes the following functions:
+ 
+ * UART A & B
+@@ -284,28 +290,27 @@ the MEC asic developed for the 90C601/2. It includes the following functions:
+ * 512 Kbyte ROM
+ * 4 Mbyte RAM
+ 
+-See README.erc32 on how the MEC functions are emulated.  For a detailed MEC
+-specification, look at the ERC32 home page at URL:
++See README.erc32 on how the MEC functions are emulated.
+ 
+-http://www.estec.esa.nl/wsmwww/erc32
++The Leon3 memory module (leon3.c) emulates on-chip peripherals and
++external memory for a simple Leon3 system. The modules includes the
++following functions:
+ 
+-6. Compile and linking programs
++* AHB and APB buses with plug&play
++* UART (APBUART)
++* Interrupt controller (IRQMP)
++* Timer unit with two timers (GPTIMER)
++* PROM/SRAM memory controller (SRCTRL)
++* 16 Mbyte PROM, 16 Mbyte SRAM
+ 
+-The directory 'examples' contain some code fragments for SIS.
+-The script gccx indicates how the native sunos gcc and linker can be used
+-to produce executables for the simulator. To compile and link the provided
+-'hello.c', type 'gccx hello.c'. This will build the executable 'hello'.
+-Start the simulator by running 'startsim hello', and issue the command 'run.
+-After the program is terminated, the IU will be force to error mode through
+-a software trap and halt. 
++See README.leon3 for further details on Leon3 emulation.
+ 
+-The programs are linked with a start-up file, srt0.S. This file includes
+-the traptable and window underflow/overflow trap routines.
++6. Compile and linking programs
+ 
+ 7. IU and FPU instruction timing.
+ 
+-The simulator provides cycle true simulation. The following table shows
+-the emulated instruction timing for 90C601E & 90C602E:
++The simulator provides cycle true simulation for ERC32. The following table
++shows the emulated instruction timing for 90C601E & 90C602E:
+ 
+ Instructions	      Cycles
+ 
+diff --git a/sim/erc32/erc32.c b/sim/erc32/erc32.c
+index 89c745a..0e1a2ed 100644
+--- a/sim/erc32/erc32.c
++++ b/sim/erc32/erc32.c
+@@ -1636,19 +1636,20 @@ memory_iread(addr, data, ws)
+ }
+ 
+ static int
+-memory_read(asi, addr, data, sz, ws)
+-    int32           asi;
++memory_read(addr, data, sz, ws)
+     uint32          addr;
+     uint32         *data;
+     int32           sz;
+     int32          *ws;
+ {
+     int32           mexc;
++    int32           asi;
+ 
+ #ifdef ERRINJ
+     if (errmec) {
+ 	if (sis_verbose)
+ 	    printf("Inserted MEC error %d\n",errmec);
++        if (sregs.psr & 0x080) asi = 11; else asi = 10;
+ 	set_sfsr(errmec, addr, asi, 1);
+ 	if (errmec == 5) mecparerror();
+ 	if (errmec == 6) iucomperr();
+@@ -1662,6 +1663,7 @@ memory_read(asi, addr, data, sz, ws)
+ 	*ws = mem_ramr_ws;
+ 	return (0);
+     } else if ((addr >= MEC_START) && (addr < MEC_END)) {
++        if (sregs.psr & 0x080) asi = 11; else asi = 10;
+ 	mexc = mec_read(addr, asi, data);
+ 	if (mexc) {
+ 	    set_sfsr(MEC_ACC, addr, asi, 1);
+@@ -1701,19 +1703,30 @@ memory_read(asi, addr, data, sz, ws)
+     }
+ 
+     printf("Memory exception at %x (illegal address)\n", addr);
++    if (sregs.psr & 0x080) asi = 11; else asi = 10;
+     set_sfsr(UIMP_ACC, addr, asi, 1);
+     *ws = MEM_EX_WS;
+     return (1);
+ }
+ 
+ static int
+-memory_write(asi, addr, data, sz, ws)
++memory_read_asi(asi, addr, data, sz, ws)
+     int32           asi;
+     uint32          addr;
+     uint32         *data;
+     int32           sz;
+     int32          *ws;
+ {
++    return(memory_read(addr, data, sz, ws));
++}
++
++static int
++memory_write(addr, data, sz, ws)
++    uint32          addr;
++    uint32         *data;
++    int32           sz;
++    int32          *ws;
++{
+     uint32          byte_addr;
+     uint32          byte_mask;
+     uint32          waddr;
+@@ -1721,11 +1734,13 @@ memory_write(asi, addr, data, sz, ws)
+     int32           mexc;
+     int             i;
+     int             wphit[2];
++    int32           asi;
+ 
+ #ifdef ERRINJ
+     if (errmec) {
+ 	if (sis_verbose)
+ 	    printf("Inserted MEC error %d\n",errmec);
++        if (sregs.psr & 0x080) asi = 11; else asi = 10;
+ 	set_sfsr(errmec, addr, asi, 0);
+ 	if (errmec == 5) mecparerror();
+ 	if (errmec == 6) iucomperr();
+@@ -1738,6 +1753,7 @@ memory_write(asi, addr, data, sz, ws)
+ 	if (mem_accprot) {
+ 
+ 	    waddr = (addr & 0x7fffff) >> 2;
++            if (sregs.psr & 0x080) asi = 11; else asi = 10;
+ 	    for (i = 0; i < 2; i++)
+ 		wphit[i] =
+ 		    (((asi == 0xa) && (mec_wpr[i] & 1)) ||
+@@ -1761,6 +1777,7 @@ memory_write(asi, addr, data, sz, ws)
+ 	return (0);
+ 
+     } else if ((addr >= MEC_START) && (addr < MEC_END)) {
++        if (sregs.psr & 0x080) asi = 11; else asi = 10;
+ 	if ((sz != 2) || (asi != 0xb)) {
+ 	    set_sfsr(MEC_ACC, addr, asi, 0);
+ 	    *ws = MEM_EX_WS;
+@@ -1817,10 +1834,22 @@ memory_write(asi, addr, data, sz, ws)
+     }
+ 	
+     *ws = MEM_EX_WS;
++    if (sregs.psr & 0x080) asi = 11; else asi = 10;
+     set_sfsr(UIMP_ACC, addr, asi, 0);
+     return (1);
+ }
+ 
++static int
++memory_write_asi(asi, addr, data, sz, ws)
++    int32           asi;
++    uint32          addr;
++    uint32         *data;
++    int32           sz;
++    int32          *ws;
++{
++    return(memory_write(addr, data, sz, ws));
++}
++
+ static unsigned char  *
+ get_mem_ptr(addr, size)
+     uint32          addr;
+@@ -1864,6 +1893,12 @@ sis_memory_read(addr, data, length)
+     uint32          length;
+ {
+     char           *mem;
++    int            ws;
++
++    if (length == 4) {
++      memory_read(addr, data, length, &ws);
++      return(4);
++    }
+ 
+     if ((mem = get_mem_ptr(addr, length)) == ((char *) -1))
+ 	return (0);
+@@ -1872,7 +1907,7 @@ sis_memory_read(addr, data, length)
+     return (length);
+ }
+ 
+-void
++static void
+ boot_init (void)
+ {
+     mec_write(MEC_WCR, 0);	/* zero waitstates */
+@@ -1896,7 +1931,10 @@ struct memsys erc32sys = {
+     restore_stdio,
+     memory_iread,
+     memory_read,
++    memory_read_asi,
+     memory_write,
++    memory_write_asi,
+     sis_memory_write,
+-    sis_memory_read
++    sis_memory_read,
++    boot_init
+ };
+diff --git a/sim/erc32/exec.c b/sim/erc32/exec.c
+index 6d80306..6292998 100644
+--- a/sim/erc32/exec.c
++++ b/sim/erc32/exec.c
+@@ -1065,17 +1065,17 @@ dispatch_instruction(sregs)
+ 		*rdd = sregs->psr;
+ 		break;
+ 	    case RDY:
+-                if (!sparclite)
++                if ((!sparclite) && (cputype != CPU_LEON3))
+                     *rdd = sregs->y;
+                 else {
+                     int rs1_is_asr = (sregs->inst >> 14) & 0x1f;
+                     if ( 0 == rs1_is_asr )
+                         *rdd = sregs->y;
+-                    else if ( 17 == rs1_is_asr )
++                    else if ( 17 == rs1_is_asr ) {
+                         *rdd = sregs->asr17;
++                    }
+                     else {
+                         sregs->trap = TRAP_UNIMP;
+-                        break;
+                     }
+                 }
+ 		break;
+@@ -1121,13 +1121,19 @@ dispatch_instruction(sregs)
+ 		    ((rs1 ^ operand2) & 0xfffff000);
+ 		break;
+ 	    case WRY:
+-                if (!sparclite)
++                if ((!sparclite) && (cputype != CPU_LEON3))
+                     sregs->y = (rs1 ^ operand2);
+                 else {
+                     if ( 0 == rd )
+                         sregs->y = (rs1 ^ operand2);
+-                    else if ( 17 == rd )
+-                        sregs->asr17 = (rs1 ^ operand2);
++                    else if ( 17 == rd ) {
++                        if (sparclite)
++                            sregs->asr17 = (rs1 ^ operand2);
++                    }
++                    else if ( 19 == rd ) {
++                        if (cputype == CPU_LEON3)
++                            wait_for_irq();
++                    }
+                     else {
+                         sregs->trap = TRAP_UNIMP;
+                         break;
+@@ -1227,6 +1233,32 @@ dispatch_instruction(sregs)
+ 	switch (op3) {
+ 	case LDDA:
+ 	    if (!chk_asi(sregs, &asi, op3)) break;
++	    if (address & 0x7) {
++		sregs->trap = TRAP_UNALI;
++		break;
++	    }
++	    if (rd & 1) {
++		rd &= 0x1e;
++		if (rd > 7)
++		    rdd = &(sregs->r[(cwp + rd) & 0x7f]);
++		else
++		    rdd = &(sregs->g[rd]);
++	    }
++	    mexc = ms->memory_read_asi(asi, address, ddata, 2, &ws);
++	    sregs->hold += ws;
++	    mexc |= ms->memory_read_asi(asi, address+4, &ddata[1], 2, &ws);
++	    sregs->hold += ws;
++	    sregs->icnt = T_LDD;
++	    if (mexc) {
++		sregs->trap = TRAP_DEXC;
++	    } else {
++		rdd[0] = ddata[0];
++		rdd[1] = ddata[1];
++#ifdef STAT
++		sregs->nload++;	/* Double load counts twice */
++#endif
++	    }
++	    break;
+ 	case LDD:
+ 	    if (address & 0x7) {
+ 		sregs->trap = TRAP_UNALI;
+@@ -1239,9 +1271,9 @@ dispatch_instruction(sregs)
+ 		else
+ 		    rdd = &(sregs->g[rd]);
+ 	    }
+-	    mexc = ms->memory_read(asi, address, ddata, 2, &ws);
++	    mexc = ms->memory_read(address, ddata, 2, &ws);
+ 	    sregs->hold += ws;
+-	    mexc |= ms->memory_read(asi, address+4, &ddata[1], 2, &ws);
++	    mexc |= ms->memory_read(address+4, &ddata[1], 2, &ws);
+ 	    sregs->hold += ws;
+ 	    sregs->icnt = T_LDD;
+ 	    if (mexc) {
+@@ -1257,12 +1289,24 @@ dispatch_instruction(sregs)
+ 
+ 	case LDA:
+ 	    if (!chk_asi(sregs, &asi, op3)) break;
++	    if (address & 0x3) {
++		sregs->trap = TRAP_UNALI;
++		break;
++	    }
++	    mexc = ms->memory_read_asi(asi, address, &data, 2, &ws);
++	    sregs->hold += ws;
++	    if (mexc) {
++		sregs->trap = TRAP_DEXC;
++	    } else {
++		*rdd = data;
++	    }
++	    break;
+ 	case LD:
+ 	    if (address & 0x3) {
+ 		sregs->trap = TRAP_UNALI;
+ 		break;
+ 	    }
+-	    mexc = ms->memory_read(asi, address, &data, 2, &ws);
++	    mexc = ms->memory_read(address, &data, 2, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1272,8 +1316,27 @@ dispatch_instruction(sregs)
+ 	    break;
+ 	case LDSTUBA:
+ 	    if (!chk_asi(sregs, &asi, op3)) break;
++	    mexc = ms->memory_read_asi(asi, address, &data, 0, &ws);
++	    sregs->hold += ws;
++	    sregs->icnt = T_LDST;
++	    if (mexc) {
++		sregs->trap = TRAP_DEXC;
++		break;
++	    }
++	    data = extract_byte(data, address);
++	    *rdd = data;
++	    data = 0x0ff;
++	    mexc = ms->memory_write_asi(asi, address, &data, 0, &ws);
++	    sregs->hold += ws;
++	    if (mexc) {
++		sregs->trap = TRAP_DEXC;
++	    }
++#ifdef STAT
++	    sregs->nload++;
++#endif
++	    break;
+ 	case LDSTUB:
+-	    mexc = ms->memory_read(asi, address, &data, 0, &ws);
++	    mexc = ms->memory_read(address, &data, 0, &ws);
+ 	    sregs->hold += ws;
+ 	    sregs->icnt = T_LDST;
+ 	    if (mexc) {
+@@ -1283,7 +1346,7 @@ dispatch_instruction(sregs)
+ 	    data = extract_byte(data, address);
+ 	    *rdd = data;
+ 	    data = 0x0ff;
+-	    mexc = ms->memory_write(asi, address, &data, 0, &ws);
++	    mexc = ms->memory_write(address, &data, 0, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1295,9 +1358,21 @@ dispatch_instruction(sregs)
+ 	case LDSBA:
+ 	case LDUBA:
+ 	    if (!chk_asi(sregs, &asi, op3)) break;
++	    mexc = ms->memory_read_asi(asi, address, &data, 0, &ws);
++	    sregs->hold += ws;
++	    if (mexc) {
++		sregs->trap = TRAP_DEXC;
++		break;
++	    }
++	    if (op3 == LDSB)
++	        data = extract_byte_signed(data, address);
++	    else
++	        data = extract_byte(data, address);
++	    *rdd = data;
++	    break;
+ 	case LDSB:
+ 	case LDUB:
+-	    mexc = ms->memory_read(asi, address, &data, 0, &ws);
++	    mexc = ms->memory_read(address, &data, 0, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1312,13 +1387,29 @@ dispatch_instruction(sregs)
+ 	case LDSHA:
+ 	case LDUHA:
+ 	    if (!chk_asi(sregs, &asi, op3)) break;
++	    if (address & 0x1) {
++		sregs->trap = TRAP_UNALI;
++		break;
++	    }
++	    mexc = ms->memory_read_asi(asi, address, &data, 1, &ws);
++	    sregs->hold += ws;
++	    if (mexc) {
++		sregs->trap = TRAP_DEXC;
++		break;
++	    }
++	    if (op3 == LDSH)
++	        data = extract_short_signed(data, address);
++	    else
++	        data = extract_short(data, address);
++	    *rdd = data;
++	    break;
+ 	case LDSH:
+ 	case LDUH:
+ 	    if (address & 0x1) {
+ 		sregs->trap = TRAP_UNALI;
+ 		break;
+ 	    }
+-	    mexc = ms->memory_read(asi, address, &data, 1, &ws);
++	    mexc = ms->memory_read(address, &data, 1, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1344,7 +1435,7 @@ dispatch_instruction(sregs)
+ 		    (sregs->frs2 == rd))
+ 		    sregs->fhold += (sregs->ftime - ebase.simtime);
+ 	    }
+-	    mexc = ms->memory_read(asi, address, &data, 2, &ws);
++	    mexc = ms->memory_read(address, &data, 2, &ws);
+ 	    sregs->hold += ws;
+ 	    sregs->flrd = rd;
+ 	    sregs->ltime = ebase.simtime + sregs->icnt + FLSTHOLD +
+@@ -1370,9 +1461,9 @@ dispatch_instruction(sregs)
+ 		    ((sregs->frs2 >> 1) == (rd >> 1)))
+ 		    sregs->fhold += (sregs->ftime - ebase.simtime);
+ 	    }
+-	    mexc = ms->memory_read(asi, address, ddata, 2, &ws);
++	    mexc = ms->memory_read(address, ddata, 2, &ws);
+ 	    sregs->hold += ws;
+-	    mexc |= ms->memory_read(asi, address+4, &ddata[1], 2, &ws);
++	    mexc |= ms->memory_read(address+4, &ddata[1], 2, &ws);
+ 	    sregs->hold += ws;
+ 	    sregs->icnt = T_LDD;
+ 	    if (mexc) {
+@@ -1401,7 +1492,7 @@ dispatch_instruction(sregs)
+ 		sregs->trap = TRAP_UNALI;
+ 		break;
+ 	    }
+-	    mexc = ms->memory_read(asi, address, &data, 2, &ws);
++	    mexc = ms->memory_read(address, &data, 2, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1423,7 +1514,7 @@ dispatch_instruction(sregs)
+ 	    if (ebase.simtime < sregs->ftime) {
+ 		sregs->fhold += (sregs->ftime - ebase.simtime);
+ 	    }
+-	    mexc = ms->memory_write(asi, address, &sregs->fsr, 2, &ws);
++	    mexc = ms->memory_write(address, &sregs->fsr, 2, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1432,12 +1523,22 @@ dispatch_instruction(sregs)
+ 
+ 	case STA:
+ 	    if (!chk_asi(sregs, &asi, op3)) break;
++	    if (address & 0x3) {
++		sregs->trap = TRAP_UNALI;
++		break;
++	    }
++	    mexc = ms->memory_write_asi(asi, address, rdd, 2, &ws);
++	    sregs->hold += ws;
++	    if (mexc) {
++		sregs->trap = TRAP_DEXC;
++	    }
++	    break;
+ 	case ST:
+ 	    if (address & 0x3) {
+ 		sregs->trap = TRAP_UNALI;
+ 		break;
+ 	    }
+-	    mexc = ms->memory_write(asi, address, rdd, 2, &ws);
++	    mexc = ms->memory_write(address, rdd, 2, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1445,8 +1546,14 @@ dispatch_instruction(sregs)
+ 	    break;
+ 	case STBA:
+ 	    if (!chk_asi(sregs, &asi, op3)) break;
++	    mexc = ms->memory_write_asi(asi, address, rdd, 0, &ws);
++	    sregs->hold += ws;
++	    if (mexc) {
++		sregs->trap = TRAP_DEXC;
++	    }
++	    break;
+ 	case STB:
+-	    mexc = ms->memory_write(asi, address, rdd, 0, &ws);
++	    mexc = ms->memory_write(address, rdd, 0, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1454,6 +1561,28 @@ dispatch_instruction(sregs)
+ 	    break;
+ 	case STDA:
+ 	    if (!chk_asi(sregs, &asi, op3)) break;
++	    if (address & 0x7) {
++		sregs->trap = TRAP_UNALI;
++		break;
++	    }
++	    if (rd & 1) {
++		rd &= 0x1e;
++		if (rd > 7)
++		    rdd = &(sregs->r[(cwp + rd) & 0x7f]);
++		else
++		    rdd = &(sregs->g[rd]);
++	    }
++	    mexc = ms->memory_write_asi(asi, address, rdd, 3, &ws);
++	    sregs->hold += ws;
++	    sregs->icnt = T_STD;
++#ifdef STAT
++	    sregs->nstore++;	/* Double store counts twice */
++#endif
++	    if (mexc) {
++		sregs->trap = TRAP_DEXC;
++		break;
++	    }
++	    break;
+ 	case STD:
+ 	    if (address & 0x7) {
+ 		sregs->trap = TRAP_UNALI;
+@@ -1466,7 +1595,7 @@ dispatch_instruction(sregs)
+ 		else
+ 		    rdd = &(sregs->g[rd]);
+ 	    }
+-	    mexc = ms->memory_write(asi, address, rdd, 3, &ws);
++	    mexc = ms->memory_write(address, rdd, 3, &ws);
+ 	    sregs->hold += ws;
+ 	    sregs->icnt = T_STD;
+ #ifdef STAT
+@@ -1495,7 +1624,7 @@ dispatch_instruction(sregs)
+ 		break;
+ 	    }
+ 	    rdd = &(sregs->fpq[0]);
+-	    mexc = ms->memory_write(asi, address, rdd, 3, &ws);
++	    mexc = ms->memory_write(address, rdd, 3, &ws);
+ 	    sregs->hold += ws;
+ 	    sregs->icnt = T_STD;
+ #ifdef STAT
+@@ -1511,12 +1640,22 @@ dispatch_instruction(sregs)
+ 	    break;
+ 	case STHA:
+ 	    if (!chk_asi(sregs, &asi, op3)) break;
++	    if (address & 0x1) {
++		sregs->trap = TRAP_UNALI;
++		break;
++	    }
++	    mexc = ms->memory_write_asi(asi, address, rdd, 1, &ws);
++	    sregs->hold += ws;
++	    if (mexc) {
++		sregs->trap = TRAP_DEXC;
++	    }
++	    break;
+ 	case STH:
+ 	    if (address & 0x1) {
+ 		sregs->trap = TRAP_UNALI;
+ 		break;
+ 	    }
+-	    mexc = ms->memory_write(asi, address, rdd, 1, &ws);
++	    mexc = ms->memory_write(address, rdd, 1, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1535,7 +1674,7 @@ dispatch_instruction(sregs)
+ 		if (sregs->frd == rd)
+ 		    sregs->fhold += (sregs->ftime - ebase.simtime);
+ 	    }
+-	    mexc = ms->memory_write(asi, address, &sregs->fsi[rd], 2, &ws);
++	    mexc = ms->memory_write(address, &sregs->fsi[rd], 2, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1555,7 +1694,7 @@ dispatch_instruction(sregs)
+ 		if ((sregs->frd == rd) || (sregs->frd + 1 == rd))
+ 		    sregs->fhold += (sregs->ftime - ebase.simtime);
+ 	    }
+-	    mexc = ms->memory_write(asi, address, &sregs->fsi[rd], 3, &ws);
++	    mexc = ms->memory_write(address, &sregs->fsi[rd], 3, &ws);
+ 	    sregs->hold += ws;
+ 	    sregs->icnt = T_STD;
+ #ifdef STAT
+@@ -1567,18 +1706,40 @@ dispatch_instruction(sregs)
+ 	    break;
+ 	case SWAPA:
+ 	    if (!chk_asi(sregs, &asi, op3)) break;
++	    if (address & 0x3) {
++		sregs->trap = TRAP_UNALI;
++		break;
++	    }
++	    mexc = ms->memory_read_asi(asi, address, &data, 2, &ws);
++	    sregs->hold += ws;
++	    if (mexc) {
++		sregs->trap = TRAP_DEXC;
++		break;
++	    }
++	    mexc = ms->memory_write_asi(asi, address, rdd, 2, &ws);
++	    sregs->hold += ws;
++	    sregs->icnt = T_LDST;
++	    if (mexc) {
++		sregs->trap = TRAP_DEXC;
++		break;
++	    } else
++		*rdd = data;
++#ifdef STAT
++	    sregs->nload++;
++#endif
++	    break;
+ 	case SWAP:
+ 	    if (address & 0x3) {
+ 		sregs->trap = TRAP_UNALI;
+ 		break;
+ 	    }
+-	    mexc = ms->memory_read(asi, address, &data, 2, &ws);
++	    mexc = ms->memory_read(address, &data, 2, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+ 		break;
+ 	    }
+-	    mexc = ms->memory_write(asi, address, rdd, 2, &ws);
++	    mexc = ms->memory_write(address, rdd, 2, &ws);
+ 	    sregs->hold += ws;
+ 	    sregs->icnt = T_LDST;
+ 	    if (mexc) {
+@@ -1814,7 +1975,7 @@ fpexec(op3, rd, rs1, rs2, sregs)
+ 	sregs->ftime += T_FDIVd;
+ 	break;
+     case FMOVs:
+-	sregs->fs[rd] = sregs->fs[rs2];
++	sregs->fsi[rd] = sregs->fsi[rs2];
+ 	sregs->ftime += T_FMOVs;
+ 	sregs->frs1 = 32;	/* rs1 ignored */
+ 	break;
+@@ -1996,7 +2157,7 @@ execute_trap(sregs)
+ 	sregs->pc = sregs->tbr;
+ 	sregs->npc = sregs->tbr + 4;
+ 
+-        if ( 0 != (1 & sregs->asr17) ) {
++        if ( 0 != (1 & (sregs->asr17 >> 13)) ) {
+             /* single vector trapping! */
+             sregs->pc = sregs->tbr & 0xfffff000;
+             sregs->npc = sregs->pc + 4;
+@@ -2043,7 +2204,10 @@ init_regs(sregs)
+     sregs->npc = 4;
+     sregs->trap = 0;
+     sregs->psr &= 0x00f03fdf;
+-    sregs->psr |= 0x11000080;	/* Set supervisor bit */
++    if (cputype == CPU_LEON3)
++      sregs->psr |= 0xF3000080;	/* Set supervisor bit */
++    else
++      sregs->psr |= 0x11000080;	/* Set supervisor bit */
+     sregs->breakpoint = 0;
+     sregs->annul = 0;
+     sregs->fpstate = FP_EXE_MODE;
+@@ -2072,4 +2236,8 @@ init_regs(sregs)
+ 
+     sregs->rett_err = 0;
+     sregs->jmpltime = 0;
++    if (cputype == CPU_LEON3) {
++        sregs->asr17 = 0x107;
++        if (!nfp) sregs->asr17 |= (3 << 10);  /* Meiko FPU */
++    }
+ }
+diff --git a/sim/erc32/func.c b/sim/erc32/func.c
+index 0d00f48..a22e800 100644
+--- a/sim/erc32/func.c
++++ b/sim/erc32/func.c
+@@ -46,7 +46,7 @@ struct irqcell  irqarr[16];
+ 
+ int             ctrl_c = 0;
+ int             sis_verbose = 0;
+-char           *sis_version = "2.7.5";
++char           *sis_version = "2.8";
+ int             nfp = 0;
+ int             ift = 0;
+ int             wrp = 0;
+@@ -61,6 +61,7 @@ uint32		last_load_addr = 0;
+ int		nouartrx = 0;
+ host_callback 	*sim_callback;
+ struct memsys *ms = &erc32sys;
++int		cputype = 0;		/* 0 = erc32, 3 = leon3 */
+ 
+ #ifdef ERRINJ
+ uint32		errcnt = 0;
+@@ -482,7 +483,7 @@ exec_cmd(sregs, cmd)
+ 	    sregs->pc = len & ~3;
+ 	    sregs->npc = sregs->pc + 4;
+ 	    if ((sregs->pc != 0) && (ebase.simtime == 0))
+-	        boot_init();
++	        ms->boot_init();
+ 	    printf("resuming at 0x%08x\n",sregs->pc);
+ 	    if ((cmd2 = strtok(NULL, " \t\n\r")) != NULL) {
+ 		stat = run_sim(sregs, VAL(cmd2), 0);
+@@ -558,6 +559,11 @@ exec_cmd(sregs, cmd)
+ 	    ebase.simtime = 0;
+ 	    reset_all();
+ 	    reset_stat(sregs);
++            if (last_load_addr != 0) {
++	        sregs->pc = last_load_addr & ~3;
++	        sregs->npc = sregs->pc + 4;
++            }
++	    if ((sregs->pc != 0) && (ebase.simtime == 0)) ms->boot_init();
+ 	    if ((cmd1 = strtok(NULL, " \t\n\r")) == NULL) {
+ 		stat = run_sim(sregs, UINT64_MAX, 0);
+ 	    } else {
+@@ -609,6 +615,11 @@ exec_cmd(sregs, cmd)
+ 	    ebase.simtime = 0;
+ 	    reset_all();
+ 	    reset_stat(sregs);
++            if (last_load_addr != 0) {
++	        sregs->pc = last_load_addr & ~3;
++	        sregs->npc = sregs->pc + 4;
++            }
++	    if ((sregs->pc != 0) && (ebase.simtime == 0)) ms->boot_init();
+ 	    sregs->tlimit = limcalc(sregs->freq);
+ 	    stat = run_sim(sregs, UINT64_MAX, 0);
+ 	    daddr = sregs->pc;
+@@ -646,8 +657,8 @@ void
+ show_stat(sregs)
+     struct pstate  *sregs;
+ {
+-    uint32          iinst;
+-    uint32          stime;
++    uint64          iinst;
++    uint64          stime;
+ 
+     if (sregs->tottime == 0.0)
+         sregs->tottime += 1E-6;
+@@ -662,37 +673,37 @@ show_stat(sregs)
+     printf(" Instructions : %9" PRIu64 "\n", sregs->ninst);
+ 
+ #ifdef STAT
+-    printf("   integer    : %9.2f %%\n", 100.0 * (float) iinst / (float) sregs->ninst);
++    printf("   integer    : %9.2f %%\n", 100.0 * (double) iinst / (double) sregs->ninst);
+     printf("   load       : %9.2f %%\n",
+-	   100.0 * (float) sregs->nload / (float) sregs->ninst);
++	   100.0 * (double) sregs->nload / (double) sregs->ninst);
+     printf("   store      : %9.2f %%\n",
+-	   100.0 * (float) sregs->nstore / (float) sregs->ninst);
++	   100.0 * (double) sregs->nstore / (double) sregs->ninst);
+     printf("   branch     : %9.2f %%\n",
+-	   100.0 * (float) sregs->nbranch / (float) sregs->ninst);
++	   100.0 * (double) sregs->nbranch / (double) sregs->ninst);
+     printf("   float      : %9.2f %%\n",
+-	   100.0 * (float) sregs->finst / (float) sregs->ninst);
++	   100.0 * (double) sregs->finst / (double) sregs->ninst);
+     printf(" Integer CPI  : %9.2f\n",
+-	   ((float) (stime - sregs->pwdtime - sregs->fholdt - sregs->finst))
++	   ((double) (stime - sregs->pwdtime - sregs->fholdt - sregs->finst))
+ 	   /
+-	   (float) (sregs->ninst - sregs->finst));
++	   (double) (sregs->ninst - sregs->finst));
+     printf(" Float CPI    : %9.2f\n",
+-	   ((float) sregs->fholdt / (float) sregs->finst) + 1.0);
++	   ((double) sregs->fholdt / (double) sregs->finst) + 1.0);
+ #endif
+     printf(" Overall CPI  : %9.2f\n",
+-	   (float) (stime - sregs->pwdtime) / (float) sregs->ninst);
+-    printf("\n ERC32 performance (%4.1f MHz): %5.2f MOPS (%5.2f MIPS, %5.2f MFLOPS)\n",
+-	   sregs->freq, sregs->freq * (float) sregs->ninst / (float) (stime - sregs->pwdtime),
+-	   sregs->freq * (float) (sregs->ninst - sregs->finst) /
+-	   (float) (stime - sregs->pwdtime),
+-     sregs->freq * (float) sregs->finst / (float) (stime - sregs->pwdtime));
+-    printf(" Simulated ERC32 time        : %.2f s\n",
+-        (float) (ebase.simtime - sregs->simstart) / 1000000.0 / sregs->freq);
++	  (double) (stime - sregs->pwdtime) / (double) sregs->ninst);
++    printf("\n CPU performance (%4.1f MHz)  : %5.2f MOPS (%5.2f MIPS, %5.2f MFLOPS)\n",
++	  sregs->freq, sregs->freq * (double) sregs->ninst / (double) (stime - sregs->pwdtime),
++	  sregs->freq * (double) (sregs->ninst - sregs->finst) /
++	  (double) (stime - sregs->pwdtime),
++     sregs->freq * (double) sregs->finst / (double) (stime - sregs->pwdtime));
++    printf(" Simulated CPU time          : %.2f s\n",
++	(double) (ebase.simtime - sregs->simstart) / 1000000.0 / sregs->freq);
+     printf(" Processor utilisation       : %.2f %%\n",
+-        100.0 * (1.0 - ((float) sregs->pwdtime / (float) stime)));
++	100.0 * (1.0 - ((double) sregs->pwdtime / (double) stime)));
+     printf(" Real-time performance       : %.2f %%\n",
+-        100.0 / (sregs->tottime / ((double) (stime) / (sregs->freq * 1.0E6))));
++	100.0 / (sregs->tottime / ((double) (stime) / (sregs->freq * 1.0E6))));
+     printf(" Simulator performance       : %.2f MIPS\n",
+-        (double)(sregs->ninst) / sregs->tottime / 1E6);
++	(double)(sregs->ninst) / sregs->tottime / 1E6);
+     printf(" Used time (sys + user)      : %.2f s\n\n", sregs->tottime);
+ }
+ 
+diff --git a/sim/erc32/grlib.c b/sim/erc32/grlib.c
+new file mode 100644
+index 0000000..edb304e
+--- /dev/null
++++ b/sim/erc32/grlib.c
+@@ -0,0 +1,98 @@
++/*
++ * This file is part of SIS.
++ *
++ * SIS, SPARC instruction simulator. Copyright (C) 2014 Jiri Gaisler
++ *
++ * This program is free software; you can redistribute it and/or modify it under
++ * the terms of the GNU General Public License as published by the Free
++ * Software Foundation; either version 3 of the License, or (at your option)
++ * any later version.
++ *
++ * This program is distributed in the hope that it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
++ *
++ * You should have received a copy of the GNU General Public License along with
++ * this program; if not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++
++#include "sis.h"
++#include "grlib.h"
++
++
++/* APB PNP */
++
++static uint32 apbppmem[32*2];    /* 32-entry APB PP AREA */
++static int apbppindex;
++
++int grlib_apbpp_add(uint32 id, uint32 addr)
++{
++    apbppmem[apbppindex++] = id;
++    apbppmem[apbppindex++] = addr;
++    if(apbppindex >= (32*2)) apbppindex = 0; /* prevent overflow of area */
++    return(apbppindex);
++}
++
++uint32 grlib_apbpnp_read(uint32 addr)
++{
++    uint32 read_data;
++    addr &= 0xff;
++    read_data = apbppmem[addr>>2];
++
++    return read_data;
++}
++
++/* AHB PNP */
++
++static uint32 ahbppmem[128*8];    /* 128-entry AHB PP AREA */
++static int ahbmppindex;
++static int ahbsppindex = 64*8;
++
++int grlib_ahbmpp_add(uint32 id)
++{
++    ahbppmem[ahbmppindex] = id;
++    ahbmppindex += 8;
++    if(ahbmppindex >= (64*8)) ahbmppindex = 0; /* prevent overflow of area */
++    return(ahbmppindex);
++}
++
++int grlib_ahbspp_add(uint32 id, uint32 addr1, uint32 addr2,
++                     uint32 addr3, uint32 addr4)
++{
++    ahbppmem[ahbsppindex] = id;
++    ahbsppindex += 4;
++    ahbppmem[ahbsppindex++] = addr1;
++    ahbppmem[ahbsppindex++] = addr2;
++    ahbppmem[ahbsppindex++] = addr3;
++    ahbppmem[ahbsppindex++] = addr4;
++    if(ahbsppindex >= (128*8)) ahbsppindex = 64*8; /* prevent overflow of area */
++    return(ahbsppindex);
++}
++
++uint32 grlib_ahbpnp_read(uint32 addr)
++{
++    uint32 read_data;
++
++    addr &= 0xfff;
++    read_data = ahbppmem[addr>>2];
++    return read_data;
++
++}
++
++void grlib_init()
++{
++    /* Add PP records for Leon3, APB bridge and interrupt controller
++       as this is not done elsewhere */
++
++    grlib_ahbmpp_add(GRLIB_PP_ID(VENDOR_GAISLER, GAISLER_LEON3, 0, 0));
++    grlib_ahbspp_add(GRLIB_PP_ID(VENDOR_GAISLER, GAISLER_APBMST, 0, 0),
++                     GRLIB_PP_AHBADDR(0x80000000, 0xFFF, 0, 0, 2),
++                     0, 0, 0);
++
++    grlib_apbpp_add(GRLIB_PP_ID(VENDOR_GAISLER, GAISLER_IRQMP, 2, 0),
++                    GRLIB_PP_APBADDR(0x80000200, 0xFFF));
++
++}
+diff --git a/sim/erc32/grlib.h b/sim/erc32/grlib.h
+new file mode 100644
+index 0000000..1c03329
+--- /dev/null
++++ b/sim/erc32/grlib.h
+@@ -0,0 +1,57 @@
++/*
++ * This file is part of SIS.
++ *
++ * SIS, SPARC instruction simulator. Copyright (C) 2014 Jiri Gaisler
++ *
++ * This program is free software; you can redistribute it and/or modify it under
++ * the terms of the GNU General Public License as published by the Free
++ * Software Foundation; either version 3 of the License, or (at your option)
++ * any later version.
++ *
++ * This program is distributed in the hope that it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
++ *
++ * You should have received a copy of the GNU General Public License along with
++ * this program; if not, see <http://www.gnu.org/licenses/>.
++ *
++ */
++
++
++/* Definitions for AMBA PNP in Gaisler Research GRLIB SOC */
++
++/* Vendors */
++#define VENDOR_GAISLER    1
++#define VENDOR_PENDER     2
++#define VENDOR_ESA        4
++#define VENDOR_DLR       10
++
++/* Devices */
++#define GAISLER_LEON3    0x003
++#define GAISLER_APBMST   0x006
++#define GAISLER_SRCTRL   0x008
++#define GAISLER_APBUART  0x00C
++#define GAISLER_IRQMP    0x00D
++#define GAISLER_GPTIMER  0x011
++#define ESA_MCTRL        0x00F
++
++/* How to build entries in the plug&play area */
++#define GRLIB_PP_ID(v, d, x, i) ((v & 0xff) << 24) | ((d & 0x3ff) << 12) |\
++                                ((x & 0x1f) << 5) | (i & 0x1f)
++#define GRLIB_PP_AHBADDR(a, m, p, c, t) (a & 0xfff00000) | ((m & 0xfff) << 4) |\
++                         ((p & 1) << 17) | ((c & 1) << 16) | (t & 0x3)
++#define GRLIB_PP_APBADDR(a, m) ((a & 0xfff00)<< 12) | ((m & 0xfff) << 4) | 1
++
++#define AHBPP_START   0xFFFFF000
++#define AHBPP_END     0xFFFFFFFF
++#define APBPP_START   0x800FF000
++#define APBPP_END     0x800FFFFF
++
++int grlib_apbpp_add(uint32 id, uint32 addr);
++int grlib_ahbmpp_add(uint32 id);
++int grlib_ahbspp_add(uint32 id, uint32 addr1, uint32 addr2,
++                     uint32 addr3, uint32 addr4);
++uint32 grlib_ahbpnp_read(uint32 addr);
++uint32 grlib_apbpnp_read(uint32 addr);
++void grlib_init();
+diff --git a/sim/erc32/interf.c b/sim/erc32/interf.c
+index ab1a38c..8f3b27d 100644
+--- a/sim/erc32/interf.c
++++ b/sim/erc32/interf.c
+@@ -52,7 +52,7 @@ run_sim(sregs, icount, dis)
+    ms->init_stdio();
+    sregs->starttime = get_time();
+    irq = 0;
+-   if ((sregs->pc != 0) && (ebase.simtime == 0)) boot_init();
++   if ((sregs->pc != 0) && (ebase.simtime == 0)) ms->boot_init();
+    while (!sregs->err_mode & (icount > 0)) {
+ 
+ 	sregs->fhold = 0;
+@@ -187,6 +187,10 @@ sim_open (kind, callback, abfd, argv)
+             if (strcmp(argv[stat], "-nouartrx") == 0) {
+ 		nouartrx = 1;
+ 	    } else
++            if (strcmp(argv[stat], "-leon3") == 0) {
++		ms = &leon3;
++                cputype = CPU_LEON3;
++            } else
+             if (strcmp(argv[stat], "-wrp") == 0) {
+                 wrp = 1;
+ 	    } else
+@@ -224,9 +228,21 @@ sim_open (kind, callback, abfd, argv)
+ 	stat++;
+     }
+ 
++    if (cputype == CPU_LEON3)
++        sregs.freq = freq ? freq : 50;
++    else
++        sregs.freq = freq ? freq : 14;
++
+     if (sis_verbose) {
+ 	(*sim_callback->printf_filtered) (sim_callback, "\n SIS - SPARC instruction simulator %s\n", sis_version);
+-	(*sim_callback->printf_filtered) (sim_callback, " Bug-reports to Jiri Gaisler ESA/ESTEC (jgais@wd.estec.esa.nl)\n");
++	(*sim_callback->printf_filtered) (sim_callback, " Bug-reports to Jiri Gaisler ESA/ESTEC (jiri@gaisler.se)\n\n");
++        switch (cputype) {
++        case CPU_LEON3:
++            (*sim_callback->printf_filtered) (sim_callback, "LEON3 emulation enabled\n");
++            break;
++        default:
++            (*sim_callback->printf_filtered) (sim_callback, "ERC32 emulation enabled\n");
++        }
+ 	if (nfp)
+ 	  (*sim_callback->printf_filtered) (sim_callback, "no FPU\n");
+ 	if (sparclite)
+@@ -235,11 +251,9 @@ sim_open (kind, callback, abfd, argv)
+ 	  (*sim_callback->printf_filtered) (sim_callback, "dumb IO (no input, dumb output)\n");
+ 	if (sis_gdb_break == 0)
+ 	  (*sim_callback->printf_filtered) (sim_callback, "disabling GDB trap handling for breakpoints\n");
+-	if (freq)
+-	  (*sim_callback->printf_filtered) (sim_callback, " ERC32 freq %d Mhz\n", freq);
++	  (*sim_callback->printf_filtered) (sim_callback, "CPU freq %3.1f MHz\n", sregs.freq);
+     }
+ 
+-    sregs.freq = freq ? freq : 15;
+     termsave = fcntl(0, F_GETFL, 0);
+     INIT_DISASSEMBLE_INFO(dinfo, stdout,(fprintf_ftype)fprintf);
+ #ifdef HOST_LITTLE_ENDIAN
+@@ -457,7 +471,7 @@ flush_windows ()
+ #endif
+ 
+       for (i = 0; i < 16; i++)
+-	ms->memory_write (11, sp + 4 * i, &sregs.r[(win * 16 + 16 + i) & 0x7f], 2,
++	ms->memory_write (sp + 4 * i, &sregs.r[(win * 16 + 16 + i) & 0x7f], 2,
+ 		      &ws);
+ 
+       if (win == cwp)
+diff --git a/sim/erc32/leon3.c b/sim/erc32/leon3.c
+new file mode 100644
+index 0000000..26ea2b2
+--- /dev/null
++++ b/sim/erc32/leon3.c
+@@ -0,0 +1,1066 @@
++/*
++ * This file is part of SIS.
++ *
++ * SIS, SPARC instruction simulator V2.5 Copyright (C) 1995 Jiri Gaisler,
++ * European Space Agency
++ *
++ * This program is free software; you can redistribute it and/or modify it under
++ * the terms of the GNU General Public License as published by the Free
++ * Software Foundation; either version 3 of the License, or (at your option)
++ * any later version.
++ *
++ * This program is distributed in the hope that it will be useful, but WITHOUT
++ * ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
++ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
++ * more details.
++ *
++ * You should have received a copy of the GNU General Public License along with
++ * this program; if not, see <http://www.gnu.org/licenses/>.
++ *
++ * Leon3 emulation, loosely based on erc32.c .
++ */
++
++/* The control space devices */
++
++#include "config.h"
++#include <errno.h>
++#include <sys/types.h>
++#include <stdio.h>
++#include <string.h>
++#include <termios.h>
++#include <sys/fcntl.h>
++#include <sys/file.h>
++#include <unistd.h>
++#include "sis.h"
++#include "grlib.h"
++#include "sim-config.h"
++
++static int tty_setup = 1; /* default setup if not a tty */
++
++/* APB registers */
++#define APBSTART	0x80000000
++#define APBEND  	0x80100000
++
++/* Memory exception waitstates */
++#define MEM_EX_WS 	1
++
++#define MOK	0
++
++/* LEON3 APB register addresses */
++
++#define IRQMP_IPR		0x204
++#define IRQMP_IMR 	0x240
++#define IRQMP_ICR 	0x20C
++#define IRQMP_IFR 	0x208
++#define GPTIMER_SCALER  0x300
++#define GPTIMER_SCLOAD  0x304
++#define GPTIMER_CONFIG  0x308
++#define GPTIMER_TIMER1 	0x310
++#define GPTIMER_RELOAD1	0x314
++#define GPTIMER_CTRL1 	0x318
++#define GPTIMER_TIMER2 	0x320
++#define GPTIMER_RELOAD2	0x324
++#define GPTIMER_CTRL2 	0x328
++
++#define APBUART_RXTX	0x100
++#define APBUART_STATUS  0x104
++
++/* Size of UART buffers (bytes) */
++#define UARTBUF	1024
++
++/* Number of simulator ticks between flushing the UARTS. 	 */
++/* For good performance, keep above 1000			 */
++#define UART_FLUSH_TIME	  3000
++
++
++/* New uart defines */
++#define UART_TX_TIME	1000
++#define UART_RX_TIME	1000
++#define UARTA_DR	0x1
++#define UARTA_SRE	0x2
++#define UARTA_HRE	0x4
++#define UARTA_OR	0x10
++
++/* IRQMP registers */
++
++static uint32   irqmp_ipr;
++static uint32   irqmp_imr;
++static uint32   irqmp_ifr;
++
++/* GPTIMER registers */
++
++#define NGPTIMERS  2
++#define GPTIMER_IRQ 8
++
++static uint32   gpt_scaler;
++static uint32   gpt_scaler_start;
++static uint32   gpt_counter[NGPTIMERS];
++static uint32   gpt_reload[NGPTIMERS];
++static uint32   gpt_ctrl[NGPTIMERS];
++
++/* ROM size 16 Mbyte */
++#define ROM_START 	0x00000000
++#define ROM_MASK 	0x00ffffff
++#define ROM_END 	(ROM_START + ROM_MASK + 1)
++
++/* RAM size 16 Mbyte */
++#define RAM_START 	0x40000000
++#define RAM_MASK 	0x00ffffff
++#define RAM_END 	(RAM_START + RAM_MASK + 1)
++
++/* Memory */
++
++static unsigned char	romb[ROM_END - ROM_START];
++static unsigned char	ramb[RAM_END - RAM_START];
++static uint32   cache_ctrl;
++
++
++/* UART support variables */
++
++static int32    fd1, fd2;	/* file descriptor for input file */
++static int32    Ucontrol;	/* UART status register */
++static unsigned char aq[UARTBUF], bq[UARTBUF];
++static int32    anum, aind = 0;
++static int32    bnum, bind = 0;
++static char     wbufa[UARTBUF], wbufb[UARTBUF];
++static unsigned wnuma;
++static unsigned wnumb;
++static FILE    *f1in, *f1out;
++static struct termios ioc1, ioc2, iocold1, iocold2;
++static int      f1open = 0;
++
++static char     uarta_sreg, uarta_hreg;
++static uint32   uart_stat_reg;
++static uint32   uarta_data;
++
++/* Forward declarations */
++
++static void	mem_init (void);
++static void	close_port (void);
++static void	leon3_reset (void);
++static void	irqmp_intack (int32 level);
++static void	chk_irq (void);
++static void	set_irq (int32 level);
++static int32	apb_read (uint32 addr, uint32 *data);
++static int	apb_write (uint32 addr, uint32 data);
++static void	port_init (void);
++static uint32	grlib_read_uart (uint32 addr);
++static void	grlib_write_uart (uint32 addr, uint32 data);
++static void	flush_uart (void);
++static void	uarta_tx (void);
++static void	uart_rx (caddr_t arg);
++static void	uart_intr (caddr_t arg);
++static void	uart_irq_start (void);
++static void	gpt_intr (caddr_t arg);
++static void	gpt_init (void);
++static void	gpt_reset (void);
++static void	gpt_scaler_set (uint32 val);
++static void	timer_ctrl (uint32 val, int i);
++static unsigned char *
++		get_mem_ptr (uint32 addr, uint32 size);
++static void	store_bytes (unsigned char *mem, uint32 waddr,
++			uint32 *data, int sz, int32 *ws);
++
++static host_callback *callback;
++
++
++/* One-time init */
++
++static void
++init_sim()
++{
++    callback = sim_callback;
++    grlib_init();
++    mem_init();
++    port_init();
++    gpt_init();
++}
++
++/* Power-on reset init */
++
++static void
++reset()
++{
++    leon3_reset();
++    uart_irq_start();
++    gpt_reset();
++}
++
++/* IU error mode manager */
++
++static void
++error_mode(pc)
++    uint32          pc;
++{
++
++}
++
++
++/* Memory init */
++
++static void
++mem_init()
++{
++
++/* Add AMBA P&P record for SRCTRL memory controller */
++
++    grlib_ahbspp_add(GRLIB_PP_ID(VENDOR_GAISLER, GAISLER_SRCTRL, 0, 0),
++                     GRLIB_PP_AHBADDR(0x00000000, 0xE00, 1, 1, 2),
++                     GRLIB_PP_AHBADDR(0x40000000, 0xC00, 1, 1, 2),
++                     GRLIB_PP_AHBADDR(0x20000000, 0xE00, 0, 0, 2),
++                     0);
++    if (sis_verbose)
++	printf("RAM start: 0x%x, RAM size: %d K, ROM size: %d K\n",
++	       RAM_START, (RAM_MASK+1)/1024, (ROM_MASK+1)/1024);
++}
++
++/* Flush ports when simulator stops */
++
++static void
++sim_halt()
++{
++#ifdef FAST_UART
++    flush_uart();
++#endif
++}
++
++static void
++close_port()
++{
++    if (f1open && f1in != stdin)
++	fclose(f1in);
++}
++
++static void
++exit_sim()
++{
++    close_port();
++}
++
++static void
++leon3_reset()
++{
++    int             i;
++
++    irqmp_ipr = 0;
++    irqmp_imr = 0;
++    irqmp_ifr = 0;
++
++    wnuma = wnumb = 0;
++    anum = aind = bnum = bind = 0;
++
++    uart_stat_reg = UARTA_SRE | UARTA_HRE;
++
++    gpt_counter[0] = 0xffffffff;
++    gpt_reload[0] = 0xffffffff;
++    gpt_scaler = 0xffff;
++    gpt_ctrl[0] = 0;
++    gpt_ctrl[1] = 0;
++
++}
++
++
++
++static void
++irqmp_intack(level)
++    int32           level;
++{
++    int             irq_test;
++
++    if (sis_verbose > 2)
++	printf("interrupt %d acknowledged\n", level);
++    if (irqmp_ifr & (1 << level))
++	irqmp_ifr &= ~(1 << level);
++    else
++	irqmp_ipr &= ~(1 << level);
++   chk_irq();
++}
++
++static void
++chk_irq()
++{
++    int32           i;
++    uint32          itmp;
++    int		    old_irl;
++
++    old_irl = ext_irl;
++    itmp = ((irqmp_ipr | irqmp_ifr) & irqmp_imr) & 0x0fffe;
++    ext_irl = 0;
++    if (itmp != 0) {
++	for (i = 15; i > 0; i--) {
++	    if (((itmp >> i) & 1) != 0) {
++		if ((sis_verbose > 2) && (i > old_irl))
++		    printf("IU irl: %d\n", i);
++		ext_irl = i;
++	        set_int(i, irqmp_intack, i);
++		break;
++	    }
++	}
++    }
++}
++
++static void
++set_irq(level)
++    int32           level;
++{
++    irqmp_ipr |= (1 << level);
++    chk_irq();
++}
++
++static int32
++apb_read(addr, data)
++    uint32          addr;
++    uint32         *data;
++{
++
++    switch (addr & 0xfff) {
++
++    case APBUART_RXTX:		/* 0x100 */
++    case APBUART_STATUS:	/* 0x104 */
++	*data = grlib_read_uart(addr);
++	break;
++
++    case IRQMP_IPR:		/* 0x204 */
++	*data = irqmp_ipr;
++	break;
++
++    case IRQMP_IFR:		/* 0x208 */
++	*data = irqmp_ifr;
++	break;
++
++    case IRQMP_IMR:		/* 0x240 */
++	*data = irqmp_imr;
++	break;
++
++    case GPTIMER_SCALER:	/* 0x300 */
++	*data = gpt_scaler - (now() - gpt_scaler_start);
++	break;
++
++    case GPTIMER_SCLOAD:	/* 0x304 */
++	*data = gpt_scaler;
++	break;
++
++    case GPTIMER_CONFIG:	/* 0x308 */
++	*data = 0x100 | (GPTIMER_IRQ << 3) | NGPTIMERS;
++	break;
++
++    case GPTIMER_TIMER1:	/* 0x310 */
++	*data = gpt_counter[0];
++	break;
++
++    case GPTIMER_RELOAD1:	/* 0x314 */
++	*data = gpt_reload[0];
++	break;
++
++    case GPTIMER_CTRL1:		/* 0x318 */
++	*data = gpt_ctrl[0];
++	break;
++
++    case GPTIMER_TIMER2:	/* 0x320 */
++	*data = gpt_counter[1];
++	break;
++
++    case GPTIMER_RELOAD2:	/* 0x324 */
++	*data = gpt_reload[1];
++	break;
++
++    case GPTIMER_CTRL2:		/* 0x328 */
++	*data = gpt_ctrl[1];
++	break;
++
++    default:
++	*data = 0;
++	break;
++    }
++
++    if (sis_verbose > 1)
++	printf("APB read  a: %08x, d: %08x\n", addr, *data);
++
++    return (MOK);
++}
++
++static int
++apb_write(addr, data)
++    uint32          addr;
++    uint32          data;
++{
++    if (sis_verbose > 1)
++	printf("APB write a: %08x, d: %08x\n",addr,data);
++    switch (addr & 0xfff) {
++
++    case APBUART_RXTX:		/* 0x100 */
++    case APBUART_STATUS:	/* 0x104 */
++	grlib_write_uart(addr, data);
++	break;
++
++    case IRQMP_IFR:		/* 0x208 */
++	irqmp_ifr = data & 0xfffe;
++	chk_irq();
++	break;
++
++    case IRQMP_ICR:		/* 0x20C */
++	irqmp_ipr &= ~data & 0x0fffe;
++	chk_irq();
++	break;
++
++    case IRQMP_IMR:		/* 0x240 */
++	irqmp_imr = data & 0x7ffe;
++	chk_irq();
++	break;
++
++    case GPTIMER_SCLOAD:	/* 0x304 */
++	gpt_scaler_set(data);
++	break;
++
++    case GPTIMER_TIMER1:	/* 0x310 */
++	gpt_counter[0] = data;
++	break;
++
++    case GPTIMER_RELOAD1:	/* 0x314 */
++        gpt_reload[0] = data;
++	break;
++
++    case GPTIMER_CTRL1:		/* 0x318 */
++	timer_ctrl(data, 0);
++	break;
++
++    case GPTIMER_TIMER2:	/* 0x320 */
++	gpt_counter[1] = data;
++	break;
++
++    case GPTIMER_RELOAD2:	/* 0x324 */
++        gpt_reload[1] = data;
++	break;
++
++    case GPTIMER_CTRL2:		/* 0x328 */
++	timer_ctrl(data, 1);
++	break;
++
++    default:
++	break;
++    }
++    return (MOK);
++}
++
++
++/* APBUART */
++
++static int      ifd1 = -1, ofd1 = -1;
++
++static void
++init_stdio()
++{
++    if (dumbio)
++        return; /* do nothing */
++    if (ifd1 == 0 && f1open) {
++	tcsetattr(0, TCSANOW, &ioc1);
++        tcflush(ifd1, TCIFLUSH);
++    }
++}
++
++static void
++restore_stdio()
++{
++    if (dumbio)
++        return; /* do nothing */
++    if (ifd1 == 0 && f1open && tty_setup)
++	tcsetattr(0, TCSANOW, &iocold1);
++}
++
++#define DO_STDIO_READ( _fd_, _buf_, _len_ )          \
++             ( dumbio || nouartrx \
++               ? (0) /* no bytes read, no delay */   \
++               : (_fd_) == 1 && callback ? \
++                 callback->read_stdin (callback, _buf_, _len_) :  \
++                 read( _fd_, _buf_, _len_ ) )
++
++
++static void
++port_init()
++{
++
++    f1in = stdin;
++    f1out = stdout;
++    if (uart_dev1[0] != 0)
++	if ((fd1 = open(uart_dev1, O_RDWR | O_NONBLOCK)) < 0) {
++	    printf("Warning, couldn't open output device %s\n", uart_dev1);
++	} else {
++	    if (sis_verbose)
++		printf("serial port A on %s\n", uart_dev1);
++	    f1in = f1out = fdopen(fd1, "r+");
++	    setbuf(f1out, NULL);
++	    f1open = 1;
++	}
++    if (f1in) ifd1 = fileno(f1in);
++    if (ifd1 == 0) {
++        if (callback && !callback->isatty(callback, ifd1)) {
++            tty_setup = 0;
++        }
++	if (sis_verbose)
++	    printf("serial port A on stdin/stdout\n");
++        if (!dumbio) {
++            tcgetattr(ifd1, &ioc1);
++            if (tty_setup) {
++            iocold1 = ioc1;
++            ioc1.c_lflag &= ~(ICANON | ECHO);
++            ioc1.c_cc[VMIN] = 0;
++            ioc1.c_cc[VTIME] = 0;
++        }
++        }
++	f1open = 1;
++    }
++
++    if (f1out) {
++	ofd1 = fileno(f1out);
++	if (!dumbio && tty_setup && ofd1 == 1) setbuf(f1out, NULL);
++    }
++
++    wnuma = 0;
++
++
++    grlib_apbpp_add(GRLIB_PP_ID(VENDOR_GAISLER, GAISLER_APBUART, 1, 3),
++                    GRLIB_PP_APBADDR(0x80000100, 0xFFF));
++}
++
++static uint32
++grlib_read_uart(addr)
++    uint32          addr;
++{
++
++    unsigned        tmp;
++
++    tmp = 0;
++    switch (addr & 0xff) {
++
++    case 0x00:			/* UART 1 RX/TX */
++#ifndef _WIN32
++#ifdef FAST_UART
++
++	if (aind < anum) {
++	    if ((aind + 1) < anum)
++		set_irq(3);
++	    return ((uint32) aq[aind++]);
++	} else {
++	    if (f1open) {
++	        anum = DO_STDIO_READ(ifd1, aq, UARTBUF);
++	    }
++      else {
++          anum = 0;
++      }
++	    if (anum > 0) {
++		aind = 0;
++		if ((aind + 1) < anum)
++		    set_irq(3);
++		return ((uint32) aq[aind++]);
++	    } else {
++		return ((uint32) aq[aind]);
++	    }
++
++	}
++#else
++	tmp = uarta_data;
++	uarta_data &= ~UART_DR;
++	uart_stat_reg &= ~UARTA_DR;
++	return tmp;
++#endif
++#else
++	return(0);
++#endif
++	break;
++
++    case 0x04:			/* UART status register	 */
++#ifndef _WIN32
++#ifdef FAST_UART
++
++	Ucontrol = 0;
++	if (aind < anum) {
++	    Ucontrol |= 0x00000001;
++	} else {
++	    if (f1open) {
++	        anum = DO_STDIO_READ(ifd1, aq, UARTBUF);
++            }
++	    else {
++		anum = 0;
++	    }
++	    if (anum > 0) {
++		Ucontrol |= 0x00000001;
++		aind = 0;
++		set_irq(3);
++	    }
++	}
++	Ucontrol |= 0x00000006;
++	return (Ucontrol);
++#else
++	return (uart_stat_reg);
++#endif
++#else
++	return(0x00060006);
++#endif
++	break;
++    default:
++	if (sis_verbose)
++	    printf("Read from unimplemented MEC register (%x)\n", addr);
++
++    }
++    return (0);
++}
++
++static void
++grlib_write_uart(addr, data)
++    uint32          addr;
++    uint32          data;
++{
++    unsigned char   c;
++
++    c = (unsigned char) data;
++    switch (addr & 0xff) {
++
++    case 0x00:			/* UART A */
++#ifdef FAST_UART
++	if (f1open) {
++	    if (wnuma < UARTBUF)
++	        wbufa[wnuma++] = c;
++	    else {
++	        while (wnuma) {
++              if (ofd1 == 1 && callback)
++                  wnuma -= callback->write_stdout(callback, wbufa, wnuma);
++              else
++		    wnuma -= fwrite(wbufa, 1, wnuma, f1out);
++          }
++	        wbufa[wnuma++] = c;
++	    }
++	}
++	set_irq(3);
++#else
++	if (uart_stat_reg & UARTA_SRE) {
++	    uarta_sreg = c;
++	    uart_stat_reg &= ~UARTA_SRE;
++	    event(uarta_tx, 0, UART_TX_TIME);
++	} else {
++	    uarta_hreg = c;
++	    uart_stat_reg &= ~UARTA_HRE;
++	}
++#endif
++	break;
++
++    case 0x04:			/* UART status register */
++#ifndef FAST_UART
++        uart_stat_reg &= 1;
++#endif
++	break;
++    default:
++	if (sis_verbose)
++	    printf("Write to unimplemented APB register (%x)\n", addr);
++
++    }
++}
++
++static void
++flush_uart()
++{
++    while (wnuma && f1open) {
++        if (ofd1 == 1 && callback) {
++            wnuma -= callback->write_stdout(callback, wbufa, wnuma);
++            callback->flush_stdout(callback);
++        }
++        else
++	wnuma -= fwrite(wbufa, 1, wnuma, f1out);
++    }
++}
++
++
++
++static void
++uarta_tx()
++{
++    while (f1open) {
++        if (ofd1 == 1 && callback) {
++            while (callback->write_stdout(callback, &uarta_sreg, 1) != 1);
++        }
++        else {
++            while (fwrite(&uarta_sreg, 1, 1, f1out) != 1);
++        }
++    }
++    if (uart_stat_reg & UARTA_HRE) {
++	uart_stat_reg |= UARTA_SRE;
++    } else {
++	uarta_sreg = uarta_hreg;
++	uart_stat_reg |= UARTA_HRE;
++	event(uarta_tx, 0, UART_TX_TIME);
++    }
++    set_irq(3);
++}
++
++static void
++uart_rx(arg)
++    caddr_t         arg;
++{
++    int32           rsize;
++    char            rxd;
++
++
++    rsize = 0;
++    if (f1open)
++        rsize = DO_STDIO_READ(ifd1, &rxd, 1);
++    else
++        rsize = 0;
++    if (rsize > 0) {
++	uarta_data = rxd;
++	if (uart_stat_reg & UARTA_DR) {
++	    uart_stat_reg |= UARTA_OR;
++	}
++	uart_stat_reg |= UARTA_DR;
++	set_irq(3);
++    }
++    event(uart_rx, 0, UART_RX_TIME);
++}
++
++static void
++uart_intr(arg)
++    caddr_t         arg;
++{
++    grlib_read_uart(APBUART_STATUS); /* Check for UART interrupts every 1000 clk */
++    flush_uart();		/* Flush UART ports      */
++    event(uart_intr, 0, UART_FLUSH_TIME);
++}
++
++
++static void
++uart_irq_start()
++{
++#ifdef FAST_UART
++    event(uart_intr, 0, UART_FLUSH_TIME);
++#else
++#ifndef _WIN32
++    event(uart_rx, 0, UART_RX_TIME);
++#endif
++#endif
++}
++
++/* GPTIMER */
++
++static void
++gpt_intr(arg)
++    caddr_t         arg;
++{
++    int i;
++
++    for (i=0; i<NGPTIMERS; i++) {
++	if (gpt_ctrl[i] & 1) {
++            gpt_counter[i] -= 1;
++            if (gpt_counter[i] == -1) {
++	        if (gpt_ctrl[i] & 8)
++	            set_irq(GPTIMER_IRQ + i);
++	        if (gpt_ctrl[i] & 2)
++	            gpt_counter[i] = gpt_reload[i];
++            }
++        }
++    }
++    event(gpt_intr, 0, gpt_scaler + 1);
++    gpt_scaler_start = now();
++}
++
++static void
++gpt_init()
++{
++    if (sis_verbose)
++	printf("GPT started (period %d)\n\r", gpt_scaler + 1);
++
++    grlib_apbpp_add(GRLIB_PP_ID(VENDOR_GAISLER, GAISLER_GPTIMER, 0, 8),
++                    GRLIB_PP_APBADDR(0x80000300, 0xFFF));
++}
++
++static void
++gpt_reset()
++{
++    event(gpt_intr, 0, gpt_scaler + 1);
++    gpt_scaler_start = now();
++}
++
++static void
++gpt_scaler_set(val)
++    uint32          val;
++{
++    gpt_scaler = val & 0x0ffff;	/* 16-bit scaler */
++}
++
++static void
++timer_ctrl(val, i)
++    uint32       val;
++    int          i;
++{
++    if (val & 4) {  /* reload */
++        gpt_counter[i] = gpt_reload[i];
++    }
++    gpt_ctrl[i] = val & 0xb;
++}
++
++/* Store data in host byte order.  MEM points to the beginning of the
++   emulated memory; WADDR contains the index the emulated memory,
++   DATA points to words in host byte order to be stored.  SZ contains log(2)
++   of the number of bytes to retrieve, and can be 0 (1 byte), 1 (one half-word),
++   2 (one word), or 3 (two words); WS should return the number of wait-states. */
++
++static void
++store_bytes (mem, waddr, data, sz, ws)
++    unsigned char  *mem;
++    uint32	   waddr;
++    uint32	   *data;
++    int32	    sz;
++    int32	   *ws;
++{
++    switch (sz) {
++	case 0:
++#ifdef HOST_LITTLE_ENDIAN
++	    waddr ^= 3;
++#endif
++	    mem[waddr] = *data & 0x0ff;
++	    *ws = 0;
++	    break;
++	case 1:
++#ifdef HOST_LITTLE_ENDIAN
++	    waddr ^= 2;
++#endif
++	    *((unsigned short *) &(mem[waddr])) = *data & 0x0ffff;
++	    *ws = 0;
++	    break;
++	case 2:
++	    *((uint32 *) &(mem[waddr])) = *data;
++	    *ws = 0;
++	    break;
++	case 3:
++	    *((uint32 *) &(mem[waddr])) = data[0];
++	    *((uint32 *) &(mem[waddr + 4])) = data[1];
++	    *ws = 0;
++	    break;
++    }
++}
++
++
++/* Memory emulation */
++
++static int
++memory_iread(addr, data, ws)
++    uint32          addr;
++    uint32         *data;
++    int32          *ws;
++{
++    if ((addr >= RAM_START) && (addr < RAM_END)) {
++        *data = *((uint32 *) & (ramb[addr & RAM_MASK]));
++	*ws = 0;
++	return (0);
++    } else if (addr < ROM_END) {
++        *data = *((uint32 *) & (romb[addr]));
++	*ws = 0;
++	return (0);
++    }
++
++    printf("Memory exception at %x (illegal address)\n", addr);
++    *ws = MEM_EX_WS;
++    return (1);
++}
++
++static int
++memory_read(addr, data, sz, ws)
++    uint32          addr;
++    uint32         *data;
++    int32           sz;
++    int32          *ws;
++{
++    int32           mexc;
++
++    if ((addr >= RAM_START) && (addr < RAM_END)) {
++        *data = *((uint32 *) & (ramb[addr & RAM_MASK & ~3]));
++	*ws = 0;
++	return (0);
++    } else if ((addr >= APBPP_START) && (addr <= APBPP_END)) {
++        *data = grlib_apbpnp_read(addr);
++        if (sis_verbose > 1)
++	     printf("APB PP read a: %08x, d: %08x\n",addr, *data);
++	*ws = 4;
++	return (0);
++    } else if ((addr >= APBSTART) && (addr < APBEND)) {
++	mexc = apb_read(addr, data);
++	if (mexc) {
++	    *ws = MEM_EX_WS;
++	} else {
++	    *ws = 0;
++	}
++	return (mexc);
++    } else if ((addr >= AHBPP_START) && (addr <= AHBPP_END)) {
++        if (sis_verbose > 1)
++	     printf("AHB PP read a: %08x, d: %08x\n",addr, *data);
++        *data = grlib_ahbpnp_read(addr);
++	*ws = 4;
++	return (0);
++    } else if (addr < ROM_END) {
++        *data = *((uint32 *) & (romb[addr & ~3]));
++	*ws = 0;
++	return (0);
++    }
++
++    printf("Memory exception at %x (illegal address)\n", addr);
++    *ws = MEM_EX_WS;
++    return (1);
++}
++
++static int
++memory_read_asi(asi, addr, data, sz, ws)
++    int32           asi;
++    uint32          addr;
++    uint32         *data;
++    int32           sz;
++    int32          *ws;
++{
++    if (asi == 2) {
++        if (addr == 0)
++            *data = cache_ctrl;
++        else
++            *data = 0;
++        return MOK;
++    } else
++        return(memory_read(addr, data, sz, ws));
++}
++
++static int
++memory_write(addr, data, sz, ws)
++    uint32          addr;
++    uint32         *data;
++    int32           sz;
++    int32          *ws;
++{
++    uint32          byte_addr;
++    uint32          byte_mask;
++    uint32          waddr;
++    uint32         *ram;
++    int32           mexc;
++    int             i;
++    int             wphit[2];
++
++    if ((addr >= RAM_START) && (addr < RAM_END)) {
++	waddr = addr & RAM_MASK;
++	store_bytes (ramb, waddr, data, sz, ws);
++	return (0);
++
++    } else if ((addr >= APBSTART) && (addr < APBEND)) {
++	if (sz != 2) {
++	    *ws = MEM_EX_WS;
++	    return (1);
++	}
++	apb_write(addr, *data);
++	*ws = 0;
++	return (0);
++
++    } else if (addr < ROM_END) {
++//        return (1);
++	*ws = 0;
++	store_bytes (romb, addr, data, sz, ws);
++        return (0);
++    }
++
++    *ws = MEM_EX_WS;
++    return (1);
++}
++
++static int
++memory_write_asi(asi, addr, data, sz, ws)
++    int32           asi;
++    uint32          addr;
++    uint32         *data;
++    int32           sz;
++    int32          *ws;
++{
++    if (asi == 2) {
++        cache_ctrl = *data & 0x81000f;
++        if (sis_verbose)
++            printf("cache ctrl reg : 0x%08x\n", cache_ctrl);
++        return MOK;
++    } else
++        return(memory_write(addr, data, sz, ws));
++}
++
++static unsigned char  *
++get_mem_ptr(addr, size)
++    uint32          addr;
++    uint32          size;
++{
++    if ((addr + size) < ROM_END) {
++	return (&romb[addr]);
++    } else if ((addr >= RAM_START) && ((addr + size) < RAM_END)) {
++	return (&ramb[addr & RAM_MASK]);
++    }
++
++    return ((char *) -1);
++}
++
++static int
++sis_memory_write(addr, data, length)
++    uint32               addr;
++    const unsigned char *data;
++    uint32               length;
++{
++    char           *mem;
++
++    if ((mem = get_mem_ptr(addr, length)) == ((char *) -1))
++	return (0);
++
++    memcpy(mem, data, length);
++    return (length);
++}
++
++static int
++sis_memory_read(addr, data, length)
++    uint32          addr;
++    char           *data;
++    uint32          length;
++{
++    char           *mem;
++    int            ws;
++
++    if (length == 4) {
++      memory_read(addr, data, length, &ws);
++      return(4);
++    }
++
++    if ((mem = get_mem_ptr(addr, length)) == ((char *) -1))
++	return (0);
++
++    memcpy(data, mem, length);
++    return (length);
++}
++
++static void
++boot_init ()
++{
++//    mec_write(MEC_WCR, 0);	/* zero waitstates */
++//    mec_write(MEC_TRAPD, 0);	/* turn off watch-dog */
++    apb_write(GPTIMER_SCALER, sregs.freq-1); /* generate 1 MHz RTC tick */
++    apb_write(GPTIMER_SCLOAD, sregs.freq-1);
++    apb_write(GPTIMER_TIMER1, -1);
++    apb_write(GPTIMER_RELOAD1, -1);
++    apb_write(GPTIMER_CTRL1, 0x7);
++//    mec_write(MEC_MEMCFG, (3 << 18) | (4 << 10)); /* 1 MB ROM, 4 MB RAM */
++    sregs.wim = 2;
++    sregs.psr = 0xF30010e0;
++    sregs.r[30] = RAM_END;
++    sregs.r[14] = sregs.r[30] - 96*4;
++    cache_ctrl = 0x81000f;
++}
++
++struct memsys leon3 = {
++    init_sim,
++    reset,
++    error_mode,
++    sim_halt,
++    exit_sim,
++    init_stdio,
++    restore_stdio,
++    memory_iread,
++    memory_read,
++    memory_read_asi,
++    memory_write,
++    memory_write_asi,
++    sis_memory_write,
++    sis_memory_read,
++    boot_init
++};
+diff --git a/sim/erc32/sis.c b/sim/erc32/sis.c
+index d833da3..0e19270 100644
+--- a/sim/erc32/sis.c
++++ b/sim/erc32/sis.c
+@@ -142,7 +142,7 @@ main(argc, argv)
+     for (i = 0; i < 64; i++)
+ 	cmdq[i] = 0;
+     printf("\n SIS - SPARC instruction simulator %s,  copyright Jiri Gaisler 1995\n", sis_version);
+-    printf(" Bug-reports to jgais@wd.estec.esa.nl\n\n");
++    printf(" Bug-reports to jiri@gaisler.se\n\n");
+     while (stat < argc) {
+ 	if (argv[stat][0] == '-') {
+ 	    if (strcmp(argv[stat], "-v") == 0) {
+@@ -181,6 +181,10 @@ main(argc, argv)
+ 		dumbio = 1;
+             } else if (strcmp(argv[stat], "-nouartrx") == 0) {
+ 		nouartrx = 1;
++            } else if (strcmp(argv[stat], "-leon3") == 0) {
++		ms = &leon3;
++                if (freq == 14) freq = 50;
++                cputype = CPU_LEON3;
+             } else if (strcmp(argv[stat], "-v") == 0) {
+ 		sis_verbose += 1;
+ 	    } else {
+@@ -193,13 +197,19 @@ main(argc, argv)
+ 	}
+ 	stat++;
+     }
++
++    switch (cputype) {
++    case CPU_LEON3:
++	printf(" LEON3 emulation enabled\n");
++	break;
++    default:
++	printf(" ERC32 emulation enabled\n");
++    }
++
+     if (nfp)
+-	printf("FPU disabled\n");
+-#ifdef ERA
+-    if (era)
+-	printf("ERA ECC emulation enabled\n");
+-#endif
++	printf(" FPU disabled\n");
+     sregs.freq = freq;
++    printf("\n");
+ 
+     INIT_DISASSEMBLE_INFO(dinfo, stdout, (fprintf_ftype) fprintf);
+ #ifdef HOST_LITTLE_ENDIAN
+diff --git a/sim/erc32/sis.h b/sim/erc32/sis.h
+index 8a48f29..a551b4a 100644
+--- a/sim/erc32/sis.h
++++ b/sim/erc32/sis.h
+@@ -159,6 +159,30 @@ struct irqcell {
+     int32           arg;
+ };
+ 
++struct memsys {
++    void	(*init_sim) ();
++    void	(*reset) (void);
++    void	(*error_mode) (uint32 pc);
++    void	(*sim_halt) (void);
++    void	(*exit_sim) (void);
++    void	(*init_stdio) (void);
++    void	(*restore_stdio) (void);
++    int	        (*memory_iread) (uint32 addr, uint32 *data, int32 *ws);
++    int	        (*memory_read) (uint32 addr, uint32 *data,
++			     int32 sz, int32 *ws);
++    int	        (*memory_read_asi) (int32 asi, uint32 addr, uint32 *data,
++			     int32 sz, int32 *ws);
++    int	        (*memory_write) (uint32 addr, uint32 *data,
++			      int32 sz, int32 *ws);
++    int	        (*memory_write_asi) (int32 asi, uint32 addr, uint32 *data,
++			      int32 sz, int32 *ws);
++    int	        (*sis_memory_write) (uint32 addr,
++				  const unsigned char *data, uint32 length);
++    int	        (*sis_memory_read) (uint32 addr, char *data,
++				 uint32 length);
++    void	(*boot_init) (void);
++};
++
+ 
+ #define OK 0
+ #define TIME_OUT 1
+@@ -166,6 +190,8 @@ struct irqcell {
+ #define ERROR 3
+ #define CTRL_C 4
+ 
++#define CPU_LEON3  3
++
+ /* Prototypes  */
+ 
+ /* erc32.c */
+@@ -221,6 +247,7 @@ extern int	nouartrx;
+ extern          host_callback *sim_callback;
+ extern int	current_target_byte_order;
+ extern int      dumbio;
++extern int      cputype;
+ 
+ /* exec.c */
+ extern int	dispatch_instruction (struct pstate *sregs);
+@@ -241,23 +268,7 @@ extern void	set_fsr (uint32 fsr);
+ extern void	usage (void);
+ extern void	gen_help (void);
+ 
+-struct memsys {
+-    void	(*init_sim) ();
+-    void	(*reset) (void);
+-    void	(*error_mode) (uint32 pc);
+-    void	(*sim_halt) (void);
+-    void	(*exit_sim) (void);
+-    void	(*init_stdio) (void);
+-    void	(*restore_stdio) (void);
+-    int	        (*memory_iread) (uint32 addr, uint32 *data, int32 *ws);
+-    int	        (*memory_read) (int32 asi, uint32 addr, uint32 *data,
+-			     int32 sz, int32 *ws);
+-    int	        (*memory_write) (int32 asi, uint32 addr, uint32 *data,
+-			      int32 sz, int32 *ws);
+-    int	        (*sis_memory_write) (uint32 addr,
+-				  const unsigned char *data, uint32 length);
+-    int	        (*sis_memory_read) (uint32 addr, char *data,
+-				 uint32 length);
+-};
+-
+ extern struct memsys *ms;
++
++/* leon3.c */
++extern struct memsys leon3;
+-- 
+1.9.1
+

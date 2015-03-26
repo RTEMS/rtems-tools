@@ -1,0 +1,174 @@
+From 623a6089a6202cc9fb40c0a7235fb7398ea3dfbe Mon Sep 17 00:00:00 2001
+From: Jiri Gaisler <jiri@gaisler.se>
+Date: Sat, 30 Aug 2014 23:00:05 +0200
+Subject: [PATCH 06/23] sim/erc32: Fix incorrect simulator performance report
+
+	* func.c (reset_stat, show_stat) switch to double in time keeping
+	(get_time) new function to get system time
+	* sis.h Likewise
+	* interf.c (run_sim) use get_time() for system time
+	* sis.c (run_sim) Likewise
+---
+ sim/erc32/func.c   | 35 ++++++++++++++++++++++++++---------
+ sim/erc32/interf.c |  5 ++---
+ sim/erc32/sis.c    |  5 ++---
+ sim/erc32/sis.h    |  5 +++--
+ 4 files changed, 33 insertions(+), 17 deletions(-)
+
+diff --git a/sim/erc32/func.c b/sim/erc32/func.c
+index 6526085..06c00b4 100644
+--- a/sim/erc32/func.c
++++ b/sim/erc32/func.c
+@@ -613,7 +613,7 @@ void
+ reset_stat(sregs)
+     struct pstate  *sregs;
+ {
+-    sregs->tottime = 0;
++    sregs->tottime = 0.0;
+     sregs->pwdtime = 0;
+     sregs->ninst = 0;
+     sregs->fholdt = 0;
+@@ -632,9 +632,10 @@ show_stat(sregs)
+     struct pstate  *sregs;
+ {
+     uint32          iinst;
+-    uint32          stime, tottime;
++    uint32          stime;
+ 
+-    if (sregs->tottime == 0) tottime = 1; else tottime = sregs->tottime;
++    if (sregs->tottime == 0.0)
++        sregs->tottime += 1E-6;
+     stime = ebase.simtime - sregs->simstart;	/* Total simulated time */
+ #ifdef STAT
+ 
+@@ -669,12 +670,15 @@ show_stat(sregs)
+ 	   sregs->freq * (float) (sregs->ninst - sregs->finst) /
+ 	   (float) (stime - sregs->pwdtime),
+      sregs->freq * (float) sregs->finst / (float) (stime - sregs->pwdtime));
+-    printf(" Simulated ERC32 time        : %5.2f ms\n", (float) (ebase.simtime - sregs->simstart) / 1000.0 / sregs->freq);
+-    printf(" Processor utilisation       : %5.2f %%\n", 100.0 * (1.0 - ((float) sregs->pwdtime / (float) stime)));
+-    printf(" Real-time / simulator-time  : 1/%.2f \n",
+-      ((float) sregs->tottime) / ((float) (stime) / (sregs->freq * 1.0E6)));
+-    printf(" Simulator performance       : %d KIPS\n",sregs->ninst/tottime/1000);
+-    printf(" Used time (sys + user)      : %3d s\n\n", sregs->tottime);
++    printf(" Simulated ERC32 time        : %.2f s\n",
++        (float) (ebase.simtime - sregs->simstart) / 1000000.0 / sregs->freq);
++    printf(" Processor utilisation       : %.2f %%\n",
++        100.0 * (1.0 - ((float) sregs->pwdtime / (float) stime)));
++    printf(" Real-time performance       : %.2f %%\n",
++        100.0 / (sregs->tottime / ((double) (stime) / (sregs->freq * 1.0E6))));
++    printf(" Simulator performance       : %.2f MIPS\n",
++        (double)(sregs->ninst) / sregs->tottime / 1E6);
++    printf(" Used time (sys + user)      : %.2f s\n\n", sregs->tottime);
+ }
+ 
+ 
+@@ -1128,3 +1132,16 @@ bfd_load(fname)
+ 
+     return(bfd_get_start_address (pbfd));
+ }
++
++
++double get_time (void)
++{
++    double usec;
++
++    struct timeval tm;
++
++    gettimeofday (&tm, NULL);
++    usec = ((double) tm.tv_sec) * 1E6 + ((double) tm.tv_usec);
++    return (usec / 1E6);
++
++}
+diff --git a/sim/erc32/interf.c b/sim/erc32/interf.c
+index 9ac455f..38a2a0d 100644
+--- a/sim/erc32/interf.c
++++ b/sim/erc32/interf.c
+@@ -24,7 +24,6 @@
+ #include <string.h>
+ #include <stdio.h>
+ #include <stdlib.h>
+-#include <time.h>
+ #include <sys/fcntl.h>
+ #include "sis.h"
+ #include "libiberty.h"
+@@ -76,7 +75,7 @@ run_sim(sregs, icount, dis)
+ 	(*sim_callback->printf_filtered) (sim_callback, "resuming at %x\n",
+ 					  sregs->pc);
+    init_stdio();
+-   sregs->starttime = time(NULL);
++   sregs->starttime = get_time();
+    irq = 0;
+    if ((sregs->pc != 0) && (ebase.simtime == 0)) boot_init();
+    while (!sregs->err_mode & (icount > 0)) {
+@@ -142,7 +141,7 @@ run_sim(sregs, icount, dis)
+ 	}
+     }
+     sim_halt();
+-    sregs->tottime += time(NULL) - sregs->starttime;
++    sregs->tottime += get_time() - sregs->starttime;
+     restore_stdio();
+     clearerr(stdin);
+     if (sregs->err_mode)
+diff --git a/sim/erc32/sis.c b/sim/erc32/sis.c
+index 89e6f02..f2aed78 100644
+--- a/sim/erc32/sis.c
++++ b/sim/erc32/sis.c
+@@ -26,7 +26,6 @@
+ #include <stdlib.h>
+ #endif
+ #include <stdio.h>
+-#include <time.h>
+ #include <sys/fcntl.h>
+ #include "sis.h"
+ #include <dis-asm.h>
+@@ -86,7 +85,7 @@ run_sim(sregs, icount, dis)
+ {
+     int             irq, mexc, deb, asi;
+ 
+-    sregs->starttime = time(NULL);
++    sregs->starttime = get_time();
+     init_stdio();
+     if (sregs->err_mode) icount = 0;
+     deb = dis || sregs->histlen || sregs->bptnum;
+@@ -146,7 +145,7 @@ run_sim(sregs, icount, dis)
+ 	    if (sregs->tlimit <= ebase.simtime) sregs->tlimit = -1;
+ 	}
+     }
+-    sregs->tottime += time(NULL) - sregs->starttime;
++    sregs->tottime += get_time() - sregs->starttime;
+     restore_stdio();
+     if (sregs->err_mode)
+ 	return (ERROR);
+diff --git a/sim/erc32/sis.h b/sim/erc32/sis.h
+index f49d45d..dc02c65 100644
+--- a/sim/erc32/sis.h
++++ b/sim/erc32/sis.h
+@@ -110,14 +110,14 @@ struct pstate {
+     float32         freq;	/* Simulated processor frequency */
+ 
+ 
+-    uint64          tottime;
++    double          tottime;
+     uint64          ninst;
+     uint64          fholdt;
+     uint64          holdt;
+     uint64          icntt;
+     uint64          finst;
+     uint64          simstart;
+-    uint64          starttime;
++    double          starttime;
+     uint64          tlimit;	/* Simulation time limit */
+     uint64          pwdtime;	/* Cycles in power-down mode */
+     uint64          nstore;	/* Number of load instructions */
+@@ -198,6 +198,7 @@ extern void	reset_all (void);
+ extern void	sys_reset (void);
+ extern void	sys_halt (void);
+ extern int	bfd_load (char *fname);
++extern double	get_time (void);
+ 
+ /* exec.c */
+ extern int	dispatch_instruction (struct pstate *sregs);
+-- 
+1.9.1
+

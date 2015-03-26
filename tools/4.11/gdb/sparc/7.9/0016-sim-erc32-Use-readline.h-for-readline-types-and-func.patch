@@ -1,0 +1,55 @@
+From 8907865aa0256164fd732c795ce8c9c3c42621a8 Mon Sep 17 00:00:00 2001
+From: Jiri Gaisler <jiri@gaisler.se>
+Date: Sat, 18 Oct 2014 23:38:02 +0200
+Subject: [PATCH 16/23] sim/erc32: Use readline.h for readline types and
+ functions.
+
+	Use gdb's readline.h for readline types.
+
+	* Makefile.in : Add include path to readline.h
+	sis.c : Remove locally define readline types.
+---
+ sim/erc32/Makefile.in |  2 +-
+ sim/erc32/sis.c       | 13 ++-----------
+ 2 files changed, 3 insertions(+), 12 deletions(-)
+
+diff --git a/sim/erc32/Makefile.in b/sim/erc32/Makefile.in
+index e0860a0..4f86017 100644
+--- a/sim/erc32/Makefile.in
++++ b/sim/erc32/Makefile.in
+@@ -30,7 +30,7 @@ SIM_EXTRA_CLEAN = clean-sis
+ # UARTS run at about 115200 baud (simulator time). Add -DFAST_UART to
+ # CFLAGS if faster (infinite) UART speed is desired. Might affect the
+ # behaviour of UART interrupt routines ...
+-SIM_EXTRA_CFLAGS = -DFAST_UART
++SIM_EXTRA_CFLAGS = -DFAST_UART -I$(srcroot)
+ 
+ ## COMMON_POST_CONFIG_FRAG
+ 
+diff --git a/sim/erc32/sis.c b/sim/erc32/sis.c
+index 8c89166..79757ae 100644
+--- a/sim/erc32/sis.c
++++ b/sim/erc32/sis.c
+@@ -36,17 +36,8 @@
+ 
+ /* Structures and functions from readline library */
+ 
+-typedef struct {
+-  char *line;
+-  char *data;
+-} HIST_ENTRY;
+-
+-extern char *	readline (char *prompt);
+-extern void	using_history (void);
+-extern void	add_history (char *string);
+-extern HIST_ENTRY *remove_history (int which);
+-
+-
++#include "readline/readline.h"
++#include "readline/history.h"
+ 
+ /* Command history buffer length - MUST be binary */
+ #define HIST_LEN	64
+-- 
+1.9.1
+

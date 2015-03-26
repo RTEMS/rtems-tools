@@ -1,0 +1,516 @@
+From f2694ee29b6f598d1361d59a3858f46b0a495450 Mon Sep 17 00:00:00 2001
+From: Jiri Gaisler <jiri@gaisler.se>
+Date: Wed, 18 Feb 2015 23:10:51 +0100
+Subject: [PATCH 20/23] sim/erc32: Updated documentation.
+
+	Cleaned up documentation. Obsolote README files were removed,
+	main documentation on operation is now in READMEM.sis.
+---
+ sim/erc32/NEWS         | 108 ---------------------------
+ sim/erc32/README.gdb   |  67 -----------------
+ sim/erc32/README.leon2 |  53 ++++++++++++++
+ sim/erc32/README.sis   | 193 ++++++++++++++++---------------------------------
+ sim/erc32/startsim     |   4 -
+ 5 files changed, 117 insertions(+), 308 deletions(-)
+ delete mode 100644 sim/erc32/NEWS
+ delete mode 100644 sim/erc32/README.gdb
+ create mode 100644 sim/erc32/README.leon2
+ delete mode 100644 sim/erc32/startsim
+
+diff --git a/sim/erc32/NEWS b/sim/erc32/NEWS
+deleted file mode 100644
+index dd24b7b..0000000
+--- a/sim/erc32/NEWS
++++ /dev/null
+@@ -1,108 +0,0 @@
+-
+-version 2.0 05-02-96
+---------------------
+-
+-* Switched to bfd library. Any supported format (elf, coff, ...) can be used.
+-* The UART devices can be set through -uart1 and -uart2 switches.
+-* Switched to GNU readline.
+-* Added -c option to run batch files at startup
+-* 'reg' command can show different register windows (eg 'reg w3').
+-* Use 'help' for online help on simulator commands
+-
+-version 1.8.1 20-01-96
+---------------------
+-
+-* added -mevrev0 switch to simulate MEC rev.0 bugs in timer and uart
+-
+-* added -iurev0 switch to simulate IU rev.0 jmpl/restore bug
+-
+-* Added sis command 'batch' to run batch files
+-
+-
+-version 1.8 30-10-95
+---------------------
+-
+-* Added s-record support. Use the '-s' switch with sis or the 'load' command.
+-
+-* IU load dependencies are now modelled
+-
+-version 1.7 30-10-95
+---------------------
+-
+-* Power-down mode implemented in erc32.c.
+-  
+-* Performance display shows the ratio between simulator-time and real-time.
+-
+-
+-version 1.6.2 25-10-95
+---------------------
+-
+-* The UARTs can now be run at a given speed (simulator time) to better
+-  simulate the behaviour of interrupt routines. The "true mode" is
+-  selected through a compile switch in the makefile.
+-
+-
+-version 1.6 28-09-95
+---------------------
+-
+-* Major reorganisation of the code. mec.c and mem.c merged into erc32.c.
+-
+-* The load command does NOT longer load the initialised data at an address
+-  defined by .bdata. This is done in srt0.s using _environ.
+-
+-* Additional MEC functionallity added - software reset, memory access
+-  protection and waitstate configuration register.
+-
+-* interf.c - a GDB interface added
+-
+-* -v switch (verbose) added
+-
+-version 1.5 14-09-95
+---------------------
+-
+-* Added a instruction trace buffer, enabled through the 'hist' command.
+-
+-* Added a 'perf' command to display statistics such as instruction mix,
+-  CPI, FPU holds etc.
+-
+-* Added -nfp switch to disable FPU.
+-
+-* Added -freq switch to set simulated frequency.
+-
+-version 1.4 22-08-95
+---------------------
+-
+-* A -g is provided for those who have problems with GNU readline(). 
+-
+-version 1.3 26-07-95
+---------------------
+-
+-* No major news, just a bug fix release ...
+-
+-
+-version 1.2 13-07-95
+---------------------
+-
+-* Added setting of IU registers through the 'reg' command. See README.
+-
+-* The GNU readline() function is used for command input. However, a
+-ctrl-D still kills the simulator ...
+-
+-
+-version 1.1 07-07-95
+---------------------
+-
+-
+-* Added a 'go' command
+-
+-* Added cycle counting for interrupt overhead.
+-
+-* Function 'get_mem_ptr' takes one more parameter to avoid segmentation 
+-   faults if a.out files are loaded outside the simulated memory. See README.
+-
+-* Added user-defined function sim_stop().
+-
+-* Added a reset command. See README.
+-
+-* Implemented buffered output for MEC uarts to improve output speed.
+-
+diff --git a/sim/erc32/README.gdb b/sim/erc32/README.gdb
+deleted file mode 100644
+index 619fcb3..0000000
+--- a/sim/erc32/README.gdb
++++ /dev/null
+@@ -1,67 +0,0 @@
+-How to use SIS with GDB
+------------------------
+-
+-1. Building GDB with SIS
+-
+-To build GDB with the SIS/ERC32 simulator, configure with option
+-'--target sparc-erc32-aout' and build as usual.
+-
+-2. Attaching the simulator
+-
+-To attach GDB to the simulator, use:
+-
+-target sim [options] [files]
+-
+-The following options are supported:
+-
+- -nfp		Disable FPU. FPops will cause an FPU disabled trap.
+-
+- -freq <f>	Set the simulated "system clock" to <f> MHz.
+-
+- -v		Verbose mode.
+-
+- -nogdb		Disable GDB breakpoint handling (see below)
+-
+-The listed [files] are expected to be in aout format and will be
+-loaded in the simulator memory prior. This could be used to load
+-a boot block at address 0x0 if the application is linked to run
+-from RAM (0x2000000).
+-
+-To start debugging a program type 'load <program>' and debug as
+-usual. 
+-
+-The native simulator commands can be reached using the GDB 'sim'
+-command:
+-
+-sim <sis_command>
+-
+-Direct simulator commands during a GDB session must be issued
+-with care not to disturb GDB's operation ... 
+-
+-For info on supported ERC32 functionality, see README.sis.
+-
+-
+-3. Loading aout files
+-
+-The GDB load command loads an aout file into the simulator
+-memory with the data section starting directly after the text
+-section regardless of wich start address was specified for the data
+-at link time! This means that your applications either has to include
+-a routine that initialise the data segment at the proper address or
+-link with the data placed directly after the text section.
+-
+-A copying routine is fairly simple, just copy all data between
+-_etext and _data to a memory loaction starting at _environ. This
+-should be done at the same time as the bss is cleared (in srt0.s).
+-
+-
+-4. GDB breakpoint handling
+-
+-GDB inserts breakpoint in the form of the 'ta 1' instruction. The
+-GDB-integrated simulator will therefore recognize the breakpoint
+-instruction and return control to GDB. If the application uses
+-'ta 1', the breakpoint detection can be disabled with the -nogdb
+-switch. In this case however, GDB breakpoints will not work.
+-
+-
+-Report problems to Jiri Gaisler ESA/ESTEC (jgais@wd.estec.esa.nl)
+diff --git a/sim/erc32/README.leon2 b/sim/erc32/README.leon2
+new file mode 100644
+index 0000000..19f2fbb
+--- /dev/null
++++ b/sim/erc32/README.leon2
+@@ -0,0 +1,53 @@
++
++1. LEON2 emulation
++
++The file 'leon2.c' contains a model of simple LEON2 sub-system. It
++contains 16 Mbyte ROM and 16 Mbyte RAM. Standard peripherals
++such as interrupt controller, UART and timer are provided.
++The model can execute leon2 binaries that do not require an
++MMU.
++
++To start sis in Leon2 mode, add the -leon2 switch. In gdb,
++use 'target sim -leon2' .
++
++1.1 UART
++
++One LEON2 UART is emaulted, and is located at address 0x80000070.
++The following registers are implemeted:
++
++- UART RX and TX register	(0x80000070)
++- UART status register		(0x80000074)
++
++The UART generates interrupt 3.
++
++1.2 Timer unit
++
++The LEON2 timer unit is emulated and located at address 0x80000040.
++It is configured with two timers and separate interrupts (8 and 9).
++The scaler is configured to 16 bits, while the counters are 32 bits.
++
++1.3 Interrupt controller
++
++The interrupt controller is implemented as described in the
++LEON2 IP manual, with the exception of the interrupt level register.
++Secondary interrupts are not supported. The registers are located
++at address 0x80000090.
++
++1.5 Memory interface
++
++The following memory areas are valid for the Leon3 simulator:
++
++0x00000000 - 0x01000000		ROM (16 Mbyte, loaded at start-up)
++0x40000000 - 0x41000000		RAM (16 Mbyte, loaded at start-up)
++0x80000000 - 0x81000000		APB bus, including plug&play
++0xFFFFF000 - 0xFFFFFFFF		AHB plug&play area
++
++Access to non-existing memory will result in a memory exception trap.
++
++1.8 Power-down mode
++
++The Leon2 power-down register (0x80000018) is supported. When power-down is
++entered, time is skipped forward until the next event in the event queue.
++However, if the simulator event queue is empty, power-down mode is not
++entered since no interrupt would be generated to exit from the mode. A
++Ctrl-C in the simulator window will exit the power-down mode.
+diff --git a/sim/erc32/README.sis b/sim/erc32/README.sis
+index 124e577..27e6ede 100644
+--- a/sim/erc32/README.sis
++++ b/sim/erc32/README.sis
+@@ -11,13 +11,14 @@ and peripherals.
+ 
+ 2. Usage
+ 
+-The simulator is started as follows: 
++The simulator is started as follows:
+ 
+-sis [-leon3] [-uart1 uart_device1] [-uart2 uart_device2]
+-    [-nfp] [-freq frequency] [-c batch_file] [files] 
++sis [-leon2] [-leon3] [-uart1 uart_device1] [-uart2 uart_device2]
++    [-nfp] [-freq frequency] [-c batch_file] [-v] [files]
+ 
+-By default, SIS emulates an ERC32 system. The -leon3 switch
+-enables emulation of a LEON3 SOC system.
++By default, SIS emulates an ERC32 system. The -leon2 switch enables
++LEON2 emulation, while the -leon3 switch enables emulation of a
++LEON3 SOC system.
+ 
+ The emulated console uart is connected to stdin/stdout. The -uart[1,2]
+ switch can be used to connect the uarts to other devices.
+@@ -143,8 +144,50 @@ Typing a 'Ctrl-C' will interrupt a running simulator.
+ Short forms of the commands are allowed, e.g 'c' 'co' or 'con' are all
+ interpreted as 'cont'. 
+ 
++2. Using SIS with GDB
+ 
+-3. Simulator core
++To attach GDB to the simulator, use:
++
++target sim [options]
++
++The following options are supported:
++
++ -leon2         Emulate a LEON2 system
++
++ -leon3         Emulate a LEON3 system
++
++ -nfp           Disable FPU. FPops will cause an FPU disabled trap.
++
++ -freq <f>      Set the simulated "system clock" to <f> MHz.
++
++ -v             Verbose mode.
++
++ -nogdb         Disable GDB breakpoint handling (see below)
++
++To start debugging a program type 'load <program>' and debug as
++usual.
++
++The native simulator commands can be reached using the GDB 'sim'
++command:
++
++sim <sis_command>
++
++Direct simulator commands during a GDB session must be issued
++with care not to disturb GDB's operation ...
++
++A program can be restarted in GDB by first issuing the load command,
++followed by run.
++
++3. GDB breakpoint handling
++
++GDB inserts breakpoint in the form of the 'ta 1' instruction. The
++GDB-integrated simulator will therefore recognize the breakpoint
++instruction and return control to GDB. If the application uses
++'ta 1', the breakpoint detection can be disabled with the -nogdb
++switch. In this case however, GDB breakpoints will not work.
++
++
++4. Simulator core
+ 
+ In ERC32 mode, SIS emulates the behavior of the 90C601E and 90C602E
+ sparc IU and FPU from Matra MHS. These are roughly equivalent to the
+@@ -153,129 +196,10 @@ maintained and incremented according the IU and FPU instruction timing.
+ The parallel execution between the IU and FPU is modelled, as well as
+ stalls due to operand dependencies (FPU).
+ 
+-In Leon3 mode, the core emulates the Leon3 SPARC V8 core from
++In Leon2/3 mode, the core emulates the Leon2/3 SPARC V8 core from
+ Gaisler Research. All SPARC V8 instructions are supported but
+ emulation is not fully cycle-true as the cache is not emulated.
+ 
+-The core interacts with the user-defined memory modules through
+-a number of functions. The memory module must provide the following
+-functions:
+-
+-int memory_read(asi,addr,data,ws)
+-int asi;
+-unsigned int addr;
+-unsigned int *data;
+-int *ws;
+-
+-int memory_write(asi,addr,data,sz,ws)
+-int asi;
+-unsigned int addr;
+-unsigned int *data;
+-int sz;
+-int *ws;
+-
+-int sis_memory_read(addr, data, length)
+-unsigned int addr;
+-char   *data;
+-unsigned int length;
+-
+-int sis_memory_write(addr, data, length)
+-unsigned int addr;
+-char    *data;
+-unsigned int length;
+-
+-int init_sim()
+-
+-int reset()
+-
+-int error_mode(pc)
+-unsigned int pc;
+-
+-memory_read() is used by the simulator to fetch instructions and
+-operands.  The address space identifier (asi) and address is passed as
+-parameters. The read data should be assigned to the data pointer
+-(*data) and the number of waitstate to *ws. 'memory_read' should return
+-0 on success and 1 on failure. A failure will cause a data or
+-instruction fetch trap. memory_read() always reads one 32-bit word.
+-
+-sis_memory_read() is used by the simulator to display and disassemble
+-memory contants. The function should copy 'length' bytes of the simulated
+-memory starting at 'addr' to '*data'.
+-The sis_memory_read() should return 1 on success and 0 on failure.
+-Failure should only be indicated if access to unimplemented memory is attempted.
+-
+-memory_write() is used to write to memory. In addition to the asi
+-and address parameters, the size of the written data is given by 'sz'.
+-The pointer *data points to the data to be written. The 'sz' is coded
+-as follows:
+-
+-  sz	access type
+-  0	  byte
+-  1	  halfword
+-  2	  word
+-  3	  double-word
+-
+-If a double word is written, the most significant word is in data[0] and
+-the least significant in data[1].
+-
+-sis_memory_write() is used by the simulator during loading of programs.
+-The function should copy 'length' bytes from *data to the simulated
+-memory starting at 'addr'. sis_memory_write() should return 1 on 
+-success and 0 on failure. Failure should only be indicated if access 
+-to unimplemented memory is attempted. See erc32.c for more details 
+-on how to define the memory emulation functions.
+-
+-The 'init_sim' is called once when the simulator is started. This function
+-should be used to perform initialisations of user defined memory or 
+-peripherals that only have to be done once, such as opening files etc.
+-
+-The 'reset' is called every time the simulator is reset, i.e. when a
+-'run' command is given. This function should be used to simulate a power
+-on reset of memory and peripherals.
+-
+-error_mode() is called by the simulator when the IU goes into error mode,
+-typically if a trap is caused when traps are disabled. The memory module
+-can then take actions, such as issue a reset.
+-
+-sys_reset() can be called by the memory module to reset the simulator. A
+-reset will empty the event queue and perform a power-on reset.
+-
+-4. Events and interrupts
+-
+-The simulator supports an event queue and the generation of processor
+-interrupts. The following functions are available to the user-defined
+-memory module:
+-
+-event(cfunc,arg,delta)
+-void (*cfunc)();
+-int arg;
+-unsigned int delta;
+-
+-set_int(level,callback,arg)
+-int level;
+-void (*callback)();
+-int arg;
+-
+-clear_int(level)
+-int level;
+-
+-sim_stop()
+-
+-The 'event' functions will schedule the execution of the function 'cfunc'
+-at time 'now + delta' clock cycles. The parameter 'arg' is passed as a 
+-parameter to 'cfunc'.
+-
+-The 'set_int' function set the processor interrupt 'level'. When the interrupt
+-is taken, the function 'callback' is called with the argument 'arg'. This
+-will also clear the interrupt. An interrupt can be cleared before it is
+-taken by calling 'clear_int' with the appropriate interrupt level.
+-
+-The sim_stop function is called each time the simulator stops execution.
+-It can be used to flush buffered devices to get a clean state during
+-single stepping etc.
+-
+-See 'erc32.c' for examples on how to use events and interrupts.
+-
+ 5. Memory module
+ 
+ The ERC32 memory module (erc32.c) emulates the functions of memory and
+@@ -292,6 +216,19 @@ the MEC asic developed for the 90C601/2. It includes the following functions:
+ 
+ See README.erc32 on how the MEC functions are emulated.
+ 
++The Leon2 memory module (leon2.c) emulates on-chip peripherals and
++external memory for a simple Leon2 system. The modules includes the
++following functions:
++
++* AHB and APB buses
++* One UART
++* Interrupt controller
++* Timer unit with two timers
++* PROM/SRAM memory controller
++* 16 Mbyte PROM, 16 Mbyte SRAM
++
++See README.leon2 for further details on Leon2 emulation.
++
+ The Leon3 memory module (leon3.c) emulates on-chip peripherals and
+ external memory for a simple Leon3 system. The modules includes the
+ following functions:
+@@ -305,9 +242,7 @@ following functions:
+ 
+ See README.leon3 for further details on Leon3 emulation.
+ 
+-6. Compile and linking programs
+-
+-7. IU and FPU instruction timing.
++6. IU and FPU instruction timing.
+ 
+ The simulator provides cycle true simulation for ERC32. The following table
+ shows the emulated instruction timing for 90C601E & 90C602E:
+diff --git a/sim/erc32/startsim b/sim/erc32/startsim
+deleted file mode 100644
+index 1b9b41c..0000000
+--- a/sim/erc32/startsim
++++ /dev/null
+@@ -1,4 +0,0 @@
+-#
+-xterm -e sis $* &
+-xterm -e tip /dev/ttypc &
+-
+-- 
+1.9.1
+

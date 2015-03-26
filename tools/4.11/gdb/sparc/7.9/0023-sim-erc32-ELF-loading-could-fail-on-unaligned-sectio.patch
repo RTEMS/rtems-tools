@@ -1,0 +1,39 @@
+From 7cecef8c4569896ec7c16c6fc51ef0c5ce7aa7f1 Mon Sep 17 00:00:00 2001
+From: Jiri Gaisler <jiri@gaisler.se>
+Date: Sat, 21 Mar 2015 18:31:15 +0100
+Subject: [PATCH 23/23] sim/erc32: ELF loading could fail on unaligned
+ sections.
+
+Endian swapping on little-endian hosts could fail if ELF section
+length not a multiple of 4.
+
+	func.c (bfd_load): Pad section buffers with zeros and round
+	section size upwards towards nearest 4-multiple.
+---
+ sim/erc32/func.c | 6 +++---
+ 1 file changed, 3 insertions(+), 3 deletions(-)
+
+diff --git a/sim/erc32/func.c b/sim/erc32/func.c
+index 7a8a4e4..31948a6 100644
+--- a/sim/erc32/func.c
++++ b/sim/erc32/func.c
+@@ -1231,13 +1231,13 @@ bfd_load(fname)
+ 		    uint32          *wbuffer = (uint32 *) buffer;
+ 
+ 		    count = min(section_size, 1024);
+-
++		    wbuffer[(count - 1) / 4] = 0; /* clear last word in buffer  */
+ 		    bfd_get_section_contents(pbfd, section, buffer, fptr, count);
+ 
+ #ifdef HOST_LITTLE_ENDIAN
+-		    for (i=0;i<count/4;i++) wbuffer[i] = ntohl(wbuffer[i]); // endian swap
++		    for (i=0;i<(count+3)/4;i++) wbuffer[i] = ntohl(wbuffer[i]); // endian swap
+ #endif
+-		    ms->sis_memory_write(section_address, buffer, count);
++		    ms->sis_memory_write(section_address, buffer, (count + 3) & ~3);
+ 
+ 		    section_address += count;
+ 		    fptr += count;
+-- 
+1.9.1
+

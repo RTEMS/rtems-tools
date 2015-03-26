@@ -1,0 +1,119 @@
+From d468feaaf511b29880faa297476ff98a9ef81b32 Mon Sep 17 00:00:00 2001
+From: Jiri Gaisler <jiri@gaisler.se>
+Date: Sat, 30 Aug 2014 23:47:46 +0200
+Subject: [PATCH 12/23] sim/erc32: Use memory_iread() function for instruction
+ fetching.
+
+	Use separate memory_iread() function for instruction fetching.
+	Speeds up execution and allows addition of an MMU at a later stage.
+
+	* erc32.c (memory_iread) New function to fetch instructions.
+	* interf.c  (run_sim) Use memory_iread.
+	* sis.c (run_sim) As above.
+---
+ sim/erc32/erc32.c  | 24 ++++++++++++++++++++++++
+ sim/erc32/interf.c |  5 ++---
+ sim/erc32/sis.c    |  8 ++------
+ sim/erc32/sis.h    |  2 ++
+ 4 files changed, 30 insertions(+), 9 deletions(-)
+
+diff --git a/sim/erc32/erc32.c b/sim/erc32/erc32.c
+index eac49f7..03b40dc 100644
+--- a/sim/erc32/erc32.c
++++ b/sim/erc32/erc32.c
+@@ -1566,6 +1566,30 @@ store_bytes (mem, waddr, data, sz, ws)
+ /* Memory emulation */
+ 
+ int
++memory_iread(addr, data, ws)
++    uint32          addr;
++    uint32         *data;
++    int32          *ws;
++{
++    uint32          asi;
++    if ((addr >= mem_ramstart) && (addr < (mem_ramstart + mem_ramsz))) {
++        *data = *((uint32 *) & (ramb[addr & mem_rammask & ~3]));
++	*ws = mem_ramr_ws;
++	return (0);
++    } else if (addr < mem_romsz) {
++        *data = *((uint32 *) & (romb[addr & ~3]));
++	*ws = mem_romr_ws;
++	return (0);
++    }
++
++    printf("Memory exception at %x (illegal address)\n", addr);
++    if (sregs.psr & 0x080) asi = 9; else asi = 8;
++    set_sfsr(UIMP_ACC, addr, asi, 1);
++    *ws = MEM_EX_WS;
++    return (1);
++}
++
++int
+ memory_read(asi, addr, data, sz, ws)
+     int32           asi;
+     uint32          addr;
+diff --git a/sim/erc32/interf.c b/sim/erc32/interf.c
+index 3a72e7f..981aa11 100644
+--- a/sim/erc32/interf.c
++++ b/sim/erc32/interf.c
+@@ -94,9 +94,8 @@ run_sim(sregs, icount, dis)
+             if (sregs->pc == 0 || sregs->npc == 0)
+                 printf ("bogus pc or npc\n");
+ #endif
+-        mexc = memory_read(sregs->asi, sregs->pc, &sregs->inst,
+-                           2, &sregs->hold);
+-#if 1	/* DELETE ME! for debugging purposes only */
++        mexc = memory_iread(sregs->pc, &sregs->inst, &sregs->hold);
++#if 0	/* DELETE ME! for debugging purposes only */
+         if (sis_verbose > 2)
+             printf("pc %x, np %x, sp %x, fp %x, wm %x, cw %x, i %08x\n",
+                    sregs->pc, sregs->npc,
+diff --git a/sim/erc32/sis.c b/sim/erc32/sis.c
+index 523d8aa..e109874 100644
+--- a/sim/erc32/sis.c
++++ b/sim/erc32/sis.c
+@@ -84,7 +84,7 @@ run_sim(sregs, icount, dis)
+     uint64          icount;
+     int             dis;
+ {
+-    int             irq, mexc, deb, asi;
++    int             irq, mexc, deb;
+ 
+     sregs->starttime = get_time();
+     init_stdio();
+@@ -93,11 +93,7 @@ run_sim(sregs, icount, dis)
+     irq = 0;
+     while (icount > 0) {
+ 
+-	if (sregs->psr & 0x080)
+-	    asi = 9;
+-   	else
+-	    asi = 8;
+-	mexc = memory_read(asi, sregs->pc, &sregs->inst, 2, &sregs->hold);
++	mexc = memory_iread(sregs->pc, &sregs->inst, &sregs->hold);
+ 	sregs->icnt = 1;
+ 	if (sregs->annul) {
+ 	    sregs->annul = 0;
+diff --git a/sim/erc32/sis.h b/sim/erc32/sis.h
+index ef5b149..fb733de 100644
+--- a/sim/erc32/sis.h
++++ b/sim/erc32/sis.h
+@@ -176,6 +176,7 @@ extern void	sim_halt (void);
+ extern void	exit_sim (void);
+ extern void	init_stdio (void);
+ extern void	restore_stdio (void);
++extern int	memory_iread (uint32 addr, uint32 *data, int32 *ws);
+ extern int	memory_read (int32 asi, uint32 addr, uint32 *data,
+ 			     int32 sz, int32 *ws);
+ extern int	memory_write (int32 asi, uint32 addr, uint32 *data,
+@@ -186,6 +187,7 @@ extern int	sis_memory_read (uint32 addr, char *data,
+ 				 uint32 length);
+ 
+ /* func.c */
++extern struct pstate  sregs;
+ extern void	set_regi (struct pstate *sregs, int32 reg,
+ 			  uint32 rval);
+ extern void	get_regi (struct pstate *sregs, int32 reg, char *buf);
+-- 
+1.9.1
+

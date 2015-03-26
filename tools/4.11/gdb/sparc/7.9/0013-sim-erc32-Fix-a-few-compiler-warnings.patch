@@ -1,0 +1,72 @@
+From e254c756b852c82ee705ff42f921e6dd9ba509e6 Mon Sep 17 00:00:00 2001
+From: Jiri Gaisler <jiri@gaisler.se>
+Date: Sun, 31 Aug 2014 23:31:52 +0200
+Subject: [PATCH 13/23] sim/erc32: Fix a few compiler warnings
+
+	* func.c Minor edits to remove compiler warnings.
+	* func.c, sis.h (exec_cmd) make second argument const char.
+---
+ sim/erc32/func.c | 9 ++++++---
+ sim/erc32/sis.h  | 3 +--
+ 2 files changed, 7 insertions(+), 5 deletions(-)
+
+diff --git a/sim/erc32/func.c b/sim/erc32/func.c
+index ab21e3c..70b42c9 100644
+--- a/sim/erc32/func.c
++++ b/sim/erc32/func.c
+@@ -380,18 +380,19 @@ limcalc (freq)
+     
+ int
+ exec_cmd(sregs, cmd)
+-    char           *cmd;
++    const char *cmd;
+     struct pstate  *sregs;
+ {
+     char           *cmd1, *cmd2;
+     int32           stat;
+     uint32          len, i, clen, j, tmp;
+     static uint32   daddr = 0;
+-    char           *cmdsave;
++    char           *cmdsave, *cmdsave2 = NULL;
+ 
+     stat = OK;
+     cmdsave = strdup(cmd);
+-    if ((cmd1 = strtok(cmd, " \t")) != NULL) {
++    cmdsave2 = strdup(cmd);
++    if ((cmd1 = strtok(cmdsave2, " \t")) != NULL) {
+ 	clen = strlen(cmd1);
+ 	if (strncmp(cmd1, "bp", clen) == 0) {
+ 	    for (i = 0; i < sregs->bptnum; i++) {
+@@ -606,6 +607,8 @@ exec_cmd(sregs, cmd)
+ 	} else
+ 	    printf("syntax error\n");
+     }
++    if (cmdsave2 != NULL)
++	free(cmdsave2);
+     if (cmdsave != NULL)
+ 	free(cmdsave);
+     return (stat);
+diff --git a/sim/erc32/sis.h b/sim/erc32/sis.h
+index fb733de..4ecf885 100644
+--- a/sim/erc32/sis.h
++++ b/sim/erc32/sis.h
+@@ -191,7 +191,7 @@ extern struct pstate  sregs;
+ extern void	set_regi (struct pstate *sregs, int32 reg,
+ 			  uint32 rval);
+ extern void	get_regi (struct pstate *sregs, int32 reg, char *buf);
+-extern int	exec_cmd (struct pstate *sregs, char *cmd);
++extern int	exec_cmd (struct pstate *sregs, const char *cmd);
+ extern void	reset_stat (struct pstate  *sregs);
+ extern void	show_stat (struct pstate  *sregs);
+ extern void	init_bpt (struct pstate  *sregs);
+@@ -209,7 +209,6 @@ extern int	check_bpt (struct pstate *sregs);
+ extern void	reset_all (void);
+ extern void	sys_reset (void);
+ extern void	sys_halt (void);
+-extern int	bfd_load (char *fname);
+ extern double	get_time (void);
+ 
+ /* exec.c */
+-- 
+1.9.1
+

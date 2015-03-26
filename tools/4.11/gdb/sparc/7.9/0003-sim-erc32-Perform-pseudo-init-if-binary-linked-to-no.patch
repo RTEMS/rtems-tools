@@ -1,0 +1,89 @@
+From 78a59b9928b59065cbffca153db9620c0ff80036 Mon Sep 17 00:00:00 2001
+From: Jiri Gaisler <jiri@gaisler.se>
+Date: Sat, 30 Aug 2014 22:53:56 +0200
+Subject: [PATCH 03/23] sim/erc32: Perform pseudo-init if binary linked to
+ non-zero address.
+
+Binaries produced by most erc32 tool-chains do not include
+system initialization. sis will detect this and initialize
+necessary registers for memory and timer control.
+
+	* erc32.c (mec_read) allow simulator memory size to be read
+	by application. (boot_init) initialize memory and timers if
+	start address is not 0.
+
+	* erc32,c (exe_cmd) call boot_init if start address not 0
+	* interf.c (run_sim) Likewise
+---
+ sim/erc32/erc32.c  | 24 ++++++++++++++++++++++++
+ sim/erc32/func.c   |  2 ++
+ sim/erc32/interf.c |  1 +
+ 3 files changed, 27 insertions(+)
+
+diff --git a/sim/erc32/erc32.c b/sim/erc32/erc32.c
+index 4d4177e..0f3e870 100644
+--- a/sim/erc32/erc32.c
++++ b/sim/erc32/erc32.c
+@@ -743,6 +743,14 @@ mec_read(addr, asi, data)
+ 	*data = read_uart(addr);
+ 	break;
+ 
++    case 0xF4:		/* simulator RAM size in bytes */
++	*data = 4096*1024;
++	break;
++
++    case 0xF8:		/* simulator ROM size in bytes */
++	*data = 1024*1024;
++	break;
++
+     default:
+ 	set_sfsr(MEC_ACC, addr, asi, 1);
+ 	return (1);
+@@ -1887,3 +1895,19 @@ sis_memory_read(addr, data, length)
+     memcpy(data, mem, length);
+     return (length);
+ }
++
++extern struct pstate sregs;
++
++void
++boot_init (void)
++{
++    mec_write(MEC_WCR, 0);	/* zero waitstates */
++    mec_write(MEC_TRAPD, 0);	/* turn off watch-dog */
++    mec_write(MEC_RTC_SCALER, sregs.freq-1); /* generate 1 MHz RTC tick */
++    mec_write(MEC_MEMCFG, (3 << 18) | (4 << 10)); /* 1 MB ROM, 4 MB RAM */
++    sregs.wim = 2;
++    sregs.psr = 0x110010e0;
++    sregs.r[30] = RAM_END;
++    sregs.r[14] = sregs.r[30] - 96*4;
++    mec_mcr |= 1;		/* power-down enabled */
++}
+diff --git a/sim/erc32/func.c b/sim/erc32/func.c
+index e6744ee..6526085 100644
+--- a/sim/erc32/func.c
++++ b/sim/erc32/func.c
+@@ -468,6 +468,8 @@ exec_cmd(sregs, cmd)
+ 	    }
+ 	    sregs->pc = len & ~3;
+ 	    sregs->npc = sregs->pc + 4;
++	    if ((sregs->pc != 0) && (ebase.simtime == 0))
++	        boot_init();
+ 	    printf("resuming at 0x%08x\n",sregs->pc);
+ 	    if ((cmd2 = strtok(NULL, " \t\n\r")) != NULL) {
+ 		stat = run_sim(sregs, VAL(cmd2), 0);
+diff --git a/sim/erc32/interf.c b/sim/erc32/interf.c
+index 63b3f38..9ac455f 100644
+--- a/sim/erc32/interf.c
++++ b/sim/erc32/interf.c
+@@ -78,6 +78,7 @@ run_sim(sregs, icount, dis)
+    init_stdio();
+    sregs->starttime = time(NULL);
+    irq = 0;
++   if ((sregs->pc != 0) && (ebase.simtime == 0)) boot_init();
+    while (!sregs->err_mode & (icount > 0)) {
+ 
+ 	sregs->fhold = 0;
+-- 
+1.9.1
+

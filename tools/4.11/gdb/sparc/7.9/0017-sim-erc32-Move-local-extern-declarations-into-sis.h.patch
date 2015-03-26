@@ -1,0 +1,224 @@
+From 82bbac32bcd1c2c65930f13daa9de7b327c310ea Mon Sep 17 00:00:00 2001
+From: Jiri Gaisler <jiri@gaisler.se>
+Date: Wed, 18 Feb 2015 21:58:00 +0100
+Subject: [PATCH 17/23] sim/erc32: Move local extern declarations into sis.h
+
+	* erc32.c : Move extern declarations to sis.h
+	* exec.c, func.c, interf.c, sis.c : As above.
+---
+ sim/erc32/erc32.c  | 10 ----------
+ sim/erc32/exec.c   |  7 -------
+ sim/erc32/func.c   | 12 ++++--------
+ sim/erc32/interf.c | 19 -------------------
+ sim/erc32/sis.c    | 20 --------------------
+ sim/erc32/sis.h    | 20 ++++++++++++++++++++
+ 6 files changed, 24 insertions(+), 64 deletions(-)
+
+diff --git a/sim/erc32/erc32.c b/sim/erc32/erc32.c
+index d0cacf9..89c745a 100644
+--- a/sim/erc32/erc32.c
++++ b/sim/erc32/erc32.c
+@@ -33,12 +33,6 @@
+ #include "sis.h"
+ #include "sim-config.h"
+ 
+-extern int      ctrl_c;
+-extern int32    sis_verbose;
+-extern int32    sparclite, sparclite_board;
+-extern int      rom8,wrp,uben;
+-extern char     uart_dev1[], uart_dev2[];
+-
+ static int tty_setup = 1; /* default setup if not a tty */
+ 
+ /* MEC registers */
+@@ -295,8 +289,6 @@ static unsigned char *
+ static void	store_bytes (unsigned char *mem, uint32 waddr,
+ 			uint32 *data, int sz, int32 *ws);
+ 
+-extern int	ext_irl;
+-
+ static host_callback *callback;
+ 
+ 
+@@ -1880,8 +1872,6 @@ sis_memory_read(addr, data, length)
+     return (length);
+ }
+ 
+-extern struct pstate sregs;
+-
+ void
+ boot_init (void)
+ {
+diff --git a/sim/erc32/exec.c b/sim/erc32/exec.c
+index 65e10bf..6d80306 100644
+--- a/sim/erc32/exec.c
++++ b/sim/erc32/exec.c
+@@ -24,7 +24,6 @@
+ #include <math.h>
+ #include <stdio.h>
+ 
+-extern int32    sis_verbose, sparclite;
+ int ext_irl = 0;
+ 
+ /* Load/store interlock delay */
+@@ -228,10 +227,6 @@ static int	fpexec (uint32 op3, uint32 rd, uint32 rs1, uint32 rs2,
+ 			struct pstate *sregs);
+ static int	chk_asi (struct pstate *sregs, uint32 *asi, uint32 op3);
+ 
+-
+-extern struct estate ebase;
+-extern int32    nfp,ift;
+-
+ #ifdef ERRINJ
+ extern uint32 errtt, errftt;
+ #endif
+@@ -2017,8 +2012,6 @@ execute_trap(sregs)
+ 
+ }
+ 
+-extern struct irqcell irqarr[16];
+-
+ int
+ check_interrupts(sregs)
+     struct pstate  *sregs;
+diff --git a/sim/erc32/func.c b/sim/erc32/func.c
+index e789099..0d00f48 100644
+--- a/sim/erc32/func.c
++++ b/sim/erc32/func.c
+@@ -40,7 +40,10 @@ int	current_target_byte_order = BIG_ENDIAN;
+ int dumbio = 0; /* normal, smart, terminal oriented IO by default */
+ struct disassemble_info dinfo;
+ struct pstate   sregs;
+-extern struct estate ebase;
++struct estate   ebase;
++struct evcell   evbuf[EVENT_MAX];
++struct irqcell  irqarr[16];
++
+ int             ctrl_c = 0;
+ int             sis_verbose = 0;
+ char           *sis_version = "2.7.5";
+@@ -54,7 +57,6 @@ int             sparclite = 0;		/* emulating SPARClite instructions? */
+ int             sparclite_board = 0;	/* emulating SPARClite board RAM? */
+ char            uart_dev1[128] = "";
+ char            uart_dev2[128] = "";
+-extern	int	ext_irl;
+ uint32		last_load_addr = 0;
+ int		nouartrx = 0;
+ host_callback 	*sim_callback;
+@@ -727,12 +729,6 @@ init_signals()
+ }
+ 
+ 
+-extern struct disassemble_info dinfo;
+-
+-struct estate   ebase;
+-struct evcell   evbuf[EVENT_MAX];
+-struct irqcell  irqarr[16];
+-
+ static int
+ disp_fpu(sregs)
+     struct pstate  *sregs;
+diff --git a/sim/erc32/interf.c b/sim/erc32/interf.c
+index 3f937f3..ab1a38c 100644
+--- a/sim/erc32/interf.c
++++ b/sim/erc32/interf.c
+@@ -36,25 +36,6 @@
+ 
+ #define PSR_CWP 0x7
+ 
+-extern struct disassemble_info dinfo;
+-extern struct estate ebase;
+-
+-extern int      nfp;
+-extern int      ift;
+-extern int      rom8;
+-extern int      wrp;
+-extern int      uben;
+-extern char    *sis_version;
+-extern struct estate ebase;
+-extern struct evcell evbuf[];
+-extern struct irqcell irqarr[];
+-extern int      irqpend, ext_irl;
+-extern int      sparclite;
+-extern int      dumbio;
+-extern int      sparclite_board;
+-extern int      termsave;
+-extern char     uart_dev1[], uart_dev2[];
+-
+ int             sis_gdb_break = 1;
+ 
+ int
+diff --git a/sim/erc32/sis.c b/sim/erc32/sis.c
+index 79757ae..d833da3 100644
+--- a/sim/erc32/sis.c
++++ b/sim/erc32/sis.c
+@@ -42,26 +42,6 @@
+ /* Command history buffer length - MUST be binary */
+ #define HIST_LEN	64
+ 
+-extern struct disassemble_info dinfo;
+-extern struct estate ebase;
+-
+-extern int      nfp;
+-extern int      ift;
+-extern int      wrp;
+-extern int      rom8;
+-extern int      uben;
+-extern char    *sis_version;
+-extern struct estate ebase;
+-extern struct evcell evbuf[];
+-extern struct irqcell irqarr[];
+-extern int      irqpend, ext_irl;
+-extern int      termsave;
+-extern int      sparclite;
+-extern int      dumbio;
+-extern char     uart_dev1[];
+-extern char     uart_dev2[];
+-extern uint32   last_load_addr;
+-
+ #ifdef ERA
+ extern int era;
+ #endif
+diff --git a/sim/erc32/sis.h b/sim/erc32/sis.h
+index e0390e6..8a48f29 100644
+--- a/sim/erc32/sis.h
++++ b/sim/erc32/sis.h
+@@ -173,8 +173,27 @@ extern struct memsys erc32sys;
+ 
+ /* func.c */
+ extern struct   pstate  sregs;
++extern struct   estate ebase;
++extern struct   evcell evbuf[];
++extern struct   irqcell irqarr[];
++extern int      nfp;
++extern int      ift;
+ extern int      ctrl_c;
+ extern int      sis_verbose;
++extern char    *sis_version;
++extern int      sparclite;
++extern int      sparclite_board;
++extern uint32   last_load_addr;
++extern int      wrp;
++extern int      rom8;
++extern int      uben;
++extern int      irqpend;
++extern int      ext_irl;
++extern int      termsave;
++extern int      dumbio;
++extern char     uart_dev1[];
++extern char     uart_dev2[];
++
+ extern void	set_regi (struct pstate *sregs, int32 reg,
+ 			  uint32 rval);
+ extern void	get_regi (struct pstate *sregs, int32 reg, char *buf);
+@@ -185,6 +204,7 @@ extern void	init_bpt (struct pstate  *sregs);
+ extern void	init_signals (void);
+ 
+ struct disassemble_info;
++extern struct   disassemble_info dinfo;
+ extern void	dis_mem (uint32 addr, uint32 len,
+ 			 struct disassemble_info *info);
+ extern void	event (void (*cfunc) (), int32 arg, uint64 delta);
+-- 
+1.9.1
+

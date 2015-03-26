@@ -1,0 +1,66 @@
+From b65439074a4f4b2b6f5e5756124de49d4821656b Mon Sep 17 00:00:00 2001
+From: Jiri Gaisler <jiri@gaisler.se>
+Date: Sat, 30 Aug 2014 23:02:01 +0200
+Subject: [PATCH 09/23] sim/erc32: Removed type mismatch compiler warnings
+
+	* func.c (batch, exec_cmd) save return value to avoid warnings.
+	(batch) replace fgets() with getline().
+---
+ sim/erc32/func.c | 19 +++++++++++--------
+ 1 file changed, 11 insertions(+), 8 deletions(-)
+
+diff --git a/sim/erc32/func.c b/sim/erc32/func.c
+index f1d5bd7..a715f0f 100644
+--- a/sim/erc32/func.c
++++ b/sim/erc32/func.c
+@@ -81,20 +81,23 @@ batch(sregs, fname)
+     char           *fname;
+ {
+     FILE           *fp;
+-    char            lbuf[1024];
++    char           *lbuf = NULL;
++    size_t         len = 0;
++    ssize_t        tmp;
+ 
+     if ((fp = fopen(fname, "r")) == NULL) {
+ 	fprintf(stderr, "couldn't open batch file %s\n", fname);
+ 	return (0);
+     }
+     while (!feof(fp)) {
+-	lbuf[0] = 0;
+-	fgets(lbuf, 1023, fp);
+-	if ((strlen(lbuf) > 0) && (lbuf[strlen(lbuf) - 1] == '\n'))
++	tmp = getline(&lbuf, &len, fp);
++	if ((strlen(lbuf) > 0) && (lbuf[strlen(lbuf) - 1] == '\n')) {
+ 	    lbuf[strlen(lbuf) - 1] = 0;
+-	printf("sis> %s\n", lbuf);
+-	exec_cmd(sregs, lbuf);
++	    printf("sis> %s\n", lbuf);
++	    exec_cmd(sregs, lbuf);
++	}
+     }
++    if (lbuf) free(lbuf);
+     fclose(fp);
+     return (1);
+ }
+@@ -383,7 +386,7 @@ exec_cmd(sregs, cmd)
+ {
+     char           *cmd1, *cmd2;
+     int32           stat;
+-    uint32          len, i, clen, j;
++    uint32          len, i, clen, j, tmp;
+     static uint32   daddr = 0;
+     char           *cmdsave;
+ 
+@@ -555,7 +558,7 @@ exec_cmd(sregs, cmd)
+ 	    sim_halt();
+ 	} else if (strncmp(cmd1, "shell", clen) == 0) {
+ 	    if ((cmd1 = strtok(NULL, " \t\n\r")) != NULL) {
+-		system(&cmdsave[clen]);
++		tmp = system(&cmdsave[clen]);
+ 	    }
+ 	} else if (strncmp(cmd1, "step", clen) == 0) {
+ 	    stat = run_sim(sregs, 1, 1);
+-- 
+1.9.1
+

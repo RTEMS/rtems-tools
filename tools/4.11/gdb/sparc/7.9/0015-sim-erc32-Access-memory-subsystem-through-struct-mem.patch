@@ -1,0 +1,804 @@
+From 02c87814c10d896ae4946ef7c0358448b4d4eb61 Mon Sep 17 00:00:00 2001
+From: Jiri Gaisler <jiri@gaisler.se>
+Date: Wed, 18 Feb 2015 21:48:10 +0100
+Subject: [PATCH 15/23] sim/erc32: Access memory subsystem through struct
+ memsys.
+
+	Introduce an common API to access emulated memory. This allows
+	to emulate different types of SPARC-based CPUs.
+
+	* erc32.c : Export memory operations through struct memsys erc32sys.
+	* exec.c (dispatch_instruction) Access memory through common API.
+	* func.c, interf.c, sis.c : As above.
+	* sis.h : Define struct memsys as common memory API
+---
+ sim/erc32/erc32.c  | 54 ++++++++++++++++++++++++++++--------------------------
+ sim/erc32/exec.c   | 42 +++++++++++++++++++++---------------------
+ sim/erc32/func.c   | 37 +++++++++++++++++++++----------------
+ sim/erc32/interf.c | 39 +++++++++++++++++++++------------------
+ sim/erc32/sis.c    | 15 ++++++---------
+ sim/erc32/sis.h    | 46 ++++++++++++++++++++++++++++------------------
+ 6 files changed, 125 insertions(+), 108 deletions(-)
+
+diff --git a/sim/erc32/erc32.c b/sim/erc32/erc32.c
+index c1ee435..d0cacf9 100644
+--- a/sim/erc32/erc32.c
++++ b/sim/erc32/erc32.c
+@@ -39,8 +39,7 @@ extern int32    sparclite, sparclite_board;
+ extern int      rom8,wrp,uben;
+ extern char     uart_dev1[], uart_dev2[];
+ 
+-int dumbio = 0; /* normal, smart, terminal oriented IO by default */
+-int tty_setup = 1; /* default setup if not a tty */
++static int tty_setup = 1; /* default setup if not a tty */
+ 
+ /* MEC registers */
+ #define MEC_START 	0x01f80000
+@@ -56,11 +55,6 @@ int tty_setup = 1; /* default setup if not a tty */
+ extern int errmec;
+ #endif
+ 
+-/* The target's byte order is big-endian by default until we load a
+-   little-endian program.  */
+-
+-int	current_target_byte_order = BIG_ENDIAN;
+-
+ #define MEC_WS	0		/* Waitstates per MEC access (0 ws) */
+ #define MOK	0
+ 
+@@ -308,7 +302,7 @@ static host_callback *callback;
+ 
+ /* One-time init */
+ 
+-void
++static void
+ init_sim()
+ {
+     callback = sim_callback;
+@@ -317,7 +311,7 @@ init_sim()
+ 
+ /* Power-on reset init */
+ 
+-void
++static void
+ reset()
+ {
+     mec_reset();
+@@ -397,7 +391,7 @@ mecparerror()
+ 
+ /* IU error mode manager */
+ 
+-void
++static void
+ error_mode(pc)
+     uint32          pc;
+ {
+@@ -468,7 +462,7 @@ decode_mcr()
+ 
+ /* Flush ports when simulator stops */
+ 
+-void
++static void
+ sim_halt()
+ {
+ #ifdef FAST_UART
+@@ -476,13 +470,6 @@ sim_halt()
+ #endif
+ }
+ 
+-int
+-sim_stop(SIM_DESC sd)
+-{
+-  ctrl_c = 1;
+-  return 1;
+-}
+-
+ static void
+ close_port()
+ {
+@@ -492,7 +479,7 @@ close_port()
+ 	fclose(f2in);
+ }
+ 
+-void
++static void
+ exit_sim()
+ {
+     close_port();
+@@ -944,7 +931,7 @@ mec_write(addr, data)
+ 
+ static int      ifd1 = -1, ifd2 = -1, ofd1 = -1, ofd2 = -1;
+ 
+-void
++static void
+ init_stdio()
+ {
+     if (dumbio)
+@@ -959,7 +946,7 @@ init_stdio()
+     }
+ }
+ 
+-void
++static void
+ restore_stdio()
+ {
+     if (dumbio)
+@@ -1632,7 +1619,7 @@ store_bytes (mem, waddr, data, sz, ws)
+ 
+ /* Memory emulation */
+ 
+-int
++static int
+ memory_iread(addr, data, ws)
+     uint32          addr;
+     uint32         *data;
+@@ -1656,7 +1643,7 @@ memory_iread(addr, data, ws)
+     return (1);
+ }
+ 
+-int
++static int
+ memory_read(asi, addr, data, sz, ws)
+     int32           asi;
+     uint32          addr;
+@@ -1727,7 +1714,7 @@ memory_read(asi, addr, data, sz, ws)
+     return (1);
+ }
+ 
+-int
++static int
+ memory_write(asi, addr, data, sz, ws)
+     int32           asi;
+     uint32          addr;
+@@ -1863,7 +1850,7 @@ get_mem_ptr(addr, size)
+     return ((char *) -1);
+ }
+ 
+-int
++static int
+ sis_memory_write(addr, data, length)
+     uint32               addr;
+     const unsigned char *data;
+@@ -1878,7 +1865,7 @@ sis_memory_write(addr, data, length)
+     return (length);
+ }
+ 
+-int
++static int
+ sis_memory_read(addr, data, length)
+     uint32          addr;
+     char           *data;
+@@ -1908,3 +1895,18 @@ boot_init (void)
+     sregs.r[14] = sregs.r[30] - 96*4;
+     mec_mcr |= 1;		/* power-down enabled */
+ }
++
++struct memsys erc32sys = {
++    init_sim,
++    reset,
++    error_mode,
++    sim_halt,
++    exit_sim,
++    init_stdio,
++    restore_stdio,
++    memory_iread,
++    memory_read,
++    memory_write,
++    sis_memory_write,
++    sis_memory_read
++};
+diff --git a/sim/erc32/exec.c b/sim/erc32/exec.c
+index 237bb53..65e10bf 100644
+--- a/sim/erc32/exec.c
++++ b/sim/erc32/exec.c
+@@ -1244,9 +1244,9 @@ dispatch_instruction(sregs)
+ 		else
+ 		    rdd = &(sregs->g[rd]);
+ 	    }
+-	    mexc = memory_read(asi, address, ddata, 2, &ws);
++	    mexc = ms->memory_read(asi, address, ddata, 2, &ws);
+ 	    sregs->hold += ws;
+-	    mexc |= memory_read(asi, address+4, &ddata[1], 2, &ws);
++	    mexc |= ms->memory_read(asi, address+4, &ddata[1], 2, &ws);
+ 	    sregs->hold += ws;
+ 	    sregs->icnt = T_LDD;
+ 	    if (mexc) {
+@@ -1267,7 +1267,7 @@ dispatch_instruction(sregs)
+ 		sregs->trap = TRAP_UNALI;
+ 		break;
+ 	    }
+-	    mexc = memory_read(asi, address, &data, 2, &ws);
++	    mexc = ms->memory_read(asi, address, &data, 2, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1278,7 +1278,7 @@ dispatch_instruction(sregs)
+ 	case LDSTUBA:
+ 	    if (!chk_asi(sregs, &asi, op3)) break;
+ 	case LDSTUB:
+-	    mexc = memory_read(asi, address, &data, 0, &ws);
++	    mexc = ms->memory_read(asi, address, &data, 0, &ws);
+ 	    sregs->hold += ws;
+ 	    sregs->icnt = T_LDST;
+ 	    if (mexc) {
+@@ -1288,7 +1288,7 @@ dispatch_instruction(sregs)
+ 	    data = extract_byte(data, address);
+ 	    *rdd = data;
+ 	    data = 0x0ff;
+-	    mexc = memory_write(asi, address, &data, 0, &ws);
++	    mexc = ms->memory_write(asi, address, &data, 0, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1302,7 +1302,7 @@ dispatch_instruction(sregs)
+ 	    if (!chk_asi(sregs, &asi, op3)) break;
+ 	case LDSB:
+ 	case LDUB:
+-	    mexc = memory_read(asi, address, &data, 0, &ws);
++	    mexc = ms->memory_read(asi, address, &data, 0, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1323,7 +1323,7 @@ dispatch_instruction(sregs)
+ 		sregs->trap = TRAP_UNALI;
+ 		break;
+ 	    }
+-	    mexc = memory_read(asi, address, &data, 1, &ws);
++	    mexc = ms->memory_read(asi, address, &data, 1, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1349,7 +1349,7 @@ dispatch_instruction(sregs)
+ 		    (sregs->frs2 == rd))
+ 		    sregs->fhold += (sregs->ftime - ebase.simtime);
+ 	    }
+-	    mexc = memory_read(asi, address, &data, 2, &ws);
++	    mexc = ms->memory_read(asi, address, &data, 2, &ws);
+ 	    sregs->hold += ws;
+ 	    sregs->flrd = rd;
+ 	    sregs->ltime = ebase.simtime + sregs->icnt + FLSTHOLD +
+@@ -1375,9 +1375,9 @@ dispatch_instruction(sregs)
+ 		    ((sregs->frs2 >> 1) == (rd >> 1)))
+ 		    sregs->fhold += (sregs->ftime - ebase.simtime);
+ 	    }
+-	    mexc = memory_read(asi, address, ddata, 2, &ws);
++	    mexc = ms->memory_read(asi, address, ddata, 2, &ws);
+ 	    sregs->hold += ws;
+-	    mexc |= memory_read(asi, address+4, &ddata[1], 2, &ws);
++	    mexc |= ms->memory_read(asi, address+4, &ddata[1], 2, &ws);
+ 	    sregs->hold += ws;
+ 	    sregs->icnt = T_LDD;
+ 	    if (mexc) {
+@@ -1406,7 +1406,7 @@ dispatch_instruction(sregs)
+ 		sregs->trap = TRAP_UNALI;
+ 		break;
+ 	    }
+-	    mexc = memory_read(asi, address, &data, 2, &ws);
++	    mexc = ms->memory_read(asi, address, &data, 2, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1428,7 +1428,7 @@ dispatch_instruction(sregs)
+ 	    if (ebase.simtime < sregs->ftime) {
+ 		sregs->fhold += (sregs->ftime - ebase.simtime);
+ 	    }
+-	    mexc = memory_write(asi, address, &sregs->fsr, 2, &ws);
++	    mexc = ms->memory_write(asi, address, &sregs->fsr, 2, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1442,7 +1442,7 @@ dispatch_instruction(sregs)
+ 		sregs->trap = TRAP_UNALI;
+ 		break;
+ 	    }
+-	    mexc = memory_write(asi, address, rdd, 2, &ws);
++	    mexc = ms->memory_write(asi, address, rdd, 2, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1451,7 +1451,7 @@ dispatch_instruction(sregs)
+ 	case STBA:
+ 	    if (!chk_asi(sregs, &asi, op3)) break;
+ 	case STB:
+-	    mexc = memory_write(asi, address, rdd, 0, &ws);
++	    mexc = ms->memory_write(asi, address, rdd, 0, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1471,7 +1471,7 @@ dispatch_instruction(sregs)
+ 		else
+ 		    rdd = &(sregs->g[rd]);
+ 	    }
+-	    mexc = memory_write(asi, address, rdd, 3, &ws);
++	    mexc = ms->memory_write(asi, address, rdd, 3, &ws);
+ 	    sregs->hold += ws;
+ 	    sregs->icnt = T_STD;
+ #ifdef STAT
+@@ -1500,7 +1500,7 @@ dispatch_instruction(sregs)
+ 		break;
+ 	    }
+ 	    rdd = &(sregs->fpq[0]);
+-	    mexc = memory_write(asi, address, rdd, 3, &ws);
++	    mexc = ms->memory_write(asi, address, rdd, 3, &ws);
+ 	    sregs->hold += ws;
+ 	    sregs->icnt = T_STD;
+ #ifdef STAT
+@@ -1521,7 +1521,7 @@ dispatch_instruction(sregs)
+ 		sregs->trap = TRAP_UNALI;
+ 		break;
+ 	    }
+-	    mexc = memory_write(asi, address, rdd, 1, &ws);
++	    mexc = ms->memory_write(asi, address, rdd, 1, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1540,7 +1540,7 @@ dispatch_instruction(sregs)
+ 		if (sregs->frd == rd)
+ 		    sregs->fhold += (sregs->ftime - ebase.simtime);
+ 	    }
+-	    mexc = memory_write(asi, address, &sregs->fsi[rd], 2, &ws);
++	    mexc = ms->memory_write(asi, address, &sregs->fsi[rd], 2, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+@@ -1560,7 +1560,7 @@ dispatch_instruction(sregs)
+ 		if ((sregs->frd == rd) || (sregs->frd + 1 == rd))
+ 		    sregs->fhold += (sregs->ftime - ebase.simtime);
+ 	    }
+-	    mexc = memory_write(asi, address, &sregs->fsi[rd], 3, &ws);
++	    mexc = ms->memory_write(asi, address, &sregs->fsi[rd], 3, &ws);
+ 	    sregs->hold += ws;
+ 	    sregs->icnt = T_STD;
+ #ifdef STAT
+@@ -1577,13 +1577,13 @@ dispatch_instruction(sregs)
+ 		sregs->trap = TRAP_UNALI;
+ 		break;
+ 	    }
+-	    mexc = memory_read(asi, address, &data, 2, &ws);
++	    mexc = ms->memory_read(asi, address, &data, 2, &ws);
+ 	    sregs->hold += ws;
+ 	    if (mexc) {
+ 		sregs->trap = TRAP_DEXC;
+ 		break;
+ 	    }
+-	    mexc = memory_write(asi, address, rdd, 2, &ws);
++	    mexc = ms->memory_write(asi, address, rdd, 2, &ws);
+ 	    sregs->hold += ws;
+ 	    sregs->icnt = T_LDST;
+ 	    if (mexc) {
+diff --git a/sim/erc32/func.c b/sim/erc32/func.c
+index 440bff1..e789099 100644
+--- a/sim/erc32/func.c
++++ b/sim/erc32/func.c
+@@ -33,7 +33,11 @@
+ 
+ #define	VAL(x)	strtoul(x,(char **)NULL,0)
+ 
+-extern int	current_target_byte_order;
++/* The target's byte order is big-endian by default until we load a
++   little-endian program.  */
++int	current_target_byte_order = BIG_ENDIAN;
++
++int dumbio = 0; /* normal, smart, terminal oriented IO by default */
+ struct disassemble_info dinfo;
+ struct pstate   sregs;
+ extern struct estate ebase;
+@@ -54,6 +58,7 @@ extern	int	ext_irl;
+ uint32		last_load_addr = 0;
+ int		nouartrx = 0;
+ host_callback 	*sim_callback;
++struct memsys *ms = &erc32sys;
+ 
+ #ifdef ERRINJ
+ uint32		errcnt = 0;
+@@ -432,7 +437,7 @@ exec_cmd(sregs, cmd)
+ 		stat = run_sim(sregs, VAL(cmd1), 0);
+ 	    }
+ 	    daddr = sregs->pc;
+-	    sim_halt();
++	    ms->sim_halt();
+ 	} else if (strncmp(cmd1, "debug", clen) == 0) {
+ 	    if ((cmd1 = strtok(NULL, " \t\n\r")) != NULL) {
+ 		sis_verbose = VAL(cmd1);
+@@ -483,7 +488,7 @@ exec_cmd(sregs, cmd)
+ 		stat = run_sim(sregs, UINT64_MAX, 0);
+ 	    }
+ 	    daddr = sregs->pc;
+-	    sim_halt();
++	    ms->sim_halt();
+ 	} else if (strncmp(cmd1, "help", clen) == 0) {
+ 	    gen_help();
+ 	} else if (strncmp(cmd1, "history", clen) == 0) {
+@@ -557,7 +562,7 @@ exec_cmd(sregs, cmd)
+ 		stat = run_sim(sregs, VAL(cmd1), 0);
+ 	    }
+ 	    daddr = sregs->pc;
+-	    sim_halt();
++	    ms->sim_halt();
+ 	} else if (strncmp(cmd1, "shell", clen) == 0) {
+ 	    if ((cmd1 = strtok(NULL, " \t\n\r")) != NULL) {
+ 		tmp = system(&cmdsave[clen]);
+@@ -565,12 +570,12 @@ exec_cmd(sregs, cmd)
+ 	} else if (strncmp(cmd1, "step", clen) == 0) {
+ 	    stat = run_sim(sregs, 1, 1);
+ 	    daddr = sregs->pc;
+-	    sim_halt();
++	    ms->sim_halt();
+ 	} else if (strncmp(cmd1, "tcont", clen) == 0) {
+ 	    sregs->tlimit = limcalc(sregs->freq);
+ 	    stat = run_sim(sregs, UINT64_MAX, 0);
+ 	    daddr = sregs->pc;
+-	    sim_halt();
++	    ms->sim_halt();
+ 	} else if (strncmp(cmd1, "tgo", clen) == 0) {
+ 	    if ((cmd1 = strtok(NULL, " \t\n\r")) == NULL) {
+ 		len = last_load_addr;
+@@ -583,7 +588,7 @@ exec_cmd(sregs, cmd)
+ 	    printf("resuming at 0x%08x\n",sregs->pc);
+ 	    stat = run_sim(sregs, UINT64_MAX, 0);
+ 	    daddr = sregs->pc;
+-	    sim_halt();
++	    ms->sim_halt();
+ 	} else if (strncmp(cmd1, "tlimit", clen) == 0) {
+ 	   sregs->tlimit = limcalc(sregs->freq);
+ 	   if (sregs->tlimit != (uint32) -1)
+@@ -597,7 +602,7 @@ exec_cmd(sregs, cmd)
+ 	    }
+ 	    printf("\n");
+ 	    daddr = sregs->pc;
+-	    sim_halt();
++	    ms->sim_halt();
+ 	} else if (strncmp(cmd1, "trun", clen) == 0) {
+ 	    ebase.simtime = 0;
+ 	    reset_all();
+@@ -605,7 +610,7 @@ exec_cmd(sregs, cmd)
+ 	    sregs->tlimit = limcalc(sregs->freq);
+ 	    stat = run_sim(sregs, UINT64_MAX, 0);
+ 	    daddr = sregs->pc;
+-	    sim_halt();
++	    ms->sim_halt();
+ 	} else
+ 	    printf("syntax error\n");
+     }
+@@ -777,7 +782,7 @@ static void print_insn_sparc_sis(uint32 addr, struct disassemble_info *info)
+ {
+     unsigned char           i[4];
+ 
+-    sis_memory_read(addr, i, 4);
++    ms->sis_memory_read(addr, i, 4);
+     dinfo.buffer_vma = addr;
+     dinfo.buffer_length = 4;
+     dinfo.buffer = i;
+@@ -793,10 +798,10 @@ disp_ctrl(sregs)
+ 
+     printf("\n psr: %08X   wim: %08X   tbr: %08X   y: %08X\n",
+ 	   sregs->psr, sregs->wim, sregs->tbr, sregs->y);
+-    sis_memory_read(sregs->pc, (char *) &i, 4);
++    ms->sis_memory_read(sregs->pc, (char *) &i, 4);
+     printf("\n  pc: %08X = %08X    ", sregs->pc, i);
+     print_insn_sparc_sis(sregs->pc, &dinfo);
+-    sis_memory_read(sregs->npc, (char *) &i, 4);
++    ms->sis_memory_read(sregs->npc, (char *) &i, 4);
+     printf("\n npc: %08X = %08X    ", sregs->npc, i);
+     print_insn_sparc_sis(sregs->npc, &dinfo);
+     if (sregs->err_mode)
+@@ -825,7 +830,7 @@ disp_mem(addr, len)
+     for (i = addr & ~3; i < ((addr + len) & ~3); i += 16) {
+ 	printf("\n %8X  ", i);
+ 	for (j = 0; j < 4; j++) {
+-	    sis_memory_read((i + (j * 4)), data, 4);
++	    ms->sis_memory_read((i + (j * 4)), data, 4);
+ 	    printf("%08x  ", *wdata);
+ 	    mem[j] = *((int *) &data);
+ 	}
+@@ -852,7 +857,7 @@ dis_mem(addr, len, info)
+     uint32          *wdata = (uint32 *) data;
+ 
+     for (i = addr & -3; i < ((addr & -3) + (len << 2)); i += 4) {
+-	sis_memory_read(i, data, 4);
++	ms->sis_memory_read(i, data, 4);
+ 	printf(" %08x  %08x  ", i, *wdata);
+ 	print_insn_sparc_sis(i, info);
+         if (i >= 0xfffffffc) break;
+@@ -1016,7 +1021,7 @@ reset_all()
+ {
+     init_event();		/* Clear event queue */
+     init_regs(&sregs);
+-    reset();
++    ms->reset();
+ #ifdef ERRINJ
+     errinjstart();
+ #endif
+@@ -1137,7 +1142,7 @@ bfd_load(fname)
+ #ifdef HOST_LITTLE_ENDIAN
+ 		    for (i=0;i<count/4;i++) wbuffer[i] = ntohl(wbuffer[i]); // endian swap
+ #endif
+-		    sis_memory_write(section_address, buffer, count);
++		    ms->sis_memory_write(section_address, buffer, count);
+ 
+ 		    section_address += count;
+ 		    fptr += count;
+diff --git a/sim/erc32/interf.c b/sim/erc32/interf.c
+index 004d0bb..3f937f3 100644
+--- a/sim/erc32/interf.c
++++ b/sim/erc32/interf.c
+@@ -37,17 +37,13 @@
+ #define PSR_CWP 0x7
+ 
+ extern struct disassemble_info dinfo;
+-extern struct pstate sregs;
+ extern struct estate ebase;
+ 
+-extern int	current_target_byte_order;
+-extern int      ctrl_c;
+ extern int      nfp;
+ extern int      ift;
+ extern int      rom8;
+ extern int      wrp;
+ extern int      uben;
+-extern int      sis_verbose;
+ extern char    *sis_version;
+ extern struct estate ebase;
+ extern struct evcell evbuf[];
+@@ -72,7 +68,7 @@ run_sim(sregs, icount, dis)
+     if (sis_verbose)
+ 	(*sim_callback->printf_filtered) (sim_callback, "resuming at %x\n",
+ 					  sregs->pc);
+-   init_stdio();
++   ms->init_stdio();
+    sregs->starttime = get_time();
+    irq = 0;
+    if ((sregs->pc != 0) && (ebase.simtime == 0)) boot_init();
+@@ -92,7 +88,7 @@ run_sim(sregs, icount, dis)
+             if (sregs->pc == 0 || sregs->npc == 0)
+                 printf ("bogus pc or npc\n");
+ #endif
+-        mexc = memory_iread(sregs->pc, &sregs->inst, &sregs->hold);
++        mexc = ms->memory_iread(sregs->pc, &sregs->inst, &sregs->hold);
+ #if 0	/* DELETE ME! for debugging purposes only */
+         if (sis_verbose > 2)
+             printf("pc %x, np %x, sp %x, fp %x, wm %x, cw %x, i %08x\n",
+@@ -118,8 +114,8 @@ run_sim(sregs, icount, dis)
+ 			if (sis_verbose)
+ 			    (*sim_callback->printf_filtered) (sim_callback,
+ 							      "SW BP hit at %x\n", sregs->pc);
+-                        sim_halt();
+-			restore_stdio();
++                        ms->sim_halt();
++			ms->restore_stdio();
+ 			clearerr(stdin);
+ 			return (BPT_HIT);
+ 		    } else
+@@ -137,12 +133,12 @@ run_sim(sregs, icount, dis)
+ 	    icount = 0;
+ 	}
+     }
+-    sim_halt();
++    ms->sim_halt();
+     sregs->tottime += get_time() - sregs->starttime;
+-    restore_stdio();
++    ms->restore_stdio();
+     clearerr(stdin);
+     if (sregs->err_mode)
+-	error_mode(sregs->pc);
++	ms->error_mode(sregs->pc);
+     if (sregs->err_mode)
+ 	return (ERROR);
+     if (sregs->bphit) {
+@@ -272,7 +268,7 @@ sim_open (kind, callback, abfd, argv)
+ #endif
+     reset_all();
+     ebase.simtime = 0;
+-    init_sim();
++    ms->init_sim();
+     init_bpt(&sregs);
+     reset_stat(&sregs);
+ 
+@@ -286,7 +282,7 @@ sim_close(sd, quitting)
+      int quitting;
+ {
+ 
+-    exit_sim();
++    ms->exit_sim();
+     fcntl(0, F_SETFL, termsave);
+ 
+ };
+@@ -368,9 +364,9 @@ sim_write(sd, mem, buf, length)
+       for (i=0; i<length; i+=4) {
+         ibuf[i] = ntohl(ibufp[i]);
+       }
+-    return (sis_memory_write(mem, (char *) ibuf, length));
++    return (ms->sis_memory_write(mem, (char *) ibuf, length));
+ #else
+-    return (sis_memory_write(mem, buf, length));
++    return (ms->sis_memory_write(mem, buf, length));
+ #endif
+ }
+ 
+@@ -385,7 +381,7 @@ sim_read(sd, mem, buf, length)
+     int *ibuf = (int *) buf;
+     int i, len;
+ 
+-    len = sis_memory_read(mem, buf, length);
++    len = ms->sis_memory_read(mem, buf, length);
+     if (length >= 4)
+       for (i=0; i<length; i+=4) {
+         *ibuf = htonl(*ibuf);
+@@ -393,7 +389,7 @@ sim_read(sd, mem, buf, length)
+       }
+     return (len);
+ #else
+-    return (sis_memory_read(mem, buf, length));
++    return (ms->sis_memory_read(mem, buf, length));
+ #endif
+ }
+ 
+@@ -480,7 +476,7 @@ flush_windows ()
+ #endif
+ 
+       for (i = 0; i < 16; i++)
+-	memory_write (11, sp + 4 * i, &sregs.r[(win * 16 + 16 + i) & 0x7f], 2,
++	ms->memory_write (11, sp + 4 * i, &sregs.r[(win * 16 + 16 + i) & 0x7f], 2,
+ 		      &ws);
+ 
+       if (win == cwp)
+@@ -519,6 +515,13 @@ sim_complete_command (SIM_DESC sd, const char *text, const char *word)
+   return NULL;
+ }
+ 
++int
++sim_stop(SIM_DESC sd)
++{
++  ctrl_c = 1;
++  return 1;
++}
++
+ #if 0 /* FIXME: These shouldn't exist.  */
+ 
+ int
+diff --git a/sim/erc32/sis.c b/sim/erc32/sis.c
+index 1f834a0..8c89166 100644
+--- a/sim/erc32/sis.c
++++ b/sim/erc32/sis.c
+@@ -52,16 +52,13 @@ extern HIST_ENTRY *remove_history (int which);
+ #define HIST_LEN	64
+ 
+ extern struct disassemble_info dinfo;
+-extern struct pstate sregs;
+ extern struct estate ebase;
+ 
+-extern int      ctrl_c;
+ extern int      nfp;
+ extern int      ift;
+ extern int      wrp;
+ extern int      rom8;
+ extern int      uben;
+-extern int      sis_verbose;
+ extern char    *sis_version;
+ extern struct estate ebase;
+ extern struct evcell evbuf[];
+@@ -87,13 +84,13 @@ run_sim(sregs, icount, dis)
+     int             irq, mexc, deb;
+ 
+     sregs->starttime = get_time();
+-    init_stdio();
++    ms->init_stdio();
+     if (sregs->err_mode) icount = 0;
+     deb = dis || sregs->histlen || sregs->bptnum;
+     irq = 0;
+     while (icount > 0) {
+ 
+-	mexc = memory_iread(sregs->pc, &sregs->inst, &sregs->hold);
++	mexc = ms->memory_iread(sregs->pc, &sregs->inst, &sregs->hold);
+ 	sregs->icnt = 1;
+ 	if (sregs->annul) {
+ 	    sregs->annul = 0;
+@@ -108,7 +105,7 @@ run_sim(sregs, icount, dis)
+ 		} else {
+ 		    if (deb) {
+ 	    		if ((sregs->bphit = check_bpt(sregs)) != 0) {
+-            		    restore_stdio();
++			    ms->restore_stdio();
+ 	    		    return (BPT_HIT);
+ 	    		}
+ 		        if (sregs->histlen) {
+@@ -131,7 +128,7 @@ run_sim(sregs, icount, dis)
+ 		irq = 0;
+ 		sregs->err_mode = execute_trap(sregs);
+         	if (sregs->err_mode) {
+-	            error_mode(sregs->pc);
++	            ms->error_mode(sregs->pc);
+ 	            icount = 0;
+ 	        }
+ 	    }
+@@ -143,7 +140,7 @@ run_sim(sregs, icount, dis)
+ 	}
+     }
+     sregs->tottime += get_time() - sregs->starttime;
+-    restore_stdio();
++    ms->restore_stdio();
+     if (sregs->err_mode)
+ 	return (ERROR);
+     if (ctrl_c) {
+@@ -246,7 +243,7 @@ main(argc, argv)
+     ebase.simtime = 0;
+     reset_all();
+     init_bpt(&sregs);
+-    init_sim();
++    ms->init_sim();
+     if (lfile)
+         last_load_addr = bfd_load(argv[lfile]);
+ #ifdef STAT
+diff --git a/sim/erc32/sis.h b/sim/erc32/sis.h
+index 5226666..e0390e6 100644
+--- a/sim/erc32/sis.h
++++ b/sim/erc32/sis.h
+@@ -169,25 +169,12 @@ struct irqcell {
+ /* Prototypes  */
+ 
+ /* erc32.c */
+-extern void	init_sim ();
+-extern void	reset (void);
+-extern void	error_mode (uint32 pc);
+-extern void	sim_halt (void);
+-extern void	exit_sim (void);
+-extern void	init_stdio (void);
+-extern void	restore_stdio (void);
+-extern int	memory_iread (uint32 addr, uint32 *data, int32 *ws);
+-extern int	memory_read (int32 asi, uint32 addr, uint32 *data,
+-			     int32 sz, int32 *ws);
+-extern int	memory_write (int32 asi, uint32 addr, uint32 *data,
+-			      int32 sz, int32 *ws);
+-extern int	sis_memory_write (uint32 addr,
+-				  const unsigned char *data, uint32 length);
+-extern int	sis_memory_read (uint32 addr, char *data,
+-				 uint32 length);
++extern struct memsys erc32sys;
+ 
+ /* func.c */
+-extern struct pstate  sregs;
++extern struct   pstate  sregs;
++extern int      ctrl_c;
++extern int      sis_verbose;
+ extern void	set_regi (struct pstate *sregs, int32 reg,
+ 			  uint32 rval);
+ extern void	get_regi (struct pstate *sregs, int32 reg, char *buf);
+@@ -211,7 +198,9 @@ extern void	sys_reset (void);
+ extern void	sys_halt (void);
+ extern double	get_time (void);
+ extern int	nouartrx;
+-extern host_callback *sim_callback;
++extern          host_callback *sim_callback;
++extern int	current_target_byte_order;
++extern int      dumbio;
+ 
+ /* exec.c */
+ extern int	dispatch_instruction (struct pstate *sregs);
+@@ -231,3 +220,24 @@ extern void	set_fsr (uint32 fsr);
+ /* help.c */
+ extern void	usage (void);
+ extern void	gen_help (void);
++
++struct memsys {
++    void	(*init_sim) ();
++    void	(*reset) (void);
++    void	(*error_mode) (uint32 pc);
++    void	(*sim_halt) (void);
++    void	(*exit_sim) (void);
++    void	(*init_stdio) (void);
++    void	(*restore_stdio) (void);
++    int	        (*memory_iread) (uint32 addr, uint32 *data, int32 *ws);
++    int	        (*memory_read) (int32 asi, uint32 addr, uint32 *data,
++			     int32 sz, int32 *ws);
++    int	        (*memory_write) (int32 asi, uint32 addr, uint32 *data,
++			      int32 sz, int32 *ws);
++    int	        (*sis_memory_write) (uint32 addr,
++				  const unsigned char *data, uint32 length);
++    int	        (*sis_memory_read) (uint32 addr, char *data,
++				 uint32 length);
++};
++
++extern struct memsys *ms;
+-- 
+1.9.1
+

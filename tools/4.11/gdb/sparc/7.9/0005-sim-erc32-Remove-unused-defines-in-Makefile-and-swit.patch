@@ -1,0 +1,27 @@
+From 03166e64ac4eb1b6b89e80dd5a54d7193ffd9099 Mon Sep 17 00:00:00 2001
+From: Jiri Gaisler <jiri@gaisler.se>
+Date: Sat, 30 Aug 2014 22:58:33 +0200
+Subject: [PATCH 05/23] sim/erc32: Remove unused defines in Makefile and switch
+ off statistics
+
+	* Makefile.in Remove unused defines
+---
+ sim/erc32/Makefile.in | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/sim/erc32/Makefile.in b/sim/erc32/Makefile.in
+index 9c166ce..418e7e4 100644
+--- a/sim/erc32/Makefile.in
++++ b/sim/erc32/Makefile.in
+@@ -30,7 +30,7 @@ SIM_EXTRA_CLEAN = clean-sis
+ # UARTS run at about 115200 baud (simulator time). Add -DFAST_UART to
+ # CFLAGS if faster (infinite) UART speed is desired. Might affect the
+ # behaviour of UART interrupt routines ...
+-SIM_EXTRA_CFLAGS = -DSTAT -DFAST_UART -DIUREV0 -DMECREV0
++SIM_EXTRA_CFLAGS = -DFAST_UART
+ 
+ ## COMMON_POST_CONFIG_FRAG
+ 
+-- 
+1.9.1
+

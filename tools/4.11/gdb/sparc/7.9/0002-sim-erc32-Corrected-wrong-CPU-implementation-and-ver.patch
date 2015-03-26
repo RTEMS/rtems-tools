@@ -1,0 +1,27 @@
+From 7a40f4ae5b9e3a9078d445976c3557fae69c60e5 Mon Sep 17 00:00:00 2001
+From: Jiri Gaisler <jiri@gaisler.se>
+Date: Sat, 30 Aug 2014 22:52:37 +0200
+Subject: [PATCH 02/23] sim/erc32: Corrected wrong CPU implementation and
+ version ID in psr
+
+	* exec.c (init_regs) erc32 has vendor ID 1 and version ID 1 in %psr
+---
+ sim/erc32/exec.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/sim/erc32/exec.c b/sim/erc32/exec.c
+index dc86ba3..07f3586 100644
+--- a/sim/erc32/exec.c
++++ b/sim/erc32/exec.c
+@@ -2011,7 +2011,7 @@ init_regs(sregs)
+     sregs->npc = 4;
+     sregs->trap = 0;
+     sregs->psr &= 0x00f03fdf;
+-    sregs->psr |= 0x080;	/* Set supervisor bit */
++    sregs->psr |= 0x11000080;	/* Set supervisor bit */
+     sregs->breakpoint = 0;
+     sregs->annul = 0;
+     sregs->fpstate = FP_EXE_MODE;
+-- 
+1.9.1
+

@@ -1,0 +1,123 @@
+From f13f6b1731a63b0b79df7232f675f3f8d44be074 Mon Sep 17 00:00:00 2001
+From: Jiri Gaisler <jiri@gaisler.se>
+Date: Sat, 30 Aug 2014 23:01:13 +0200
+Subject: [PATCH 08/23] sim/erc32: Added -v command line switch for verbose
+ output
+
+	* help.c (usage) update usage help print-out
+
+	* sis.c (run_sim) increase debug level with -v. Also print
+	simulation time in long long format.
+---
+ sim/erc32/func.c | 5 +++--
+ sim/erc32/help.c | 2 +-
+ sim/erc32/sis.c  | 9 ++++++---
+ sim/erc32/sis.h  | 5 +++++
+ 4 files changed, 15 insertions(+), 6 deletions(-)
+
+diff --git a/sim/erc32/func.c b/sim/erc32/func.c
+index 06c00b4..f1d5bd7 100644
+--- a/sim/erc32/func.c
++++ b/sim/erc32/func.c
+@@ -29,6 +29,7 @@
+ #include "end.h"
+ #include <dis-asm.h>
+ #include "sim-config.h"
++#include <inttypes.h>
+ 
+ 
+ #define	VAL(x)	strtoul(x,(char **)NULL,0)
+@@ -643,8 +644,8 @@ show_stat(sregs)
+ 	sregs->nbranch;
+ #endif
+ 
+-    printf("\n Cycles       : %9d\n\r", ebase.simtime - sregs->simstart);
+-    printf(" Instructions : %9d\n", sregs->ninst);
++    printf("\n Cycles       : %9" PRIu64 "\n\r", ebase.simtime - sregs->simstart);
++    printf(" Instructions : %9" PRIu64 "\n", sregs->ninst);
+ 
+ #ifdef STAT
+     printf("   integer    : %9.2f %%\n", 100.0 * (float) iinst / (float) sregs->ninst);
+diff --git a/sim/erc32/help.c b/sim/erc32/help.c
+index 21c2a77..9813bda 100644
+--- a/sim/erc32/help.c
++++ b/sim/erc32/help.c
+@@ -7,8 +7,8 @@ usage()
+ {
+ 
+     printf("usage: sis [-uart1 uart_device1] [-uart2 uart_device2]\n");
++    printf("[-sparclite] [-dumbio] [-v] \n");
+     printf("[-nfp] [-freq frequency] [-c batch_file] [files]\n");
+-    printf("[-sparclite] [-dumbio]\n");
+ }
+ 
+ void
+diff --git a/sim/erc32/sis.c b/sim/erc32/sis.c
+index d7fa245..7c18c1e 100644
+--- a/sim/erc32/sis.c
++++ b/sim/erc32/sis.c
+@@ -30,6 +30,7 @@
+ #include "sis.h"
+ #include <dis-asm.h>
+ #include "sim-config.h"
++#include <inttypes.h>
+ 
+ #define	VAL(x)	strtol(x,(char **)NULL,0)
+ 
+@@ -122,7 +123,7 @@ run_sim(sregs, icount, dis)
+ 			        sregs->histind = 0;
+ 		        }
+ 		        if (dis) {
+-			    printf(" %8u ", ebase.simtime);
++			    printf(" %8" PRIu64 " ", ebase.simtime);
+ 			    dis_mem(sregs->pc, 1, &dinfo);
+ 		        }
+ 		    }
+@@ -214,6 +215,8 @@ main(argc, argv)
+ #endif
+             } else if (strcmp(argv[stat], "-dumbio") == 0) {
+ 		dumbio = 1;
++            } else if (strcmp(argv[stat], "-v") == 0) {
++		sis_verbose += 1;
+ 	    } else {
+ 		printf("unknown option %s\n", argv[stat]);
+ 		usage();
+@@ -280,7 +283,7 @@ main(argc, argv)
+ 	case CTRL_C:
+ 	    printf("\b\bInterrupt!\n");
+ 	case TIME_OUT:
+-	    printf(" Stopped at time %d (%.3f ms)\n", ebase.simtime, 
++	    printf(" Stopped at time %" PRIu64 " (%.3f ms)\n", ebase.simtime,
+ 	      ((double) ebase.simtime / (double) sregs.freq) / 1000.0);
+ 	    break;
+ 	case BPT_HIT:
+@@ -290,7 +293,7 @@ main(argc, argv)
+ 	case ERROR:
+ 	    printf("IU in error mode (%d)\n", sregs.trap);
+ 	    stat = 0;
+-	    printf(" %8d ", ebase.simtime);
++	    printf(" %8" PRIu64 " ", ebase.simtime);
+ 	    dis_mem(sregs.pc, 1, &dinfo);
+ 	    break;
+ 	default:
+diff --git a/sim/erc32/sis.h b/sim/erc32/sis.h
+index dc02c65..1ff6ced 100644
+--- a/sim/erc32/sis.h
++++ b/sim/erc32/sis.h
+@@ -52,8 +52,13 @@ typedef float   float32;	/* 32-bit float */
+ typedef double  float64;	/* 64-bit float */
+ 
+ /* FIXME: what about host compilers that don't support 64-bit ints? */
++#ifdef __LP64__
++typedef unsigned long uint64; /* 64-bit unsigned int */
++typedef long int64;	   /* 64-bit signed int */
++#else
+ typedef unsigned long long uint64; /* 64-bit unsigned int */
+ typedef long long int64;	   /* 64-bit signed int */
++#endif
+ 
+ #define UINT64_MAX 18446744073709551615ULL
+ 
+-- 
+1.9.1
+

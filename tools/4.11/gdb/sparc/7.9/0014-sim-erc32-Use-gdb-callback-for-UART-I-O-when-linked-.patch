@@ -1,0 +1,358 @@
+From edd201819d2399e2a7dc87e328aa6c5cf3088104 Mon Sep 17 00:00:00 2001
+From: Jiri Gaisler <jiri@gaisler.se>
+Date: Wed, 18 Feb 2015 19:14:55 +0100
+Subject: [PATCH 14/23] sim/erc32: Use gdb callback for UART I/O when linked
+ with gdb.
+
+	Use the host_callback feature for printing when linked with gdb.
+---
+ sim/erc32/erc32.c  | 97 +++++++++++++++++++++++++++++++++++++++++++++---------
+ sim/erc32/func.c   |  2 ++
+ sim/erc32/interf.c |  5 +--
+ sim/erc32/sis.c    |  2 ++
+ sim/erc32/sis.h    |  4 ++-
+ 5 files changed, 92 insertions(+), 18 deletions(-)
+
+diff --git a/sim/erc32/erc32.c b/sim/erc32/erc32.c
+index 03b40dc..c1ee435 100644
+--- a/sim/erc32/erc32.c
++++ b/sim/erc32/erc32.c
+@@ -22,6 +22,7 @@
+ /* The control space devices */
+ 
+ #include "config.h"
++#include <errno.h>
+ #include <sys/types.h>
+ #include <stdio.h>
+ #include <string.h>
+@@ -39,6 +40,7 @@ extern int      rom8,wrp,uben;
+ extern char     uart_dev1[], uart_dev2[];
+ 
+ int dumbio = 0; /* normal, smart, terminal oriented IO by default */
++int tty_setup = 1; /* default setup if not a tty */
+ 
+ /* MEC registers */
+ #define MEC_START 	0x01f80000
+@@ -301,12 +303,15 @@ static void	store_bytes (unsigned char *mem, uint32 waddr,
+ 
+ extern int	ext_irl;
+ 
++static host_callback *callback;
++
+ 
+ /* One-time init */
+ 
+ void
+ init_sim()
+ {
++    callback = sim_callback;
+     port_init();
+ }
+ 
+@@ -944,10 +949,14 @@ init_stdio()
+ {
+     if (dumbio)
+         return; /* do nothing */
+-    if (!ifd1)
++    if (ifd1 == 0 && f1open) {
+ 	tcsetattr(0, TCSANOW, &ioc1);
+-    if (!ifd2)
++        tcflush(ifd1, TCIFLUSH);
++    }
++    if (ifd2 == 0 && f1open) {
+ 	tcsetattr(0, TCSANOW, &ioc2);
++        tcflush(ifd2, TCIFLUSH);
++    }
+ }
+ 
+ void
+@@ -955,16 +964,18 @@ restore_stdio()
+ {
+     if (dumbio)
+         return; /* do nothing */
+-    if (!ifd1)
++    if (ifd1 == 0 && f1open && tty_setup)
+ 	tcsetattr(0, TCSANOW, &iocold1);
+-    if (!ifd2)
++    if (ifd2 == 0 && f2open && tty_setup)
+ 	tcsetattr(0, TCSANOW, &iocold2);
+ }
+ 
+ #define DO_STDIO_READ( _fd_, _buf_, _len_ )          \
+-             ( dumbio                                \
++             ( dumbio || nouartrx \
+                ? (0) /* no bytes read, no delay */   \
+-               : read( _fd_, _buf_, _len_ ) )
++               : (_fd_) == 1 && callback ? \
++                 callback->read_stdin (callback, _buf_, _len_) :  \
++                 read( _fd_, _buf_, _len_ ) )
+ 
+ 
+ static void
+@@ -994,21 +1005,26 @@ port_init()
+ 	}
+     if (f1in) ifd1 = fileno(f1in);
+     if (ifd1 == 0) {
++        if (callback && !callback->isatty(callback, ifd1)) {
++            tty_setup = 0;
++        }
+ 	if (sis_verbose)
+ 	    printf("serial port A on stdin/stdout\n");
+         if (!dumbio) {
+             tcgetattr(ifd1, &ioc1);
++            if (tty_setup) {
+             iocold1 = ioc1;
+             ioc1.c_lflag &= ~(ICANON | ECHO);
+             ioc1.c_cc[VMIN] = 0;
+             ioc1.c_cc[VTIME] = 0;
+         }
++        }
+ 	f1open = 1;
+     }
+ 
+     if (f1out) {
+ 	ofd1 = fileno(f1out);
+-    	if (!dumbio && ofd1 == 1) setbuf(f1out, NULL);
++	if (!dumbio && tty_setup && ofd1 == 1) setbuf(f1out, NULL);
+     }
+ 
+     if (uart_dev2[0] != 0)
+@@ -1027,17 +1043,19 @@ port_init()
+ 	    printf("serial port B on stdin/stdout\n");
+         if (!dumbio) {
+             tcgetattr(ifd2, &ioc2);
++            if (tty_setup) {
+             iocold2 = ioc2;
+             ioc2.c_lflag &= ~(ICANON | ECHO);
+             ioc2.c_cc[VMIN] = 0;
+             ioc2.c_cc[VTIME] = 0;
+         }
++        }
+ 	f2open = 1;
+     }
+ 
+     if (f2out) {
+ 	ofd2 = fileno(f2out);
+-        if (!dumbio && ofd2 == 1) setbuf(f2out, NULL);
++        if (!dumbio && tty_setup && ofd2 == 1) setbuf(f2out, NULL);
+     }
+ 
+     wnuma = wnumb = 0;
+@@ -1066,6 +1084,9 @@ read_uart(addr)
+ 	    if (f1open) {
+ 	        anum = DO_STDIO_READ(ifd1, aq, UARTBUF);
+ 	    }
++      else {
++          anum = 0;
++      }
+ 	    if (anum > 0) {
+ 		aind = 0;
+ 		if ((aind + 1) < anum)
+@@ -1098,6 +1119,9 @@ read_uart(addr)
+ 	    if (f2open) {
+ 		bnum = DO_STDIO_READ(ifd2, bq, UARTBUF);
+ 	    }
++	    else {
++		bnum = 0;
++	    }
+ 	    if (bnum > 0) {
+ 		bind = 0;
+ 		if ((bind + 1) < bnum)
+@@ -1130,6 +1154,9 @@ read_uart(addr)
+ 	    if (f1open) {
+ 	        anum = DO_STDIO_READ(ifd1, aq, UARTBUF);
+             }
++	    else {
++		anum = 0;
++	    }
+ 	    if (anum > 0) {
+ 		Ucontrol |= 0x00000001;
+ 		aind = 0;
+@@ -1142,6 +1169,9 @@ read_uart(addr)
+ 	    if (f2open) {
+ 		bnum = DO_STDIO_READ(ifd2, bq, UARTBUF);
+ 	    }
++	    else {
++		bnum = 0;
++	    }
+ 	    if (bnum > 0) {
+ 		Ucontrol |= 0x00010000;
+ 		bind = 0;
+@@ -1182,8 +1212,12 @@ write_uart(addr, data)
+ 	    if (wnuma < UARTBUF)
+ 	        wbufa[wnuma++] = c;
+ 	    else {
+-	        while (wnuma)
++	        while (wnuma) {
++              if (ofd1 == 1 && callback)
++                  wnuma -= callback->write_stdout(callback, wbufa, wnuma);
++              else
+ 		    wnuma -= fwrite(wbufa, 1, wnuma, f1out);
++          }
+ 	        wbufa[wnuma++] = c;
+ 	    }
+ 	}
+@@ -1206,8 +1240,12 @@ write_uart(addr, data)
+ 	    if (wnumb < UARTBUF)
+ 		wbufb[wnumb++] = c;
+ 	    else {
+-		while (wnumb)
++          while (wnumb) {
++              if (ofd1 == 1 && callback)
++                  wnumb -= callback->write_stdout(callback, wbufb, wnumb);
++              else
+ 		    wnumb -= fwrite(wbufb, 1, wnumb, f2out);
++          }
+ 		wbufb[wnumb++] = c;
+ 	    }
+ 	}
+@@ -1245,19 +1283,37 @@ write_uart(addr, data)
+ static void
+ flush_uart()
+ {
+-    while (wnuma && f1open)
++    while (wnuma && f1open) {
++        if (ofd1 == 1 && callback) {
++            wnuma -= callback->write_stdout(callback, wbufa, wnuma);
++            callback->flush_stdout(callback);
++        }
++        else
+ 	wnuma -= fwrite(wbufa, 1, wnuma, f1out);
+-    while (wnumb && f2open)
++    }
++    while (wnumb && f2open) {
++        if (ofd2 == 1 && callback) {
++            wnuma -= callback->write_stdout(callback, wbufb, wnuma);
++            callback->flush_stdout(callback);
++        }
++        else
+ 	wnumb -= fwrite(wbufb, 1, wnumb, f2out);
+ }
++}
+ 
+ 
+ 
+ static void
+ uarta_tx()
+ {
+-
+-    while (f1open && fwrite(&uarta_sreg, 1, 1, f1out) != 1);
++    while (f1open) {
++        if (ofd1 == 1 && callback) {
++            while (callback->write_stdout(callback, &uarta_sreg, 1) != 1);
++        }
++        else {
++            while (fwrite(&uarta_sreg, 1, 1, f1out) != 1);
++        }
++    }
+     if (uart_stat_reg & UARTA_HRE) {
+ 	uart_stat_reg |= UARTA_SRE;
+     } else {
+@@ -1271,7 +1327,14 @@ uarta_tx()
+ static void
+ uartb_tx()
+ {
+-    while (f2open && fwrite(&uartb_sreg, 1, 1, f2out) != 1);
++    while (f2open) {
++        if (ofd2 == 1 && callback) {
++            while (callback->write_stdout(callback, &uarta_sreg, 1) != 1);
++        }
++        else {
++            while (fwrite(&uartb_sreg, 1, 1, f2out) != 1);
++        }
++    }
+     if (uart_stat_reg & UARTB_HRE) {
+ 	uart_stat_reg |= UARTB_SRE;
+     } else {
+@@ -1293,6 +1356,8 @@ uart_rx(arg)
+     rsize = 0;
+     if (f1open)
+         rsize = DO_STDIO_READ(ifd1, &rxd, 1);
++    else
++        rsize = 0;
+     if (rsize > 0) {
+ 	uarta_data = UART_DR | rxd;
+ 	if (uart_stat_reg & UARTA_HRE)
+@@ -1309,6 +1374,8 @@ uart_rx(arg)
+     rsize = 0;
+     if (f2open)
+         rsize = DO_STDIO_READ(ifd2, &rxd, 1);
++    else
++        rsize = 0;
+     if (rsize) {
+ 	uartb_data = UART_DR | rxd;
+ 	if (uart_stat_reg & UARTB_HRE)
+diff --git a/sim/erc32/func.c b/sim/erc32/func.c
+index 70b42c9..440bff1 100644
+--- a/sim/erc32/func.c
++++ b/sim/erc32/func.c
+@@ -52,6 +52,8 @@ char            uart_dev1[128] = "";
+ char            uart_dev2[128] = "";
+ extern	int	ext_irl;
+ uint32		last_load_addr = 0;
++int		nouartrx = 0;
++host_callback 	*sim_callback;
+ 
+ #ifdef ERRINJ
+ uint32		errcnt = 0;
+diff --git a/sim/erc32/interf.c b/sim/erc32/interf.c
+index 981aa11..004d0bb 100644
+--- a/sim/erc32/interf.c
++++ b/sim/erc32/interf.c
+@@ -61,8 +61,6 @@ extern char     uart_dev1[], uart_dev2[];
+ 
+ int             sis_gdb_break = 1;
+ 
+-host_callback *sim_callback;
+-
+ int
+ run_sim(sregs, icount, dis)
+     struct pstate  *sregs;
+@@ -209,6 +207,9 @@ sim_open (kind, callback, abfd, argv)
+             if (strcmp(argv[stat], "-dumbio") == 0) {
+ 		dumbio = 1;
+ 	    } else
++            if (strcmp(argv[stat], "-nouartrx") == 0) {
++		nouartrx = 1;
++	    } else
+             if (strcmp(argv[stat], "-wrp") == 0) {
+                 wrp = 1;
+ 	    } else
+diff --git a/sim/erc32/sis.c b/sim/erc32/sis.c
+index e109874..1f834a0 100644
+--- a/sim/erc32/sis.c
++++ b/sim/erc32/sis.c
+@@ -211,6 +211,8 @@ main(argc, argv)
+ #endif
+             } else if (strcmp(argv[stat], "-dumbio") == 0) {
+ 		dumbio = 1;
++            } else if (strcmp(argv[stat], "-nouartrx") == 0) {
++		nouartrx = 1;
+             } else if (strcmp(argv[stat], "-v") == 0) {
+ 		sis_verbose += 1;
+ 	    } else {
+diff --git a/sim/erc32/sis.h b/sim/erc32/sis.h
+index 4ecf885..5226666 100644
+--- a/sim/erc32/sis.h
++++ b/sim/erc32/sis.h
+@@ -169,7 +169,7 @@ struct irqcell {
+ /* Prototypes  */
+ 
+ /* erc32.c */
+-extern void	init_sim (void);
++extern void	init_sim ();
+ extern void	reset (void);
+ extern void	error_mode (uint32 pc);
+ extern void	sim_halt (void);
+@@ -210,6 +210,8 @@ extern void	reset_all (void);
+ extern void	sys_reset (void);
+ extern void	sys_halt (void);
+ extern double	get_time (void);
++extern int	nouartrx;
++extern host_callback *sim_callback;
+ 
+ /* exec.c */
+ extern int	dispatch_instruction (struct pstate *sregs);
+-- 
+1.9.1
+

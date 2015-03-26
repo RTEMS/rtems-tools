@@ -1,0 +1,1025 @@
+From b2a82dcd2f4779119cc1a87591a7ab9eebc3ea61 Mon Sep 17 00:00:00 2001
+From: Jiri Gaisler <jiri@gaisler.se>
+Date: Mon, 8 Dec 2014 23:06:17 +0100
+Subject: [PATCH 22/23] Add watchpoint support to gdb simulator interface.
+
+	Currently, only the sparc sim supports watchpoints. Stubs for the
+	watchpoint functions were added to all other built-in sims
+	to avoid linking errors.
+---
+ gdb/remote-sim.c              |  69 +++++++++++++
+ include/gdb/remote-sim.h      |  24 +++++
+ sim/arm/wrapper.c             |  25 +++++
+ sim/avr/interp.c              |  25 +++++
+ sim/bfin/Makefile.in          |   1 +
+ sim/common/sim-watch-remote.c |  27 +++++
+ sim/cr16/interp.c             |  25 +++++
+ sim/cris/Makefile.in          |   1 +
+ sim/erc32/interf.c            | 235 ++++++++++++++++++++++++++++++++----------
+ sim/frv/Makefile.in           |   1 +
+ sim/h8300/Makefile.in         |   1 +
+ sim/iq2000/Makefile.in        |   1 +
+ sim/lm32/Makefile.in          |   1 +
+ sim/m32c/gdb-if.c             |  25 +++++
+ sim/m32r/Makefile.in          |   1 +
+ sim/m68hc11/Makefile.in       |   1 +
+ sim/mcore/interp.c            |  25 +++++
+ sim/microblaze/Makefile.in    |   2 +-
+ sim/mips/Makefile.in          |   1 +
+ sim/mn10300/Makefile.in       |   1 +
+ sim/moxie/interp.c            |  25 +++++
+ sim/msp430/Makefile.in        |   1 +
+ sim/ppc/gdb-sim.c             |  25 +++++
+ sim/rl78/gdb-if.c             |  25 +++++
+ sim/rx/gdb-if.c               |  25 +++++
+ sim/sh/interp.c               |  25 +++++
+ sim/sh64/Makefile.in          |   1 +
+ sim/v850/Makefile.in          |   3 +-
+ 28 files changed, 568 insertions(+), 54 deletions(-)
+ create mode 100644 sim/common/sim-watch-remote.c
+
+diff --git a/gdb/remote-sim.c b/gdb/remote-sim.c
+index fd2fd58..af17e85 100644
+--- a/gdb/remote-sim.c
++++ b/gdb/remote-sim.c
+@@ -1294,6 +1294,70 @@ gdbsim_has_memory (struct target_ops *ops)
+   return 1;
+ }
+ 
++static int
++gdbsim_insert_watchpoint (struct target_ops *self,
++			CORE_ADDR addr, int len, int type,
++			struct expression *cond)
++{
++  struct sim_inferior_data *sim_data
++      = get_sim_inferior_data (current_inferior (), SIM_INSTANCE_NEEDED);
++
++  if (remote_debug)
++    fprintf_unfiltered (gdb_stdlog, "gdbsim_insert_watchpoint: %d\n", type);
++
++  if (sim_set_watchpoint (sim_data->gdbsim_desc, addr, len, type) != SIM_RC_OK)
++    return -1;
++
++  return 0;
++}
++
++static int
++gdbsim_remove_watchpoint (struct target_ops *self,
++			CORE_ADDR addr, int len, int type,
++			struct expression *cond)
++{
++  struct sim_inferior_data *sim_data
++      = get_sim_inferior_data (current_inferior (), SIM_INSTANCE_NEEDED);
++
++  if (remote_debug)
++    fprintf_unfiltered (gdb_stdlog, "gdbsim_remove_watchpoint: %d\n", type);
++
++  if (sim_clear_watchpoint (sim_data->gdbsim_desc, addr, len, type) != SIM_RC_OK)
++    return -1;
++
++  return 0;
++}
++
++
++static int
++gdbsim_can_use_hw_breakpoint (struct target_ops *self,
++			 int type, int cnt, int othertype)
++{
++  struct sim_inferior_data *sim_data
++      = get_sim_inferior_data (current_inferior (), SIM_INSTANCE_NEEDED);
++
++  return (sim_can_use_hw_breakpoint(sim_data->gdbsim_desc, type, cnt, othertype));
++}
++
++static int
++gdbsim_stopped_by_watchpoint (struct target_ops *ops)
++{
++  struct sim_inferior_data *sim_data
++      = get_sim_inferior_data (current_inferior (), SIM_INSTANCE_NEEDED);
++
++  return (sim_stopped_by_watchpoint(sim_data->gdbsim_desc));;
++}
++
++static int
++gdbsim_stopped_data_address (struct target_ops *ops, CORE_ADDR *addr)
++{
++  struct sim_inferior_data *sim_data
++      = get_sim_inferior_data (current_inferior (), SIM_INSTANCE_NEEDED);
++
++  *addr = sim_watchpoint_address(sim_data->gdbsim_desc);;
++  return (1);
++}
++
+ /* Define the target subroutine names.  */
+ 
+ struct target_ops gdbsim_ops;
+@@ -1316,6 +1380,11 @@ init_gdbsim_ops (void)
+   gdbsim_ops.to_files_info = gdbsim_files_info;
+   gdbsim_ops.to_insert_breakpoint = memory_insert_breakpoint;
+   gdbsim_ops.to_remove_breakpoint = memory_remove_breakpoint;
++  gdbsim_ops.to_insert_watchpoint = gdbsim_insert_watchpoint;
++  gdbsim_ops.to_remove_watchpoint = gdbsim_remove_watchpoint;
++  gdbsim_ops.to_stopped_by_watchpoint = gdbsim_stopped_by_watchpoint;
++  gdbsim_ops.to_can_use_hw_breakpoint = gdbsim_can_use_hw_breakpoint;
++  gdbsim_ops.to_stopped_data_address = gdbsim_stopped_data_address;
+   gdbsim_ops.to_kill = gdbsim_kill;
+   gdbsim_ops.to_load = gdbsim_load;
+   gdbsim_ops.to_create_inferior = gdbsim_create_inferior;
+diff --git a/include/gdb/remote-sim.h b/include/gdb/remote-sim.h
+index 3dca380..36fef3c 100644
+--- a/include/gdb/remote-sim.h
++++ b/include/gdb/remote-sim.h
+@@ -280,6 +280,30 @@ void sim_do_command (SIM_DESC sd, const char *cmd);
+ 
+ char **sim_complete_command (SIM_DESC sd, const char *text, const char *word);
+ 
++/* Add hardware watchpoint. See to_insert_watchpoint() in target.h
++   for description of parameters. */
++
++int sim_set_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type);
++
++/* Remove hardware watchpoint. See to_remove_watchpoint() in target.h
++   for description of parameters. */
++
++int sim_clear_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type);
++
++/* Returns data address when watchpoint has been hit. See
++   to_stopped_data_address() in target.h for description. */
++
++int sim_watchpoint_address (SIM_DESC sd);
++
++/* Returns 1 if simulator was stopped by watchpoint hit. */
++
++int sim_stopped_by_watchpoint(SIM_DESC sd);
++
++/* Returns non-zero if we can set a hardware watchpoint of type TYPE.
++   See to_can_use_hw_breakpoint() in target.h for details. */
++
++int sim_can_use_hw_breakpoint (SIM_DESC sd, int type, int cnt, int othertype);
++
+ #ifdef __cplusplus
+ }
+ #endif
+diff --git a/sim/arm/wrapper.c b/sim/arm/wrapper.c
+index 0ccc7fb..a6871ad 100644
+--- a/sim/arm/wrapper.c
++++ b/sim/arm/wrapper.c
+@@ -1016,3 +1016,28 @@ sim_complete_command (SIM_DESC sd, const char *text, const char *word)
+ {
+   return NULL;
+ }
++
++int sim_set_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_clear_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_stopped_by_watchpoint (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_watchpoint_address (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_can_use_hw_breakpoint (SIM_DESC sd, int type, int cnt, int othertype)
++{
++  return 0;
++}
+diff --git a/sim/avr/interp.c b/sim/avr/interp.c
+index 8ae4887..c9f944c 100644
+--- a/sim/avr/interp.c
++++ b/sim/avr/interp.c
+@@ -1859,3 +1859,28 @@ sim_complete_command (SIM_DESC sd, const char *text, const char *word)
+ {
+   return NULL;
+ }
++
++int sim_set_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_clear_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_stopped_by_watchpoint (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_watchpoint_address (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_can_use_hw_breakpoint (SIM_DESC sd, int type, int cnt, int othertype)
++{
++	  return 0;
++}
+diff --git a/sim/bfin/Makefile.in b/sim/bfin/Makefile.in
+index b6cfeb5..d3fa401 100644
+--- a/sim/bfin/Makefile.in
++++ b/sim/bfin/Makefile.in
+@@ -39,6 +39,7 @@ SIM_OBJS = \
+ 	sim-reg.o \
+ 	sim-resume.o \
+ 	sim-stop.o \
++	sim-watch-remote.o \
+ 	@BFIN_SIM_EXTRA_OBJS@ \
+ 	$(SIM_EXTRA_OBJS)
+ 
+diff --git a/sim/common/sim-watch-remote.c b/sim/common/sim-watch-remote.c
+new file mode 100644
+index 0000000..279bb06
+--- /dev/null
++++ b/sim/common/sim-watch-remote.c
+@@ -0,0 +1,27 @@
++
++#include "gdb/remote-sim.h"
++
++int sim_set_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_clear_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_stopped_by_watchpoint (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_watchpoint_address (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_can_use_hw_breakpoint (SIM_DESC sd, int type, int cnt, int othertype)
++{
++  return 0;
++}
+diff --git a/sim/cr16/interp.c b/sim/cr16/interp.c
+index 9c85948..1c79258 100644
+--- a/sim/cr16/interp.c
++++ b/sim/cr16/interp.c
+@@ -1584,3 +1584,28 @@ sim_load (SIM_DESC sd, const char *prog, struct bfd *abfd, int from_tty)
+   prog_bfd_was_opened_p = abfd == NULL;
+   return SIM_RC_OK;
+ } 
++
++int sim_set_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_clear_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_stopped_by_watchpoint (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_watchpoint_address (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_can_use_hw_breakpoint (SIM_DESC sd, int type, int cnt, int othertype)
++{
++  return 0;
++}
+diff --git a/sim/cris/Makefile.in b/sim/cris/Makefile.in
+index a4332c8..6607c32 100644
+--- a/sim/cris/Makefile.in
++++ b/sim/cris/Makefile.in
+@@ -30,6 +30,7 @@ SIM_OBJS = \
+ 	sim-hrw.o \
+ 	sim-model.o \
+ 	sim-reg.o \
++	sim-watch-remote.o \
+ 	cgen-utils.o cgen-trace.o cgen-scache.o \
+ 	cgen-run.o sim-reason.o sim-engine.o sim-stop.o \
+ 	sim-if.o arch.o \
+diff --git a/sim/erc32/interf.c b/sim/erc32/interf.c
+index 8988f23..b2f81c5 100644
+--- a/sim/erc32/interf.c
++++ b/sim/erc32/interf.c
+@@ -36,8 +36,6 @@
+ 
+ #define PSR_CWP 0x7
+ 
+-int             sis_gdb_break = 1;
+-
+ int
+ run_sim(sregs, icount, dis)
+     struct pstate  *sregs;
+@@ -52,37 +50,14 @@ run_sim(sregs, icount, dis)
+    ms->init_stdio();
+    sregs->starttime = get_time();
+    irq = 0;
++   if (sregs->err_mode) icount = 0;
+    if ((sregs->pc != 0) && (ebase.simtime == 0)) ms->boot_init();
+-   while (!sregs->err_mode & (icount > 0)) {
+-
++   while (icount > 0) {
+ 	sregs->fhold = 0;
+-	sregs->hold = 0;
+ 	sregs->icnt = 1;
+-
+-        if (sregs->psr & 0x080)
+-            sregs->asi = 8;
+-        else
+-            sregs->asi = 9;
+-
+-#if 0	/* DELETE ME! for debugging purposes only */
+-        if (sis_verbose > 1)
+-            if (sregs->pc == 0 || sregs->npc == 0)
+-                printf ("bogus pc or npc\n");
+-#endif
+         mexc = ms->memory_iread(sregs->pc, &sregs->inst, &sregs->hold);
+-#if 0	/* DELETE ME! for debugging purposes only */
+-        if (sis_verbose > 2)
+-            printf("pc %x, np %x, sp %x, fp %x, wm %x, cw %x, i %08x\n",
+-                   sregs->pc, sregs->npc,
+-                   sregs->r[(((sregs->psr & 7) << 4) + 14) & 0x7f],
+-                   sregs->r[(((sregs->psr & 7) << 4) + 30) & 0x7f],
+-                   sregs->wim,
+-                   sregs->psr & 7,
+-                   sregs->inst);
+-#endif
+         if (sregs->annul) {
+             sregs->annul = 0;
+-            sregs->icnt = 1;
+             sregs->pc = sregs->npc;
+             sregs->npc = sregs->npc + 4;
+         } else {
+@@ -91,47 +66,40 @@ run_sim(sregs, icount, dis)
+ 		if (mexc) {
+ 		    sregs->trap = I_ACC_EXC;
+ 		} else {
+-		    if ((sis_gdb_break) && (sregs->inst == 0x91d02001)) {
+-			if (sis_verbose)
+-			    (*sim_callback->printf_filtered) (sim_callback,
+-							      "SW BP hit at %x\n", sregs->pc);
+-                        ms->sim_halt();
+-			ms->restore_stdio();
+-			clearerr(stdin);
+-			return (BPT_HIT);
+-		    } else
+-			dispatch_instruction(sregs);
++		    dispatch_instruction(sregs);
++		    icount--;
+ 		}
+-		icount--;
+ 	    }
+ 	    if (sregs->trap) {
+                 irq = 0;
+-		sregs->err_mode = execute_trap(sregs);
++		if ((sregs->err_mode = execute_trap(sregs)) == WPT_HIT) {
++		    sregs->err_mode = 0;
++		    sregs->trap = 0;
++		    icount = 0;
++		}
++		if (sregs->err_mode) icount = 0;
++
+ 	    }
+ 	}
+ 	advance_time(sregs);
+-	if (ctrl_c) {
++	if (ctrl_c)
+ 	    icount = 0;
+-	}
+     }
+     ms->sim_halt();
+     sregs->tottime += get_time() - sregs->starttime;
+     ms->restore_stdio();
+     clearerr(stdin);
+-    if (sregs->err_mode)
++    if (sregs->err_mode) {
+ 	ms->error_mode(sregs->pc);
+-    if (sregs->err_mode)
+ 	return (ERROR);
+-    if (sregs->bphit) {
+-	if (sis_verbose)
+-	    (*sim_callback->printf_filtered) (sim_callback,
+-					      "HW BP hit at %x\n", sregs->pc);
+-	return (BPT_HIT);
+     }
+     if (ctrl_c) {
+ 	ctrl_c = 0;
++	sregs->wphit = sregs->bphit = 0;
+ 	return (CTRL_C);
+     }
++    if ((sregs->bphit) || (sregs->wphit))
++	return (BPT_HIT);
+     return (TIME_OUT);
+ }
+ 
+@@ -161,6 +129,7 @@ sim_open (kind, callback, abfd, argv)
+     int             freq = 0;
+ 
+     sim_callback = callback;
++    sis_gdb_break = 1;
+ 
+     while (argv[argc])
+       argc++;
+@@ -413,12 +382,15 @@ sim_stop_reason(sd, reason, sigrc)
+ {
+ 
+     switch (simstat) {
+-	case CTRL_C:
++    case CTRL_C:
+ 	*reason = sim_stopped;
+ 	*sigrc = GDB_SIGNAL_INT;
+ 	break;
+     case OK:
+     case TIME_OUT:
++	*reason = sim_stopped;
++	*sigrc = 0;
++	break;
+     case BPT_HIT:
+ 	*reason = sim_stopped;
+ 	*sigrc = GDB_SIGNAL_TRAP;
+@@ -427,8 +399,10 @@ sim_stop_reason(sd, reason, sigrc)
+ 	*sigrc = 0;
+ 	*reason = sim_exited;
+     }
+-    ctrl_c = 0;
+-    simstat = OK;
++
++    if (sis_verbose)
++	(*sim_callback->printf_filtered) (sim_callback,
++	    "sim_stop_reason %x : %x\n", *reason, *sigrc);
+ }
+ 
+ /* Flush all register windows out to the stack.  Starting after the invalid
+@@ -489,7 +463,25 @@ flush_windows ()
+ void
+ sim_resume(SIM_DESC sd, int step, int siggnal)
+ {
+-    simstat = run_sim(&sregs, UINT64_MAX, 0);
++    if (sis_verbose)
++	(*sim_callback->printf_filtered) (sim_callback,
++	    "sim_resume %x : %x : %x : %x : 0x%08x\n", step, siggnal, sregs.bphit, sregs.wphit, sregs.pc);
++    if (step) {
++	sregs.bphit = 0;
++	sregs.wphit = 1;
++        simstat = run_sim(&sregs, 1, 0);
++	sregs.bphit = 0;
++	sregs.wphit = 0;
++    } else if (sregs.bphit || sregs.wphit) {
++	sregs.bphit = 0;
++	sregs.wphit = 1;
++        simstat = run_sim(&sregs, 1, 0);
++	sregs.bphit = sregs.wphit = 0;
++        simstat = run_sim(&sregs, UINT64_MAX, 0);
++	sregs.bphit = 0;
++    }
++    else
++        simstat = run_sim(&sregs, UINT64_MAX, 0);
+ 
+     if (sis_gdb_break) flush_windows ();
+ }
+@@ -524,6 +516,145 @@ sim_stop(SIM_DESC sd)
+   return 1;
+ }
+ 
++static int
++sis_insert_watchpoint_read(int addr, unsigned char mask)
++{
++    if (sregs.wprnum < WPR_MAX) {
++	sregs.wprs[sregs.wprnum] = addr;
++	sregs.wprm[sregs.wprnum] = mask;
++	sregs.wprnum++;
++	if (sis_verbose)
++	    (*sim_callback->printf_filtered) (sim_callback, "inserted read watchpoint at %x\n", addr);
++	return SIM_RC_OK;
++    } else
++	return SIM_RC_FAIL;
++}
++
++static int
++sis_remove_watchpoint_read(int addr)
++{
++    int             i = 0;
++
++    while ((i < sregs.wprnum) && (sregs.wprs[i] != addr))
++	i++;
++    if (addr == sregs.wprs[i]) {
++	for (; i < sregs.wprnum - 1; i++)
++	    sregs.wprs[i] = sregs.wprs[i + 1];
++	sregs.wprnum -= 1;
++	if (sis_verbose)
++	    (*sim_callback->printf_filtered) (sim_callback, "removed read watchpoint at %x\n", addr);
++	return 0;
++    }
++    return 1;
++}
++
++static int
++sis_insert_watchpoint_write(int32 addr, unsigned char mask)
++{
++    if (sregs.wpwnum < WPR_MAX) {
++	sregs.wpws[sregs.wpwnum] = addr;
++	sregs.wpwm[sregs.wpwnum] = mask;
++	sregs.wpwnum++;
++	if (sis_verbose)
++	    (*sim_callback->printf_filtered) (sim_callback, "sim_insert_watchpoint_write: 0x%08x : %x\n", addr, mask);
++	return SIM_RC_OK;
++    } else
++	return SIM_RC_FAIL;
++}
++
++static int
++sis_remove_watchpoint_write(int addr)
++{
++    int             i = 0;
++
++    while ((i < sregs.wpwnum) && (sregs.wpws[i] != addr))
++	i++;
++    if (addr == sregs.wpws[i]) {
++	for (; i < sregs.wpwnum - 1; i++)
++	    sregs.wpws[i] = sregs.wpws[i + 1];
++	sregs.wpwnum -= 1;
++	if (sis_verbose)
++	    (*sim_callback->printf_filtered) (sim_callback, "removed write watchpoint at %x\n", addr);
++	return SIM_RC_OK;
++    }
++    return SIM_RC_FAIL;
++}
++
++int sim_can_use_hw_breakpoint (SIM_DESC sd, int type, int cnt, int othertype)
++{
++    if (type == 2)	/* bp_hardware_breakpoint not supported */
++        return 0;
++     else
++	return 1;
++}
++
++
++int sim_set_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  int res;
++  unsigned char mask;
++
++  switch (length) {
++  case 1:  mask = 0; break;
++  case 2:  mask = 1; break;
++  case 4:  mask = 3; break;
++  default: mask = 7; break;
++  }
++
++  switch (type) {
++    case 0:
++      res = sis_insert_watchpoint_write (mem, mask);
++      break;
++    case 1:
++      res = sis_insert_watchpoint_read (mem, mask);
++      break;
++    case 2:
++      if ((res = sis_insert_watchpoint_write (mem, mask)) == SIM_RC_OK)
++          res = sis_insert_watchpoint_read (mem, mask);
++	  if (res == SIM_RC_FAIL)
++	      sis_remove_watchpoint_read (mem);
++      break;
++    default:
++      res = -1;
++  }
++  return (res);
++}
++
++
++int sim_clear_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  int res;
++  switch (type) {
++    case 0:
++      res = sis_remove_watchpoint_write (mem);
++      break;
++    case 1:
++      res = sis_remove_watchpoint_read (mem);
++      break;
++    case 2:
++      if ((res = sis_remove_watchpoint_write (mem)) == SIM_RC_OK)
++          res = sis_remove_watchpoint_read (mem);
++      else
++          sis_remove_watchpoint_read (mem);
++      break;
++    default:
++      res = -1;
++  }
++  return (res);
++}
++
++int sim_stopped_by_watchpoint (SIM_DESC sd)
++{
++    if (sis_verbose)
++       (*sim_callback->printf_filtered) (sim_callback, "sim_stopped_by_watchpoint %x\n", sregs.wphit);
++    return((sregs.wphit != 0));
++}
++
++int sim_watchpoint_address (SIM_DESC sd)
++{
++    return(sregs.wpaddress);
++}
++
+ #if 0 /* FIXME: These shouldn't exist.  */
+ 
+ int
+diff --git a/sim/frv/Makefile.in b/sim/frv/Makefile.in
+index ea34bf2..1e1398d 100644
+--- a/sim/frv/Makefile.in
++++ b/sim/frv/Makefile.in
+@@ -26,6 +26,7 @@ SIM_OBJS = \
+ 	sim-hrw.o \
+ 	sim-model.o \
+ 	sim-reg.o \
++	sim-watch-remote.o \
+ 	cgen-utils.o cgen-trace.o cgen-scache.o cgen-fpu.o cgen-accfp.o \
+ 	cgen-run.o sim-reason.o sim-engine.o sim-stop.o \
+ 	sim-if.o arch.o \
+diff --git a/sim/h8300/Makefile.in b/sim/h8300/Makefile.in
+index 7a569bd..3337b89 100644
+--- a/sim/h8300/Makefile.in
++++ b/sim/h8300/Makefile.in
+@@ -25,6 +25,7 @@ SIM_OBJS = compile.o \
+ 	   sim-cpu.o \
+ 	   sim-engine.o \
+ 	   sim-load.o \
++	   sim-watch-remote.o \
+ 	   $(SIM_EXTRA_OBJS)
+ 
+ ## COMMON_POST_CONFIG_FRAG
+diff --git a/sim/iq2000/Makefile.in b/sim/iq2000/Makefile.in
+index 7606b26..c079248 100644
+--- a/sim/iq2000/Makefile.in
++++ b/sim/iq2000/Makefile.in
+@@ -32,6 +32,7 @@ SIM_OBJS = \
+ 	cgen-utils.o cgen-trace.o cgen-scache.o \
+ 	cgen-run.o sim-reason.o sim-engine.o sim-stop.o \
+ 	sim-if.o arch.o \
++	sim-watch-remote.o \
+ 	$(IQ2000_OBJS) \
+ 	$(CONFIG_DEVICES)
+ 
+diff --git a/sim/lm32/Makefile.in b/sim/lm32/Makefile.in
+index 05cf53b..d8d5a2a 100644
+--- a/sim/lm32/Makefile.in
++++ b/sim/lm32/Makefile.in
+@@ -15,6 +15,7 @@ SIM_OBJS = \
+         cgen-utils.o cgen-trace.o cgen-scache.o \
+         cgen-run.o sim-reason.o sim-engine.o sim-stop.o \
+         sim-if.o arch.o \
++	sim-watch-remote.o \
+         cpu.o decode.o sem.o model.o mloop.o \
+         lm32.o traps.o user.o 
+ 
+diff --git a/sim/m32c/gdb-if.c b/sim/m32c/gdb-if.c
+index 62ec28c..b8560d5 100644
+--- a/sim/m32c/gdb-if.c
++++ b/sim/m32c/gdb-if.c
+@@ -710,3 +710,28 @@ sim_complete_command (SIM_DESC sd, const char *text, const char *word)
+ {
+   return NULL;
+ }
++
++int sim_set_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_clear_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_stopped_by_watchpoint (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_watchpoint_address (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_can_use_hw_breakpoint (SIM_DESC sd, int type, int cnt, int othertype)
++{
++  return 0;
++}
+diff --git a/sim/m32r/Makefile.in b/sim/m32r/Makefile.in
+index 12a6a8d..dfa7bd0 100644
+--- a/sim/m32r/Makefile.in
++++ b/sim/m32r/Makefile.in
+@@ -34,6 +34,7 @@ SIM_OBJS = \
+ 	cgen-utils.o cgen-trace.o cgen-scache.o \
+ 	cgen-run.o sim-reason.o sim-engine.o sim-stop.o \
+ 	sim-if.o arch.o \
++	sim-watch-remote.o \
+ 	$(M32R_OBJS) \
+ 	$(M32RX_OBJS) \
+ 	$(M32R2_OBJS) \
+diff --git a/sim/m68hc11/Makefile.in b/sim/m68hc11/Makefile.in
+index fac0b24..62915d1 100644
+--- a/sim/m68hc11/Makefile.in
++++ b/sim/m68hc11/Makefile.in
+@@ -31,6 +31,7 @@ SIM_OBJS = $(M68HC11_OBJS) \
+ 	sim-stop.o \
+ 	sim-hrw.o \
+ 	sim-reason.o \
++	sim-watch-remote.o \
+         $(SIM_EXTRA_OBJS)
+ 
+ SIM_PROFILE= -DPROFILE=1 -DWITH_PROFILE=-1
+diff --git a/sim/mcore/interp.c b/sim/mcore/interp.c
+index d2edd12..003bb80 100644
+--- a/sim/mcore/interp.c
++++ b/sim/mcore/interp.c
+@@ -2204,3 +2204,28 @@ sim_set_callbacks (ptr)
+ {
+   callback = ptr; 
+ }
++
++int sim_set_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_clear_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_stopped_by_watchpoint (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_watchpoint_address (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_can_use_hw_breakpoint (SIM_DESC sd, int type, int cnt, int othertype)
++{
++  return 0;
++}
+diff --git a/sim/microblaze/Makefile.in b/sim/microblaze/Makefile.in
+index dda4650..49be635 100644
+--- a/sim/microblaze/Makefile.in
++++ b/sim/microblaze/Makefile.in
+@@ -17,7 +17,7 @@
+ 
+ ## COMMON_PRE_CONFIG_FRAG
+ 
+-SIM_OBJS = interp.o sim-load.o
++SIM_OBJS = interp.o sim-load.o sim-watch-remote.o
+ SIM_EXTRA_LIBS = -lm
+ SIM_EXTRA_CLEAN = microblaze-clean
+ 
+diff --git a/sim/mips/Makefile.in b/sim/mips/Makefile.in
+index 985f4e5..22b4714 100644
+--- a/sim/mips/Makefile.in
++++ b/sim/mips/Makefile.in
+@@ -54,6 +54,7 @@ SIM_OBJS = \
+ 	sim-stop.o \
+ 	sim-resume.o \
+ 	sim-reason.o \
++	sim-watch-remote.o
+ 
+ 
+ # List of flags to always pass to $(CC).
+diff --git a/sim/mn10300/Makefile.in b/sim/mn10300/Makefile.in
+index c94e531..0a8cd86 100644
+--- a/sim/mn10300/Makefile.in
++++ b/sim/mn10300/Makefile.in
+@@ -27,6 +27,7 @@ MN10300_OBJS = \
+ 	sim-resume.o \
+ 	sim-reason.o \
+ 	sim-stop.o \
++	sim-watch-remote.o \
+ 	dv-sockser.o
+ 
+ SIM_OBJS = $(MN10300_OBJS) interp.o
+diff --git a/sim/moxie/interp.c b/sim/moxie/interp.c
+index 5f449af..3e86b41 100644
+--- a/sim/moxie/interp.c
++++ b/sim/moxie/interp.c
+@@ -1475,3 +1475,28 @@ sim_set_callbacks (ptr)
+ {
+   callback = ptr; 
+ }
++
++int sim_set_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_clear_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_stopped_by_watchpoint (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_watchpoint_address (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_can_use_hw_breakpoint (SIM_DESC sd, int type, int cnt, int othertype)
++{
++  return 0;
++}
+diff --git a/sim/msp430/Makefile.in b/sim/msp430/Makefile.in
+index e398d0d..5982f4b 100644
+--- a/sim/msp430/Makefile.in
++++ b/sim/msp430/Makefile.in
+@@ -36,6 +36,7 @@ SIM_OBJS = \
+         sim-reg.o \
+         sim-resume.o \
+         sim-stop.o \
++        sim-watch-remote.o \
+         $(SIM_EXTRA_OBJS)
+ 
+ # List of extra dependencies.
+diff --git a/sim/ppc/gdb-sim.c b/sim/ppc/gdb-sim.c
+index 0269458..3ce3016 100644
+--- a/sim/ppc/gdb-sim.c
++++ b/sim/ppc/gdb-sim.c
+@@ -1296,3 +1296,28 @@ sim_store_register (SIM_DESC sd, int regno, unsigned char *buf, int length)
+   return psim_write_register(simulator, MAX_NR_PROCESSORS,
+ 			     buf, regname, raw_transfer);
+ }
++
++int sim_set_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_clear_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_stopped_by_watchpoint (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_watchpoint_address (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_can_use_hw_breakpoint (SIM_DESC sd, int type, int cnt, int othertype)
++{
++  return 0;
++}
+diff --git a/sim/rl78/gdb-if.c b/sim/rl78/gdb-if.c
+index 6317a73..262e3e1 100644
+--- a/sim/rl78/gdb-if.c
++++ b/sim/rl78/gdb-if.c
+@@ -571,3 +571,28 @@ sim_complete_command (SIM_DESC sd, const char *text, const char *word)
+ {
+     return NULL;
+ }
++
++int sim_set_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_clear_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_stopped_by_watchpoint (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_watchpoint_address (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_can_use_hw_breakpoint (SIM_DESC sd, int type, int cnt, int othertype)
++{
++  return 0;
++}
+diff --git a/sim/rx/gdb-if.c b/sim/rx/gdb-if.c
+index 762c3d2..8140a8b 100644
+--- a/sim/rx/gdb-if.c
++++ b/sim/rx/gdb-if.c
+@@ -853,3 +853,28 @@ sim_complete_command (SIM_DESC sd, const char *text, const char *word)
+ {
+   return NULL;
+ }
++
++int sim_set_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_clear_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_stopped_by_watchpoint (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_watchpoint_address (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_can_use_hw_breakpoint (SIM_DESC sd, int type, int cnt, int othertype)
++{
++  return 0;
++}
+diff --git a/sim/sh/interp.c b/sim/sh/interp.c
+index c854174..24f03ed 100644
+--- a/sim/sh/interp.c
++++ b/sim/sh/interp.c
+@@ -2780,3 +2780,28 @@ sim_complete_command (SIM_DESC sd, const char *text, const char *word)
+ {
+   return NULL;
+ }
++
++int sim_set_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_clear_watchpoint (SIM_DESC sd, SIM_ADDR mem, int length, int type)
++{
++  return -1;
++}
++
++int sim_stopped_by_watchpoint (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_watchpoint_address (SIM_DESC sd)
++{
++  return 0;
++}
++
++int sim_can_use_hw_breakpoint (SIM_DESC sd, int type, int cnt, int othertype)
++{
++  return 0;
++}
+diff --git a/sim/sh64/Makefile.in b/sim/sh64/Makefile.in
+index 0022d8e..a9cf62a 100644
+--- a/sim/sh64/Makefile.in
++++ b/sim/sh64/Makefile.in
+@@ -34,6 +34,7 @@ SIM_OBJS = \
+ 	cgen-utils.o cgen-trace.o cgen-scache.o \
+ 	cgen-run.o sim-reason.o sim-engine.o sim-stop.o \
+ 	sim-if.o arch.o \
++	sim-watch-remote.o \
+ 	$(SH64_OBJS) \
+ 	$(CONFIG_DEVICES)
+ 
+diff --git a/sim/v850/Makefile.in b/sim/v850/Makefile.in
+index 067158f..ad24cd8 100644
+--- a/sim/v850/Makefile.in
++++ b/sim/v850/Makefile.in
+@@ -28,7 +28,8 @@ SIM_OBJS = \
+ 	sim-hrw.o \
+ 	sim-resume.o \
+ 	sim-reason.o \
+-	sim-stop.o
++	sim-stop.o \
++	sim-watch-remote.o
+ 
+ SIM_RUN_OBJS = nrun.o
+ 
+-- 
+1.9.1
+
