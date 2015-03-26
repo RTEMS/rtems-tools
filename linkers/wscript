@@ -94,6 +94,7 @@ def build(bld):
                        'libc-heap.ini',
                        'rtems.ini',
                        'rtems-api.ini',
+                       'rtems-posix.ini',
                        'rtems-score.ini',
                        'rtems-score-object.ini',
                        'rtems-score-thread.ini',
