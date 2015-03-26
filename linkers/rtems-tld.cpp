@@ -175,12 +175,13 @@ namespace rld
       std::string  lock_acquire;    /**< The lock acquire if provided. */
       std::string  lock_release;    /**< The lock release if provided. */
       std::string  buffer_local;    /**< Code template to declare a local buffer variable. */
-      std::string  buffer_alloc;    /**< Code template to perform a buffer allocation. */
       rld::strings headers;         /**< Include statements. */
       rld::strings defines;         /**< Define statements. */
       std::string  entry_trace;     /**< Code template to trace the function entry. */
+      std::string  entry_alloc;     /**< Code template to perform a buffer allocation. */
       std::string  arg_trace;       /**< Code template to trace an argument. */
       std::string  exit_trace;      /**< Code template to trace the function exit. */
+      std::string  exit_alloc;      /**< Code template to perform a buffer allocation. */
       std::string  ret_trace;       /**< Code template to trace the return value. */
       rld::strings code;            /**< Code block inserted before the trace code. */
 
@@ -645,14 +646,16 @@ namespace rld
         lock_release = rld::dequote (section.get_record_item ("lock-release"));
       if (section.has_record ("buffer-local"))
         buffer_local = rld::dequote (section.get_record_item ("buffer-local"));
-      if (section.has_record ("buffer-local"))
-        buffer_alloc = rld::dequote (section.get_record_item ("buffer-alloc"));
       if (section.has_record ("entry-trace"))
         entry_trace = rld::dequote (section.get_record_item ("entry-trace"));
+      if (section.has_record ("entry-alloc"))
+        entry_alloc = rld::dequote (section.get_record_item ("entry-alloc"));
       if (section.has_record ("arg-trace"))
         arg_trace = rld::dequote (section.get_record_item ("arg-trace"));
       if (section.has_record ("exit-trace"))
         exit_trace = rld::dequote (section.get_record_item ("exit-trace"));
+      if (section.has_record ("exit-alloc"))
+        exit_alloc = rld::dequote (section.get_record_item ("exit-alloc"));
       if (section.has_record ("ret-trace"))
         ret_trace = rld::dequote (section.get_record_item ("ret-trace"));
     }
@@ -954,7 +957,8 @@ namespace rld
       c.write_line (" */");
 
       std::stringstream sss;
-      sss << "const char const* __rld_trace_names[" << traces.size() << "] = " << std::endl
+      sss << "uint32_t __rtld_trace_names_size = " << traces.size() << ";" << std::endl
+          << "const char const* __rtld_trace_names[" << traces.size() << "] = " << std::endl
           << "{";
       c.write_line (sss.str ());
 
@@ -1075,37 +1079,60 @@ namespace rld
             std::stringstream lss;
             lss << count;
 
-            std::string l;
-
             c.write_line("");
 
             if (sig.has_args () || (sig.has_ret () && !generator_.ret_trace.empty ()))
             {
-              bool added = false;
-              l = "#define FUNC_DATA_SIZE_" + sig.name + " (";
+              std::string ds;
+              std::string des;
+              std::string drs;
+              bool        ds_added = false;
+              bool        des_added = false;
+              bool        drs_added = false;
+              ds  = "#define FUNC_DATA_SIZE_" + sig.name + " (";
+              des = "#define FUNC_DATA_ENTRY_SIZE_" + sig.name + " (";
+              drs = "#define FUNC_DATA_RET_SIZE_" + sig.name + " (";
               if (sig.has_args ())
               {
                 for (size_t a = 0; a < sig.args.size (); ++a)
                 {
-                  if (added)
-                    l += " + ";
+                  if (ds_added)
+                    ds += " + ";
                   else
-                    added = true;
-                  l += "sizeof(" + sig.args[a] + ')';
+                    ds_added = true;
+                  if (des_added)
+                    des += " + ";
+                  else
+                    des_added = true;
+                  ds += "sizeof(" + sig.args[a] + ')';
+                  des += "sizeof(" + sig.args[a] + ')';
                 }
               }
               if (sig.has_ret () && !generator_.ret_trace.empty ())
               {
-                if (added)
-                  l += " + ";
+                if (ds_added)
+                  ds += " + ";
                 else
-                  added = true;
-                l += "sizeof(" + sig.ret + ')';
+                  ds_added = true;
+                if (drs_added)
+                  drs += " + ";
+                else
+                  drs_added = true;
+                ds += "sizeof(" + sig.ret + ')';
+                drs += "sizeof(" + sig.ret + ')';
               }
-              if (!added)
-                l += '0';
-              l += ')';
-              c.write_line(l);
+              if (!ds_added)
+                ds += '0';
+              ds += ')';
+              if (!des_added)
+                des += '0';
+              des += ')';
+              if (!drs_added)
+                drs += '0';
+              drs += ')';
+              c.write_line(ds);
+              c.write_line(des);
+              c.write_line(drs);
             }
 
             c.write_line(sig.decl () + ";");
@@ -1122,16 +1149,20 @@ namespace rld
             if (sig.has_ret ())
               c.write_line(" " + sig.ret + " ret;");
 
+            std::string l;
+
             if (!generator_.lock_acquire.empty ())
               c.write_line(generator_.lock_acquire);
 
-            if (!generator_.buffer_alloc.empty ())
+            if (!generator_.entry_alloc.empty ())
             {
-              l = " " + generator_.buffer_alloc;
+              l = " " + generator_.entry_alloc;
               l = rld::find_replace (l, "@FUNC_NAME@", '"' + sig.name + '"');
               l = rld::find_replace (l, "@FUNC_INDEX@", lss.str ());
               l = rld::find_replace (l, "@FUNC_LABEL@", sig.name);
               l = rld::find_replace (l, "@FUNC_DATA_SIZE@", "FUNC_DATA_SIZE_" + sig.name);
+              l = rld::find_replace (l, "@FUNC_DATA_ENTRY_SIZE@", "FUNC_DATA_ENTRY_SIZE_" + sig.name);
+              l = rld::find_replace (l, "@FUNC_DATA_RET_SIZE@", "FUNC_DATA_RET_SIZE_" + sig.name);
               c.write_line(l);
             }
 
@@ -1145,6 +1176,8 @@ namespace rld
               l = rld::find_replace (l, "@FUNC_INDEX@", lss.str ());
               l = rld::find_replace (l, "@FUNC_LABEL@", sig.name);
               l = rld::find_replace (l, "@FUNC_DATA_SIZE@", "FUNC_DATA_SIZE_" + sig.name);
+              l = rld::find_replace (l, "@FUNC_DATA_ENTRY_SIZE@", "FUNC_DATA_ENTRY_SIZE_" + sig.name);
+              l = rld::find_replace (l, "@FUNC_DATA_RET_SIZE@", "FUNC_DATA_RET_SIZE_" + sig.name);
               c.write_line(l);
             }
 
@@ -1180,12 +1213,32 @@ namespace rld
             l += ");";
             c.write_line(l);
 
+            if (!generator_.lock_acquire.empty ())
+              c.write_line(generator_.lock_acquire);
+
+            if (!generator_.exit_alloc.empty ())
+            {
+              l = " " + generator_.exit_alloc;
+              l = rld::find_replace (l, "@FUNC_NAME@", '"' + sig.name + '"');
+              l = rld::find_replace (l, "@FUNC_INDEX@", lss.str ());
+              l = rld::find_replace (l, "@FUNC_LABEL@", sig.name);
+              l = rld::find_replace (l, "@FUNC_DATA_SIZE@", "FUNC_DATA_SIZE_" + sig.name);
+              l = rld::find_replace (l, "@FUNC_DATA_ENTRY_SIZE@", "FUNC_DATA_ENTRY_SIZE_" + sig.name);
+              l = rld::find_replace (l, "@FUNC_DATA_RET_SIZE@", "FUNC_DATA_RET_SIZE_" + sig.name);
+              c.write_line(l);
+            }
+
+            if (!generator_.lock_release.empty ())
+              c.write_line(generator_.lock_release);
+
             if (!generator_.exit_trace.empty ())
             {
               l = " " + generator_.exit_trace;
               l = rld::find_replace (l, "@FUNC_NAME@", '"' + sig.name + '"');
               l = rld::find_replace (l, "@FUNC_INDEX@", lss.str ());
               l = rld::find_replace (l, "@FUNC_LABEL@", sig.name);
+              l = rld::find_replace (l, "@FUNC_DATA_ENTRY_SIZE@", "FUNC_DATA_ENTRY_SIZE_" + sig.name);
+              l = rld::find_replace (l, "@FUNC_DATA_RET_SIZE@", "FUNC_DATA_RET_SIZE_" + sig.name);
               c.write_line(l);
             }
 
@@ -1220,7 +1273,8 @@ namespace rld
 
       std::stringstream ss;
 
-      ss << "const uint32_t __rtld_trace_" << label << "[" << bitmap_size << "] = " << std::endl
+      ss << "uint32_t __rtld_trace_" << label << "_size = " << traces.size() << ";" << std::endl
+         << "const uint32_t __rtld_trace_" << label << "[" << bitmap_size << "] = " << std::endl
          << "{" << std::endl;
 
       size_t   count = 0;
