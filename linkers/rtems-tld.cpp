@@ -268,6 +268,11 @@ namespace rld
       void generate_names (rld::process::tempfile& c);
 
       /**
+       * Generate the trace signature tables.
+       */
+      void generate_signatures (rld::process::tempfile& c);
+
+      /**
        * Generate the enabled trace bitmap.
        */
       void generate_enables (rld::process::tempfile& c);
@@ -276,6 +281,11 @@ namespace rld
        * Generate the triggered trace bitmap.
        */
       void generate_triggers (rld::process::tempfile& c);
+
+      /**
+       * Generate the functions.
+       */
+      void generate_functions (rld::process::tempfile& c);
 
       /**
        * Generate the trace functions.
@@ -289,6 +299,18 @@ namespace rld
                             const rld::strings&     names,
                             const std::string&      label,
                             const bool              global_set);
+
+      /**
+       * Function macro replace.
+       */
+      void macro_func_replace (std::string&       text,
+                               const signature&   sig,
+                               const std::string& index);
+
+      /**
+       * Find the function given a name.
+       */
+      const function& find_function (const std::string& name) const;
 
       /**
        * Get the traces.
@@ -918,7 +940,9 @@ namespace rld
         c.write_lines (generator_.defines);
         c.write_lines (generator_.headers);
         c.write_line ("");
+        generate_functions (c);
         generate_names (c);
+        generate_signatures (c);
         generate_enables (c);
         generate_triggers (c);
         c.write_line ("");
@@ -979,6 +1003,120 @@ namespace rld
     }
 
     void
+    tracer::generate_signatures (rld::process::tempfile& c)
+    {
+      const std::string opt = get_option ("gen-sigs");
+
+      if (opt == "disable")
+        return;
+
+      c.write_line ("");
+      c.write_line ("/*");
+      c.write_line (" * Signatures.");
+      c.write_line (" */");
+      c.write_line ("");
+      c.write_line ("typedef struct {");
+      c.write_line (" uint32_t          size;");
+      c.write_line (" const char* const type;");
+      c.write_line ("} __rtld_sig_arg;");
+      c.write_line ("");
+      c.write_line ("typedef struct {");
+      c.write_line (" uint32_t              argc;");
+      c.write_line (" const __rtld_sig_arg* args;");
+      c.write_line ("} __rtld_sig;");
+      c.write_line ("");
+
+      std::stringstream sss;
+
+      for (rld::strings::const_iterator ti = traces.begin ();
+           ti != traces.end ();
+           ++ti)
+      {
+        const std::string& trace = *ti;
+        bool               found = false;
+
+        for (functions::const_iterator fi = functions_.begin ();
+             !found && (fi != functions_.end ());
+             ++fi)
+        {
+          const function&            funcs = *fi;
+          signatures::const_iterator si = funcs.signatures_.find (trace);
+
+          if (si != funcs.signatures_.end ())
+          {
+            found = true;
+
+            const signature& sig = (*si).second;
+
+            size_t argc = 1 + (sig.args.size () == 0 ? 1 : sig.args.size ());
+
+            sss.str (std::string ());
+
+            sss << "const __rtld_sig_arg __rtld_sig_args_" << trace
+                << "[" << argc << "] =" << std::endl
+                << "{" << std::endl;
+
+            if (sig.has_ret ())
+              sss << "  { sizeof (" << sig.ret << "), \"" << sig.ret << "\" }," << std::endl;
+            else
+              sss << "  { 0, \"void\" }," << std::endl;
+
+            if (sig.has_args ())
+            {
+              for (size_t a = 0; a < sig.args.size (); ++a)
+              {
+                sss << "  { sizeof (" << sig.args[a] << "), \"" << sig.args[a] << "\" },"
+                    << std::endl;
+              }
+            }
+            else
+              sss << "  { 0, \"void\" }," << std::endl;
+
+            sss << "};" << std::endl;
+
+            c.write_line (sss.str ());
+          }
+        }
+
+        if (!found)
+          throw rld::error ("not found", "trace function: " + trace);
+      }
+
+      sss.str (std::string ());
+
+      sss << "const __rtld_sig __rtld_signatures[" << traces.size () << "] = "
+          << "{" << std::endl;
+
+      for (rld::strings::const_iterator ti = traces.begin ();
+           ti != traces.end ();
+           ++ti)
+      {
+        const std::string& trace = *ti;
+
+        for (functions::const_iterator fi = functions_.begin ();
+             fi != functions_.end ();
+             ++fi)
+        {
+          const function&            funcs = *fi;
+          signatures::const_iterator si = funcs.signatures_.find (trace);
+
+          if (si != funcs.signatures_.end ())
+          {
+            const signature& sig = (*si).second;
+            size_t argc = 1 + (sig.args.size () == 0 ? 1 : sig.args.size ());
+            sss << "  { " << argc << ", __rtld_sig_args_" << trace << " }," << std::endl;
+          }
+
+          break;
+        }
+      }
+
+      sss << "};" << std::endl;
+
+      c.write_line (sss.str ());
+    }
+
+    void
     tracer::generate_enables (rld::process::tempfile& c)
     {
       const std::string opt = get_option ("gen-enables");
@@ -1021,8 +1159,12 @@ namespace rld
     }
 
     void
-    tracer::generate_traces (rld::process::tempfile& c)
+    tracer::generate_functions (rld::process::tempfile& c)
     {
+      c.write_line ("/*");
+      c.write_line (" * Functions.");
+      c.write_line (" */");
+
       for (functions::const_iterator fi = functions_.begin ();
            fi != functions_.end ();
            ++fi)
@@ -1048,8 +1190,11 @@ namespace rld
           }
         }
       }
+    }
 
-      c.write_line ("");
+    void
+    tracer::generate_traces (rld::process::tempfile& c)
+    {
       c.write_line ("/*");
       c.write_line (" * Wrappers.");
       c.write_line (" */");
@@ -1157,12 +1302,7 @@ namespace rld
             if (!generator_.entry_alloc.empty ())
             {
               l = " " + generator_.entry_alloc;
-              l = rld::find_replace (l, "@FUNC_NAME@", '"' + sig.name + '"');
-              l = rld::find_replace (l, "@FUNC_INDEX@", lss.str ());
-              l = rld::find_replace (l, "@FUNC_LABEL@", sig.name);
-              l = rld::find_replace (l, "@FUNC_DATA_SIZE@", "FUNC_DATA_SIZE_" + sig.name);
-              l = rld::find_replace (l, "@FUNC_DATA_ENTRY_SIZE@", "FUNC_DATA_ENTRY_SIZE_" + sig.name);
-              l = rld::find_replace (l, "@FUNC_DATA_RET_SIZE@", "FUNC_DATA_RET_SIZE_" + sig.name);
+              macro_func_replace (l, sig, lss.str ());
               c.write_line(l);
             }
 
@@ -1172,12 +1312,7 @@ namespace rld
             if (!generator_.entry_trace.empty ())
             {
               l = " " + generator_.entry_trace;
-              l = rld::find_replace (l, "@FUNC_NAME@", '"' + sig.name + '"');
-              l = rld::find_replace (l, "@FUNC_INDEX@", lss.str ());
-              l = rld::find_replace (l, "@FUNC_LABEL@", sig.name);
-              l = rld::find_replace (l, "@FUNC_DATA_SIZE@", "FUNC_DATA_SIZE_" + sig.name);
-              l = rld::find_replace (l, "@FUNC_DATA_ENTRY_SIZE@", "FUNC_DATA_ENTRY_SIZE_" + sig.name);
-              l = rld::find_replace (l, "@FUNC_DATA_RET_SIZE@", "FUNC_DATA_RET_SIZE_" + sig.name);
+              macro_func_replace (l, sig, lss.str ());
               c.write_line(l);
             }
 
@@ -1219,12 +1354,7 @@ namespace rld
             if (!generator_.exit_alloc.empty ())
             {
               l = " " + generator_.exit_alloc;
-              l = rld::find_replace (l, "@FUNC_NAME@", '"' + sig.name + '"');
-              l = rld::find_replace (l, "@FUNC_INDEX@", lss.str ());
-              l = rld::find_replace (l, "@FUNC_LABEL@", sig.name);
-              l = rld::find_replace (l, "@FUNC_DATA_SIZE@", "FUNC_DATA_SIZE_" + sig.name);
-              l = rld::find_replace (l, "@FUNC_DATA_ENTRY_SIZE@", "FUNC_DATA_ENTRY_SIZE_" + sig.name);
-              l = rld::find_replace (l, "@FUNC_DATA_RET_SIZE@", "FUNC_DATA_RET_SIZE_" + sig.name);
+              macro_func_replace (l, sig, lss.str ());
               c.write_line(l);
             }
 
@@ -1234,11 +1364,7 @@ namespace rld
             if (!generator_.exit_trace.empty ())
             {
               l = " " + generator_.exit_trace;
-              l = rld::find_replace (l, "@FUNC_NAME@", '"' + sig.name + '"');
-              l = rld::find_replace (l, "@FUNC_INDEX@", lss.str ());
-              l = rld::find_replace (l, "@FUNC_LABEL@", sig.name);
-              l = rld::find_replace (l, "@FUNC_DATA_ENTRY_SIZE@", "FUNC_DATA_ENTRY_SIZE_" + sig.name);
-              l = rld::find_replace (l, "@FUNC_DATA_RET_SIZE@", "FUNC_DATA_RET_SIZE_" + sig.name);
+              macro_func_replace (l, sig, lss.str ());
               c.write_line(l);
             }
 
@@ -1315,6 +1441,19 @@ namespace rld
       c.write_line (ss.str ());
 
       c.write_line ("};");
+    }
+
+    void
+    tracer::macro_func_replace (std::string&      text,
+                               const signature&   sig,
+                               const std::string& index)
+    {
+      text = rld::find_replace (text, "@FUNC_NAME@", '"' + sig.name + '"');
+      text = rld::find_replace (text, "@FUNC_INDEX@", index);
+      text = rld::find_replace (text, "@FUNC_LABEL@", sig.name);
+      text = rld::find_replace (text, "@FUNC_DATA_SIZE@", "FUNC_DATA_SIZE_" + sig.name);
+      text = rld::find_replace (text, "@FUNC_DATA_ENTRY_SIZE@", "FUNC_DATA_ENTRY_SIZE_" + sig.name);
+      text = rld::find_replace (text, "@FUNC_DATA_RET_SIZE@", "FUNC_DATA_RET_SIZE_" + sig.name);
     }
 
     const rld::strings&
