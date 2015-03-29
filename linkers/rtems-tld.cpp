@@ -612,21 +612,24 @@ namespace rld
        * The following macros can be used in specific wrapper calls. The lists of
        * where you can use them is listed before. The macros are:
        *
-       * # @FUNC_NAME@      The trace function name as a quote C string.
-       * # @FUNC_INDEX@     The trace function index as a held in the sorted list
-       *                    of trace functions by teh trace linker. It can be
-       *                    used to index the `names`, `enables` and `triggers`
-       *                    data.
-       * # @FUNC_LABEL@     The trace function name as a C label that can be
-       *                     referenced. You can take the address of the label.
-       * # @FUNC_DATA_SIZE@ The size of the daya in bytes.
-       * # @ARG_NUM@        The argument number to the trace function.
-       * # @ARG_TYPE@       The type of the argument as a C string.
-       * # @ARG_SIZE@       The size of the type of the argument in bytes.
-       * # @ARG_LABEL@      The argument as a C label that can be referenced.
-       * # @RET_TYPE@       The type of the return value as a C string.
-       * # @RET_SIZE@       The size of the type of the return value in bytes.
-       * # @RET_LABEL@      The retrun value as a C label that can be referenced.
+       * # @FUNC_NAME@            The trace function name as a quote C string.
+       * # @FUNC_INDEX@           The trace function index as a held in the
+       *                          sorted list of trace functions by teh trace
+       *                          linker. It can be used to index the `names`,
+       *                          `enables` and `triggers` data.
+       * # @FUNC_LABEL@           The trace function name as a C label that can
+       *                          be referenced. You can take the address of
+       *                          the label.
+       * # @FUNC_DATA_SIZE@       The size of the data in bytes.
+       * # @FUNC_DATA_ENTRY_SIZE@ The size of the entry data in bytes.
+       * # @FUNC_DATA_RET_SIZE@   The size of the return data in bytes.
+       * # @ARG_NUM@              The argument number to the trace function.
+       * # @ARG_TYPE@             The type of the argument as a C string.
+       * # @ARG_SIZE@             The size of the type of the argument in bytes.
+       * # @ARG_LABEL@            The argument as a C label that can be referenced.
+       * # @RET_TYPE@             The type of the return value as a C string.
+       * # @RET_SIZE@             The size of the type of the return value in bytes.
+       * # @RET_LABEL@            The return value as a C label that can be referenced.
        *
        * The `buffer-alloc`, `entry-trace` and `exit-trace` can be transformed using
        *  the following  macros:
@@ -635,6 +638,8 @@ namespace rld
        * # @FUNC_INDEX@
        * # @FUNC_LABEL@
        * # @FUNC_DATA_SZIE@
+       * # @FUNC_DATA_ENTRY_SZIE@
+       * # @FUNC_DATA_EXIT_SZIE@
        *
        * The `arg-trace` can be transformed using the following macros:
        *
@@ -1018,12 +1023,12 @@ namespace rld
       c.write_line ("typedef struct {");
       c.write_line (" uint32_t          size;");
       c.write_line (" const char* const type;");
-      c.write_line ("} __rtld_sig_arg;");
+      c.write_line ("} __rtld_trace_sig_arg;");
       c.write_line ("");
       c.write_line ("typedef struct {");
-      c.write_line (" uint32_t              argc;");
-      c.write_line (" const __rtld_sig_arg* args;");
-      c.write_line ("} __rtld_sig;");
+      c.write_line (" uint32_t                    argc;");
+      c.write_line (" const __rtld_trace_sig_arg* args;");
+      c.write_line ("} __rtld_trace_sig;");
       c.write_line ("");
 
       std::stringstream sss;
@@ -1052,7 +1057,7 @@ namespace rld
 
             sss.str (std::string ());
 
-            sss << "const __rtld_sig_arg __rtld_sig_args_" << trace
+            sss << "const __rtld_trace_sig_arg __rtld_trace_sig_args_" << trace
                 << "[" << argc << "] =" << std::endl
                 << "{" << std::endl;
 
@@ -1084,7 +1089,7 @@ namespace rld
 
       sss.str (std::string ());
 
-      sss << "const __rtld_sig __rtld_signatures[" << traces.size () << "] = "
+      sss << "const __rtld_trace_sig __rtld_trace_signatures[" << traces.size () << "] = "
           << "{" << std::endl;
 
       for (rld::strings::const_iterator ti = traces.begin ();
@@ -1104,10 +1109,9 @@ namespace rld
           {
             const signature& sig = (*si).second;
             size_t argc = 1 + (sig.args.size () == 0 ? 1 : sig.args.size ());
-            sss << "  { " << argc << ", __rtld_sig_args_" << trace << " }," << std::endl;
+            sss << "  { " << argc << ", __rtld_trace_sig_args_" << trace << " }," << std::endl;
+            break;
           }
-
-          break;
         }
       }
 
