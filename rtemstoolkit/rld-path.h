@@ -144,6 +144,12 @@ namespace rld
      */
     void unlink (const std::string& path, bool not_present_error = false);
 
+    /**
+     * Return the system path as a set of strings.
+     *
+     * @param paths The split path paths.
+     */
+    void get_system_path (paths& paths);
   }
 }
 

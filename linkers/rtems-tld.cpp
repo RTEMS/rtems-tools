@@ -1497,7 +1497,7 @@ namespace rld
                          const std::string& trace,
                          const std::string& path)
     {
-      std::string sp = get_prefix ();
+      std::string sp = rld::get_prefix ();
 
       rld::path::path_join (sp, "share", sp);
       rld::path::path_join (sp, "rtems", sp);

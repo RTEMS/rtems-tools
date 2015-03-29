@@ -214,5 +214,23 @@ namespace rld
           throw rld::error ("Not found", "unlinking: " + path);
       }
     }
+
+    void
+    get_system_path (paths& paths)
+    {
+      const char* path = ::getenv ("PATH");
+      strings     ps;
+      rld::split (ps, path, RLD_PATHSTR_SEPARATOR);
+      if (ps.size ())
+      {
+        for (strings::iterator psi = ps.begin ();
+             psi != ps.end ();
+             ++psi)
+        {
+          if (check_directory (*psi))
+            paths.push_back (*psi);
+        }
+      }
+    }
   }
 }

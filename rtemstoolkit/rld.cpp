@@ -235,7 +235,25 @@ namespace rld
   void
   set_progname (const std::string& progname_)
   {
-    progname = rld::path::path_abs (progname_);
+    if (rld::path::check_file (progname_))
+      progname = rld::path::path_abs (progname_);
+    else
+    {
+      rld::path::paths paths;
+      rld::path::get_system_path (paths);
+      for (rld::path::paths::const_iterator path = paths.begin ();
+           path != paths.end ();
+           ++path)
+      {
+        std::string pp;
+        rld::path::path_join (*path, progname_, pp);
+        if (rld::path::check_file (pp))
+        {
+          progname = rld::path::path_abs (pp);
+          break;
+        }
+      }
+    }
   }
 
   const std::string
@@ -262,7 +280,7 @@ namespace rld
     std::string pp = get_program_path ();
     if (rld::path::basename (pp) == "bin")
       return rld::path::dirname (pp);
-    return "";
+    return pp;
   }
 
   void
