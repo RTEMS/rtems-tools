@@ -1,0 +1,75 @@
+diff -ur gdb-7.9.orig/sim/lm32/dv-lm32uart.c gdb-7.9/sim/lm32/dv-lm32uart.c
+--- gdb-7.9.orig/sim/lm32/dv-lm32uart.c	2015-02-19 05:58:08.000000000 -0600
++++ gdb-7.9/sim/lm32/dv-lm32uart.c	2015-04-01 17:21:09.078882329 -0500
+@@ -22,9 +22,6 @@
+ #include "hw-main.h"
+ #include "sim-assert.h"
+ 
+-#include <stdio.h>
+-#include <sys/time.h>
+-
+ struct lm32uart
+ {
+   unsigned base;		/* Base address of this UART.  */
+@@ -38,6 +35,8 @@
+   unsigned char lsr;
+   unsigned char msr;
+   unsigned char div;
++  int saved_count;
++  char saved_byte;
+   struct hw_event *event;
+ };
+ 
+@@ -83,6 +82,7 @@
+ static void
+ do_uart_tx_event (struct hw *me, void *data)
+ {
++  SIM_DESC sd = hw_system (me);
+   struct lm32uart *uart = hw_data (me);
+   char c;
+ 
+@@ -115,7 +115,8 @@
+       c &= 0x7f;
+       break;
+     }
+-  printf ("%c", c);
++  sim_io_write_stdout (sd, &c, 1);
++  sim_io_flush_stdout (sd);
+ }
+ 
+ static unsigned
+@@ -200,6 +201,7 @@
+ 			 void *dest,
+ 			 int space, unsigned_word base, unsigned nr_bytes)
+ {
++  SIM_DESC sd = hw_system (me);
+   struct lm32uart *uart = hw_data (me);
+   int uart_reg;
+   int value;
+@@ -214,7 +216,8 @@
+   switch (uart_reg)
+     {
+     case LM32_UART_RBR:
+-      value = getchar ();
++      value = uart->saved_byte;
++      --uart->saved_count;
+       uart->lsr &= ~LM32_UART_LSR_RX_RDY;
+       break;
+     case LM32_UART_IER:
+@@ -231,12 +234,10 @@
+       break;
+     case LM32_UART_LSR:
+       /* Check to see if any data waiting in stdin.  */
+-      FD_ZERO (&fd);
+-      FD_SET (fileno (stdin), &fd);
+-      tv.tv_sec = 0;
+-      tv.tv_usec = 1;
+-      if (select (fileno (stdin) + 1, &fd, NULL, NULL, &tv))
+-	uart->lsr |= LM32_UART_LSR_RX_RDY;
++      if (uart->saved_count <= 0)
++        uart->saved_count = sim_io_poll_read (sd, 0/*STDIN*/,
++                                              &uart->saved_byte, 1);
++      uart->lsr |= uart->saved_count ? LM32_UART_LSR_RX_RDY : 0;
+       value = uart->lsr;
+       break;
+     case LM32_UART_MSR:
