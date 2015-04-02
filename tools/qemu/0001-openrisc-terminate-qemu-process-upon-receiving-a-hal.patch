@@ -1,0 +1,32 @@
+From 851489a73e99e156baee267d6162e31abfaa66a9 Mon Sep 17 00:00:00 2001
+From: Hesham ALMatary <heshamelmatary@gmail.com>
+Date: Thu, 2 Apr 2015 17:47:25 +0100
+Subject: [PATCH] openrisc: terminate qemu process upon receiving a halt
+ signal.
+
+or1ksim simulator currently handles "l.nop 0xC" instruction as
+a halt signal. Do the same for QEMU.
+
+Signed-off-by: Hesham ALMatary  <heshamelmatary@gmail.com>
+---
+ target-openrisc/translate.c | 5 +++++
+ 1 file changed, 5 insertions(+)
+
+diff --git a/target-openrisc/translate.c b/target-openrisc/translate.c
+index dc76789..5fa8ede 100644
+--- a/target-openrisc/translate.c
++++ b/target-openrisc/translate.c
+@@ -750,6 +750,11 @@ static void dec_misc(DisasContext *dc, uint32_t insn)
+         switch (op1) {
+         case 0x01:    /* l.nop */
+             LOG_DIS("l.nop %d\n", I16);
++
++            if(I16 == 0xC) {
++                exit(0);
++            }
++
+             break;
+
+         default:
+--
+2.1.0
