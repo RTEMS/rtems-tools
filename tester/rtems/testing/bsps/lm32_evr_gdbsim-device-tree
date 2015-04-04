@@ -1,0 +1,8 @@
+/lm32cpu
+/lm32uart/reg 0x80006000 0x100
+/lm32uart > int int0 /lm32cpu
+/lm32timer/reg 0x80002000 0x80
+/lm32timer > int int1 /lm32cpu
+# GDB simulator only supports one instance of the timer
+#/lm32timer/reg 0x8000a000 0x80
+#/lm32timer > int int3 /lm32cpu
