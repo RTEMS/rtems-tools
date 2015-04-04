@@ -42,7 +42,7 @@
 #
 
 #
-# The SIS BSP
+# The PSIM BSP
 #
 [global]
 bsp:                 none,    none,     'psim'

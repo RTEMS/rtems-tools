@@ -42,7 +42,7 @@
 #
 
 #
-# The SIS BSP
+# The PSIM BSP
 #
 # Warning: This is not working cleanly on MacOS. I am not sure why. The gdb version does work.
 #
