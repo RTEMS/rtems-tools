@@ -42,12 +42,12 @@
 #
 
 #
-# The or1ksim BSP
+# The generic_or1k BSP
 #
 [global]
-bsp:                      none,    none,     'or1ksim'
+bsp:                      none,    none,     'generic_or1k'
 
-[or1ksim]
-or1ksim:      none,    none,  '%{_rtscripts}/qemu.cfg'
-or1ksim_arch: none,    none,  'or32'
-or1ksim_opts: none,    none,  '%{qemu_opts_base} %{qemu_opts_no_net} -m 32M'
+[generic_or1k]
+generic_or1k:      none,    none,  '%{_rtscripts}/qemu.cfg'
+generic_or1k_arch: none,    none,  'or32'
+generic_or1k_opts: none,    none,  '%{qemu_opts_base} %{qemu_opts_no_net} -m 32M'
