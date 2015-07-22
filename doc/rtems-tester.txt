@@ -30,10 +30,10 @@ executed and the output returned to the host where it is analyzed to determine
 the test result. The RTEMS Tester provides a framework to do this.
 
 Running all the RTEMS tests on your target is very important. It provides you
-with a traceable record your RTEMS version and its tools are working at the
-level the RTEMS development team expect when releasing RTEMS. Being able to
-easily run the tests and verify the results is critical in maintaining a high
-standard.
+with a traceable record showing that your RTEMS version and its tools are
+working at the level the RTEMS development team expect when releasing
+RTEMS. Being able to easily run the tests and verify the results is critical in
+maintaining a high standard.
 
 The RTEMS Tester contains:
 
@@ -53,7 +53,7 @@ License
 -------
 
 The RTEMS Tester is part of the RTEMS Tools Project. The code is released under
-the OSI approved The BSD 2-Clause License. It is free to use and we encourage
+the OSI approved "The BSD 2-Clause License". It is free to use and we encourage
 this, including on operating systems other than RTEMS.
 
 The code and command line tools must retain the same names and always reference
@@ -65,7 +65,7 @@ Quick Start
 The quick start will show you how to run the test suite for a BSP. It will
 explain how to get the RTEMS Tester, set it up and run the tests for the SIS
 BSP. It assumes you have a valid SPARC tool chain and have built the SIS BSP
-version of RTEMS. 4.11.
+version of RTEMS 4.11.
 
 Setup
 ~~~~~
@@ -78,7 +78,7 @@ $ mkdir -p development/rtems/test
 $ cd development/rtems/test
 -------------------------------------------------------------
 
-First fetch the RTEMS tester from the RTEMS Tools repository::
+First fetch the RTEMS tester from the RTEMS Tools repository:
 
 -------------------------------------------------------------
 $ git clone git://git.rtems.org/rtems-tools.git rtems-tools.git
