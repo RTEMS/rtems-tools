@@ -104,7 +104,7 @@ class command_line(object):
             '--keep-going':                 'Do not stop on an error.',
             '--jobs=[0..n,none,half,full]': 'Run with specified number of jobs, default: num CPUs.',
             '--macros file[,file]':         'Macro format files to load after the defaults',
-            '--log file':                   'Log file where all build out is written too',
+            '--log file':                   'Log file where all build output is written to',
         }
         self.opts = { 'params' : [] }
         self.command_path = command_path
