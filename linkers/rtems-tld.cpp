@@ -171,6 +171,7 @@ namespace rld
     struct generator
     {
       std::string  name;            /**< The name of this wrapper. */
+      std::string  lock_model;      /**< The lock model if provided, default "alloc". */
       std::string  lock_local;      /**< Code template to declare a local lock variable. */
       std::string  lock_acquire;    /**< The lock acquire if provided. */
       std::string  lock_release;    /**< The lock release if provided. */
@@ -595,6 +596,7 @@ namespace rld
        * # ret-trace    The wrapper call made to log the return value if the funciton
        *                is being traced. This call is made without the lock being held
        *                if a lock is defined.
+       * # lock-model   The wrapper code lock model. Models are 'alloc', or capture'.
        * # lock-local   The wrapper code to declare a local lock variable.
        * # lock-acquire The wrapper code to acquire the lock.
        * # lock-release The wrapper code to release the lock.
@@ -665,6 +667,8 @@ namespace rld
       parse (config, section, "defines",     "define", defines);
       parse (config, section, "code-blocks", "code",   code, false);
 
+      if (section.has_record ("lock-model"))
+        lock_model = rld::dequote (section.get_record_item ("lock-model"));
       if (section.has_record ("lock-local"))
         lock_local = rld::dequote (section.get_record_item ("lock-local"));
       if (section.has_record ("lock-acquire"))
@@ -1310,7 +1314,8 @@ namespace rld
               c.write_line(l);
             }
 
-            if (!generator_.lock_release.empty ())
+            if (!generator_.lock_release.empty () &&
+                (generator_.lock_model.empty () || (generator_.lock_model == "alloc")))
               c.write_line(generator_.lock_release);
 
             if (!generator_.entry_trace.empty ())
@@ -1333,6 +1338,9 @@ namespace rld
                 c.write_line(l);
               }
             }
+
+            if (!generator_.lock_release.empty () && generator_.lock_model == "trace")
+              c.write_line(generator_.lock_release);
 
             l.clear ();
 
@@ -1362,7 +1370,8 @@ namespace rld
               c.write_line(l);
             }
 
-            if (!generator_.lock_release.empty ())
+            if (!generator_.lock_release.empty () &&
+                (generator_.lock_model.empty () || (generator_.lock_model == "alloc")))
               c.write_line(generator_.lock_release);
 
             if (!generator_.exit_trace.empty ())
@@ -1379,8 +1388,13 @@ namespace rld
               l = rld::find_replace (l, "@RET_SIZE@", "sizeof(" + sig.ret + ')');
               l = rld::find_replace (l, "@RET_LABEL@", "ret");
               c.write_line(l);
-              c.write_line(" return ret;");
             }
+
+            if (!generator_.lock_release.empty ())
+              c.write_line(generator_.lock_release);
+
+            if (sig.has_ret ())
+              c.write_line(" return ret;");
 
             c.write_line("}");
           }
