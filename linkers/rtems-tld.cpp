@@ -1234,59 +1234,57 @@ namespace rld
 
             c.write_line("");
 
-            if (sig.has_args () || (sig.has_ret () && !generator_.ret_trace.empty ()))
+            std::string ds;
+            std::string des;
+            std::string drs;
+            bool        ds_added = false;
+            bool        des_added = false;
+            bool        drs_added = false;
+            ds  = "#define FUNC_DATA_SIZE_" + sig.name + " (";
+            des = "#define FUNC_DATA_ENTRY_SIZE_" + sig.name + " (";
+            drs = "#define FUNC_DATA_RET_SIZE_" + sig.name + " (";
+
+            if (sig.has_args ())
             {
-              std::string ds;
-              std::string des;
-              std::string drs;
-              bool        ds_added = false;
-              bool        des_added = false;
-              bool        drs_added = false;
-              ds  = "#define FUNC_DATA_SIZE_" + sig.name + " (";
-              des = "#define FUNC_DATA_ENTRY_SIZE_" + sig.name + " (";
-              drs = "#define FUNC_DATA_RET_SIZE_" + sig.name + " (";
-              if (sig.has_args ())
-              {
-                for (size_t a = 0; a < sig.args.size (); ++a)
-                {
-                  if (ds_added)
-                    ds += " + ";
-                  else
-                    ds_added = true;
-                  if (des_added)
-                    des += " + ";
-                  else
-                    des_added = true;
-                  ds += "sizeof(" + sig.args[a] + ')';
-                  des += "sizeof(" + sig.args[a] + ')';
-                }
-              }
-              if (sig.has_ret () && !generator_.ret_trace.empty ())
+              for (size_t a = 0; a < sig.args.size (); ++a)
               {
                 if (ds_added)
                   ds += " + ";
                 else
                   ds_added = true;
-                if (drs_added)
-                  drs += " + ";
+                if (des_added)
+                  des += " + ";
                 else
-                  drs_added = true;
-                ds += "sizeof(" + sig.ret + ')';
-                drs += "sizeof(" + sig.ret + ')';
+                  des_added = true;
+                ds += "sizeof(" + sig.args[a] + ')';
+                des += "sizeof(" + sig.args[a] + ')';
               }
-              if (!ds_added)
-                ds += '0';
-              ds += ')';
-              if (!des_added)
-                des += '0';
-              des += ')';
-              if (!drs_added)
-                drs += '0';
-              drs += ')';
-              c.write_line(ds);
-              c.write_line(des);
-              c.write_line(drs);
             }
+            if (sig.has_ret () && !generator_.ret_trace.empty ())
+            {
+              if (ds_added)
+                ds += " + ";
+              else
+                ds_added = true;
+              if (drs_added)
+                drs += " + ";
+              else
+                drs_added = true;
+              ds += "sizeof(" + sig.ret + ')';
+              drs += "sizeof(" + sig.ret + ')';
+            }
+            if (!ds_added)
+              ds += '0';
+            ds += ')';
+            if (!des_added)
+              des += '0';
+            des += ')';
+            if (!drs_added)
+              drs += '0';
+            drs += ')';
+            c.write_line(ds);
+            c.write_line(des);
+            c.write_line(drs);
 
             c.write_line(sig.decl () + ";");
             c.write_line(sig.decl ("__real_") + ";");
