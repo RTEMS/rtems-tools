@@ -33,18 +33,28 @@
 #
 
 import errno
-import fcntl
 import os
 import threading
 import time
 
-import stty
+#
+# Not available on Windows. Not sure what this means.
+#
+if os.name != 'nt':
+    import fcntl
+    import stty
+else:
+    fcntl = None
+    stty = None
 
 def save():
-    return stty.save()
+    if stty is not None:
+        return stty.save()
+    return None
 
 def restore(attributes):
-    stty.restore(attributes)
+    if attributes is not None and stty is not None:
+        stty.restore(attributes)
 
 class console(object):
     '''RTEMS Testing console base.'''
@@ -91,16 +101,18 @@ class tty(console):
         super(tty, self).__del__()
         if self._tracing():
             print ':: tty close', self.dev
-        fcntl.fcntl(me.tty.fd, fcntl.F_SETFL,
-                    fcntl.fcntl(me.tty.fd, fcntl.F_GETFL) & ~os.O_NONBLOCK)
+        if fcntl is not None:
+            fcntl.fcntl(me.tty.fd, fcntl.F_SETFL,
+                        fcntl.fcntl(me.tty.fd, fcntl.F_GETFL) & ~os.O_NONBLOCK)
         self.close()
 
     def open(self):
         def _readthread(me, x):
             if self._tracing():
                 print ':: tty runner started', self.dev
-            fcntl.fcntl(me.tty.fd, fcntl.F_SETFL,
-                        fcntl.fcntl(me.tty.fd, fcntl.F_GETFL) | os.O_NONBLOCK)
+            if fcntl is not None:
+                fcntl.fcntl(me.tty.fd, fcntl.F_SETFL,
+                            fcntl.fcntl(me.tty.fd, fcntl.F_GETFL) | os.O_NONBLOCK)
             line = ''
             while me.running:
                 time.sleep(0.05)

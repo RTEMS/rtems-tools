@@ -35,7 +35,6 @@
 import os
 import Queue
 import sys
-import termios
 import threading
 
 from rtemstoolkit import error

@@ -60,12 +60,12 @@ def build(bld):
                   'rt/stty.py',
                   'rt/test.py',
                   'rt/version.py'],
-        install_path = '${PREFIX}/share/rtems/rt')
+        install_path = '${PREFIX}/share/rtems/tester')
     bld(features = 'py',
         source = ['rt/pygdb/__init__.py',
                   'rt/pygdb/mi_parser.py',
                   'rt/pygdb/spark.py'],
-        install_path = '${PREFIX}/share/rtems/rt/pygdb')
+        install_path = '${PREFIX}/share/rtems/tester')
     bld.install_files('${PREFIX}/bin', ['rtems-test'], chmod = 0o755)
 
     #

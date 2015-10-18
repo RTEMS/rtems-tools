@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2011 Chris Johns <chrisj@rtems.org>
+ * Copyright (c) 2011, 2015 Chris Johns <chrisj@rtems.org>
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@
 
 #include <errno.h>
 #include <stdint.h>
+#include <io.h>
 #include <windows.h>
 
 /*

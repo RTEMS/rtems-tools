@@ -33,7 +33,8 @@ import sys, os
 base = os.path.dirname(os.path.abspath(sys.argv[0]))
 parent = os.path.dirname(base)
 rtems = os.path.join(parent, 'share', 'rtems')
-sys.path = [base, parent, rtems] + sys.path
+tester = os.path.join(parent, 'share', 'rtems', 'tester')
+sys.path = [parent, rtems, tester] + sys.path
 
 try:
     import rt.test
