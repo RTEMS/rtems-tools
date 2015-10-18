@@ -274,7 +274,7 @@ class command_line(object):
 
     def help(self):
         print '%s: [options] [args]' % (self.command_name)
-        print 'RTEMS Tools Project (c) 2012-2014 Chris Johns'
+        print 'RTEMS Tools Project (c) 2012-2015 Chris Johns'
         print 'Options and arguments:'
         opts = self.long_opts_help.keys()
         if self.optargs:
