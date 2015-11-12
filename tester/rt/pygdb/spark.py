@@ -60,7 +60,7 @@ class GenericScanner:
 		return string.join(rv, '|')
 
 	def error(self, s, pos):
-		print "Lexical error at position %s" % pos
+		print("Lexical error at position %s" % pos)
 		raise SystemExit
 
 	def position(self, newpos=None):
@@ -86,7 +86,7 @@ class GenericScanner:
 
 	def t_default(self, s):
 		r'( . | \n )+'
-		print "Specification error: unmatched input"
+		print("Specification error: unmatched input")
 		raise SystemExit
 
 #
@@ -303,7 +303,7 @@ class GenericParser:
 		return None
 
 	def error(self, token):
-		print "Syntax error at or near `%s' token" % token
+		print("Syntax error at or near `%s' token" % token)
 		raise SystemExit
 
 	def parse(self, tokens):
@@ -349,7 +349,8 @@ class GenericParser:
 		#
 		return self._NULLABLE == sym[0:len(self._NULLABLE)]
 
-	def skip(self, (lhs, rhs), pos=0):
+	def skip(self, lhs_rhs, pos=0):
+		lhs, rhs = lhs_rhs
 		n = len(rhs)
 		while pos < n:
 			if not self.isnullable(rhs[pos]):
@@ -612,7 +613,7 @@ class GenericParser:
 			rule = self.ambiguity(self.newrules[nt])
 		else:
 			rule = self.newrules[nt][0]
-		#print rule
+		#print(rule)
 
 		rhs = rule[1]
 		attr = [None] * len(rhs)
@@ -631,7 +632,7 @@ class GenericParser:
 		rule = choices[0]
 		if len(choices) > 1:
 			rule = self.ambiguity(choices)
-		#print rule
+		#print(rule)
 
 		rhs = rule[1]
 		attr = [None] * len(rhs)
@@ -668,7 +669,7 @@ class GenericParser:
 			sortlist.append((len(rhs), name))
 			name2index[name] = i
 		sortlist.sort()
-		list = map(lambda (a,b): b, sortlist)
+		list = list(map(lambda a,b: b, sortlist))
 		return rules[name2index[self.resolve(list)]]
 
 	def resolve(self, list):
@@ -833,15 +834,15 @@ class GenericASTMatcher(GenericParser):
 
 def _dump(tokens, sets, states):
 	for i in range(len(sets)):
-		print 'set', i
+		print('set', i)
 		for item in sets[i]:
-			print '\t', item
+			print('\t', item)
 			for (lhs, rhs), pos in states[item[0]].items:
-				print '\t\t', lhs, '::=',
-				print string.join(rhs[:pos]),
-				print '.',
-				print string.join(rhs[pos:])
+				print('\t\t', lhs, '::=',)
+				print(string.join(rhs[:pos]),)
+				print('.',)
+				print(string.join(rhs[pos:]))
 		if i < len(tokens):
 			print
-			print 'token', str(tokens[i])
+			print('token', str(tokens[i]))
 			print

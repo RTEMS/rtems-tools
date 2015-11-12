@@ -42,7 +42,7 @@ def str():
     return '%d.%d.%d'% (major, minor, revision)
 
 if __name__ == '__main__':
-    print 'major = %d' % (major)
-    print 'minor = %d' % (minor)
-    print 'revision = %d' % (revision)
-    print 'Version: %s' % (str())
+    print('major = %d' % (major))
+    print('minor = %d' % (minor))
+    print('revision = %d' % (revision))
+    print('Version: %s' % (str()))

@@ -89,4 +89,4 @@ class control:
         return val
 
     def show(self):
-        print self.to_string()
+        print(self.to_string())

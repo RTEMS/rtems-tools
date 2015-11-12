@@ -72,7 +72,7 @@ class tty:
             raise error.general('dev not found: %s' % (dev))
         try:
             self.fd = open(dev, 'rw')
-        except IOError, ioe:
+        except IOError as ioe:
             raise error.general('opening tty dev: %s: %s' % (dev, ioe))
         except:
             raise error.general('opening tty dev: %s: unknown' % (dev))
@@ -558,9 +558,9 @@ if __name__ == "__main__":
         t.control('CRTSCTS', False)
         t.vmin(1)
         t.vtime(2)
-        print t
+        print(t)
         t.set('B115200,~BRKINT,IGNBRK,IGNCR,~ICANON,~ISIG,~IEXTEN,~ECHO,CLOCAL,~CRTSCTS')
-        print t
+        print(t)
         t.on()
         while True:
             c = t.fd.read(1)

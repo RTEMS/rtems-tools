@@ -73,9 +73,9 @@ class stats:
         return self.stat['free_size']
 
     def show(self):
-        print '  Instance:',self.inst()
-        print '     Avail:',self.avail()
-        print '      Free:',self.free()
+        print('  Instance:',self.inst())
+        print('     Avail:',self.avail())
+        print('      Free:',self.free())
 
     # ToDo : incorporate others
 
@@ -105,9 +105,9 @@ class control:
         fi = self.first()
         la = self.last()
 
-        print '     First:', fi.val()
-        print '      Last:', la.val()
+        print('     First:', fi.val())
+        print('      Last:', la.val())
 
         stats = self.stat()
-        print '    stats:'
+        print('    stats:')
         stats.show()

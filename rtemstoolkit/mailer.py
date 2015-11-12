@@ -75,7 +75,7 @@ class mail:
                 mrc = open(mailrc, 'r')
                 lines = mrc.readlines()
                 mrc.close()
-            except IOError, err:
+            except IOError as err:
                 raise error.general('error reading: %s' % (mailrc))
             for l in lines:
                 l = _clean(l)
@@ -104,9 +104,9 @@ class mail:
         try:
             s = smtplib.SMTP(self.smtp_host())
             s.sendmail(from_addr, [to_addr], msg)
-        except smtplib.SMTPException, se:
+        except smtplib.SMTPException as se:
             raise error.general('sending mail: %s' % (str(se)))
-        except socket.error, se:
+        except socket.error as se:
             raise error.general('sending mail: %s' % (str(se)))
 
 if __name__ == '__main__':
@@ -115,6 +115,6 @@ if __name__ == '__main__':
     append_options(optargs)
     opts = options.load(sys.argv, optargs = optargs, defaults = 'defaults.mc')
     m = mail(opts)
-    print 'From: %s' % (m.from_address())
-    print 'SMTP Host: %s' % (m.smtp_host())
+    print('From: %s' % (m.from_address()))
+    print('SMTP Host: %s' % (m.smtp_host()))
     m.send(m.from_address(), 'Test mailer.py', 'This is a test')

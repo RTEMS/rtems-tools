@@ -76,12 +76,12 @@ class gdb(object):
 
     def _lock(self, msg):
         if self.lock_trace:
-            print '|[   LOCK:%s ]|' % (msg)
+            print('|[   LOCK:%s ]|' % (msg))
         self.lock.acquire()
 
     def _unlock(self, msg):
         if self.lock_trace:
-            print '|] UNLOCK:%s [|' % (msg)
+            print('|] UNLOCK:%s [|' % (msg))
         self.lock.release()
 
     def _mi_lock(self):
@@ -92,7 +92,7 @@ class gdb(object):
 
     def _put(self, text):
         if self.trace:
-            print ')))', text
+            print(')))', text)
         self.commands.put(text)
 
     def _input_commands(self):
@@ -100,11 +100,11 @@ class gdb(object):
             return False
         try:
             if self.trace:
-                print '... input empty ', self.input.empty()
+                print('... input empty ', self.input.empty())
             if self.input.empty():
                 line = self.commands.get(block = False)
                 if self.trace:
-                    print '+++', line
+                    print('+++', line)
                 self.input.put(line)
         except:
             pass
@@ -113,12 +113,12 @@ class gdb(object):
     def _reader(self, line):
         self._lock('_reader')
         if self.trace:
-            print '<<<', line
+            print('<<<', line)
         try:
             self.lc += 1
             if line.startswith('(gdb)'):
                 if self.trace:
-                    print '^^^ (gdb)'
+                    print('^^^ (gdb)')
                 if not self._input_commands():
                     self.gdb_expect()
                     self._input_commands()
@@ -138,7 +138,7 @@ class gdb(object):
                     self._unlock('_open')
                 line = self.input.get(timeout = 0.5)
                 if self.trace:
-                    print '>>> input: queue=%d' % (self.input.qsize()), line
+                    print('>>> input: queue=%d' % (self.input.qsize()), line)
             except Queue.Empty:
                 return True
             if line is None:
@@ -146,10 +146,10 @@ class gdb(object):
             return line + os.linesep
         except:
             if self.trace:
-                print 'writer exception'
+                print('writer exception')
             pass
         if self.trace:
-            print 'writer closing'
+            print('writer closing')
         return False
 
     def _timeout(self):
@@ -206,7 +206,7 @@ class gdb(object):
             self.gdb_console('gdb: %s' % (' '.join(cmds)))
             ec, proc = self.process.open(cmds, timeout = (timeout, self._timeout))
             if self.trace:
-                print 'gdb done', ec
+                print('gdb done', ec)
             if ec > 0:
                 raise error.general('gdb exec: %s: %s' % (cmds[0], os.strerror(ec)))
         except:
@@ -219,7 +219,7 @@ class gdb(object):
 
     def gdb_expect(self):
         if self.trace:
-            print '}}} gdb-expect'
+            print('}}} gdb-expect')
         if self.process and not self.running and self.script is not None:
             if self.script_line == len(self.script):
                 self._put(None)
@@ -238,12 +238,12 @@ class gdb(object):
             self._mi_lock()
             try:
                 if self.mi_trace:
-                    print 'mi-data:', lines
+                    print('mi-data:', lines)
                 rec = pygdb.mi_parser.process(lines)
             finally:
                 self._mi_unlock()
             if self.mi_trace:
-                print 'mi-rec:', rec
+                print('mi-rec:', rec)
             if rec.record_type == 'result':
                 if rec.type == 'result':
                     if rec.class_ == 'error':
@@ -255,12 +255,12 @@ class gdb(object):
                 elif rec.type == 'exec':
                     if rec.class_ == 'running':
                         if self.trace:
-                            print '*** running'
+                            print('*** running')
                         self._put('')
                         self.running = True
                     elif rec.class_ == 'stopped':
                         if self.trace:
-                            print '*** stopped'
+                            print('*** stopped')
                         self.running = False
                         #self._put('-data-list-register-values')
                 elif rec.type == 'breakpoint':
@@ -283,13 +283,13 @@ class gdb(object):
                     if last_lf >= 0:
                         lines = self.output_buffer[:last_lf]
                         if self.trace:
-                            print '/// console output'
+                            print('/// console output')
                         for line in lines.splitlines():
                             self.output(line)
                         self.output_buffer = self.output_buffer[last_lf + 1:]
         except:
             if self.trace:
-                print '/// console output'
+                print('/// console output')
             for line in lines.splitlines():
                 self.output(line)
 
@@ -297,9 +297,9 @@ if __name__ == "__main__":
     stdtty = console.save()
     try:
         def output(text):
-            print ']', text
+            print(']', text)
         def gdb_console(text):
-            print '>', text
+            print('>', text)
         script = ['target sim']
         if len(sys.argv) > 1:
             executable = sys.argv[1]

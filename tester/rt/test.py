@@ -118,7 +118,7 @@ class test_run(object):
 
     def reraise(self):
         if self.result is not None:
-            raise self.result[0], self.result[1], self.result[2]
+            raise (self.result[0], self.result[1], self.result[2])
 
     def kill(self):
         if self.test:
@@ -157,9 +157,9 @@ def report_finished(reports, report_mode, reporting, finished, job_trace):
         if len(reported):
             del reported[:]
             if job_trace:
-                print '}} threading:', threading.active_count()
+                print('}} threading:', threading.active_count())
                 for t in threading.enumerate():
-                    print '}} ', t.name
+                    print('}} ', t.name)
     return reporting
 
 def _job_trace(tst, msg, total, exe, active, reporting):
@@ -302,20 +302,20 @@ def run(command_path = None):
         end_time = datetime.datetime.now()
         log.notice('Average test time: %s' % (str((end_time - start_time) / total)))
         log.notice('Testing time     : %s' % (str(end_time - start_time)))
-    except error.general, gerr:
-        print gerr
+    except error.general as gerr:
+        print(gerr)
         sys.exit(1)
-    except error.internal, ierr:
-        print ierr
+    except error.internal as ierr:
+        print(ierr)
         sys.exit(1)
-    except error.exit, eerr:
+    except error.exit:
         sys.exit(2)
     except KeyboardInterrupt:
         if opts is not None and opts.find_arg('--stacktrace'):
-            print '}} dumping:', threading.active_count()
+            print('}} dumping:', threading.active_count())
             for t in threading.enumerate():
-                print '}} ', t.name
-            print stacktraces.trace()
+                print('}} ', t.name)
+            print(stacktraces.trace())
         log.notice('abort: user terminated')
         killall(tests)
         sys.exit(1)

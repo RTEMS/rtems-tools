@@ -57,9 +57,9 @@ class exit(error):
 if __name__ == '__main__':
     try:
         raise general('a general error')
-    except general, gerr:
-        print 'caught:', gerr
+    except general as gerr:
+        print('caught:', gerr)
     try:
         raise internal('an internal error')
-    except internal, ierr:
-        print 'caught:', ierr
+    except internal as ierr:
+        print('caught:', ierr)

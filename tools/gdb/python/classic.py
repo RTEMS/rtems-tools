@@ -147,29 +147,29 @@ class semaphore:
 
     def show(self, from_tty):
         if self.object_control.id() != 0:
-            print '     Name:', self.object_control.name()
-            print '       Id: 0x%08x (@ 0x%08x)' % (self.object_control.id(),
-                                                   self.reference)
-            print '     Attr:', self.attr.to_string()
+            print('     Name:', self.object_control.name())
+            print('       Id: 0x%08x (@ 0x%08x)' % (self.object_control.id(),
+                                                   self.reference))
+            print('     Attr:', self.attr.to_string())
             if self.attr.test('semaphore-type', 'bin-sema') or \
                self.attr.test('semaphore-type', 'simple-bin-sema'):
                 core_mutex = mutex.control(self.object['Core_control']['mutex'])
-                print '  Nesting:', core_mutex.nest_count()
-                print '   Holder:',
+                print('  Nesting:', core_mutex.nest_count())
+                print('   Holder:',)
                 holder = core_mutex.holder()
                 if holder:
-                    print '%s (id 0x%08x)' % (holder.brief(), holder.id())
+                    print('%s (id 0x%08x)' % (holder.brief(), holder.id()))
                 else:
-                    print 'no holder (unlocked)'
+                    print('no holder (unlocked)')
                 wait_queue = core_mutex.wait_queue()
                 tasks = wait_queue.tasks()
-                print '    Queue: len = %d, state = %s' % (len(tasks),
-                                                           wait_queue.state())
+                print('    Queue: len = %d, state = %s' % (len(tasks),
+                                                           wait_queue.state()))
                 if len(tasks) > 0:
-                    print '    Tasks:'
-                    print '    Name (c:current, r:real), (id)'
+                    print('    Tasks:')
+                    print('    Name (c:current, r:real), (id)')
                     for t in range(0, len(tasks)):
-                        print '      ', tasks[t].brief(), ' (%08x)' % (tasks[t].id())
+                        print('      ', tasks[t].brief(), ' (%08x)' % (tasks[t].id()))
                 return True
         return False
 
@@ -189,21 +189,21 @@ class task:
             cpu = self.task.executing()
             if cpu == -1:
                 cpu = 'not executing'
-            print '         Id:', '0x%08x (@ 0x%08x)' % (self.task.id(),
-                                                         self.task.reference)
-            print '       Name:', self.task.name()
-            print ' Active CPU:', cpu
-            print '      State:', self.task.current_state()
-            print '    Current:', self.task.current_priority()
-            print '       Real:', self.task.real_priority()
-            print '    Preempt:', self.task.preemptible()
-            print '   T Budget:', self.task.cpu_time_budget()
-            print '       Time:', self.task.cpu_time_used()
-            print '  Resources:', self.task.resource_count()
-            print '  Regsters:'
+            print('         Id:', '0x%08x (@ 0x%08x)' % (self.task.id(),
+                                                         self.task.reference))
+            print('       Name:', self.task.name())
+            print(' Active CPU:', cpu)
+            print('      State:', self.task.current_state())
+            print('    Current:', self.task.current_priority())
+            print('       Real:', self.task.real_priority())
+            print('    Preempt:', self.task.preemptible())
+            print('   T Budget:', self.task.cpu_time_budget())
+            print('       Time:', self.task.cpu_time_used())
+            print('  Resources:', self.task.resource_count())
+            print('  Regsters:')
             for name in self.regs.names():
                 val = self.regs.get(name)
-                print '    %20s: %08x (%d)' % (name, val, val)
+                print('    %20s: %08x (%d)' % (name, val, val))
             return True
         return False
 
@@ -222,8 +222,8 @@ class message_queue:
         self.core_control = supercore.message_queue(self.object['message_queue'])
 
     def show(self, from_tty):
-        print '     Name:', self.object_control.name()
-        print '     Attr:', self.attr.to_string()
+        print('     Name:', self.object_control.name())
+        print('     Attr:', self.attr.to_string())
 
         self.core_control.show()
 
@@ -237,7 +237,7 @@ class timer:
         self.watchdog = watchdog.control(self.object['Ticker'])
 
     def show(self, from_tty):
-        print '     Name:', self.object_control.name()
+        print('     Name:', self.object_control.name())
         self.watchdog.show()
 
 class partition:
@@ -255,11 +255,11 @@ class partition:
 
     def show(self, from_tty):
         # ToDo: the printing still somewhat crude.
-        print '     Name:', self.object_control.name()
-        print '     Attr:', self.attr.to_string()
-        print '   Length:', self.length
-        print '   B Size:', self.buffer_size
-        print ' U Blocks:', self.used_blocks
+        print('     Name:', self.object_control.name())
+        print('     Attr:', self.attr.to_string())
+        print('   Length:', self.length)
+        print('   B Size:', self.buffer_size)
+        print(' U Blocks:', self.used_blocks)
 
 class region:
     "prints a classic region"
@@ -273,10 +273,10 @@ class region:
         self.heap = heaps.control(self.object['Memory'])
 
     def show(self, from_tty):
-        print '     Name:', self.object_control.name()
-        print '     Attr:', self.attr.to_string()
+        print('     Name:', self.object_control.name())
+        print('     Attr:', self.attr.to_string())
         helper.tasks_printer_routine(self.wait_queue)
-        print '   Memory:'
+        print('   Memory:')
         self.heap.show()
 
 class barrier:
@@ -290,12 +290,12 @@ class barrier:
         self.core_b_control = supercore.barrier_control(self.object['Barrier'])
 
     def show(self,from_tty):
-        print '     Name:',self.object_control.name()
-        print '     Attr:',self.attr.to_string()
+        print('     Name:',self.object_control.name())
+        print('     Attr:',self.attr.to_string())
 
         if self.attr.test('barrier','barrier-auto-release'):
             max_count = self.core_b_control.max_count()
-            print 'Aut Count:', max_count
+            print('Aut Count:', max_count)
 
-        print '  Waiting:',self.core_b_control.waiting_threads()
+        print('  Waiting:',self.core_b_control.waiting_threads())
         helper.tasks_printer_routine(self.core_b_control.tasks())

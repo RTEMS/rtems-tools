@@ -155,16 +155,16 @@ def run():
         _opts = options.load(args = sys.argv)
         log.notice('RTEMS Source Builder - Check, v%s' % (version.str()))
         if host_setup(_opts):
-            print 'Environment is ok'
+            print('Environment is ok')
         else:
-            print 'Environment is not correctly set up'
-    except error.general, gerr:
-        print gerr
+            print('Environment is not correctly set up')
+    except error.general as gerr:
+        print(gerr)
         sys.exit(1)
-    except error.internal, ierr:
-        print ierr
+    except error.internal as ierr:
+        print (ierr)
         sys.exit(1)
-    except error.exit, eerr:
+    except error.exit:
         pass
     except KeyboardInterrupt:
         log.notice('abort: user terminated')

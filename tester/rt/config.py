@@ -185,7 +185,7 @@ class file(config.file):
     def _realtime_trace(self, text):
         if self.realtime_trace:
             for l in text:
-                print ' '.join(l)
+                print(' '.join(l))
 
     def run(self):
         self.load(self.name)

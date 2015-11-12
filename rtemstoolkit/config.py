@@ -48,10 +48,10 @@ try:
     import options
     import path
 except KeyboardInterrupt:
-    print 'user terminated'
+    print('user terminated')
     sys.exit(1)
 except:
-    print 'error: unknown application load error'
+    print('error: unknown application load error')
     sys.exit(1)
 
 def _check_bool(value):
@@ -137,14 +137,14 @@ class file(object):
            outter level. Nested levels will need to split with futher calls.'''
         trace_me = False
         if trace_me:
-            print '------------------------------------------------------'
+            print('------------------------------------------------------')
         macros = []
         nesting = []
         has_braces = False
         c = 0
         while c < len(s):
             if trace_me:
-                print 'ms:', c, '"' + s[c:] + '"', has_braces, len(nesting), nesting
+                print('ms:', c, '"' + s[c:] + '"', has_braces, len(nesting), nesting)
             #
             # We need to watch for shell type variables or the form '${var}' because
             # they can upset the brace matching.
@@ -192,9 +192,9 @@ class file(object):
                             macros.append(s[macro_start:c + 1].strip())
             c += 1
         if trace_me:
-            print 'ms:', macros
+            print('ms:', macros)
         if trace_me:
-            print '-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-='
+            print('-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=')
         return macros
 
     def _shell(self, line):
@@ -750,7 +750,7 @@ class file(object):
         try:
             log.trace('config: %s: _open: %s' % (self.init_name, path.host(configname)))
             config = open(path.host(configname), 'r')
-        except IOError, err:
+        except IOError as err:
             raise error.general('error opening config file: %s' % (path.host(configname)))
         self.configpath += [configname]
 
@@ -840,13 +840,13 @@ def run():
         log.trace('config: count %d' % (len(opts.config_files())))
         for config_file in opts.config_files():
             s = file(config_file, opts)
-            print s
+            print(s)
             del s
-    except error.general, gerr:
-        print gerr
+    except error.general as gerr:
+        print(gerr)
         sys.exit(1)
-    except error.internal, ierr:
-        print ierr
+    except error.internal as ierr:
+        print(ierr)
         sys.exit(1)
     except KeyboardInterrupt:
         log.notice('abort: user terminated')

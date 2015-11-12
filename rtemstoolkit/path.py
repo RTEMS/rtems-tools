@@ -122,24 +122,24 @@ def mkdir(path):
         if windows:
             try:
                 os.makedirs(host(path))
-            except IOError, err:
+            except IOError:
                 raise error.general('cannot make directory: %s' % (path))
-            except OSError, err:
+            except OSError:
                 raise error.general('cannot make directory: %s' % (path))
-            except WindowsError, err:
+            except WindowsError:
                 raise error.general('cannot make directory: %s' % (path))
         else:
             try:
                 os.makedirs(host(path))
-            except IOError, err:
+            except IOError:
                 raise error.general('cannot make directory: %s' % (path))
-            except OSError, err:
+            except OSError:
                 raise error.general('cannot make directory: %s' % (path))
 
 def removeall(path):
 
     def _onerror(function, path, excinfo):
-        print 'removeall error: (%s) %s' % (excinfo, path)
+        print('removeall error: (%s) %s' % (excinfo, path))
 
     path = host(path)
     shutil.rmtree(path, onerror = _onerror)
@@ -208,13 +208,13 @@ def copy_tree(src, dst):
                 copy_tree(srcname, dstname)
             else:
                 shutil.copy2(srcname, dstname)
-        except shutil.Error, err:
+        except shutil.Error as err:
             raise error.general('copying tree: %s -> %s: %s' % (src, dst, str(err)))
-        except EnvironmentError, why:
+        except EnvironmentError as why:
             raise error.general('copying tree: %s -> %s: %s' % (srcname, dstname, str(why)))
     try:
         shutil.copystat(src, dst)
-    except OSError, why:
+    except OSError as why:
         ok = False
         if windows:
             if WindowsError is not None and isinstance(why, WindowsError):
@@ -223,17 +223,17 @@ def copy_tree(src, dst):
             raise error.general('copying tree: %s -> %s: %s' % (src, dst, str(why)))
 
 if __name__ == '__main__':
-    print host('/a/b/c/d-e-f')
-    print host('//a/b//c/d-e-f')
-    print shell('/w/x/y/z')
-    print basename('/as/sd/df/fg/me.txt')
-    print dirname('/as/sd/df/fg/me.txt')
-    print join('/d', 'g', '/tyty/fgfg')
+    print(host('/a/b/c/d-e-f'))
+    print(host('//a/b//c/d-e-f'))
+    print(shell('/w/x/y/z'))
+    print(basename('/as/sd/df/fg/me.txt'))
+    print(dirname('/as/sd/df/fg/me.txt'))
+    print(join('/d', 'g', '/tyty/fgfg'))
     windows = True
-    print host('/a/b/c/d-e-f')
-    print host('//a/b//c/d-e-f')
-    print shell('/w/x/y/z')
-    print shell('w:/x/y/z')
-    print basename('x:/sd/df/fg/me.txt')
-    print dirname('x:/sd/df/fg/me.txt')
-    print join('s:/d/', '/g', '/tyty/fgfg')
+    print(host('/a/b/c/d-e-f'))
+    print(host('//a/b//c/d-e-f'))
+    print(shell('/w/x/y/z'))
+    print(shell('w:/x/y/z'))
+    print(basename('x:/sd/df/fg/me.txt'))
+    print(dirname('x:/sd/df/fg/me.txt'))
+    print(join('s:/d/', '/g', '/tyty/fgfg'))

@@ -93,7 +93,7 @@ def __private():
 
 		def t_default(self, s):
 			r'( . | \n )+'
-			raise Exception, "Specification error: unmatched input for '%s'" % s
+			raise Exception("Specification error: unmatched input for '%s'" % s)
 
 		def __unescape(self, s):
 			s = re.sub(r'\\r', r'\r', s)
@@ -167,8 +167,8 @@ def __private():
 
 		def error(self, token, i=0, tokens=None):
 			if i > 2:
-				print '%s %s %s %s' % (tokens[i-3], tokens[i-2], tokens[i-1], tokens[i])
-			raise Exception, "Syntax error at or near %d:'%s' token" % (i, token)
+				print('%s %s %s %s' % (tokens[i-3], tokens[i-2], tokens[i-1], tokens[i]))
+			raise Exception("Syntax error at or near %d:'%s' token" % (i, token))
 
 	class GdbMiInterpreter(spark.GenericASTTraversal):
 		def __init__(self, ast):
@@ -190,7 +190,7 @@ def __private():
 		def n_result(self, node):
 			# result ::= variable = value
 			node.value = { node[0].value: node[2].value }
-			#print 'result: %s' % node.value
+			#print('result: %s' % node.value)
 
 		def n_tuple(self, node):
 			if len(node) == 2:
@@ -205,7 +205,7 @@ def __private():
 				for result in node[2].value:
 					for n, v in result.items():
 						if node.value.has_key(n):
-							#print '**********list conversion: [%s] %s -> %s' % (n, node.value[n], v)
+							#print('**********list conversion: [%s] %s -> %s' % (n, node.value[n], v))
 							old = node.value[n]
 							if not isinstance(old, list):
 								node.value[n] = [ node.value[n] ]
@@ -213,8 +213,8 @@ def __private():
 						else:
 							node.value[n] = v
 			else:
-				raise Exception, 'Invalid tuple'
-			#print 'tuple: %s' % node.value
+				raise Exception('Invalid tuple')
+			#print('tuple: %s' % node.value)
 
 		def n_list(self, node):
 			if len(node) == 2:
@@ -230,7 +230,7 @@ def __private():
 				#list ::= [ result result_list ]
 				#list ::= { value }
 				#list ::= { value value_list }
-			#print 'list %s' % node.value
+			#print('list %s' % node.value)
 
 		def n_value_list(self, node):
 			if len(node) == 2:
@@ -247,7 +247,7 @@ def __private():
 			else:
 				# result_list ::= , result result_list
 				node.value = [ node[1].value ] + node[2].value
-			#print 'result_list: %s' % node.value
+			#print('result_list: %s' % node.value)
 
 		def n_result_record(self, node):
 			node.value = node[0].value
@@ -257,7 +257,7 @@ def __private():
 			elif len(node) == 2:
 				# result_record ::= result_header nl
 				pass
-			#print 'result_record: %s' % (node.value)
+			#print('result_record: %s' % (node.value))
 
 		def n_result_header(self, node):
 			if len(node) == 3:
@@ -284,7 +284,7 @@ def __private():
 				'value': node[1].value,
 				'record_type': 'stream'
 			}
-			#print 'stream_record: %s' % node.value
+			#print('stream_record: %s' % node.value)
 
 		def n_record_list(self, node):
 			if len(node) == 1:
@@ -293,10 +293,10 @@ def __private():
 			elif len(node) == 2:
 				# record_list ::= generic_record record_list
 				node.value = [ node[0].value ] + node[1].value
-			#print 'record_list: %s' % node.value
+			#print('record_list: %s' % node.value)
 
 		#def default(self, node):
-			#print 'default: ' + node.type
+			#print('default: ' + node.type)
 
 	class GdbDynamicObject:
 		def __init__(self, dict_):
@@ -363,7 +363,7 @@ def parse(tokens):
 
 def process(input):
 	tokens = scan(input)
-        ast = parse(tokens)
+	ast = parse(tokens)
 	__the_interpreter(ast)
 	return __the_output(ast.value)
 
@@ -373,9 +373,9 @@ if __name__ == '__main__':
 			print
 			for token in tokens:
 				if token.value:
-					print token.type + ': ' + token.value
+					print(token.type + ': ' + token.value)
 				else:
-					print token.type
+					print(token.type)
 
 		def run_test(test):
 			lines = test.splitlines()
@@ -386,7 +386,7 @@ if __name__ == '__main__':
 				ast = parse(tokens)
 				__the_interpreter(ast)
 				output = __the_output(ast.value)
-				print output
+				print(output)
 
 		x = '"No symbol table is loaded.  Use the \\"file\\" command."'
 		m = re.match('\".*?(?<![\\\\])\"', x)

@@ -50,13 +50,13 @@ class time_of_day:
         return bool(self.tod['is_set'])
 
     def show(self):
-        print ' Time Of Day'
+        print(' Time Of Day')
 
         if not self.is_set():
-            print ' Application has not set a TOD'
+            print(' Application has not set a TOD')
 
-        print '      Now:', self.now()
-        print '   Uptime:', self.timer()
+        print('      Now:', self.now())
+        print('   Uptime:', self.timer())
 
 
 class message_queue:

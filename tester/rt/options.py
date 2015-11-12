@@ -114,13 +114,13 @@ def run(args):
         log.notice(str(_opts))
         log.notice('Defaults:')
         log.notice(str(_opts.defaults))
-    except error.general, gerr:
-        print gerr
+    except error.general as gerr:
+        print(gerr)
         sys.exit(1)
-    except error.internal, ierr:
-        print ierr
+    except error.internal as ierr:
+        print(ierr)
         sys.exit(1)
-    except error.exit, eerr:
+    except error.exit:
         pass
     except KeyboardInterrupt:
         log.notice('abort: user terminated')

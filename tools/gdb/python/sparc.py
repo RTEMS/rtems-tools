@@ -114,29 +114,29 @@ class register:
         return self.psr(self.reg['psr'])
 
     def show(self):
-        print '         Global Regs:',
-        print ' [',
+        print('         Global Regs:',)
+        print(' [',)
         for i in self.global_regs():
-            print str(i)+',',
-        print '\b\b ]'
+            print(str(i)+',',)
+        print('\b\b ]')
 
-        print '          Local Regs:',
-        print ' [',
+        print('          Local Regs:',)
+        print(' [',)
         for i in self.local_regs():
-            print str(i)+',',
-        print '\b\b ]'
+            print(str(i)+',',)
+        print('\b\b ]')
 
-        print '             In Regs:',
-        print ' [',
+        print('             In Regs:',)
+        print(' [',)
         for i in self.in_regs():
-            print str(i)+',',
-        print '\b\b ]'
+            print(str(i)+',',)
+        print('\b\b ]')
 
-        print '            Out Regs:',
-        print ' [',
+        print('            Out Regs:',)
+        print(' [',)
         for i in self.out_regs():
-            print str(i)+',',
-        print '\b\b ]'
+            print(str(i)+',',)
+        print('\b\b ]')
 
         sr = self.status()
-        print sr.to_string()
+        print(sr.to_string())

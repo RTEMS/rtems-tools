@@ -78,15 +78,15 @@ class rtems_object(gdb.Command):
                 val = gdb.parse_and_eval(num)
                 num = int(val)
             except:
-                print 'error: "%s" is not a number' % (num)
+                print('error: "%s" is not a number' % (num))
                 return True
             id = objects.ident(num)
             if not id.valid():
-                print 'Invalid object id'
+                print('Invalid object id')
                 return True
 
-            print 'API:%s Class:%s Node:%d Index:%d Id:%08X' % \
-                (id.api(), id._class(), id.node(), id.index(), id.value())
+            print('API:%s Class:%s Node:%d Index:%d Id:%08X' % \
+                (id.api(), id._class(), id.node(), id.index(), id.value()))
             objectname = id.api() + '/' + id._class()
 
             obj = objects.information.object(id).dereference()
@@ -124,32 +124,32 @@ class rtems_index(gdb.Command):
                     index = int(val, base = 0)
                     if index < maximum:
                         if index < minimum_id.index():
-                            print "error: %s is not an index (min is %d)" % (val,
-                                                                             minimum_id.index())
+                            print("error: %s is not an index (min is %d)" % (val,
+                                                                             minimum_id.index()))
                             return
                     else:
                         index = objects.ident(index).index()
                 except ValueError:
-                    print "error: %s is not an index" % (val)
+                    print("error: %s is not an index" % (val))
                     return
                 try:
                     obj = objects.information.object_return(self.api,
                                                             self._class,
                                                             index)
                 except IndexError:
-                    print "error: index %s is invalid" % (index)
+                    print("error: index %s is invalid" % (index))
                     return
                 instance = self.instance(obj)
                 valid = instance.show(from_tty)
             objects.information.invalidate()
         else:
-            print '-' * 70
-            print ' %s: %d [%08x -> %08x]' % (objects.information.name(self.api, self._class),
-                                             maximum, minimum_id.value(), maximum_id.value())
+            print('-' * 70)
+            print(' %s: %d [%08x -> %08x]' % (objects.information.name(self.api, self._class),
+                                             maximum, minimum_id.value(), maximum_id.value()))
             valid = True
             for index in range(minimum_id.index(), minimum_id.index() + maximum):
                 if valid:
-                    print '-' * 70
+                    print('-' * 70)
                 valid = self.invoke(str(index), from_tty)
         return valid
 
@@ -249,7 +249,7 @@ class rtems_tod(gdb.Command):
 
     def invoke(self, arg, from_tty):
         if arg:
-            print "warning: commad takes no arguments!"
+            print("warning: commad takes no arguments!")
         obj = objects.information.object_return(self.api, self._class)
         instance = supercore.time_of_day(obj)
         instance.show()
@@ -271,15 +271,15 @@ class rtems_watchdog_chain(gdb.Command):
         inst = chains.control(obj)
 
         if inst.empty():
-            print '     error: empty chain'
+            print('     error: empty chain')
             return
 
         nd = inst.first()
         i = 0
         while not nd.null():
             wd = watchdog.control(nd.cast('Watchdog_Control'))
-            print ' #'+str(i)
-            print wd.to_string()
+            print(' #'+str(i))
+            print(wd.to_string())
             nd.next()
             i += 1
 

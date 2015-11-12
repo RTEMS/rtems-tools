@@ -37,4 +37,4 @@ def get_architure():
 
 _cmds = rtems.create()
 
-print 'RTEMS GDB Support'
+print('RTEMS GDB Support')

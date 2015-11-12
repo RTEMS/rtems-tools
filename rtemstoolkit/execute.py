@@ -127,7 +127,7 @@ class execute(object):
             block and return None or False if this thread is to exit and True if this
             is a timeout check."""
             if trace_threads:
-                print 'executte:_writethread: start'
+                print('executte:_writethread: start')
             try:
                 while True:
                     lines = input()
@@ -142,14 +142,14 @@ class execute(object):
                         break
             except:
                 if trace_threads:
-                    print 'executte:_writethread: exception'
+                    print('executte:_writethread: exception')
                 pass
             try:
                 fh.close()
             except:
                 pass
             if trace_threads:
-                print 'executte:_writethread: finished'
+                print('executte:_writethread: finished')
 
         def _readthread(exe, fh, out, prefix = ''):
             """Read from a file handle and write to the output handler
@@ -167,7 +167,7 @@ class execute(object):
                         log.flush()
 
             if trace_threads:
-                print 'executte:_readthread: start'
+                print('executte:_readthread: start')
             count = 0
             line = ''
             try:
@@ -187,7 +187,7 @@ class execute(object):
             except:
                 raise
                 if trace_threads:
-                    print 'executte:_readthread: exception'
+                    print('executte:_readthread: exception')
                 pass
             try:
                 fh.close()
@@ -196,7 +196,7 @@ class execute(object):
             if len(line):
                 _output_line(line, exe, prefix, out, 100)
             if trace_threads:
-                print 'executte:_readthread: finished'
+                print('executte:_readthread: finished')
 
         def _timerthread(exe, interval, function):
             """Timer thread is used to timeout a process if no output is
@@ -345,7 +345,7 @@ class execute(object):
             exit_code = self._capture(command, proc, timeout)
             if self.verbose:
                 log.output('exit: ' + str(exit_code))
-        except OSError, ose:
+        except OSError as ose:
             exit_code = ose.errno
             if self.verbose:
                 log.output('exit: ' + str(ose))
@@ -453,7 +453,7 @@ class execute(object):
         self.lock.acquire()
         try:
             if self.proc is not None:
-                print "sending sig"
+                print("sending sig")
                 self.proc.send_signal(signal)
         except:
             raise
@@ -517,8 +517,8 @@ if __name__ == "__main__":
         ec, proc = e.command(commands['pipe'][0], commands['pipe'][1],
                              capture = False, stdin = subprocess.PIPE)
         if ec == 0:
-            print 'piping input into ' + commands['pipe'][0] + ': ' + \
-                  commands['pipe'][2]
+            print('piping input into ' + commands['pipe'][0] + ': ' + \
+                  commands['pipe'][2])
             proc.stdin.write(commands['pipe'][2])
             proc.stdin.close()
             e.capture(proc)
@@ -544,10 +544,10 @@ if __name__ == "__main__":
                                    ('date %0 %1', ['-u', '+%d %D %S'])]
     commands['unix']['pipe'] = ('grep', 'hello', 'hello world')
 
-    print arg_list('cmd a1 a2 "a3 is a string" a4')
-    print arg_list('cmd b1 b2 "b3 is a string a4')
-    print arg_subst(['nothing', 'xx-%0-yyy', '%1', '%2-something'],
-                    ['subst0', 'subst1', 'subst2'])
+    print(arg_list('cmd a1 a2 "a3 is a string" a4'))
+    print(arg_list('cmd b1 b2 "b3 is a string a4'))
+    print(arg_subst(['nothing', 'xx-%0-yyy', '%1', '%2-something'],
+                    ['subst0', 'subst1', 'subst2']))
 
     e = execute(error_prefix = 'ERR: ', verbose = True)
     if sys.platform == "win32":

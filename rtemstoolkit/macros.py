@@ -239,7 +239,7 @@ class macros:
 
         trace_me = False
         if trace_me:
-            print '[[[[]]]] parsing macros'
+            print('[[[[]]]] parsing macros')
         orig_macros = copy.copy(self.macros)
         map = 'global'
         lc = 0
@@ -254,8 +254,8 @@ class macros:
             l_remaining = l
             for c in l:
                 if trace_me:
-                    print ']]]]]]]] c:%s(%d) s:%s t:"%s" m:%r M:%s' % \
-                        (c, ord(c), state, token, macro, map)
+                    print(']]]]]]]] c:%s(%d) s:%s t:"%s" m:%r M:%s' % \
+                        (c, ord(c), state, token, macro, map))
                 l_remaining = l_remaining[1:]
                 if c is '#' and not state.startswith('value'):
                     break
@@ -378,7 +378,7 @@ class macros:
                     mc.close()
                     self.files += [n]
                     return
-                except IOError, err:
+                except IOError as err:
                     pass
         raise error.general('opening macro file: %s' % \
                                 (path.host(self.expand(name))))
@@ -490,23 +490,23 @@ class macros:
 if __name__ == "__main__":
     import copy
     import sys
-    print inspect.getfile(macros)
+    print(inspect.getfile(macros))
     m = macros(name = 'defaults.mc')
     d = copy.copy(m)
     m['test1'] = 'something'
     if d.has_key('test1'):
-        print 'error: copy failed.'
+        print('error: copy failed.')
         sys.exit(1)
     m.parse("[test]\n" \
             "test1: none, undefine, ''\n" \
             "name:  none, override, 'pink'\n")
-    print 'set test:', m.set_read_map('test')
+    print('set test:', m.set_read_map('test'))
     if m['name'] != 'pink':
-        print 'error: override failed. name is %s' % (m['name'])
+        print('error: override failed. name is %s' % (m['name']))
         sys.exit(1)
     if m.has_key('test1'):
-        print 'error: map undefine failed.'
+        print('error: map undefine failed.')
         sys.exit(1)
-    print 'unset test:', m.unset_read_map('test')
-    print m
-    print m.keys()
+    print('unset test:', m.unset_read_map('test'))
+    print(m)
+    print(m.keys())

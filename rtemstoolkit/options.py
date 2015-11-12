@@ -273,9 +273,9 @@ class command_line(object):
         return indent
 
     def help(self):
-        print '%s: [options] [args]' % (self.command_name)
-        print 'RTEMS Tools Project (c) 2012-2015 Chris Johns'
-        print 'Options and arguments:'
+        print('%s: [options] [args]' % (self.command_name))
+        print('RTEMS Tools Project (c) 2012-2015 Chris Johns')
+        print('Options and arguments:')
         opts = self.long_opts_help.keys()
         if self.optargs:
             opts += self.optargs.keys()
@@ -287,7 +287,7 @@ class command_line(object):
                 h = self.optargs[o]
             else:
                 raise error.general('invalid help data: %s' %(o))
-            print '%-*s : %s' % (indent, o, h)
+            print('%-*s : %s' % (indent, o, h))
         raise error.exit()
 
     def process(self):
@@ -580,13 +580,13 @@ def run(args):
         log.notice(str(opts))
         log.notice('Defaults:')
         log.notice(str(opts.defaults))
-    except error.general, gerr:
-        print gerr
+    except error.general as gerr:
+        print(gerr)
         sys.exit(1)
-    except error.internal, ierr:
-        print ierr
+    except error.internal as ierr:
+        print(ierr)
         sys.exit(1)
-    except error.exit, eerr:
+    except error.exit:
         pass
     except KeyboardInterrupt:
         _notice(opts, 'abort: user terminated')

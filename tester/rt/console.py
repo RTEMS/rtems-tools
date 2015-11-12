@@ -100,7 +100,7 @@ class tty(console):
     def __del__(self):
         super(tty, self).__del__()
         if self._tracing():
-            print ':: tty close', self.dev
+            print(':: tty close', self.dev)
         if fcntl is not None:
             fcntl.fcntl(me.tty.fd, fcntl.F_SETFL,
                         fcntl.fcntl(me.tty.fd, fcntl.F_GETFL) & ~os.O_NONBLOCK)
@@ -109,7 +109,7 @@ class tty(console):
     def open(self):
         def _readthread(me, x):
             if self._tracing():
-                print ':: tty runner started', self.dev
+                print(':: tty runner started', self.dev)
             if fcntl is not None:
                 fcntl.fcntl(me.tty.fd, fcntl.F_SETFL,
                             fcntl.fcntl(me.tty.fd, fcntl.F_GETFL) | os.O_NONBLOCK)
@@ -118,7 +118,7 @@ class tty(console):
                 time.sleep(0.05)
                 try:
                     data = me.tty.fd.read()
-                except IOError, ioe:
+                except IOError as ioe:
                     if ioe.errno == errno.EAGAIN:
                         continue
                     raise
@@ -133,9 +133,9 @@ class tty(console):
                         me.output(line)
                         line = ''
             if self._tracing():
-                print ':: tty runner finished', self.dev
+                print(':: tty runner finished', self.dev)
         if self._tracing():
-            print ':: tty open', self.dev
+            print(':: tty open', self.dev)
         self.tty = stty.tty(self.dev)
         self.tty.set(self.setup)
         self.tty.on()

@@ -34,9 +34,9 @@ import gdb
 
 def tasks_printer_routine(wait_queue):
     tasks = wait_queue.tasks()
-    print '    Queue: len = %d, state = %s' % (len(tasks),wait_queue.state())
+    print('    Queue: len = %d, state = %s' % (len(tasks),wait_queue.state()))
     for t in range(0, len(tasks)):
-        print '      ', tasks[t].brief(), ' (%08x)' % (tasks[t].id())
+        print('      ', tasks[t].brief(), ' (%08x)' % (tasks[t].id()))
 
 def type_from_value(val):
     type = val.type;
