@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2014, 2015 Chris Johns (chrisj@rtems.org)
+# Copyright 2014-2015 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -28,20 +28,33 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+import os.path
+
 subdirs = ['rtemstoolkit',
            'linkers',
            'tester',
            'tools/gdb/python']
+
+def get_version(ctx):
+    release = '4.12.not_released'
+    if os.path.exists('VERSION'):
+        try:
+            with open('VERSION') as v:
+                release = v.readline().strip()
+            v.close()
+        except:
+            ctx.fatal('cannot access the VERSION file')
+    last_dot = release.rfind('.')
+    if last_dot == -1:
+        ctx.fatal('invalid VERSION file')
+    revision = release[0:last_dot]
+    return revision, release
 
 def recurse(ctx):
     for sd in subdirs:
         ctx.recurse(sd)
 
 def options(ctx):
-    ctx.add_option('--rtems-version',
-                   default = '4.11',
-                   dest='rtems_version',
-                   help = 'Set the RTEMS version')
     ctx.add_option('--c-opts',
                    default = '-O2',
                    dest='c_opts',
@@ -69,12 +82,14 @@ def configure(ctx):
         ctx.load("doxygen", tooldir = 'waf-tools')
     except:
         pass
+    ctx.env.RTEMS_VERSION, ctx.env.RTEMS_RELEASE = get_version(ctx)
     ctx.env.C_OPTS = ctx.options.c_opts.split(',')
-    ctx.env.RTEMS_VERSION = ctx.options.rtems_version
     check_options(ctx, ctx.options.host)
     recurse(ctx)
 
 def build(ctx):
+    if os.path.exists('VERSION'):
+        ctx.install_files('${PREFIX}/share/rtems/rtemstoolkit', ['VERSION'])
     recurse(ctx)
 
 def install(ctx):

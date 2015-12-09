@@ -33,10 +33,6 @@
 #
 import sys
 
-version_major = 1
-version_minor = 0
-version_revision = 0
-
 def options(opt):
     opt.load('compiler_c')
     opt.load('compiler_cxx')
@@ -45,8 +41,6 @@ def configure(conf):
     conf.load('compiler_c')
     conf.load('compiler_cxx')
 
-    conf.env.C_OPTS = conf.options.c_opts.split(',')
-    conf.env.RTEMS_VERSION = conf.options.rtems_version
     conf.write_config_header('config.h')
 
 def build(bld):
@@ -85,11 +79,18 @@ def build(bld):
     modules = ['rld', 'elf', 'iberty']
 
     #
+    # The list of defines
+    #
+    defines = ['HAVE_CONFIG_H=1',
+               'RTEMS_VERSION=\"%s\"' % (bld.env.RTEMS_VERSION),
+               'RTEMS_RELEASE=\"%s\"' % (bld.env.RTEMS_RELEASE)]
+
+    #
     # Build the linker.
     #
     bld.program(target = 'rtems-ld',
                 source = ['rtems-ld.cpp'],
-                defines = ['HAVE_CONFIG_H=1', 'RTEMS_VERSION=' + bld.env.RTEMS_VERSION],
+                defines = defines,
                 includes = ['.'] + conf['includes'],
                 cflags = conf['cflags'] + conf['warningflags'],
                 cxxflags = conf['cxxflags'] + conf['warningflags'],
@@ -101,7 +102,7 @@ def build(bld):
     #
     bld.program(target = 'rtems-ra',
                 source = ['rtems-ra.cpp'],
-                defines = ['HAVE_CONFIG_H=1', 'RTEMS_VERSION=' + bld.env.RTEMS_VERSION],
+                defines = defines,
                 includes = ['.'] + conf['includes'],
                 cflags = conf['cflags'] + conf['warningflags'],
                 cxxflags = conf['cxxflags'] + conf['warningflags'],
@@ -113,7 +114,7 @@ def build(bld):
     #
     bld.program(target = 'rtems-tld',
                 source = ['rtems-tld.cpp'],
-                defines = ['HAVE_CONFIG_H=1', 'RTEMS_VERSION=' + bld.env.RTEMS_VERSION],
+                defines = defines,
                 includes = ['.'] + conf['includes'],
                 cflags = conf['cflags'] + conf['warningflags'],
                 cxxflags = conf['cxxflags'] + conf['warningflags'],
@@ -139,7 +140,7 @@ def build(bld):
     #
     bld.program(target = 'rtems-syms',
                 source = ['rtems-syms.cpp'],
-                defines = ['HAVE_CONFIG_H=1', 'RTEMS_VERSION=' + bld.env.RTEMS_VERSION],
+                defines = defines,
                 includes = ['.'] + conf['includes'],
                 cflags = conf['cflags'] + conf['warningflags'],
                 cxxflags = conf['cxxflags'] + conf['warningflags'],
@@ -151,7 +152,7 @@ def build(bld):
     #
     bld.program(target = 'rtems-rap',
                 source = ['rtems-rapper.cpp'],
-                defines = ['HAVE_CONFIG_H=1', 'RTEMS_VERSION=' + bld.env.RTEMS_VERSION],
+                defines = defines,
                 includes = ['.'] + conf['includes'],
                 cflags = conf['cflags'] + conf['warningflags'],
                 cxxflags = conf['cxxflags'] + conf['warningflags'],

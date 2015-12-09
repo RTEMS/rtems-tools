@@ -39,13 +39,13 @@ from rtemstoolkit import error
 from rtemstoolkit import log
 from rtemstoolkit import path
 from rtemstoolkit import stacktraces
+from rtemstoolkit import version
 
 import bsps
 import config
 import console
 import options
 import report
-import version
 import fnmatch
 
 class test(object):
@@ -201,7 +201,7 @@ def run(command_path = None):
         opts = options.load(sys.argv,
                             optargs = optargs,
                             command_path = command_path)
-        log.notice('RTEMS Testing - Tester, v%s' % (version.str()))
+        log.notice('RTEMS Testing - Tester, %s' % (version.str()))
         if opts.find_arg('--list-bsps'):
             bsps.list(opts)
         exe_filter = opts.find_arg('--filter')

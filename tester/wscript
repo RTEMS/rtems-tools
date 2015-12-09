@@ -42,6 +42,8 @@ def configure(conf):
     recurse(conf)
     conf.load('python')
     conf.check_python_version((2,6,6))
+    conf.env['PYO'] = 0
+    conf.env['PYC'] = 0
 
 def build(bld):
     recurse(bld)
@@ -60,12 +62,12 @@ def build(bld):
                   'rt/stty.py',
                   'rt/test.py',
                   'rt/version.py'],
-        install_path = '${PREFIX}/share/rtems/tester')
+        install_path = '${PREFIX}/share/rtems')
     bld(features = 'py',
         source = ['rt/pygdb/__init__.py',
                   'rt/pygdb/mi_parser.py',
                   'rt/pygdb/spark.py'],
-        install_path = '${PREFIX}/share/rtems/tester')
+        install_path = '${PREFIX}/share/rtems')
     bld.install_files('${PREFIX}/bin', ['rtems-test'], chmod = 0o755)
 
     #

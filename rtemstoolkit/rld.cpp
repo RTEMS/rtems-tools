@@ -32,10 +32,6 @@
 
 #include <rld.h>
 
-#define RLD_VERSION_MAJOR   (1)
-#define RLD_VERSION_MINOR   (0)
-#define RLD_VERSION_RELEASE (0)
-
 namespace rld
 {
   static int verbose_level = 0;
@@ -202,16 +198,13 @@ namespace rld
   const std::string
   version ()
   {
-    std::string v = (rld::to_string (RLD_VERSION_MAJOR) + '.' +
-                     rld::to_string (RLD_VERSION_MINOR) + '.' +
-                     rld::to_string (RLD_VERSION_RELEASE));
-    return v;
+    return RTEMS_RELEASE;
   }
 
   const std::string
   rtems_version ()
   {
-    return rld::to_string (RTEMS_VERSION);
+    return RTEMS_VERSION;
   }
 
   void

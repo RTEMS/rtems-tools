@@ -1736,6 +1736,7 @@ main (int argc, char* argv[])
       {
         case 'V':
           std::cout << "rtems-trace-ld (RTEMS Trace Linker) " << rld::version ()
+                    << ", RTEMS revision " << rld::rtems::version ()
                     << std::endl;
           ::exit (0);
           break;

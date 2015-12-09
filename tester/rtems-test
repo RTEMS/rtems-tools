@@ -1,7 +1,7 @@
 #! /usr/bin/env python
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2013 Chris Johns (chrisj@rtems.org)
+# Copyright 2013, 2015 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -33,8 +33,7 @@ import sys, os
 base = os.path.dirname(os.path.abspath(sys.argv[0]))
 parent = os.path.dirname(base)
 rtems = os.path.join(parent, 'share', 'rtems')
-tester = os.path.join(parent, 'share', 'rtems', 'tester')
-sys.path = [parent, rtems, tester] + sys.path
+sys.path = [rtems, os.path.join(rtems, 'tester')] + sys.path
 
 try:
     import rt.test

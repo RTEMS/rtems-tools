@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2015 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -29,20 +29,66 @@
 #
 
 #
-# Manage paths locally. The internally the path is in Unix or shell format and
-# we convert to the native format when performing operations at the Python
-# level. This allows macro expansion to work.
+# To release RTEMS Tools create a git archive and then add a suitable VERSION
+# file to the top directory.
 #
 
-major = 0
-minor = 0
-revision = 0
+import sys
+
+import error
+import git
+import path
+
+#
+# Default to an internal string.
+#
+_version_str = '4.12.not_release'
+_released = False
+_git = False
+
+def _at():
+    return path.dirname(__file__)
+
+def _load_released_version():
+    global _released
+    global _version_str
+    at = _at()
+    for ver in [at, path.join(at, '..')]:
+        if path.exists(path.join(ver, 'VERSION')):
+            try:
+                with open(path.join(ver, 'VERSION')) as v:
+                    _version_str = v.readline().strip()
+                v.close()
+                _released = True
+            except:
+                raise error.general('Cannot access the VERSION file')
+    return _released
+
+def _load_git_version():
+    global _git
+    global _version_str
+    repo = git.repo(_at())
+    if repo.valid():
+        head = repo.head()
+        if repo.dirty():
+            modified = ' modified'
+        else:
+            modified = ''
+        _version_str = '%s (%s%s)' % (_version_str, head[0:12], modified)
+        _git = True
+    return _git
+
+def released():
+    return _load_released_version()
+
+def version_control():
+    return _load_git_version()
 
 def str():
-    return '%d.%d.%d'% (major, minor, revision)
+    if not _released and not _git:
+        if not _load_released_version():
+            _load_git_version()
+    return _version_str
 
 if __name__ == '__main__':
-    print('major = %d' % (major))
-    print('minor = %d' % (minor))
-    print('revision = %d' % (revision))
-    print('Version: %s' % (str()))
+    print 'Version: %s' % (str())
