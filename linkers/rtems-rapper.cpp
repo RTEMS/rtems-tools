@@ -44,6 +44,7 @@
 #include <rld-files.h>
 #include <rld-process.h>
 #include <rld-rap.h>
+#include <rld-rtems.h>
 
 #include <rtems-utils.h>
 
@@ -1172,6 +1173,7 @@ main (int argc, char* argv[])
       {
         case 'V':
           std::cout << "rtems-rap (RTEMS RAP Manager) " << rld::version ()
+                    << ", RTEMS revision " << rld::rtems::version ()
                     << std::endl;
           ::exit (0);
           break;

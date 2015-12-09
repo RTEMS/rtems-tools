@@ -3,10 +3,6 @@
 #
 import sys
 
-version_major = 1
-version_minor = 0
-version_revision = 0
-
 #
 # Waf system setup. Allow more than one build in the same tree.
 #
@@ -27,6 +23,11 @@ def configure(conf):
     conf.check_cc(function_name='kill', header_name="signal.h",
                   features = 'c', mandatory = False)
     conf.write_config_header('config.h')
+
+    conf.load('python')
+    conf.check_python_version((2,6,6))
+    conf.env['PYO'] = 0
+    conf.env['PYC'] = 0
 
 def build(bld):
     #
@@ -93,7 +94,8 @@ def build(bld):
               install_path = None,
               source = rld_source + rtems_utils + compression,
               defines = ['HAVE_CONFIG_H=1',
-                         'RTEMS_VERSION=' + bld.env.RTEMS_VERSION,
+                         'RTEMS_VERSION=\"%s\"' % (bld.env.RTEMS_VERSION),
+                         'RTEMS_RELEASE=\"%s\"' % (bld.env.RTEMS_RELEASE),
                          'FASTLZ_LEVEL=1'],
               includes = ['.'] + conf['includes'],
               cflags = conf['cflags'] + conf['warningflags'],
@@ -121,7 +123,7 @@ def build(bld):
                   'stacktraces.py',
                   'version.py',
                   'windows.py'],
-        install_path = '${PREFIX}/share/rtems/rtemstoolkit')
+        install_path = '${PREFIX}/share/rtems')
 
 def rebuild(ctx):
     import waflib.Options

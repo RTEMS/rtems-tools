@@ -42,6 +42,7 @@
 #include <rld-outputter.h>
 #include <rld-process.h>
 #include <rld-resolver.h>
+#include <rld-rtems.h>
 
 #ifndef HAVE_KILL
 #define kill(p,s) raise(s)
@@ -183,6 +184,7 @@ main (int argc, char* argv[])
       {
         case 'V':
           std::cout << "rtems-ra (RTEMS Linker) " << rld::version ()
+                    << ", RTEMS revision " << rld::rtems::version ()
                     << std::endl;
           ::exit (0);
           break;

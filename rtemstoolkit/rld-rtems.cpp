@@ -24,7 +24,7 @@ namespace rld
 {
   namespace rtems
   {
-    static std::string _version = "4.11";
+    static std::string _version = RTEMS_VERSION;
     static std::string _path;
     static std::string _arch_bsp;
 

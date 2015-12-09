@@ -212,6 +212,7 @@ main (int argc, char* argv[])
       {
         case 'V':
           std::cout << "rtems-ld (RTEMS Linker) " << rld::version ()
+                    << ", RTEMS revision " << rld::rtems::version ()
                     << std::endl;
           ::exit (0);
           break;
