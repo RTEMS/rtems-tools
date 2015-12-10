@@ -36,7 +36,9 @@ subdirs = ['rtemstoolkit',
            'tools/gdb/python']
 
 def get_version(ctx):
-    release = '4.12.not_released'
+    version = '4.12'
+    revision = 'not_released'
+    release = '%s.%s' % (version, revision)
     if os.path.exists('VERSION'):
         try:
             with open('VERSION') as v:
@@ -44,6 +46,16 @@ def get_version(ctx):
             v.close()
         except:
             ctx.fatal('cannot access the VERSION file')
+    else:
+        from rtemstoolkit import git
+        repo = git.repo('.')
+        if repo.valid():
+            head = repo.head()
+            if repo.dirty():
+                modified = '_modified'
+            else:
+                modified = ''
+            release = '%s.%s%s)' % (version, head[0:12], modified)
     last_dot = release.rfind('.')
     if last_dot == -1:
         ctx.fatal('invalid VERSION file')
@@ -83,6 +95,8 @@ def configure(ctx):
     except:
         pass
     ctx.env.RTEMS_VERSION, ctx.env.RTEMS_RELEASE = get_version(ctx)
+    ctx.start_msg('Version')
+    ctx.end_msg('%s (%s)' % (ctx.env.RTEMS_RELEASE, ctx.env.RTEMS_VERSION))
     ctx.env.C_OPTS = ctx.options.c_opts.split(',')
     check_options(ctx, ctx.options.host)
     recurse(ctx)
