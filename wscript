@@ -94,6 +94,8 @@ def configure(ctx):
     except:
         pass
     ctx.env.RTEMS_VERSION, ctx.env.RTEMS_RELEASE = get_version(ctx)
+    ctx.start_msg('Version')
+    ctx.end_msg('%s (%s)' % (ctx.env.RTEMS_RELEASE, ctx.env.RTEMS_VERSION))
     ctx.env.C_OPTS = ctx.options.c_opts.split(',')
     check_options(ctx, ctx.options.host)
     recurse(ctx)
