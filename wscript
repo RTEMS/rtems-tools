@@ -41,11 +41,12 @@ def get_version(ctx):
     release = '%s.%s' % (version, revision)
     if os.path.exists('VERSION'):
         try:
-            with open('VERSION') as v:
-                release = v.readline().strip()
-            v.close()
-        except:
-            ctx.fatal('cannot access the VERSION file')
+            import configparser
+        except ImportError:
+            import ConfigParser as configparser
+        v = configparser.SafeConfigParser()
+        v.read('VERSION')
+        release = v.get('version', 'release')
     else:
         from rtemstoolkit import git
         repo = git.repo('.')
@@ -55,7 +56,7 @@ def get_version(ctx):
                 modified = '_modified'
             else:
                 modified = ''
-            release = '%s.%s%s)' % (version, head[0:12], modified)
+            release = '%s.%s%s' % (version, head[0:12], modified)
     last_dot = release.rfind('.')
     if last_dot == -1:
         ctx.fatal('invalid VERSION file')

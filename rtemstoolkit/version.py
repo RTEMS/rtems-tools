@@ -42,7 +42,9 @@ import path
 #
 # Default to an internal string.
 #
-_version_str = '4.12.not_release'
+_version = '4.12'
+_revision = 'not_released'
+_version_str = '%s.%s' % (_version, _revision)
 _released = False
 _git = False
 
@@ -56,12 +58,13 @@ def _load_released_version():
     for ver in [at, path.join(at, '..')]:
         if path.exists(path.join(ver, 'VERSION')):
             try:
-                with open(path.join(ver, 'VERSION')) as v:
-                    _version_str = v.readline().strip()
-                v.close()
-                _released = True
-            except:
-                raise error.general('Cannot access the VERSION file')
+                import configparser
+            except ImportError:
+                import ConfigParser as configparser
+            v = configparser.SafeConfigParser()
+            v.read(path.join(ver, 'VERSION'))
+            _version_str = v.get('version', 'release')
+            _released = True
     return _released
 
 def _load_git_version():
@@ -74,7 +77,7 @@ def _load_git_version():
             modified = ' modified'
         else:
             modified = ''
-        _version_str = '%s (%s%s)' % (_version_str, head[0:12], modified)
+        _version_str = '%s (%s%s)' % (_version, head[0:12], modified)
         _git = True
     return _git
 
