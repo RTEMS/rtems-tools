@@ -54,7 +54,7 @@ def get_version(ctx):
                 modified = '_modified'
             else:
                 modified = ''
-            release = '%s.%s%s' % (version, head[0:12], modified)
+            release = '4.11.%s%s' % (head[0:12], modified)
     last_dot = release.rfind('.')
     if last_dot == -1:
         ctx.fatal('invalid VERSION file')
