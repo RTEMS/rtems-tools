@@ -60,7 +60,7 @@ static const char* c_header[] =
   " */",
   "",
   "extern const unsigned char rtems__rtl_base_globals[];",
-  "extern const unsigned int rtems__rtl_base_globals_size;",
+  "extern const unsigned int rtems__rtl_base_globals_size[];",
   "",
   "void rtems_rtl_base_sym_global_add (const unsigned char* , unsigned int );",
   "",
@@ -104,8 +104,8 @@ static const char* c_trailer[] =
 static const char* c_rtl_call_body[] =
 {
   "{",
-  "  rtems_rtl_base_sym_global_add ((const unsigned char*) &rtems__rtl_base_globals,",
-  "                                 rtems__rtl_base_globals_size);",
+  "  rtems_rtl_base_sym_global_add ((const unsigned char*) &rtems__rtl_base_globals[0],",
+  "                                 rtems__rtl_base_globals_size[0]);",
   "}",
   0
 };
