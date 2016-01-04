@@ -104,7 +104,7 @@ static const char* c_trailer[] =
 static const char* c_rtl_call_body[] =
 {
   "{",
-  "  rtems_rtl_base_sym_global_add ((const unsigned char*) &rtems__rtl_base_globals,",
+  "  rtems_rtl_base_sym_global_add (&rtems__rtl_base_globals[0],",
   "                                 rtems__rtl_base_globals_size);",
   "}",
   0
