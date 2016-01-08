@@ -93,4 +93,4 @@ def str():
     return _version_str
 
 if __name__ == '__main__':
-    print 'Version: %s' % (str())
+    print('Version: %s' % (str()))
