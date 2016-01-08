@@ -36,7 +36,7 @@ import os
 import sys
 import threading
 
-import error
+from . import error
 
 #
 # A global log.

@@ -31,11 +31,11 @@
 
 import os
 
-import error
-import execute
-import log
-import options
-import path
+from . import error
+from . import execute
+from . import log
+from . import options
+from . import path
 
 class repo:
     """An object to manage a git repo."""

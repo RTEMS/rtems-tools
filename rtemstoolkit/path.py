@@ -35,12 +35,12 @@
 #
 
 import glob
-import log
 import os
 import shutil
 import string
 
-import error
+from . import error
+from . import log
 
 windows = os.name == 'nt'
 
