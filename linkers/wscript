@@ -3,6 +3,9 @@
 #
 import sys
 
+def init(ctx):
+    pass
+
 def options(opt):
     opt.load('compiler_c')
     opt.load('compiler_cxx')
