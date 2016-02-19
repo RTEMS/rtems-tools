@@ -19,13 +19,10 @@ def configure(conf):
     conf_libiberty(conf)
     conf_libelf(conf)
 
-    conf.check(header_name='sys/wait.h',  features = 'c', mandatory = False)
-    conf.check_cc(function_name='kill', header_name="signal.h",
+    conf.check(header_name = 'sys/wait.h',  features = 'c', mandatory = False)
+    conf.check_cc(function_name = 'kill', header_name = "signal.h",
                   features = 'c', mandatory = False)
     conf.write_config_header('config.h')
-
-    conf.load('python')
-    conf.check_python_version((2,6,6))
 
 def build(bld):
     #

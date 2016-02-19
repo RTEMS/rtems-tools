@@ -98,6 +98,16 @@ def configure(ctx):
     ctx.end_msg('%s (%s)' % (ctx.env.RTEMS_RELEASE, ctx.env.RTEMS_VERSION))
     ctx.env.C_OPTS = ctx.options.c_opts.split(',')
     check_options(ctx, ctx.options.host)
+    #
+    # Common Python check.
+    #
+    ctx.load('python')
+    ctx.check_python_version((2,6,6))
+    #
+    # Installing the PYO,PYC seems broken on 1.8.19. The path is wrong.
+    #
+    ctx.env.PYO = 0
+    ctx.env.PYC = 0
     recurse(ctx)
 
 def build(ctx):

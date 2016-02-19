@@ -40,8 +40,6 @@ def options(opt):
 
 def configure(conf):
     recurse(conf)
-    conf.load('python')
-    conf.check_python_version((2,6,6))
 
 def build(bld):
     recurse(bld)
@@ -61,13 +59,13 @@ def build(bld):
                   'rt/test.py',
                   'rt/version.py'],
         install_from = '.',
-        install_path = '${PREFIX}/share/rtems')
+        install_path = '${PREFIX}/share/rtems/tester')
     bld(features = 'py',
         source = ['rt/pygdb/__init__.py',
                   'rt/pygdb/mi_parser.py',
                   'rt/pygdb/spark.py'],
         install_from = '.',
-        install_path = '${PREFIX}/share/rtems')
+        install_path = '${PREFIX}/share/rtems/tester')
     bld.install_files('${PREFIX}/bin', ['rtems-test'], chmod = 0o755)
 
     #

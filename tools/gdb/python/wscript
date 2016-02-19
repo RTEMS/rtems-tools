@@ -6,8 +6,7 @@ def options(opt):
     opt.load('python')
 
 def configure(conf):
-    conf.load('python')
-    conf.check_python_version((2,6,6))
+    pass
 
 def build(bld):
     source = ['__init__.py',
