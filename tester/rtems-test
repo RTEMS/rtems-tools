@@ -35,6 +35,9 @@ parent = os.path.dirname(base)
 rtems = os.path.join(parent, 'share', 'rtems')
 sys.path = [parent, rtems, os.path.join(rtems, 'tester')] + sys.path
 
+import rt.test
+rt.test.run()
+
 try:
     import rt.test
     rt.test.run()

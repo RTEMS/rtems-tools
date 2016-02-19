@@ -35,8 +35,8 @@
 
 import sys
 
-from . import error
-from . import path
+import error
+import path
 
 #
 # Default to an internal string.
@@ -67,6 +67,7 @@ def _load_released_version():
     return _released
 
 def _load_git_version():
+    import git
     global _git
     global _version_str
     repo = git.repo(_at())

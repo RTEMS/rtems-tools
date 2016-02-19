@@ -41,6 +41,12 @@ import os
 import re
 import sys
 
+import error
+import execute
+import log
+import options
+import path
+
 try:
     import error
     import execute

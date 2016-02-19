@@ -41,8 +41,8 @@ import subprocess
 import threading
 import time
 
-from . import error
-from . import log
+import error
+import log
 
 # Trace exceptions
 trace_threads = False

@@ -39,8 +39,8 @@ import os
 import shutil
 import string
 
-from . import error
-from . import log
+import error
+import log
 
 windows = os.name == 'nt'
 

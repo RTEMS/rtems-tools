@@ -38,8 +38,8 @@ import re
 import os
 import string
 
-from . import error
-from . import path
+import error
+import path
 
 #
 # Macro tables
