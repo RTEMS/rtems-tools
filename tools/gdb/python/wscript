@@ -2,6 +2,9 @@
 # Install the RTEMS gdb python
 #
 
+def init(ctx):
+    pass
+
 def options(opt):
     opt.load('python')
 

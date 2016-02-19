@@ -34,6 +34,9 @@ def recurse(ctx):
     for sd in subdirs:
         ctx.recurse(sd)
 
+def init(ctx):
+    pass
+
 def options(opt):
     recurse(opt)
     opt.load('python')

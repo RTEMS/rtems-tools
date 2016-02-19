@@ -39,6 +39,9 @@ import sys
 top = '.'
 out = 'build-' + sys.platform
 
+def init(ctx):
+    pass
+
 def options(opt):
     opt.load('compiler_c')
     opt.load('compiler_cxx')

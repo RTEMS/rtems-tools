@@ -30,6 +30,8 @@
 
 import os.path
 
+import wafwindows
+
 subdirs = ['rtemstoolkit',
            'linkers',
            'tester',
@@ -79,16 +81,19 @@ def options(ctx):
     recurse(ctx)
 
 def init(ctx):
+    wafwindows.set_compilers()
     try:
         import waflib.Options
         import waflib.ConfigSet
         env = waflib.ConfigSet.ConfigSet()
         env.load(waflib.Options.lockfile)
         check_options(ctx, env.options['host'])
-        for sd in subdirs:
-            ctx.recurse(sd)
+        recurse(ctx)
     except:
         pass
+
+def shutdown(ctx):
+    pass
 
 def configure(ctx):
     try:
@@ -113,6 +118,7 @@ def configure(ctx):
     recurse(ctx)
 
 def build(ctx):
+    wafwindows.set_os_sep()
     if os.path.exists('VERSION'):
         ctx.install_files('${PREFIX}/share/rtems/rtemstoolkit', ['VERSION'])
     recurse(ctx)

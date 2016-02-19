@@ -46,6 +46,9 @@ APPNAME='covoar'
 top = '.'
 out = 'build'
 
+def init(ctx):
+    pass
+
 def options(opt):
     opt.load('compiler_cxx')
 
