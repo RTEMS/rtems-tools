@@ -22,6 +22,8 @@ def configure(conf):
     conf_libiberty(conf)
     conf_libelf(conf)
 
+    conf.find_program('m4')
+
     conf.check(header_name = 'sys/wait.h',  features = 'c', mandatory = False)
     conf.check_cc(function_name = 'kill', header_name = "signal.h",
                   features = 'c', mandatory = False)
@@ -139,15 +141,7 @@ def conf_libelf(conf):
 
 def bld_libelf(bld, conf):
     libelf = 'elftoolchain/libelf/'
-
-    #
-    # Work around the ${SRC} having Windows slashes which the MSYS m4 does not
-    # understand.
-    #
-    if sys.platform == 'win32':
-        m4_rule = 'type ${SRC} | m4 -D SRCDIR=../rtemstoolkit/' + libelf[:-1] + '> ${TGT}"'
-    else:
-        m4_rule = 'm4 -D SRCDIR=../rtemstoolkit/' + libelf[:-1] + ' ${SRC} > ${TGT}'
+    m4_rule = '${M4} -D SRCDIR=../rtemstoolkit/' + libelf[:-1] + ' ${SRC} > ${TGT}'
     if bld.env.DEST_OS == 'win32':
         includes = ['win32']
     else:
