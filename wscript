@@ -118,7 +118,6 @@ def configure(ctx):
     recurse(ctx)
 
 def build(ctx):
-    wafwindows.set_os_sep()
     if os.path.exists('VERSION'):
         ctx.install_files('${PREFIX}/share/rtems/rtemstoolkit', ['VERSION'])
     recurse(ctx)
