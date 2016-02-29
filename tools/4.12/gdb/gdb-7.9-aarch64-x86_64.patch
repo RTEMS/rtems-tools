@@ -1,0 +1,50 @@
+--- gdb-7.9/gdb/configure.tgt.orig	2016-02-29 16:46:40.000000000 +1100
++++ gdb-7.9/gdb/configure.tgt	2016-02-29 16:49:32.000000000 +1100
+@@ -34,7 +34,7 @@
+ # map target info into gdb names.
+ 
+ case "${targ}" in
+-aarch64*-*-elf)
++aarch64*-*-elf | aarch64*-*-rtems*)
+ 	# Target: AArch64 embedded system
+ 	gdb_target_obs="aarch64-tdep.o aarch64-newlib-tdep.o"
+ 	;;
+@@ -652,6 +652,9 @@
+ 	gdb_target_obs="amd64-tdep.o i386-tdep.o i387-tdep.o \
+ 			dicos-tdep.o i386-dicos-tdep.o amd64-dicos-tdep.o"
+ 	;;
++x86_64-*-elf* | x86_64-*-rtems*)
++	gdb_target_obs="amd64-tdep.o i386-tdep.o i387-tdep.o i386bsd-tdep.o"
++	;;
+ x86_64-*-linux*)
+ 	# Target: GNU/Linux x86-64
+ 	gdb_target_obs="amd64-tdep.o amd64-linux-tdep.o i386-tdep.o \
+--- gdb-7.9/bfd/config.bfd.orig	2015-02-21 04:11:44.000000000 +1100
++++ gdb-7.9/bfd/config.bfd	2016-02-29 17:31:15.000000000 +1100
+@@ -168,7 +168,7 @@
+ 
+ # START OF targmatch.h
+ #ifdef BFD64
+-  aarch64-*-elf)
++  aarch64-*-elf | aarch64-*-rtems*)
+     targ_defvec=aarch64_elf64_le_vec
+     targ_selvecs="aarch64_elf64_be_vec aarch64_elf32_le_vec aarch64_elf32_be_vec arm_elf32_le_vec arm_elf32_be_vec"
+     want64=true
+@@ -176,7 +176,7 @@
+   aarch64_be-*-elf)
+     targ_defvec=aarch64_elf64_be_vec
+     targ_selvecs="aarch64_elf64_le_vec aarch64_elf32_le_vec aarch64_elf32_be_vec arm_elf32_be_vec arm_elf32_le_vec"
+-    want64=true
++    wAnt64=true
+     ;;
+   aarch64-*-linux*)
+     targ_defvec=aarch64_elf64_le_vec
+@@ -652,7 +652,7 @@
+     targ_selvecs="i386_elf32_vec l1om_elf64_vec k1om_elf64_vec"
+     want64=true
+     ;;
+-  x86_64-*-elf*)
++  x86_64-*-elf* | x86_64-*-rtems*)
+     targ_defvec=x86_64_elf64_vec
+     targ_selvecs="i386_elf32_vec x86_64_elf32_vec l1om_elf64_vec k1om_elf64_vec"
+     want64=true
