@@ -35,7 +35,10 @@
 
 import os
 
-import execute
+try:
+    from . import execute
+except (ValueError, SystemError):
+    import execute
 
 def load():
     uname = os.uname()

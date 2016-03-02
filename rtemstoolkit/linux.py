@@ -35,10 +35,18 @@
 
 import pprint
 import os
-
 import platform
-import execute
-import path
+
+#
+# Support to handle use in a package and as a unit test.
+# If there is a better way to let us know.
+#
+try:
+    from . import execute
+    from . import path
+except (ValueError, SystemError):
+    import execute
+    import path
 
 def load():
     uname = os.uname()
@@ -130,7 +138,7 @@ def load():
                      '__chown':        ('exe',     'required', '/usr/sbin/chown') },
         }
 
-    if variations.has_key(distro):
+    if variations in distro:
         for v in variations[distro]:
             if path.exists(variations[distro][v][2]):
                 defines[v] = variations[distro][v]

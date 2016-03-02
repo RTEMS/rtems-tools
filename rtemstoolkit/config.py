@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2016 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -36,23 +36,30 @@
 # other software modules.
 #
 
+from __future__ import print_function
+
 import copy
+import functools
 import os
 import re
 import sys
 
+#
+# Support to handle use in a package and as a unit test.
+# If there is a better way to let us know.
+#
 try:
+    from . import error
+    from . import execute
+    from . import log
+    from . import options
+    from . import path
+except (ValueError, SystemError):
     import error
     import execute
     import log
     import options
     import path
-except KeyboardInterrupt:
-    print 'user terminated'
-    sys.exit(1)
-except:
-    print 'error: unknown application load error'
-    sys.exit(1)
 
 def _check_bool(value):
     if value.isdigit():
@@ -90,6 +97,8 @@ class file(object):
                 self.macros.define(label)
         self._includes = []
         self.load_depth = 0
+        self.lc = 0
+        self.name = 'none'
 
     def __del__(self):
         pass
@@ -98,7 +107,7 @@ class file(object):
 
         def _dict(dd):
             s = ''
-            ddl = dd.keys()
+            ddl = list(dd.keys())
             ddl.sort()
             for d in ddl:
                 s += '  ' + d + ': ' + dd[d] + '\n'
@@ -137,14 +146,14 @@ class file(object):
            outter level. Nested levels will need to split with futher calls.'''
         trace_me = False
         if trace_me:
-            print '------------------------------------------------------'
+            print('------------------------------------------------------')
         macros = []
         nesting = []
         has_braces = False
         c = 0
         while c < len(s):
             if trace_me:
-                print 'ms:', c, '"' + s[c:] + '"', has_braces, len(nesting), nesting
+                print('ms:', c, '"' + s[c:] + '"', has_braces, len(nesting), nesting)
             #
             # We need to watch for shell type variables or the form '${var}' because
             # they can upset the brace matching.
@@ -192,9 +201,9 @@ class file(object):
                             macros.append(s[macro_start:c + 1].strip())
             c += 1
         if trace_me:
-            print 'ms:', macros
+            print('ms:', macros)
         if trace_me:
-            print '-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-='
+            print('-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=-=')
         return macros
 
     def _shell(self, line):
@@ -432,13 +441,13 @@ class file(object):
                 else:
                     istrue = _check_bool(ifls[0])
                     if istrue == None:
-                        self._error('invalid if bool value: ' + reduce(add, ls, ''))
+                        self._error('invalid if bool value: ' + functools.reduce(add, ls, ''))
                         istrue = False
             elif len(ifls) == 2:
                 if ifls[0] == '!':
                     istrue = _check_bool(ifls[1])
                     if istrue == None:
-                        self._error('invalid if bool value: ' + reduce(add, ls, ''))
+                        self._error('invalid if bool value: ' + functools.reduce(add, ls, ''))
                         istrue = False
                     else:
                         istrue = not istrue
@@ -454,7 +463,7 @@ class file(object):
                     elif  ifls[1] == '!=':
                         istrue = True
                     else:
-                        self._error('invalid if bool operator: ' + reduce(add, ls, ''))
+                        self._error('invalid if bool operator: ' + functools.reduce(add, ls, ''))
             elif len(ifls) == 3:
                 if ifls[1] == '==':
                     if ifls[0] == ifls[2]:
@@ -487,9 +496,9 @@ class file(object):
                     else:
                         istrue = False
                 else:
-                    self._error('invalid %if operator: ' + reduce(add, ls, ''))
+                    self._error('invalid %if operator: ' + functools.reduce(add, ls, ''))
             else:
-                self._error('malformed if: ' + reduce(add, ls, ''))
+                self._error('malformed if: ' + functools.reduce(add, ls, ''))
             if invert:
                 istrue = not istrue
             log.trace('config: %s: _if:  %s %s' % (self.init_name, ifls, str(istrue)))
@@ -750,7 +759,7 @@ class file(object):
         try:
             log.trace('config: %s: _open: %s' % (self.init_name, path.host(configname)))
             config = open(path.host(configname), 'r')
-        except IOError, err:
+        except IOError as err:
             raise error.general('error opening config file: %s' % (path.host(configname)))
         self.configpath += [configname]
 
@@ -836,17 +845,23 @@ def run():
         #
         # Run where defaults.mc is located
         #
-        opts = options.load(sys.argv, defaults = 'defaults.mc')
-        log.trace('config: count %d' % (len(opts.config_files())))
-        for config_file in opts.config_files():
-            s = file(config_file, opts)
-            print s
-            del s
-    except error.general, gerr:
-        print gerr
+        long_opts = {
+            # key              macro        handler   param  defs   init
+            '--file'  :      ('_file',      'path',   True,  None,  False)
+        }
+        opts = options.command_line(base_path = '.',
+                                    argv = sys.argv,
+                                    long_opts = long_opts)
+        options.load(opts)
+        s = file(opts.defaults['_file'], opts)
+        s.load(opts.defaults['_file'])
+        print(s)
+        del s
+    except error.general as gerr:
+        print(gerr)
         sys.exit(1)
-    except error.internal, ierr:
-        print ierr
+    except error.internal as ierr:
+        print(ierr)
         sys.exit(1)
     except KeyboardInterrupt:
         log.notice('abort: user terminated')

@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2013-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2013-2016 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -32,6 +32,8 @@
 # RTEMS Testing Config
 #
 
+from __future__ import print_function
+
 import datetime
 import os
 import threading
@@ -42,8 +44,8 @@ from rtemstoolkit import execute
 from rtemstoolkit import log
 from rtemstoolkit import path
 
-import console
-import gdb
+from . import console
+from . import gdb
 
 timeout = 15
 
@@ -185,7 +187,7 @@ class file(config.file):
     def _realtime_trace(self, text):
         if self.realtime_trace:
             for l in text:
-                print ' '.join(l)
+                print(' '.join(l))
 
     def run(self):
         self.load(self.name)

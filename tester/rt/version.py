@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2013-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2013-2016 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -28,11 +28,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-#
-# Manage paths locally. The internally the path is in Unix or shell format and
-# we convert to the native format when performing operations at the Python
-# level. This allows macro expansion to work.
-#
+from __future__ import print_function
 
 major = 0
 minor = 2
@@ -42,7 +38,7 @@ def str():
     return '%d.%d.%d'% (major, minor, revision)
 
 if __name__ == '__main__':
-    print 'major = %d' % (major)
-    print 'minor = %d' % (minor)
-    print 'revision = %d' % (revision)
-    print 'Version: %s' % (str())
+    print('major = %d' % (major))
+    print('minor = %d' % (minor))
+    print('revision = %d' % (revision))
+    print('Version: %s' % (str()))

@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2013-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2013-2016 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -32,13 +32,24 @@
 # Manage emailing results or reports.
 #
 
+from __future__ import print_function
+
 import os
 import smtplib
 import socket
 
-import error
-import options
-import path
+#
+# Support to handle use in a package and as a unit test.
+# If there is a better way to let us know.
+#
+try:
+    from . import error
+    from . import options
+    from . import path
+except (ValueError, SystemError):
+    import error
+    import options
+    import path
 
 def append_options(opts):
     opts['--mail'] = 'Send email report or results.'
@@ -75,7 +86,7 @@ class mail:
                 mrc = open(mailrc, 'r')
                 lines = mrc.readlines()
                 mrc.close()
-            except IOError, err:
+            except IOError as err:
                 raise error.general('error reading: %s' % (mailrc))
             for l in lines:
                 l = _clean(l)
@@ -104,17 +115,17 @@ class mail:
         try:
             s = smtplib.SMTP(self.smtp_host())
             s.sendmail(from_addr, [to_addr], msg)
-        except smtplib.SMTPException, se:
+        except smtplib.SMTPException as se:
             raise error.general('sending mail: %s' % (str(se)))
-        except socket.error, se:
+        except socket.error as se:
             raise error.general('sending mail: %s' % (str(se)))
 
 if __name__ == '__main__':
     import sys
     optargs = {}
     append_options(optargs)
-    opts = options.load(sys.argv, optargs = optargs, defaults = 'defaults.mc')
+    opts = options.load(sys.argv)
     m = mail(opts)
-    print 'From: %s' % (m.from_address())
-    print 'SMTP Host: %s' % (m.smtp_host())
+    print('From: %s' % (m.from_address()))
+    print('SMTP Host: %s' % (m.smtp_host()))
     m.send(m.from_address(), 'Test mailer.py', 'This is a test')

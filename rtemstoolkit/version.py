@@ -33,11 +33,22 @@
 # file to the top directory.
 #
 
+from __future__ import print_function
+
 import sys
 
-import error
-import git
-import path
+#
+# Support to handle use in a package and as a unit test.
+# If there is a better way to let us know.
+#
+try:
+    from . import error
+    from . import git
+    from . import path
+except (ValueError, SystemError):
+    import error
+    import git
+    import path
 
 #
 # Default to an internal string.
@@ -94,4 +105,4 @@ def str():
     return _version_str
 
 if __name__ == '__main__':
-    print 'Version: %s' % (str())
+    print('Version: %s' % (str()))

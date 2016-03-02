@@ -37,4 +37,17 @@ all = ['check',
        'macros',
        'mailer',
        'options',
-       'path']
+       'path',
+       'version']
+
+from . import check
+from . import config
+from . import error
+from . import execute
+from . import git
+from . import log
+from . import macros
+from . import mailer
+from . import options
+from . import path
+from . import version

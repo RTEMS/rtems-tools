@@ -28,10 +28,12 @@
 
 # $Id$
 
+from __future__ import print_function
 
 import re
 import pprint
-import spark
+
+from . import spark
 
 def __private():
 	class Token:
@@ -93,7 +95,7 @@ def __private():
 
 		def t_default(self, s):
 			r'( . | \n )+'
-			raise Exception, "Specification error: unmatched input for '%s'" % s
+			raise Exception("Specification error: unmatched input for '%s'" % s)
 
 		def __unescape(self, s):
 			s = re.sub(r'\\r', r'\r', s)
@@ -167,8 +169,8 @@ def __private():
 
 		def error(self, token, i=0, tokens=None):
 			if i > 2:
-				print '%s %s %s %s' % (tokens[i-3], tokens[i-2], tokens[i-1], tokens[i])
-			raise Exception, "Syntax error at or near %d:'%s' token" % (i, token)
+				print('%s %s %s %s' % (tokens[i-3], tokens[i-2], tokens[i-1], tokens[i]))
+			raise Exception("Syntax error at or near %d:'%s' token" % (i, token))
 
 	class GdbMiInterpreter(spark.GenericASTTraversal):
 		def __init__(self, ast):
@@ -203,8 +205,8 @@ def __private():
 				# tuple ::= { result result_list }
 				node.value = node[1].value
 				for result in node[2].value:
-					for n, v in result.items():
-						if node.value.has_key(n):
+					for n, v in list(result.items()):
+						if n in node.value:
 							#print '**********list conversion: [%s] %s -> %s' % (n, node.value[n], v)
 							old = node.value[n]
 							if not isinstance(old, list):
@@ -213,7 +215,7 @@ def __private():
 						else:
 							node.value[n] = v
 			else:
-				raise Exception, 'Invalid tuple'
+				raise Exception('Invalid tuple')
 			#print 'tuple: %s' % node.value
 
 		def n_list(self, node):
@@ -305,7 +307,7 @@ def __private():
 		def __repr__(self):
 			return pprint.pformat(self.__dict__)
 
-		def __nonzero__(self):
+		def __bool__(self):
 			return len(self.__dict__) > 0
 
 		def __getitem__(self, i):
@@ -320,7 +322,7 @@ def __private():
 			return None
 
 		def graft(self, dict_):
-			for name, value in dict_.items():
+			for name, value in list(dict_.items()):
 				name = name.replace('-', '_')
 				if isinstance(value, dict):
 					value = GdbDynamicObject(value)
@@ -336,7 +338,7 @@ def __private():
 	class GdbMiRecord:
 		def __init__(self, record):
 			self.result = None
-			for name, value in record[0].items():
+			for name, value in list(record[0].items()):
 				name = name.replace('-', '_')
 				if name == 'results':
 					for result in value:
@@ -363,19 +365,19 @@ def parse(tokens):
 
 def process(input):
 	tokens = scan(input)
-        ast = parse(tokens)
+	ast = parse(tokens)
 	__the_interpreter(ast)
 	return __the_output(ast.value)
 
 if __name__ == '__main__':
 	def main():
 		def print_tokens(tokens):
-			print
+			print()
 			for token in tokens:
 				if token.value:
-					print token.type + ': ' + token.value
+					print(token.type + ': ' + token.value)
 				else:
-					print token.type
+					print(token.type)
 
 		def run_test(test):
 			lines = test.splitlines()
@@ -386,7 +388,7 @@ if __name__ == '__main__':
 				ast = parse(tokens)
 				__the_interpreter(ast)
 				output = __the_output(ast.value)
-				print output
+				print(output)
 
 		x = '"No symbol table is loaded.  Use the \\"file\\" command."'
 		m = re.match('\".*?(?<![\\\\])\"', x)

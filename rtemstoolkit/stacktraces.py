@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2013-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2013-2016 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -33,11 +33,10 @@ import traceback
 
 def trace():
     code = []
-    for threadId, stack in sys._current_frames().items():
+    for threadId, stack in list(sys._current_frames().items()):
         code.append("\n# thread-id: %s" % threadId)
         for filename, lineno, name, line in traceback.extract_stack(stack):
             code.append('file: "%s", line %d, in %s' % (filename, lineno, name))
             if line:
                 code.append("  %s" % (line.strip()))
     return '\n'.join(code)
-

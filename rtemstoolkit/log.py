@@ -32,11 +32,20 @@
 # Log output to stdout and/or a file.
 #
 
+from __future__ import print_function
+
 import os
 import sys
 import threading
 
-import error
+#
+# Support to handle use in a package and as a unit test.
+# If there is a better way to let us know.
+#
+try:
+    from . import error
+except (ValueError, SystemError):
+    import error
 
 #
 # A global log.
@@ -74,13 +83,13 @@ def _output(text = os.linesep, log = None):
     else:
         lock.acquire()
         for l in text.replace(chr(13), '').splitlines():
-            print l
+            print(l)
         lock.release()
 
 def stderr(text = os.linesep, log = None):
     lock.acquire()
     for l in text.replace(chr(13), '').splitlines():
-        print >> sys.stderr, l
+        print(l, file = sys.stderr)
     lock.release()
 
 def output(text = os.linesep, log = None):
@@ -92,7 +101,7 @@ def notice(text = os.linesep, log = None, stdout_only = False):
             (default is not None and not default.has_stdout() or stdout_only):
         lock.acquire()
         for l in text.replace(chr(13), '').splitlines():
-            print l
+            print(l)
         lock.release()
     if not stdout_only:
         _output(text, log)
@@ -126,8 +135,8 @@ class log:
                     self.fhs[1] = sys.stderr
                 else:
                     try:
-                        self.fhs.append(file(s, 'w'))
-                    except IOError, ioe:
+                        self.fhs.append(open(s, 'w'))
+                    except IOError as ioe:
                          raise error.general("creating log file '" + s + \
                                              "': " + str(ioe))
 
@@ -186,41 +195,41 @@ if __name__ == "__main__":
     l.output('log: hello world CRLF\r\n')
     l.output('log: hello world NONE')
     l.flush()
-    print '=-' * 40
-    print 'tail: %d' % (len(l.tail))
-    print l
-    print '=-' * 40
+    print('=-' * 40)
+    print('tail: %d' % (len(l.tail)))
+    print(l)
+    print('=-' * 40)
     for i in range(0, 10):
         l.output('log: hello world 2: %d\n' % (i))
     l.flush()
-    print '=-' * 40
-    print 'tail: %d' % (len(l.tail))
-    print l
-    print '=-' * 40
+    print('=-' * 40)
+    print('tail: %d' % (len(l.tail)))
+    print(l)
+    print('=-' * 40)
     for i in [0, 1]:
         quiet = False
         tracing = False
-        print '- quiet:%s - trace:%s %s' % (str(quiet), str(tracing), '-' * 30)
+        print('- quiet:%s - trace:%s %s' % (str(quiet), str(tracing), '-' * 30))
         trace('trace with quiet and trace off')
         notice('notice with quiet and trace off')
         quiet = True
         tracing = False
-        print '- quiet:%s - trace:%s %s' % (str(quiet), str(tracing), '-' * 30)
+        print('- quiet:%s - trace:%s %s' % (str(quiet), str(tracing), '-' * 30))
         trace('trace with quiet on and trace off')
         notice('notice with quiet on and trace off')
         quiet = False
         tracing = True
-        print '- quiet:%s - trace:%s %s' % (str(quiet), str(tracing), '-' * 30)
+        print('- quiet:%s - trace:%s %s' % (str(quiet), str(tracing), '-' * 30))
         trace('trace with quiet off and trace on')
         notice('notice with quiet off and trace on')
         quiet = True
         tracing = True
-        print '- quiet:%s - trace:%s %s' % (str(quiet), str(tracing), '-' * 30)
+        print('- quiet:%s - trace:%s %s' % (str(quiet), str(tracing), '-' * 30))
         trace('trace with quiet on and trace on')
         notice('notice with quiet on and trace on')
         default = l
-    print '=-' * 40
-    print 'tail: %d' % (len(l.tail))
-    print l
-    print '=-' * 40
+    print('=-' * 40)
+    print('tail: %d' % (len(l.tail)))
+    print(l)
+    print('=-' * 40)
     del l
