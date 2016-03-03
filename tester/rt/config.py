@@ -32,6 +32,8 @@
 # RTEMS Testing Config
 #
 
+from __future__ import print_function
+
 import datetime
 import os
 import threading
@@ -42,8 +44,8 @@ from rtemstoolkit import execute
 from rtemstoolkit import log
 from rtemstoolkit import path
 
-import console
-import gdb
+from . import console
+from . import gdb
 
 timeout = 15
 

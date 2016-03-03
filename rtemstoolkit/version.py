@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2015 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2016 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -33,10 +33,22 @@
 # file to the top directory.
 #
 
+from __future__ import print_function
+
 import sys
 
-import error
-import path
+#
+# Support to handle use in a package and as a unit test.
+# If there is a better way to let us know.
+#
+try:
+    from . import error
+    from . import git
+    from . import path
+except (ValueError, SystemError):
+    import error
+    import git
+    import path
 
 #
 # Default to an internal string.
@@ -67,7 +79,6 @@ def _load_released_version():
     return _released
 
 def _load_git_version():
-    import git
     global _git
     global _version_str
     repo = git.repo(_at())

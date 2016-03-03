@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2016 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -31,6 +31,8 @@
 #
 # Various errors we can raise.
 #
+
+from __future__ import print_function
 
 class error(Exception):
     """Base class for Builder exceptions."""

@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2016 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -34,6 +34,9 @@
 # Note, the subprocess module is only in Python 2.4 or higher.
 #
 
+from __future__ import print_function
+
+import functools
 import os
 import re
 import sys
@@ -41,8 +44,16 @@ import subprocess
 import threading
 import time
 
-import error
-import log
+#
+# Support to handle use in a package and as a unit test.
+# If there is a better way to let us know.
+#
+try:
+    from . import error
+    from . import log
+except (ValueError, SystemError):
+    import error
+    import log
 
 # Trace exceptions
 trace_threads = False
@@ -96,7 +107,7 @@ def arg_subst(command, substs):
 def arg_subst_str(command, subst):
     cmd = arg_subst(command, subst)
     def add(x, y): return x + ' ' + str(y)
-    return reduce(add, cmd, '')
+    return functools.reduce(add, cmd, '')
 
 class execute(object):
     """Execute commands or scripts. The 'output' is a funtion that handles the
@@ -118,7 +129,7 @@ class execute(object):
         self.timing_out = False
         self.proc = None
 
-    def _capture(self, command, proc, timeout = None):
+    def capture(self, proc, command = 'pipe', timeout = None):
         """Create 3 threads to read stdout and stderr and send to the output handler
         and call an input handler is provided. Based on the 'communicate' code
         in the subprocess module."""
@@ -128,11 +139,18 @@ class execute(object):
             is a timeout check."""
             if trace_threads:
                 print('executte:_writethread: start')
+            encoding = True
+            try:
+                tmp = bytes('temp', sys.stdin.encoding)
+            except:
+                encoding = False
             try:
                 while True:
-                    lines = input()
-                    if type(lines) == str:
+                    lines = eval(input())
+                    if type(lines) == str or type(lines) == bytes:
                         try:
+                            if encoding:
+                                lines = bytes(lines, sys.stdin.encoding)
                             fh.write(lines)
                         except:
                             break
@@ -155,10 +173,9 @@ class execute(object):
             """Read from a file handle and write to the output handler
             until the file closes."""
             def _output_line(line, exe, prefix, out, count):
-                #print 'LINE:%d: %s' % (count, line)
-                exe.lock.acquire()
+                #exe.lock.acquire()
                 #exe.outputting = True
-                exe.lock.release()
+                #exe.lock.release()
                 if out:
                     out(prefix + line)
                 else:
@@ -175,7 +192,8 @@ class execute(object):
                     data = fh.read(1)
                     if len(data) == 0:
                         break
-                    #print '))))) %02x "%s"' % (ord(data), data)
+                    if type(data) == bytes:
+                        data = data.decode(sys.stdout.encoding)
                     for c in data:
                         line += c
                         if c == '\n':
@@ -305,11 +323,13 @@ class execute(object):
             s = command
             if type(command) is list:
                 def add(x, y): return x + ' ' + str(y)
-                s = reduce(add, command, '')[1:]
+                s = functools.reduce(add, command, '')[1:]
             what = 'spawn'
             if shell:
                 what = 'shell'
             log.output(what + ': ' + s)
+        if self.output is None:
+            raise error.general('capture needs an output handler')
         if shell and self.shell_exe:
             command = arg_list(command)
             command[:0] = self.shell_exe
@@ -342,7 +362,7 @@ class execute(object):
                 return (0, proc)
             if self.output is None:
                 raise error.general('capture needs an output handler')
-            exit_code = self._capture(command, proc, timeout)
+            exit_code = self.capture(proc, command, timeout)
             if self.verbose:
                 log.output('exit: ' + str(exit_code))
         except OSError as ose:
@@ -395,7 +415,7 @@ class execute(object):
                             shell = shell or self.shell_commands,
                             cwd = cwd, env = env,
                             stdin = stdin, stdout = stdout, stderr = stderr,
-                            itmeout = timeout)
+                            timeout = timeout)
 
     def set_shell(self, execute):
         """Set the shell to execute when issuing a shell command."""
@@ -519,10 +539,17 @@ if __name__ == "__main__":
         if ec == 0:
             print('piping input into ' + commands['pipe'][0] + ': ' + \
                   commands['pipe'][2])
-            proc.stdin.write(commands['pipe'][2])
+            try:
+                out = bytes(commands['pipe'][2], sys.stdin.encoding)
+            except:
+                out = commands['pipe'][2]
+            proc.stdin.write(out)
             proc.stdin.close()
             e.capture(proc)
             del proc
+
+    def capture_output(text):
+        print(text, end = '')
 
     cmd_shell_test = 'if "%OS%" == "Windows_NT" (echo It is WinNT) else echo Is is not WinNT'
     sh_shell_test = 'x="me"; if [ $x = "me" ]; then echo "It was me"; else "It was him"; fi'
@@ -549,7 +576,7 @@ if __name__ == "__main__":
     print(arg_subst(['nothing', 'xx-%0-yyy', '%1', '%2-something'],
                     ['subst0', 'subst1', 'subst2']))
 
-    e = execute(error_prefix = 'ERR: ', verbose = True)
+    e = execute(error_prefix = 'ERR: ', output = capture_output, verbose = True)
     if sys.platform == "win32":
         run_tests(e, commands['windows'], False)
         if os.path.exists('c:\\msys\\1.0\\bin\\sh.exe'):

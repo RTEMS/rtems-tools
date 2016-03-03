@@ -32,6 +32,8 @@
 # RTEMS Testing Consoles
 #
 
+from __future__ import print_function
+
 import errno
 import os
 import threading
@@ -42,7 +44,7 @@ import time
 #
 if os.name != 'nt':
     import fcntl
-    import stty
+    from . import stty
 else:
     fcntl = None
     stty = None

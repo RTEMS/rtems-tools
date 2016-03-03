@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2015 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2016 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -31,17 +31,28 @@
 
 import os
 
-import error
-import execute
-import log
-import options
-import path
+#
+# Support to handle use in a package and as a unit test.
+# If there is a better way to let us know.
+#
+try:
+    from . import error
+    from . import execute
+    from . import log
+    from . import path
+except (ValueError, SystemError):
+    import error
+    import execute
+    import log
+    import path
 
 class repo:
     """An object to manage a git repo."""
 
-    def _git_exit_code(self, ec):
+    def _git_exit_code(self, ec, cmd, output):
         if ec:
+            log.notice('git: cmd: ' + ' '.join(cmd))
+            log.notice('git: output: ' + output)
             raise error.general('git command failed (%s): %d' % (self.git, ec))
 
     def _run(self, args, check = False):
@@ -55,7 +66,7 @@ class repo:
         exit_code, proc, output = e.spawn(cmd, cwd = path.host(cwd))
         log.trace(output)
         if check:
-            self._git_exit_code(exit_code)
+            self._git_exit_code(exit_code, cmd, output)
         return exit_code, output
 
     def __init__(self, _path, opts = None, macros = None):
@@ -76,9 +87,11 @@ class repo:
         if len(gvs) < 3:
             raise error.general('invalid version string from git: %s' % (output))
         vs = gvs[2].split('.')
-        if len(vs) != 4:
-            raise error.general('invalid version number from git: %s' % (gvs[2]))
-        return (int(vs[0]), int(vs[1]), int(vs[2]), int(vs[3]))
+        if len(vs) == 4:
+            return (int(vs[0]), int(vs[1]), int(vs[2]), int(vs[3]))
+        if len(vs) == 3:
+            return (int(vs[0]), int(vs[1]), int(vs[2]))
+        raise error.general('invalid version number from git: %s' % (gvs[2]))
 
     def clone(self, url, _path):
         ec, output = self._run(['clone', url, path.host(_path)], check = True)
@@ -207,12 +220,19 @@ class repo:
 
 if __name__ == '__main__':
     import sys
-    opts = options.load(sys.argv)
+    import options
+    long_opts = {
+       # key              macro        handler   param  defs   init
+    }
+    opts = options.command_line(base_path = '.',
+                                argv = sys.argv,
+                                long_opts = long_opts)
+    options.load(opts)
     g = repo('.', opts)
-    print(g.git_version())
-    print(g.valid())
-    print(g.status())
-    print(g.clean())
-    print(g.remotes())
-    print(g.email())
-    print(g.head())
+    print('version:', g.git_version())
+    print('valid:', g.valid())
+    print('status:', g.status())
+    print('dirty:', g.dirty())
+    print('remotes:', g.remotes())
+    print('email:', g.email())
+    print('head:', g.head())

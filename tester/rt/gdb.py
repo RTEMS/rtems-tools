@@ -32,8 +32,14 @@
 # RTEMS Testing GDB Interface
 #
 
+from __future__ import print_function
+
 import os
-import Queue
+try:
+    import Queue
+    queue = Queue
+except ImportError:
+    import queue
 import sys
 import threading
 
@@ -42,8 +48,16 @@ from rtemstoolkit import execute
 from rtemstoolkit import options
 from rtemstoolkit import path
 
-import console
-import pygdb
+#
+# Support to handle use in a package and as a unit test.
+# If there is a better way to let us know.
+#
+try:
+    from . import console
+    from . import pygdb
+except (ValueError, SystemError):
+    import console
+    import pygdb
 
 #
 # The MI parser needs a global lock. It has global objects.
@@ -64,8 +78,8 @@ class gdb(object):
         self.bsp_arch = bsp_arch
         self.output = None
         self.gdb_console = None
-        self.input = Queue.Queue()
-        self.commands = Queue.Queue()
+        self.input = queue.Queue()
+        self.commands = queue.Queue()
         self.process = None
         self.state = {}
         self.running = False
@@ -139,7 +153,7 @@ class gdb(object):
                 line = self.input.get(timeout = 0.5)
                 if self.trace:
                     print('>>> input: queue=%d' % (self.input.qsize()), line)
-            except Queue.Empty:
+            except queue.Empty:
                 return True
             if line is None:
                 return None

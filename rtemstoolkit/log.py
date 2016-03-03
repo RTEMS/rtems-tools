@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2016 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-testing'.
@@ -32,11 +32,20 @@
 # Log output to stdout and/or a file.
 #
 
+from __future__ import print_function
+
 import os
 import sys
 import threading
 
-import error
+#
+# Support to handle use in a package and as a unit test.
+# If there is a better way to let us know.
+#
+try:
+    from . import error
+except (ValueError, SystemError):
+    import error
 
 #
 # A global log.
@@ -126,7 +135,7 @@ class log:
                     self.fhs[1] = sys.stderr
                 else:
                     try:
-                        self.fhs.append(file(s, 'w'))
+                        self.fhs.append(open(s, 'w'))
                     except IOError as ioe:
                          raise error.general("creating log file '" + s + \
                                              "': " + str(ioe))

@@ -28,10 +28,12 @@
 
 # $Id$
 
+from __future__ import print_function
 
 import re
 import pprint
-import spark
+
+from . import spark
 
 def __private():
 	class Token:
@@ -190,7 +192,7 @@ def __private():
 		def n_result(self, node):
 			# result ::= variable = value
 			node.value = { node[0].value: node[2].value }
-			#print('result: %s' % node.value)
+			#print 'result: %s' % node.value
 
 		def n_tuple(self, node):
 			if len(node) == 2:
@@ -203,9 +205,9 @@ def __private():
 				# tuple ::= { result result_list }
 				node.value = node[1].value
 				for result in node[2].value:
-					for n, v in result.items():
-						if node.value.has_key(n):
-							#print('**********list conversion: [%s] %s -> %s' % (n, node.value[n], v))
+					for n, v in list(result.items()):
+						if n in node.value:
+							#print '**********list conversion: [%s] %s -> %s' % (n, node.value[n], v)
 							old = node.value[n]
 							if not isinstance(old, list):
 								node.value[n] = [ node.value[n] ]
@@ -214,7 +216,7 @@ def __private():
 							node.value[n] = v
 			else:
 				raise Exception('Invalid tuple')
-			#print('tuple: %s' % node.value)
+			#print 'tuple: %s' % node.value
 
 		def n_list(self, node):
 			if len(node) == 2:
@@ -230,7 +232,7 @@ def __private():
 				#list ::= [ result result_list ]
 				#list ::= { value }
 				#list ::= { value value_list }
-			#print('list %s' % node.value)
+			#print 'list %s' % node.value
 
 		def n_value_list(self, node):
 			if len(node) == 2:
@@ -247,7 +249,7 @@ def __private():
 			else:
 				# result_list ::= , result result_list
 				node.value = [ node[1].value ] + node[2].value
-			#print('result_list: %s' % node.value)
+			#print 'result_list: %s' % node.value
 
 		def n_result_record(self, node):
 			node.value = node[0].value
@@ -257,7 +259,7 @@ def __private():
 			elif len(node) == 2:
 				# result_record ::= result_header nl
 				pass
-			#print('result_record: %s' % (node.value))
+			#print 'result_record: %s' % (node.value)
 
 		def n_result_header(self, node):
 			if len(node) == 3:
@@ -284,7 +286,7 @@ def __private():
 				'value': node[1].value,
 				'record_type': 'stream'
 			}
-			#print('stream_record: %s' % node.value)
+			#print 'stream_record: %s' % node.value
 
 		def n_record_list(self, node):
 			if len(node) == 1:
@@ -293,10 +295,10 @@ def __private():
 			elif len(node) == 2:
 				# record_list ::= generic_record record_list
 				node.value = [ node[0].value ] + node[1].value
-			#print('record_list: %s' % node.value)
+			#print 'record_list: %s' % node.value
 
 		#def default(self, node):
-			#print('default: ' + node.type)
+			#print 'default: ' + node.type
 
 	class GdbDynamicObject:
 		def __init__(self, dict_):
@@ -305,7 +307,7 @@ def __private():
 		def __repr__(self):
 			return pprint.pformat(self.__dict__)
 
-		def __nonzero__(self):
+		def __bool__(self):
 			return len(self.__dict__) > 0
 
 		def __getitem__(self, i):
@@ -320,7 +322,7 @@ def __private():
 			return None
 
 		def graft(self, dict_):
-			for name, value in dict_.items():
+			for name, value in list(dict_.items()):
 				name = name.replace('-', '_')
 				if isinstance(value, dict):
 					value = GdbDynamicObject(value)
@@ -336,7 +338,7 @@ def __private():
 	class GdbMiRecord:
 		def __init__(self, record):
 			self.result = None
-			for name, value in record[0].items():
+			for name, value in list(record[0].items()):
 				name = name.replace('-', '_')
 				if name == 'results':
 					for result in value:
@@ -370,7 +372,7 @@ def process(input):
 if __name__ == '__main__':
 	def main():
 		def print_tokens(tokens):
-			print
+			print()
 			for token in tokens:
 				if token.value:
 					print(token.type + ': ' + token.value)

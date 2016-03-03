@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2016 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -32,14 +32,24 @@
 # Macro tables.
 #
 
+from __future__ import print_function
+
 import copy
 import inspect
 import re
 import os
 import string
 
-import error
-import path
+#
+# Support to handle use in a package and as a unit test.
+# If there is a better way to let us know.
+#
+try:
+    from . import error
+    from . import path
+except (ValueError, SystemError):
+    import error
+    import path
 
 #
 # Macro tables
@@ -54,7 +64,7 @@ class macros:
         def __iter__(self):
             return self
 
-        def next(self):
+        def __next__(self):
             if self.index < len(self.keys):
                 key = self.keys[self.index]
                 self.index += 1
@@ -63,6 +73,19 @@ class macros:
 
         def iterkeys(self):
             return self.keys
+
+    def _unicode_to_str(self, us):
+        try:
+            if type(us) == unicode:
+                return us.encode('ascii', 'replace')
+        except:
+            pass
+        try:
+            if type(us) == bytes:
+                return us.encode('ascii', 'replace')
+        except:
+            pass
+        return us
 
     def __init__(self, name = None, original = None, rtdir = '.'):
         self.files = []
@@ -167,12 +190,17 @@ class macros:
     def __setitem__(self, key, value):
         if type(key) is not str:
             raise TypeError('bad key type (want str): %s' % (type(key)))
+        if type(value) is not tuple:
+            value = self._unicode_to_str(value)
         if type(value) is str:
             value = ('none', 'none', value)
         if type(value) is not tuple:
             raise TypeError('bad value type (want tuple): %s' % (type(value)))
         if len(value) != 3:
             raise TypeError('bad value tuple (len not 3): %d' % (len(value)))
+        value = (self._unicode_to_str(value[0]),
+                 self._unicode_to_str(value[1]),
+                 self._unicode_to_str(value[2]))
         if type(value[0]) is not str:
             raise TypeError('bad value tuple type field: %s' % (type(value[0])))
         if type(value[1]) is not str:
@@ -195,10 +223,10 @@ class macros:
         return self.has_key(key)
 
     def __len__(self):
-        return len(self.keys())
+        return len(list(self.keys()))
 
     def keys(self):
-        keys = self.macros['global'].keys()
+        keys = list(self.macros['global'].keys())
         for rm in self.get_read_maps():
             for mk in self.macros[rm]:
                 if self.macros[rm][mk][1] == 'undefine':
@@ -211,7 +239,7 @@ class macros:
     def has_key(self, key):
         if type(key) is not str:
             raise TypeError('bad key type (want str): %s' % (type(key)))
-        if self.key_filter(key) not in self.keys():
+        if self.key_filter(key) not in list(self.keys()):
             return False
         return True
 
@@ -491,7 +519,7 @@ if __name__ == "__main__":
     import copy
     import sys
     print(inspect.getfile(macros))
-    m = macros(name = 'defaults.mc')
+    m = macros()
     d = copy.copy(m)
     m['test1'] = 'something'
     if d.has_key('test1'):

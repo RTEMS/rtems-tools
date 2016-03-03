@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2016 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -37,4 +37,17 @@ all = ['check',
        'macros',
        'mailer',
        'options',
-       'path']
+       'path',
+       'version']
+
+from . import check
+from . import config
+from . import error
+from . import execute
+from . import git
+from . import log
+from . import macros
+from . import mailer
+from . import options
+from . import path
+from . import version

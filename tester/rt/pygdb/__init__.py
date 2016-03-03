@@ -17,5 +17,6 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 all = ['mi_parser']
-from mi_parser import scan
-from mi_parser import process
+from . import mi_parser
+scan = mi_parser.scan
+process = mi_parser.process

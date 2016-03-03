@@ -28,8 +28,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
+from __future__ import print_function
+
 import copy
 import datetime
+import fnmatch
 import os
 import sys
 import threading
@@ -41,12 +44,11 @@ from rtemstoolkit import path
 from rtemstoolkit import stacktraces
 from rtemstoolkit import version
 
-import bsps
-import config
-import console
-import options
-import report
-import fnmatch
+from . import bsps
+from . import config
+from . import console
+from . import options
+from . import report
 
 class test(object):
     def __init__(self, index, total, report, executable, rtems_tools, bsp, bsp_config, opts):

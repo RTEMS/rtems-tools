@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2016 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -32,22 +32,36 @@
 # Determine the defaults and load the specific file.
 #
 
+from __future__ import print_function
+
 import copy
 import glob
 import pprint
 import re
 import os
 import string
-
-import error
-import execute
-import git
-import log
-import macros
-import path
 import sys
 
-import version
+#
+# Support to handle use in a package and as a unit test.
+# If there is a better way to let us know.
+#
+try:
+    from . import error
+    from . import execute
+    from . import git
+    from . import log
+    from . import macros
+    from . import path
+    from . import version
+except (ValueError, SystemError):
+    import error
+    import execute
+    import git
+    import log
+    import macros
+    import path
+    import version
 
 basepath = 'tb'
 
@@ -61,7 +75,7 @@ class command_line(object):
 
     def __init__(self, base_path = None, argv = None, optargs = None,
                  defaults = None, long_opts = None, long_opts_help = None,
-                 command_path = None, log_default = None):
+                 command_path = '', log_default = None):
 
         if argv is None:
             return
@@ -69,13 +83,16 @@ class command_line(object):
         global basepath
 
         if long_opts == None:
-            raise error.general('No options provided')
+            long_opts = {}
 
         basepath = base_path
 
         if log_default is not None and type(log_default) is not list:
             raise error.general('log default is a list')
         self.log_default = log_default
+
+        if defaults is None:
+            defaults = macros.macros()
 
         self.long_opts = {
             # key                 macro                handler            param  defs       init
@@ -128,7 +145,7 @@ class command_line(object):
             elif long_opts[lo][1] == 'string':
                 handler = self._lo_string
             elif long_opts[lo][1] == 'path':
-                hanlder = self._lo_path
+                handler = self._lo_path
             elif long_opts[lo][1] == 'jobs':
                 handler = self._lo_jobs
             elif long_opts[lo][1] == 'bool':
@@ -139,9 +156,10 @@ class command_line(object):
                 raise error.general('invalid option handler: %s: %s' % (lo, long_opts[lo][1]))
             self.long_opts[lo] = (long_opts[lo][0], handler, long_opts[lo][2],
                                    long_opts[lo][3], long_opts[lo][4])
-            if lo not in long_opts_help:
-                raise error.general('no help for option: %s' % (lo))
-            self.long_opts_help[lo] = long_opts_help[lo]
+            if long_opts_help is not None:
+                if lo not in long_opts_help:
+                    raise error.general('no help for option: %s' % (lo))
+                self.long_opts_help[lo] = long_opts_help[lo]
 
     def __copy__(self):
         new = type(self)()
@@ -159,7 +177,7 @@ class command_line(object):
     def __str__(self):
         def _dict(dd):
             s = ''
-            ddl = dd.keys()
+            ddl = list(dd.keys())
             ddl.sort()
             for d in ddl:
                 s += '  ' + d + ': ' + str(dd[d]) + '\n'
@@ -276,7 +294,7 @@ class command_line(object):
         print('%s: [options] [args]' % (self.command_name))
         print('RTEMS Tools Project (c) 2012-2015 Chris Johns')
         print('Options and arguments:')
-        opts = self.long_opts_help.keys()
+        opts = list(self.long_opts_help.keys())
         if self.optargs:
             opts += self.optargs.keys()
         indent = self._help_indent()
@@ -518,6 +536,9 @@ def load(opts):
     command line.
     """
 
+    if not isinstance(opts, command_line):
+        raise error.general('invalid options type passed to options loader')
+
     global host_windows
 
     overrides = None
@@ -532,20 +553,41 @@ def load(opts):
         uname = os.uname()
         try:
             if uname[0].startswith('CYGWIN_NT'):
-                import windows
+                try:
+                    from . import windows
+                except:
+                    import windows
                 overrides = windows.load()
             elif uname[0] == 'Darwin':
-                import darwin
+                try:
+                    from . import darwin
+                except:
+                    import darwin
                 overrides = darwin.load()
             elif uname[0] == 'FreeBSD':
-                import freebsd
+                try:
+                    from . import freebsd
+                except:
+                    import freebsd
                 overrides = freebsd.load()
             elif uname[0] == 'NetBSD':
-                import netbsd
+                try:
+                    from . import netbsd
+                except:
+                    import netbsd
                 overrides = netbsd.load()
             elif uname[0] == 'Linux':
-                import linux
+                try:
+                    from . import linux
+                except:
+                    import linux
                 overrides = linux.load()
+            elif uname[0] == 'SunOS':
+                try:
+                    from . import solaris
+                except:
+                    import solaris
+                overrides = solaris.load()
         except:
             raise error.general('failed to load %s host support' % (uname[0]))
     else:

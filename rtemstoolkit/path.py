@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2016 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -34,13 +34,23 @@
 # level. This allows macro expansion to work.
 #
 
+from __future__ import print_function
+
 import glob
 import os
 import shutil
 import string
 
-import error
-import log
+#
+# Support to handle use in a package and as a unit test.
+# If there is a better way to let us know.
+#
+try:
+    from . import error
+    from . import log
+except (ValueError, SystemError):
+    import error
+    import log
 
 windows = os.name == 'nt'
 

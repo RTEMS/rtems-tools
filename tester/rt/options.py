@@ -32,6 +32,8 @@
 # Determine the defaults and load the specific file.
 #
 
+from __future__ import print_function
+
 import glob
 import pprint
 import re
@@ -45,8 +47,7 @@ from rtemstoolkit import log
 from rtemstoolkit import macros
 from rtemstoolkit import options
 from rtemstoolkit import path
-
-import version
+from rtemstoolkit import version
 
 #
 # The path for the defaults.
@@ -115,10 +116,10 @@ def run(args):
         log.notice('Defaults:')
         log.notice(str(_opts.defaults))
     except error.general as gerr:
-        print(gerr)
+        print(gerr, file = sys.stderr)
         sys.exit(1)
     except error.internal as ierr:
-        print(ierr)
+        print(ierr, file = sys.stderr)
         sys.exit(1)
     except error.exit:
         pass

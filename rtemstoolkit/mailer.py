@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2013-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2013-2016 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -32,13 +32,24 @@
 # Manage emailing results or reports.
 #
 
+from __future__ import print_function
+
 import os
 import smtplib
 import socket
 
-import error
-import options
-import path
+#
+# Support to handle use in a package and as a unit test.
+# If there is a better way to let us know.
+#
+try:
+    from . import error
+    from . import options
+    from . import path
+except (ValueError, SystemError):
+    import error
+    import options
+    import path
 
 def append_options(opts):
     opts['--mail'] = 'Send email report or results.'

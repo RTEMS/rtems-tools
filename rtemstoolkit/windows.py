@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2016 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -32,11 +32,19 @@
 # Windows specific support and overrides.
 #
 
-import error
 import pprint
 import os
 
-import execute
+#
+# Support to handle use in a package and as a unit test.
+# If there is a better way to let us know.
+#
+try:
+    from . import error
+    from . import execute
+except (ValueError, SystemError):
+    import error
+    import execute
 
 def load():
     # Default to the native Windows Python.

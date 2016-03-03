@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2016 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -35,10 +35,18 @@
 
 import pprint
 import os
-
 import platform
-import execute
-import path
+
+#
+# Support to handle use in a package and as a unit test.
+# If there is a better way to let us know.
+#
+try:
+    from . import execute
+    from . import path
+except (ValueError, SystemError):
+    import execute
+    import path
 
 def load():
     uname = os.uname()
@@ -130,7 +138,7 @@ def load():
                      '__chown':        ('exe',     'required', '/usr/sbin/chown') },
         }
 
-    if variations.has_key(distro):
+    if distro in variations:
         for v in variations[distro]:
             if path.exists(variations[distro][v][2]):
                 defines[v] = variations[distro][v]
