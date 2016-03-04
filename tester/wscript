@@ -59,8 +59,7 @@ def build(bld):
                   'rt/options.py',
                   'rt/report.py',
                   'rt/stty.py',
-                  'rt/test.py',
-                  'rt/version.py'],
+                  'rt/test.py'],
         install_from = '.',
         install_path = '${PREFIX}/share/rtems/tester')
     bld(features = 'py',
