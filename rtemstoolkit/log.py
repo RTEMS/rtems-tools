@@ -89,7 +89,7 @@ def _output(text = os.linesep, log = None):
 def stderr(text = os.linesep, log = None):
     lock.acquire()
     for l in text.replace(chr(13), '').splitlines():
-        print >> sys.stderr, l
+        print(l, file = sys.stderr)
     lock.release()
 
 def output(text = os.linesep, log = None):

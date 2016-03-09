@@ -99,6 +99,7 @@ class test_run(object):
     def runner(self):
         self.start_time = datetime.datetime.now()
         try:
+            xx
             self.test = test(self.index, self.total, self.report,
                              self.executable, self.rtems_tools,
                              self.bsp, self.bsp_config,
@@ -120,6 +121,9 @@ class test_run(object):
 
     def reraise(self):
         if self.result is not None:
+            with_tb = getattr(self.result[1], 'with_traceback', None)
+            if with_tb:
+                raise self.result[1].with_traceback(self.result[2])
             raise (self.result[0], self.result[1], self.result[2])
 
     def kill(self):

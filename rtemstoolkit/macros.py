@@ -188,6 +188,7 @@ class macros:
         return macro[2]
 
     def __setitem__(self, key, value):
+        key = self._unicode_to_str(key)
         if type(key) is not str:
             raise TypeError('bad key type (want str): %s' % (type(key)))
         if type(value) is not tuple:

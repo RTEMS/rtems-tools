@@ -192,7 +192,8 @@ class execute(object):
                     data = fh.read(1)
                     if len(data) == 0:
                         break
-                    if type(data) == bytes:
+                    # str and bytes are the same type in Python2
+                    if type(data) is not str and type(data) is bytes:
                         data = data.decode(sys.stdout.encoding)
                     for c in data:
                         line += c

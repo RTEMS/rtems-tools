@@ -44,6 +44,10 @@ import os
 import re
 import sys
 
+#
+# Support to handle use in a package and as a unit test.
+# If there is a better way to let us know.
+#
 try:
     from . import error
     from . import execute
@@ -51,11 +55,11 @@ try:
     from . import options
     from . import path
 except (ValueError, SystemError):
-     import error
-     import execute
-     import log
-     import options
-     import path
+    import error
+    import execute
+    import log
+    import options
+    import path
 
 def _check_bool(value):
     if value.isdigit():
@@ -849,8 +853,6 @@ def run():
                                     argv = sys.argv,
                                     long_opts = long_opts)
         options.load(opts)
-        if '_file' not in opts.defaults:
-            raise error.general('no --file option provided')
         s = file(opts.defaults['_file'], opts)
         s.load(opts.defaults['_file'])
         print(s)
