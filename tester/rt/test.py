@@ -120,7 +120,10 @@ class test_run(object):
 
     def reraise(self):
         if self.result is not None:
-            raise self.result[0](self.result[1]).with_traceback(self.result[2])
+            with_tb = getattr(self.result[1], 'with_traceback', None)
+            if with_tb:
+                raise self.result[1].with_traceback(self.result[2])
+            raise (self.result[0], self.result[1], self.result[2])
 
     def kill(self):
         if self.test:
