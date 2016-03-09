@@ -99,7 +99,6 @@ class test_run(object):
     def runner(self):
         self.start_time = datetime.datetime.now()
         try:
-            xx
             self.test = test(self.index, self.total, self.report,
                              self.executable, self.rtems_tools,
                              self.bsp, self.bsp_config,
