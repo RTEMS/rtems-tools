@@ -138,12 +138,12 @@ class gdb(object):
     def _writer(self):
         try:
             try:
-                self._lock('_open')
+                self._lock('_writer')
                 try:
                     if self.process is None:
                         return None
                 finally:
-                    self._unlock('_open')
+                    self._unlock('_writer')
                 line = self.input.get(timeout = 0.5)
                 if self.trace:
                     print('>>> input: queue=%d' % (self.input.qsize()), line)

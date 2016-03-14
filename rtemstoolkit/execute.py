@@ -138,10 +138,10 @@ class execute(object):
             block and return None or False if this thread is to exit and True if this
             is a timeout check."""
             if trace_threads:
-                print('executte:_writethread: start')
+                print('execute:_writethread: start')
             try:
                 while True:
-                    lines = eval(input())
+                    lines = input()
                     if type(lines) == str:
                         try:
                             fh.write(bytes(lines, sys.stdin.encoding))
@@ -153,14 +153,14 @@ class execute(object):
                         break
             except:
                 if trace_threads:
-                    print('executte:_writethread: exception')
+                    print('execute:_writethread: exception')
                 pass
             try:
                 fh.close()
             except:
                 pass
             if trace_threads:
-                print('executte:_writethread: finished')
+                print('execute:_writethread: finished')
 
         def _readthread(exe, fh, out, prefix = ''):
             """Read from a file handle and write to the output handler
@@ -177,7 +177,7 @@ class execute(object):
                         log.flush()
 
             if trace_threads:
-                print('executte:_readthread: start')
+                print('execute:_readthread: start')
             count = 0
             line = ''
             try:
@@ -199,7 +199,7 @@ class execute(object):
             except:
                 raise
                 if trace_threads:
-                    print('executte:_readthread: exception')
+                    print('execute:_readthread: exception')
                 pass
             try:
                 fh.close()
@@ -208,7 +208,7 @@ class execute(object):
             if len(line):
                 _output_line(line, exe, prefix, out, 100)
             if trace_threads:
-                print('executte:_readthread: finished')
+                print('execute:_readthread: finished')
 
         def _timerthread(exe, interval, function):
             """Timer thread is used to timeout a process if no output is

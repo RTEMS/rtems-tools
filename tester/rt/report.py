@@ -145,6 +145,7 @@ class report(object):
             if name not in self.results:
                 self.lock.release()
                 raise error.general('test report missing: %s' % (name))
+            exe = path.basename(self.results[name]['exe'])
             result = self.results[name]['result']
             time = self.results[name]['end'] - self.results[name]['start']
             if mode != 'none':
@@ -158,8 +159,7 @@ class report(object):
                 log.output(header)
             if output:
                 log.output(output)
-            if header:
-                log.output('Result: %-10s Time: %s' % (result, str(time)))
+                log.output('Result: %-10s Time: %s %s' % (result, str(time), exe))
 
     def summary(self):
         def show_state(results, state, max_len):
