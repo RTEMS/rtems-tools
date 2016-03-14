@@ -217,7 +217,10 @@ def run(command_path = None):
         opts.log_info()
         debug_trace = opts.find_arg('--debug-trace')
         if debug_trace:
-            debug_trace = debug_trace[1]
+            if len(debug_trace) != 1:
+                debug_trace = debug_trace[1]
+            else:
+                raise error.general('no debug flags, can be: console,gdb,output')
         else:
             debug_trace = ''
         opts.defaults['debug_trace'] = debug_trace
