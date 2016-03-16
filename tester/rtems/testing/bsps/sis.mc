@@ -51,6 +51,6 @@ bsp:                 none,    none,     'sis'
 sis:                 none,    none,     '%{_rtscripts}/gdb.cfg'
 sis_arch:            none,    none,     'sparc'
 gdb_script:          none,    none,     'sis_gdb_script'
-sis_gdb_script:      none,    none,     '''target sim
+sis_gdb_script:      none,    none,     '''target sim -a -nouartrx
                                            load
                                            run'''
