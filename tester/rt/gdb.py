@@ -231,6 +231,15 @@ class gdb(object):
         finally:
             self._unlock('_open')
 
+    def kill(self):
+        self._lock('_open')
+        try:
+            if self.process:
+                self.process.kill()
+            self.process = None
+        finally:
+            self._unlock('_open')
+
     def gdb_expect(self):
         if self.trace:
             print('}}} gdb-expect')
