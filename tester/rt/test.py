@@ -50,6 +50,51 @@ from . import console
 from . import options
 from . import report
 
+#
+# The following fragment is taken from https://bitbucket.org/gutworth/six
+# to raise an exception. The python2 code cause a syntax error with python3.
+#
+# Copyright (c) 2010-2016 Benjamin Peterson
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in all
+# copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+# SOFTWARE.
+#
+# Taken from six.
+#
+if sys.version_info[0] == 3:
+    def _test_reraise(tp, value, tb = None):
+        raise value.with_traceback(tb)
+else:
+    def exec_(_code_, _globs_ = None, _locs_ = None):
+        if _globs_ is None:
+            frame = sys._getframe(1)
+            _globs_ = frame.f_globals
+            if _locs_ is None:
+                _locs_ = frame.f_locals
+            del frame
+        elif _locs_ is None:
+            _locs_ = _globs_
+        exec("""exec _code_ in _globs_, _locs_""")
+
+    exec_("""def _test_reraise(tp, value, tb = None):
+    raise tp, value, tb
+""")
+
 class test(object):
     def __init__(self, index, total, report, executable, rtems_tools, bsp, bsp_config, opts):
         self.index = index
@@ -120,10 +165,7 @@ class test_run(object):
 
     def reraise(self):
         if self.result is not None:
-            with_tb = getattr(self.result[1], 'with_traceback', None)
-            if with_tb:
-                raise self.result[1].with_traceback(self.result[2])
-            raise (self.result[0], self.result[1], self.result[2])
+            _test_reraise(*self.result)
 
     def kill(self):
         if self.test:
