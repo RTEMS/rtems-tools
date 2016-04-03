@@ -52,6 +52,21 @@ namespace rld
     const std::string version ();
 
     /**
+     * Get the RTEMS major version number.
+     */
+    uint64_t version_major ();
+
+    /**
+     * Get the RTEMS minor version number.
+     */
+    uint64_t version_minor ();
+
+    /**
+     * Get the RTEMS revision version number.
+     */
+    uint64_t version_revision ();
+
+    /**
      * Return the arch/bsp string.
      */
     const std::string arch_bsp ();

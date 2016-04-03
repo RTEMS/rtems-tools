@@ -29,6 +29,7 @@
 #include <cctype>
 #include <functional>
 #include <iostream>
+#include <list>
 #include <locale>
 #include <sstream>
 #include <string>
@@ -63,6 +64,8 @@ namespace rld
     class image;
     class archive;
     class object;
+    class cache;
+    typedef std::list < object* > object_list;
   }
 }
 
@@ -179,6 +182,15 @@ namespace rld
   const std::string tolower (const std::string& sin);
 
   /**
+   * Parse version string of format major.minor.revision where revieion can be
+   * a git hash.
+   */
+  void version_parse (const std::string& str,
+                      uint64_t&          major,
+                      uint64_t&          minor,
+                      uint64_t&          revision);
+
+  /**
    * Increment the verbose level.
    */
   void verbose_inc ();
@@ -193,6 +205,21 @@ namespace rld
    * The version string.
    */
   const std::string version ();
+
+  /**
+   * Get the major version number.
+   */
+  uint64_t version_major ();
+
+  /**
+   * Get the minor version number.
+   */
+  uint64_t version_minor ();
+
+  /**
+   * Get the revision version number.
+   */
+  uint64_t version_revision ();
 
   /**
    * Container of strings to hold the results of a split.

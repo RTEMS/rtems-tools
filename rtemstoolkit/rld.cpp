@@ -67,9 +67,19 @@ namespace rld
   static library_container libraries;
 
   /**
-   * The output passed on the command line.
+   * The version major number.
    */
-  //static std::string output;
+  static uint64_t _version_major;
+
+  /**
+   * The version minor number.
+   */
+  static uint64_t _version_minor;
+
+  /**
+   * The version revision number.
+   */
+  static uint64_t _version_revision;
 
   bool
   starts_with(const std::string& s1, const std::string& s2)
@@ -184,6 +194,44 @@ namespace rld
   }
 
   void
+  version_parse (const std::string& str,
+                 uint64_t&          major,
+                 uint64_t&          minor,
+                 uint64_t&          revision)
+  {
+    strings parts;
+
+    rld::split (parts, str, '.');
+
+    if (parts.size () >= 1)
+    {
+      std::istringstream iss (parts[0]);
+      iss >> major;
+    }
+
+    if (parts.size () >= 2)
+    {
+      std::istringstream iss (parts[1]);
+      iss >> minor;
+    }
+
+    if (parts.size () >= 3)
+    {
+      size_t p = parts[2].find ('_');
+
+      if (p != std::string::npos)
+        parts[2].erase (p);
+
+      std::istringstream iss (parts[2]);
+
+      if (p != std::string::npos)
+        iss >> std::hex;
+
+      iss >> revision;
+    }
+  }
+
+  void
   verbose_inc ()
   {
     ++verbose_level;
@@ -201,10 +249,37 @@ namespace rld
     return RTEMS_RELEASE;
   }
 
-  const std::string
-  rtems_version ()
+  uint64_t
+  version_major ()
   {
-    return RTEMS_VERSION;
+    if (_version_major == 0)
+      version_parse (version (),
+                     _version_major,
+                     _version_minor,
+                     _version_revision);
+    return _version_major;
+  }
+
+  uint64_t
+  version_minor ()
+  {
+    if (_version_major == 0)
+      version_parse (version (),
+                     _version_major,
+                     _version_minor,
+                     _version_revision);
+    return _version_minor;
+  }
+
+  uint64_t
+  version_revision ()
+  {
+    if (_version_major == 0)
+      version_parse (version (),
+                     _version_major,
+                     _version_minor,
+                     _version_revision);
+    return _version_revision;
   }
 
   void

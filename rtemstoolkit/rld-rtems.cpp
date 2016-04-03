@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014, Chris Johns <chrisj@rtems.org>
+ * Copyright (c) 2011-2016, Chris Johns <chrisj@rtems.org>
  *
  * Permission to use, copy, modify, and/or distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -27,6 +27,10 @@ namespace rld
     static std::string _version = RTEMS_VERSION;
     static std::string _path;
     static std::string _arch_bsp;
+
+    static uint64_t _version_major = 0;
+    static uint64_t _version_minor = 0;
+    static uint64_t _version_revision = 0;
 
     static void
     load_cc ()
@@ -130,6 +134,10 @@ namespace rld
     set_version (const std::string& version_)
     {
       _version = version_;
+      rld::version_parse (_version,
+                          _version_major,
+                          _version_minor,
+                          _version_revision);
     }
 
     void
@@ -152,6 +160,39 @@ namespace rld
     version ()
     {
       return _version;
+    }
+
+    uint64_t
+    version_major ()
+    {
+      if (_version_major == 0)
+        rld::version_parse (_version,
+                            _version_major,
+                            _version_minor,
+                            _version_revision);
+      return _version_major;
+    }
+
+    uint64_t
+    version_minor ()
+    {
+      if (_version_minor == 0)
+        rld::version_parse (_version,
+                            _version_major,
+                            _version_minor,
+                            _version_revision);
+      return _version_minor;
+    }
+
+    uint64_t
+    version_revision ()
+    {
+      if (_version_revision == 0)
+        rld::version_parse (_version,
+                            _version_major,
+                            _version_minor,
+                            _version_revision);
+      return _version_revision;
     }
 
     const std::string
