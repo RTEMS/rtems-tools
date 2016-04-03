@@ -362,6 +362,42 @@ namespace rld
     }
 
     void
+    table::globals (addrtab& addresses)
+    {
+      for (symtab::iterator gi = globals_.begin ();
+           gi != globals_.end ();
+           ++gi)
+      {
+        symbol& sym = *((*gi).second);
+        addresses[sym.value ()] = (*gi).second;
+      }
+    }
+
+    void
+    table::weaks (addrtab& addresses)
+    {
+      for (symtab::iterator wi = weaks_.begin ();
+           wi != weaks_.end ();
+           ++wi)
+      {
+        symbol& sym = *((*wi).second);
+        addresses[sym.value ()] = (*wi).second;
+      }
+    }
+
+    void
+    table::locals (addrtab& addresses)
+    {
+      for (symtab::iterator li = locals_.begin ();
+           li != locals_.end ();
+           ++li)
+      {
+        symbol& sym = *((*li).second);
+        addresses[sym.value ()] = (*li).second;
+      }
+    }
+
+    void
     load (bucket& bucket_, table& table_)
     {
       for (bucket::iterator sbi = bucket_.begin ();

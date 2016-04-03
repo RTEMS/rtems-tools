@@ -45,6 +45,11 @@ namespace rld
   namespace symbols
   {
     /**
+     * Use a local type for the address.
+     */
+    typedef elf::elf_addr address;
+
+    /**
      * A symbol.
      */
     class symbol
@@ -205,6 +210,12 @@ namespace rld
     typedef std::map < std::string, symbol* > symtab;
 
     /**
+     * An address table is a map container of symbols based on address. Should
+     * always point to symbols held in a bucket.
+     */
+    typedef std::map < address, symbol* > addrtab;
+
+    /**
      * A symbols contains a symbol table of global, weak and local symbols.
      */
     class table
@@ -269,6 +280,21 @@ namespace rld
        * Return the locals symbol table.
        */
       const symtab& locals () const;
+
+      /**
+       * Return the globals symbol table keyed by address.
+       */
+      void globals (addrtab& addresses);
+
+      /**
+       * Return the weak symbol table keyed by address.
+       */
+      void weaks (addrtab& addresses);
+
+      /**
+       * Return the local symbol table keyed by address.
+       */
+      void locals (addrtab& addresses);
 
     private:
 
