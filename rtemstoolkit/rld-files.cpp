@@ -842,6 +842,7 @@ namespace rld
         info (es.info ()),
         flags (es.flags ()),
         offset (es.offset ()),
+        address (es.address ()),
         rela (es.get_reloc_type ())
     {
     }

@@ -582,6 +582,7 @@ namespace rld
       const uint32_t    info;      //< The ELF info field.
       const uint32_t    flags;     //< The ELF flags.
       const off_t       offset;    //< The ELF file offset.
+      const uint64_t    address;   //< The ELF address.
       bool              rela;      //< Relocation records have the addend field.
       relocations       relocs;    //< The sections relocations.
 
