@@ -37,8 +37,22 @@ namespace rld
     /**
      * Get the demangled name.
      */
-    static void
-    denamgle_name (std::string& name, std::string& demangled)
+    bool
+    is_cplusplus (const std::string& name)
+    {
+      char* demangled_name = ::cplus_demangle (name.c_str (),
+                                               DMGL_ANSI | DMGL_PARAMS);
+      bool yes = false;
+      if (demangled_name)
+      {
+        yes = true;
+        ::free (demangled_name);
+      }
+      return yes;
+    }
+
+    void
+    demangle_name (std::string& name, std::string& demangled)
     {
       char* demangled_name = ::cplus_demangle (name.c_str (),
                                                DMGL_ANSI | DMGL_PARAMS);
@@ -70,7 +84,7 @@ namespace rld
       if (!object_)
         throw rld_error_at ("object pointer is 0");
       if (is_cplusplus ())
-        denamgle_name (name_, demangled_);
+        demangle_name (name_, demangled_);
     }
 
     symbol::symbol (int                 index,
@@ -83,7 +97,7 @@ namespace rld
         references_ (0)
     {
       if (is_cplusplus ())
-        denamgle_name (name_, demangled_);
+        demangle_name (name_, demangled_);
     }
 
     symbol::symbol (const std::string&  name,

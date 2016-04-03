@@ -111,7 +111,7 @@ namespace rld
      */
     struct image
     {
-      files::object    exe;        //< The object file that is the executable.
+      files::object    exe;       //< The object file that is the executable.
       symbols::table   symbols;   //< The synbols for a map.
       symbols::addrtab addresses; //< The symbols keyed by address.
       files::sections  secs;      //< The sections in the executable.
@@ -214,10 +214,11 @@ namespace rld
       {
         if (fsec.name == names[n])
         {
-          section sec (fsec);
           if (rld::verbose () >= RLD_VERBOSE_DETAILS)
             std::cout << "init:section-loader: " << fsec.name
                       << " added" << std::endl;
+
+          section sec (fsec);
           img.exe.seek (fsec.offset);
           sec.data.read (img.exe, fsec.size);
           secs.push_back (sec);
@@ -342,13 +343,26 @@ namespace rld
           sym = addresses[address];
           std::cout << "  "
                     << std::hex << std::setfill ('0')
-                    << "0x" << std::setw (8) << address;
+                    << "0x" << std::setw (8) << address
+                    << std::dec << std::setfill ('0');
           if (sym)
-            std::cout << " " << sym->name ();
+          {
+            /*
+             * C++ is adding '_GLOBAL__sub_I_' to the label. If present, strip
+             * and check the label.
+             */
+            std::string label = sym->name ();
+            if (rld::starts_with (label, "_GLOBAL__sub_I_"))
+              label = rld::find_replace (label, "_GLOBAL__sub_I_", "");
+            if (rld::symbols::is_cplusplus (label))
+              rld::symbols::demangle_name (label, label);
+            std::cout << " " << label;
+          }
           else
+          {
             std::cout << " no symbol";
-          std::cout << std::dec << std::setfill ('0')
-                    << std::endl;
+          }
+          std::cout << std::endl;
         }
       }
 

@@ -45,6 +45,12 @@ namespace rld
   namespace symbols
   {
     /**
+     * C++ demangler.
+     */
+    bool is_cplusplus (const std::string& name);
+    void demangle_name (std::string& name, std::string& demangled);
+
+    /**
      * Use a local type for the address.
      */
     typedef elf::elf_addr address;
