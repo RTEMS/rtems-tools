@@ -53,6 +53,7 @@ def build(bld):
     bld(features = 'py',
         source = ['rt/__init__.py',
                   'rt/bsps.py',
+                  'rt/check.py',
                   'rt/config.py',
                   'rt/console.py',
                   'rt/gdb.py',
@@ -68,7 +69,10 @@ def build(bld):
                   'rt/pygdb/spark.py'],
         install_from = '.',
         install_path = '${PREFIX}/share/rtems/tester')
-    bld.install_files('${PREFIX}/bin', ['rtems-test'], chmod = 0o755)
+    bld.install_files('${PREFIX}/bin',
+                      ['rtems-test',
+                       'rtems-bsp-builder'],
+                      chmod = 0o755)
 
     #
     # Install the tester configuration files.

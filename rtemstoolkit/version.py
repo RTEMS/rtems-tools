@@ -104,5 +104,8 @@ def str():
             _load_git_version()
     return _version_str
 
+def version():
+    return _version
+
 if __name__ == '__main__':
     print('Version: %s' % (str()))
