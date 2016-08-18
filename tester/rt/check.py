@@ -125,7 +125,7 @@ class results:
             config_at = config_cmd.find('configure')
             if config_at != -1:
                 config_cmd = config_cmd[config_at:]
-            log.output(' %20s:  %s' % (arch_bsp, config_cmd))
+            log.output(' %30s:  %s' % (arch_bsp, config_cmd))
         log.output(' Passes:')
         for f in self.passes:
             arch_bsp = '%s/%s' % (f[0], f[1])
