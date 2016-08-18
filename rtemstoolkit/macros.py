@@ -46,9 +46,11 @@ import string
 #
 try:
     from . import error
+    from . import log
     from . import path
 except (ValueError, SystemError):
     import error
+    import log
     import path
 
 #
@@ -400,6 +402,7 @@ class macros:
     def load(self, name):
         names = self.expand(name).split(':')
         for n in names:
+            log.trace('opening: %s' % (n))
             if path.exists(n):
                 try:
                     mc = open(path.host(n), 'r')
