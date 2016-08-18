@@ -36,6 +36,11 @@ import operator
 import os
 import sys
 
+try:
+    import configparser
+except:
+    import ConfigParser as configparser
+
 from rtemstoolkit import execute
 from rtemstoolkit import error
 from rtemstoolkit import log
@@ -94,13 +99,45 @@ class warnings_counter:
                         self.warnings[w] += 1
         log.output(text)
 
+class results:
+
+    def __init__(self):
+        self.passes = []
+        self.fails = []
+
+    def add(self, good, arch, bsp, configure, warnings):
+        if good:
+            self.passes += [(arch, bsp, configure, warnings)]
+        else:
+            self.fails += [(arch, bsp, configure, 0)]
+
+    def report(self):
+        log.notice('* Passes: %d   Failures: %d' %
+                   (len(self.passes), len(self.fails)))
+        log.output()
+        log.output('Build Report')
+        log.output('   Passes: %d   Failures: %d' %
+                   (len(self.passes), len(self.fails)))
+        log.output(' Failures:')
+        for f in self.fails:
+            arch_bsp = '%s/%s' % (f[0], f[1])
+            config_cmd = f[2]
+            config_at = config_cmd.find('configure')
+            if config_at != -1:
+                config_cmd = config_cmd[config_at:]
+            log.output(' %20s:  %s' % (arch_bsp, config_cmd))
+        log.output(' Passes:')
+        for f in self.passes:
+            arch_bsp = '%s/%s' % (f[0], f[1])
+            config_cmd = f[2]
+            config_at = config_cmd.find('configure')
+            if config_at != -1:
+                config_cmd = config_cmd[config_at:]
+            log.output(' %20s:  %d  %s' % (arch_bsp, f[3], config_cmd))
+
 class configuration:
 
     def __init__(self):
-        try:
-            import configparser
-        except:
-            import ConfigParser as configparser
         self.config = configparser.ConfigParser()
         self.name = None
         self.archs = { }
@@ -127,6 +164,15 @@ class configuration:
                 raise error.general('config: no %s found in %s' % (label, section))
         return None
 
+    def _get_items(self, section, err = True):
+        try:
+            items = self.config.items(section)
+            return items
+        except:
+            if err:
+                raise error.general('config: section %s not found' % (section))
+        return []
+
     def _comma_list(self, section, label, error = True):
         items = self._get_item(section, label, error)
         if items is None:
@@ -137,7 +183,10 @@ class configuration:
         if not path.exists(name):
             raise error.general('config: cannot read configuration: %s' % (name))
         self.name = name
-        self.config.read(name)
+        try:
+            self.config.read(name)
+        except configparser.ParsingError as ce:
+            raise error.general('config: %s' % (ce))
         archs = []
         self.profiles['profiles'] = self._comma_list('profiles', 'profiles', error = False)
         if len(self.profiles['profiles']) == 0:
@@ -153,12 +202,19 @@ class configuration:
             self.profiles[profile['name']] = profile
         for a in set(archs):
             arch = {}
-            arch['excludes'] = self._comma_list(a, 'excludes', error = False)
+            arch['excludes'] = {}
+            for exclude in self._comma_list(a, 'exclude', error = False):
+                arch['excludes'][exclude] = ['all']
+            for i in self._get_items(a, False):
+                if i[0].startswith('exclude_'):
+                    exclude = i[0][len('exclude_'):]
+                    if exclude not in arch['excludes']:
+                        arch['excludes'][exclude] = []
+                    arch['excludes'][exclude] += sorted(set([b.strip() for b in i[1].split(',')]))
             arch['bsps'] = self._comma_list(a, 'bsps', error = False)
             for b in arch['bsps']:
                 arch[b] = {}
                 arch[b]['bspopts'] = self._comma_list(a, 'bspopts_%s' % (b), error = False)
-                arch[b]['config'] = self._comma_list(a, 'config_%s' % (b), error = False)
             self.archs[a] = arch
         builds = {}
         builds['default'] = self._get_item('builds', 'default').split()
@@ -172,7 +228,11 @@ class configuration:
         return self.builds['variations']
 
     def excludes(self, arch):
-        return self.archs[arch]['excludes']
+        excludes = self.archs[arch]['excludes'].keys()
+        for exclude in self.archs[arch]['excludes']:
+            if 'all' not in self.archs[arch]['excludes'][exclude]:
+                excludes.remove(exclude)
+        return sorted(excludes)
 
     def archs(self):
         return sorted(self.archs.keys())
@@ -186,6 +246,13 @@ class configuration:
     def bsp_present(self, arch, bsp):
         return bsp in self.archs[arch]['bsps']
 
+    def bsp_excludes(self, arch, bsp):
+        excludes = self.archs[arch]['excludes'].keys()
+        for exclude in self.archs[arch]['excludes']:
+            if bsp not in self.archs[arch]['excludes'][exclude]:
+                excludes.remove(exclude)
+        return sorted(excludes)
+
     def bspopts(self, arch, bsp):
         return self.archs[arch][bsp]['bspopts']
 
@@ -194,7 +261,7 @@ class configuration:
 
     def variant_options(self, variant):
         if variant in self.builds['var_options']:
-            self.builds['var_options'][variant]
+            return self.builds['var_options'][variant]
         return []
 
     def profile_present(self, profile):
@@ -224,6 +291,7 @@ class build:
                         'objs'     : 0,
                         'libs'     : 0 }
         self.warnings = warnings_counter(rtems)
+        self.results = results()
         if not path.exists(path.join(rtems, 'configure')) or \
            not path.exists(path.join(rtems, 'Makefile.in')) or \
            not path.exists(path.join(rtems, 'cpukit')):
@@ -243,10 +311,20 @@ class build:
         return self.config.arch_bsps(arch)
 
     def _variations(self, arch, bsp):
+        def _match(var, vars):
+            matches = []
+            for v in vars:
+                if var in v.split('-'):
+                    matches += [v]
+            return matches
+
         vars = self.config.variations()
         for v in self.config.excludes(arch):
-            if v in vars:
-                vars.remove(v)
+            for m in _match(v, vars):
+                vars.remove(m)
+        for v in self.config.bsp_excludes(arch, bsp):
+            for m in _match(v, vars):
+                vars.remove(m)
         return vars
 
     def _arch_bsp_dir_make(self, arch, bsp):
@@ -319,9 +397,11 @@ class build:
             log.output('- ' * 35)
             log.notice('. Configuring: %s' % (bs))
             try:
+                result = '+ Pass'
                 bpath = self._build_dir(arch, bsp, bs)
                 path.mkdir(bpath)
-                cmd = self._config_command(build_set[bs], arch, bsp)
+                config_cmd = self._config_command(build_set[bs], arch, bsp)
+                cmd = config_cmd
                 e = execute.capture_execution(log = warnings)
                 log.output('run: ' + cmd)
                 if self.options['dry-run']:
@@ -329,6 +409,7 @@ class build:
                 else:
                     exit_code, proc, output = e.shell(cmd, cwd = path.host(bpath))
                 if exit_code != 0:
+                    result = '- FAIL'
                     self.errors['configure'] += 1
                     log.notice('- Configure failed: %s' % (bs))
                     log.output('cmd failed: %s' % (cmd))
@@ -345,16 +426,18 @@ class build:
                     else:
                         exit_code, proc, output = e.shell(cmd, cwd = path.host(bpath))
                     if exit_code != 0:
+                        result = '- FAIL'
                         self.errors['build'] += 1
                         log.notice('- FAIL: %s: %s' % (bs, self._error_str()))
                         log.output('cmd failed: %s' % (cmd))
                         if self.options['stop-on-error']:
                             raise error.general('Building %s failed' % (bs))
                     files = self._count_files(arch, bsp, bs)
-                    log.notice('+ Pass: %s: warnings:%d  exes:%d  objs:%s  libs:%d' % \
-                               (bs, warnings.get(),
-                                files['exes'], files['objs'], files['libs']))
-                    log.notice('  %s' % (self._error_str()))
+                log.notice('%s: %s: warnings:%d  exes:%d  objs:%s  libs:%d' % \
+                           (result, bs, warnings.get(),
+                            files['exes'], files['objs'], files['libs']))
+                log.notice('  %s' % (self._error_str()))
+                self.results.add(result[0] == '+', arch, bsp, config_cmd, warnings.get())
             finally:
                 end = datetime.datetime.now()
                 if not self.options['no-clean']:
@@ -413,6 +496,8 @@ class build:
         log.output(self.warnings.report())
 
 def run_args(args):
+    b = None
+    ec = 0
     try:
         #
         # On Windows MSYS2 prepends a path to itself to the environment
@@ -426,12 +511,13 @@ def run_args(args):
                 os.environ['PATH'] = os.pathsep.join(cspath[1:])
 
         top = os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))
-        profile = 'tier-1'
         prefix = '/opt/rtems/%s' % (rtems_version())
         tools = prefix
         build_dir = 'bsp-builds'
         logf = 'bsp-build-%s.txt' % (datetime.datetime.now().strftime('%Y%m%d-%H%M%S'))
         config_file = path.join(top, 'share', 'rtems', 'tester', 'rtems', 'rtems-bsps.ini')
+        if not path.exists(config_file):
+            config_file = path.join(top, 'tester', 'rtems', 'rtems-bsps.ini')
 
         argsp = argparse.ArgumentParser()
         argsp.add_argument('--prefix', help = 'Prefix to build the BSP.', type = str)
@@ -441,6 +527,7 @@ def run_args(args):
         argsp.add_argument('--log', help = 'Log file.', type = str)
         argsp.add_argument('--stop-on-error', help = 'Stop on an error.', action = 'store_true')
         argsp.add_argument('--no-clean', help = 'Do not clean the build output.', action = 'store_true')
+        argsp.add_argument('--profiles', help = 'Build the listed profiles.', type = str, default = 'tier-1')
         argsp.add_argument('--arch', help = 'Build the specific architecture.', type = str)
         argsp.add_argument('--bsp', help = 'Build the specific BSP.', type = str)
         argsp.add_argument('--dry-run', help = 'Do not run the actual builds.', action = 'store_true')
@@ -449,7 +536,7 @@ def run_args(args):
         if opts.log is not None:
             logf = opts.log
         log.default = log.log([logf])
-        log.notice('RTEMS Tools Project - RTEMS Kernel Check, %s' % (version.str()))
+        log.notice('RTEMS Tools Project - RTEMS Kernel BSP Builder, %s' % (version.str()))
         if opts.rtems is None:
             raise error.general('No RTEMS source provided on the command line')
         if opts.prefix is not None:
@@ -476,22 +563,26 @@ def run_args(args):
             else:
                 b.build_arch(opts.arch)
         else:
-            b.build_profile(profile)
+            for profile in opts.profiles.split(','):
+                b.build_profile(profile.strip())
+        b.results.report()
 
     except error.general as gerr:
         print(gerr)
         print('BSP Build FAILED', file = sys.stderr)
-        sys.exit(1)
+        ec = 1
     except error.internal as ierr:
         print(ierr)
         print('BSP Build FAILED', file = sys.stderr)
-        sys.exit(1)
+        ec = 1
     except error.exit as eerr:
         pass
     except KeyboardInterrupt:
         log.notice('abort: user terminated')
-        sys.exit(1)
-    sys.exit(0)
+        ec = 1
+    if b is not None:
+        b.results.report()
+    sys.exit(ec)
 
 def run():
     run_args(sys.argv)
