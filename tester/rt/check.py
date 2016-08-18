@@ -84,10 +84,14 @@ class warnings_counter:
                     w = w.replace(self.rtems, '')
                     if path.isabspath(w):
                         w = w[1:]
-                    w = '%s:%s:%s' % (w, ws[1], ws[2])
-                    if w not in self.warnings:
-                        self.warnings[w] = 0
-                    self.warnings[w] += 1
+                    #
+                    # Ignore compiler option warnings.
+                    #
+                    if len(ws) >= 3:
+                        w = '%s:%s:%s' % (w, ws[1], ws[2])
+                        if w not in self.warnings:
+                            self.warnings[w] = 0
+                        self.warnings[w] += 1
         log.output(text)
 
 class configuration:
