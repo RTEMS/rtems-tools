@@ -119,21 +119,27 @@ class results:
         log.output('   Passes: %d   Failures: %d' %
                    (len(self.passes), len(self.fails)))
         log.output(' Failures:')
-        for f in self.fails:
-            arch_bsp = '%s/%s' % (f[0], f[1])
-            config_cmd = f[2]
-            config_at = config_cmd.find('configure')
-            if config_at != -1:
-                config_cmd = config_cmd[config_at:]
-            log.output(' %30s:  %s' % (arch_bsp, config_cmd))
+        if len(self.fails) == 0:
+            log.output('None')
+        else:
+            for f in self.fails:
+                arch_bsp = '%s/%s' % (f[0], f[1])
+                config_cmd = f[2]
+                config_at = config_cmd.find('configure')
+                if config_at != -1:
+                    config_cmd = config_cmd[config_at:]
+                log.output(' %30s:  %s' % (arch_bsp, config_cmd))
         log.output(' Passes:')
-        for f in self.passes:
-            arch_bsp = '%s/%s' % (f[0], f[1])
-            config_cmd = f[2]
-            config_at = config_cmd.find('configure')
-            if config_at != -1:
-                config_cmd = config_cmd[config_at:]
-            log.output(' %20s:  %d  %s' % (arch_bsp, f[3], config_cmd))
+        if len(self.passes) == 0:
+            log.output('None')
+        else:
+            for f in self.passes:
+                arch_bsp = '%s/%s' % (f[0], f[1])
+                config_cmd = f[2]
+                config_at = config_cmd.find('configure')
+                if config_at != -1:
+                    config_cmd = config_cmd[config_at:]
+                log.output(' %20s:  %d  %s' % (arch_bsp, f[3], config_cmd))
 
 class configuration:
 
@@ -565,7 +571,6 @@ def run_args(args):
         else:
             for profile in opts.profiles.split(','):
                 b.build_profile(profile.strip())
-        b.results.report()
 
     except error.general as gerr:
         print(gerr)
