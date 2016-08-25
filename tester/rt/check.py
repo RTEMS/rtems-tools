@@ -105,6 +105,10 @@ class results:
         self.passes = []
         self.fails = []
 
+    def _arch_bsp(self, arch, bsp):
+        return '%s/%s' % (f[0], f[1])
+
+
     def add(self, good, arch, bsp, configure, warnings):
         if good:
             self.passes += [(arch, bsp, configure, warnings)]
@@ -122,24 +126,37 @@ class results:
         if len(self.fails) == 0:
             log.output('None')
         else:
+            max_col = 0
             for f in self.fails:
-                arch_bsp = '%s/%s' % (f[0], f[1])
+                arch_bsp = self._arch_bsp(arch, bsp)
+                if len(arch_bsp) > max_col:
+                    max_col = len(arch_bsp)
+            for f in self.fails:
                 config_cmd = f[2]
                 config_at = config_cmd.find('configure')
                 if config_at != -1:
                     config_cmd = config_cmd[config_at:]
-                log.output(' %30s:  %s' % (arch_bsp, config_cmd))
+                log.output(' %*s:  %s' % (max_col + 2,
+                                          self._arch_bsp(arch, bsp),
+                                          config_cmd))
         log.output(' Passes:')
         if len(self.passes) == 0:
             log.output('None')
         else:
+            max_col = 0
+            for f in self.fails:
+                arch_bsp = self._arch_bsp(arch, bsp)
+                if len(arch_bsp) > max_col:
+                    max_col = len(arch_bsp)
             for f in self.passes:
-                arch_bsp = '%s/%s' % (f[0], f[1])
                 config_cmd = f[2]
                 config_at = config_cmd.find('configure')
                 if config_at != -1:
                     config_cmd = config_cmd[config_at:]
-                log.output(' %20s:  %d  %s' % (arch_bsp, f[3], config_cmd))
+                log.output(' %*s:  %d  %s' % (max_col + 2,
+                                              self._arch_bsp(arch, bsp),
+                                              f[3],
+                                              config_cmd))
 
 class configuration:
 
