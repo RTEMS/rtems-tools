@@ -146,32 +146,73 @@ c_embedded_trailer (rld::process::tempfile& c)
  * Generate the symbol map object file for loading or linking into
  * a running RTEMS machine.
  */
+
+struct output_sym
+{
+  rld::process::tempfile& c;
+  const bool              embed;
+  const bool              weak;
+
+  output_sym(rld::process::tempfile& c,
+             bool                    embed,
+             bool                    weak)
+    : c (c),
+      embed (embed),
+      weak (weak) {
+  }
+
+  void operator ()(const rld::symbols::symtab::value_type& value);
+};
+
+void
+output_sym::operator ()(const rld::symbols::symtab::value_type& value)
+{
+  const rld::symbols::symbol& sym = *(value.second);
+
+  /*
+   * Weak symbols without a value are probably unresolved externs. Ignore them.
+   */
+  if (weak && sym.value () == 0)
+    return;
+
+  c.write_line ("asm(\"  .asciz \\\"" + sym.name () + "\\\"\");");
+
+  if (embed)
+  {
+    c.write_line ("asm(\"  .long " + sym.name () + "\");");
+  }
+  else
+  {
+    std::stringstream oss;
+    oss << std::hex << std::setfill ('0') << std::setw (8) << sym.value ();
+    c.write_line ("asm(\"  .long 0x" + oss.str () + "\");");
+  }
+}
+
+
 static void
 generate_c (rld::process::tempfile& c,
-              rld::symbols::table&  symbols,
-              bool                  embed)
+            rld::symbols::table&    symbols,
+            bool                    embed)
 {
   temporary_file_paint (c, c_header);
 
-  for (rld::symbols::symtab::const_iterator si = symbols.globals ().begin ();
-       si != symbols.globals ().end ();
-       ++si)
-  {
-    const rld::symbols::symbol& sym = *((*si).second);
+  /*
+   * Add the global symbols.
+   */
+  std::for_each (symbols.globals ().begin (),
+                 symbols.globals ().end (),
+                 output_sym (c, embed, false));
 
-    c.write_line ("asm(\"  .asciz \\\"" + sym.name () + "\\\"\");");
-
-    if (embed)
-    {
-      c.write_line ("asm(\"  .long " + sym.name () + "\");");
-    }
-    else
-    {
-      std::stringstream oss;
-      oss << std::hex << std::setfill ('0') << std::setw (8) << sym.value ();
-      c.write_line ("asm(\"  .long 0x" + oss.str () + "\");");
-    }
-  }
+  /*
+   * Add the weak symbols that have been linked into the base image. A weak
+   * symbols present in the base image is no longer weak and should be consider
+   * a global symbol. You cannot link a global symbol with the same in a
+   * dynamically loaded module.
+   */
+  std::for_each (symbols.weaks ().begin (),
+                 symbols.weaks ().end (),
+                 output_sym (c, embed, true));
 
   temporary_file_paint (c, c_trailer);
 
