@@ -108,7 +108,6 @@ class results:
     def _arch_bsp(self, arch, bsp):
         return '%s/%s' % (f[0], f[1])
 
-
     def add(self, good, arch, bsp, configure, warnings):
         if good:
             self.passes += [(arch, bsp, configure, warnings)]
@@ -128,7 +127,7 @@ class results:
         else:
             max_col = 0
             for f in self.fails:
-                arch_bsp = self._arch_bsp(arch, bsp)
+                arch_bsp = self._arch_bsp(f[0], f[1])
                 if len(arch_bsp) > max_col:
                     max_col = len(arch_bsp)
             for f in self.fails:
@@ -137,7 +136,7 @@ class results:
                 if config_at != -1:
                     config_cmd = config_cmd[config_at:]
                 log.output(' %*s:  %s' % (max_col + 2,
-                                          self._arch_bsp(arch, bsp),
+                                          self._arch_bsp(f[0], f[1]),
                                           config_cmd))
         log.output(' Passes:')
         if len(self.passes) == 0:
@@ -145,7 +144,7 @@ class results:
         else:
             max_col = 0
             for f in self.fails:
-                arch_bsp = self._arch_bsp(arch, bsp)
+                arch_bsp = self._arch_bsp(f[0], f[1])
                 if len(arch_bsp) > max_col:
                     max_col = len(arch_bsp)
             for f in self.passes:
@@ -154,7 +153,7 @@ class results:
                 if config_at != -1:
                     config_cmd = config_cmd[config_at:]
                 log.output(' %*s:  %d  %s' % (max_col + 2,
-                                              self._arch_bsp(arch, bsp),
+                                              self._arch_bsp(f[0], f[1]),
                                               f[3],
                                               config_cmd))
 
@@ -481,7 +480,7 @@ class build:
         start = datetime.datetime.now()
         log.output('=' * 70)
         log.notice(']] Architecture: %s' % (arch))
-        if not self.confif.arch_present(arch):
+        if not self.config.arch_present(arch):
             raise error.general('Architecture not found: %s' % (arch))
         for bsp in self._bsps(arch):
             self.build_arch_bsp(arch, bsp)
