@@ -106,7 +106,7 @@ class results:
         self.fails = []
 
     def _arch_bsp(self, arch, bsp):
-        return '%s/%s' % (f[0], f[1])
+        return '%s/%s' % (arch, bsp)
 
     def add(self, good, arch, bsp, configure, warnings):
         if good:
@@ -143,7 +143,7 @@ class results:
             log.output('None')
         else:
             max_col = 0
-            for f in self.fails:
+            for f in self.passes:
                 arch_bsp = self._arch_bsp(f[0], f[1])
                 if len(arch_bsp) > max_col:
                     max_col = len(arch_bsp)
@@ -152,10 +152,10 @@ class results:
                 config_at = config_cmd.find('configure')
                 if config_at != -1:
                     config_cmd = config_cmd[config_at:]
-                log.output(' %*s:  %d  %s' % (max_col + 2,
-                                              self._arch_bsp(f[0], f[1]),
-                                              f[3],
-                                              config_cmd))
+                log.output(' %*s:  %5d  %s' % (max_col + 2,
+                                               self._arch_bsp(f[0], f[1]),
+                                               f[3],
+                                               config_cmd))
 
 class configuration:
 
