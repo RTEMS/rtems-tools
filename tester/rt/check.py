@@ -484,6 +484,7 @@ class build:
             raise error.general('Architecture not found: %s' % (arch))
         for bsp in self._bsps(arch):
             self.build_arch_bsp(arch, bsp)
+        end = datetime.datetime.now()
         log.notice('^ Architecture Time %s' % (str(end - start)))
         log.notice('  warnings:%d  exes:%d  objs:%s  libs:%d' % \
                    self.warnings.get(), self.counts['exes'],
