@@ -201,7 +201,7 @@ class configuration:
             return []
         return sorted(set([a.strip() for a in items.split(',')]))
 
-    def load(self, name):
+    def load(self, name, variation):
         if not path.exists(name):
             raise error.general('config: cannot read configuration: %s' % (name))
         self.name = name
@@ -241,9 +241,17 @@ class configuration:
         builds = {}
         builds['default'] = self._get_item('builds', 'default').split()
         builds['variations'] = self._comma_list('builds', 'variations')
+        if variation is None:
+            variation = builds['default']
+        builds['variation'] = variation
+        builds['base'] = self._get_item('builds', 'standard').split()
+        builds['variations'] = self._comma_list('builds', variation)
         builds['var_options'] = {}
         for v in builds['variations']:
-            builds['var_options'][v] = self._get_item('builds', v).split()
+            if v == 'base':
+                builds['var_options'][v] = self._get_item('builds', v).split()
+            else:
+                builds['var_options'][v] = []
         self.builds = builds
 
     def variations(self):
@@ -278,8 +286,8 @@ class configuration:
     def bspopts(self, arch, bsp):
         return self.archs[arch][bsp]['bspopts']
 
-    def defaults(self):
-        return self.builds['default']
+    def base(self):
+        return self.builds['base']
 
     def variant_options(self, variant):
         if variant in self.builds['var_options']:
@@ -370,7 +378,7 @@ class build:
 
     def _build_set(self, variations):
         build_set = { }
-        bs = self.config.defaults()
+        bs = self.config.base()
         for var in variations:
             build_set[var] = bs + self.config.variant_options(var)
         return build_set
@@ -455,9 +463,9 @@ class build:
                         if self.options['stop-on-error']:
                             raise error.general('Building %s failed' % (bs))
                     files = self._count_files(arch, bsp, bs)
-                log.notice('%s: %s: warnings:%d  exes:%d  objs:%s  libs:%d' % \
-                           (result, bs, warnings.get(),
-                            files['exes'], files['objs'], files['libs']))
+                    log.notice('%s: %s: warnings:%d  exes:%d  objs:%s  libs:%d' % \
+                               (result, bs, warnings.get(),
+                                files['exes'], files['objs'], files['libs']))
                 log.notice('  %s' % (self._error_str()))
                 self.results.add(result[0] == '+', arch, bsp, config_cmd, warnings.get())
             finally:
@@ -548,12 +556,17 @@ def run_args(args):
         argsp.add_argument('--rtems', help = 'The RTEMS source tree.', type = str)
         argsp.add_argument('--build-path', help = 'Path to build in.', type = str)
         argsp.add_argument('--log', help = 'Log file.', type = str)
-        argsp.add_argument('--stop-on-error', help = 'Stop on an error.', action = 'store_true')
-        argsp.add_argument('--no-clean', help = 'Do not clean the build output.', action = 'store_true')
-        argsp.add_argument('--profiles', help = 'Build the listed profiles.', type = str, default = 'tier-1')
+        argsp.add_argument('--stop-on-error', help = 'Stop on an error.',
+                           action = 'store_true')
+        argsp.add_argument('--no-clean', help = 'Do not clean the build output.',
+                           action = 'store_true')
+        argsp.add_argument('--profiles', help = 'Build the listed profiles.',
+                           type = str, default = 'tier-1')
+        argsp.add_argument('--build', help = 'Build variation.', type = str)
         argsp.add_argument('--arch', help = 'Build the specific architecture.', type = str)
         argsp.add_argument('--bsp', help = 'Build the specific BSP.', type = str)
-        argsp.add_argument('--dry-run', help = 'Do not run the actual builds.', action = 'store_true')
+        argsp.add_argument('--dry-run', help = 'Do not run the actual builds.',
+                           action = 'store_true')
 
         opts = argsp.parse_args(args[1:])
         if opts.log is not None:
@@ -572,14 +585,15 @@ def run_args(args):
             raise error.general('BSP provided but no architecture')
 
         config = configuration()
-        config.load(config_file)
+        config.load(config_file, opts.build)
 
         options = { 'stop-on-error' : opts.stop_on_error,
                     'no-clean'      : opts.no_clean,
                     'dry-run'       : opts.dry_run,
                     'jobs'          : 8 }
 
-        b = build(config, rtems_version(), prefix, tools, path.shell(opts.rtems), build_dir, options)
+        b = build(config, rtems_version(), prefix, tools,
+                  path.shell(opts.rtems), build_dir, options)
         if opts.arch is not None:
             if opts.bsp is not None:
                 b.build_arch_bsp(opts.arch, opts.bsp)
