@@ -494,9 +494,9 @@ class build:
             self.build_arch_bsp(arch, bsp)
         end = datetime.datetime.now()
         log.notice('^ Architecture Time %s' % (str(end - start)))
-        log.notice('  warnings:%d  exes:%d  objs:%s  libs:%d' % \
-                   self.warnings.get(), self.counts['exes'],
-                   self.counts['objs'], self.counts['libs'])
+        log.notice('  warnings:%d  exes:%d  objs:%d  libs:%d' % \
+                   (self.warnings.get(), self.counts['exes'],
+                    self.counts['objs'], self.counts['libs']))
         log.output('Architecture Warnings:')
         log.output(self.warnings.report())
 
@@ -504,9 +504,9 @@ class build:
         for arch in self.config.archs():
             self.build_arch(arch)
         log.notice('^ Profile Time %s' % (str(end - start)))
-        log.notice('+  warnings:%d  exes:%d  objs:%s  libs:%d' % \
-                   self.warnings.get(), self.counts['exes'],
-                   self.counts['objs'], self.counts['libs'])
+        log.notice('+  warnings:%d  exes:%d  objs:%d  libs:%d' % \
+                   (self.warnings.get(), self.counts['exes'],
+                    self.counts['objs'], self.counts['libs']))
         log.output('Profile Warnings:')
         log.output(self.warnings.report())
 
