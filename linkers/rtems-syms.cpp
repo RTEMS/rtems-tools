@@ -292,13 +292,13 @@ usage (int exit_code)
   std::cout << "rtems-syms [options] kernel" << std::endl
             << "Options and arguments:" << std::endl
             << " -h        : help (also --help)" << std::endl
-            << " -V        : print linker version number and exit (also --version)" << std::endl
+            << " -V        : print version number and exit (also --version)" << std::endl
             << " -v        : verbose (trace import parts), can supply multiple times" << std::endl
             << "             to increase verbosity (also --verbose)" << std::endl
             << " -w        : generate warnings (also --warn)" << std::endl
             << " -k        : keep temporary files (also --keep)" << std::endl
             << " -e        : embedded symbol table (also --embed)" << std::endl
-            << " -S        : symbol's C file (also --symc)" << std::endl
+            << " -S file   : symbol's C file (also --symc)" << std::endl
             << " -o file   : output object file (also --output)" << std::endl
             << " -m file   : output a map file (also --map)" << std::endl
             << " -C file   : execute file as the target C compiler (also --cc)" << std::endl
