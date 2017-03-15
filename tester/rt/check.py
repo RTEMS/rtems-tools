@@ -212,7 +212,7 @@ class configuration:
         archs = []
         self.profiles['profiles'] = self._comma_list('profiles', 'profiles', error = False)
         if len(self.profiles['profiles']) == 0:
-            self.profiles['profiles'] = ['tier_%d' % (t) for t in range(1,4)]
+            self.profiles['profiles'] = ['tier-%d' % (t) for t in range(1,4)]
         for p in self.profiles['profiles']:
             profile = {}
             profile['name'] = p
@@ -512,7 +512,7 @@ class build:
 
     def build_profile(self, profile):
         if not self.config.profile_present(profile):
-            raise error.general('BSP not found: %s/%s' % (arch, bsp))
+            raise error.general('Profile not found: %s' % (profile))
         start = datetime.datetime.now()
         log.notice(']] Profile: %s' % (profile))
         for arch in self.config.profile_archs(profile):
@@ -562,7 +562,7 @@ def run_args(args):
                            action = 'store_true')
         argsp.add_argument('--profiles', help = 'Build the listed profiles.',
                            type = str, default = 'tier-1')
-        argsp.add_argument('--build', help = 'Build variation.', type = str)
+        argsp.add_argument('--build', help = 'Build variation.', type = str, default='all')
         argsp.add_argument('--arch', help = 'Build the specific architecture.', type = str)
         argsp.add_argument('--bsp', help = 'Build the specific BSP.', type = str)
         argsp.add_argument('--dry-run', help = 'Do not run the actual builds.',
