@@ -100,7 +100,7 @@ index 0000000..8754b9f
 + * SUCH DAMAGE.
 + */
 +
-+#if __ARM_FP & 0x8
++#if (__ARM_FP & 0x8) && !defined(__SOFTFP__)
 +#include <math.h>
 +
 +double
@@ -151,7 +151,7 @@ index 0000000..81c29f1
 + * SUCH DAMAGE.
 + */
 +
-+#if __ARM_FP & 0x4
++#if (__ARM_FP & 0x4) && !defined(__SOFTFP__)
 +#include <math.h>
 +
 +float
