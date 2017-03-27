@@ -403,7 +403,7 @@ class build:
                     counts['h'] += 1
         for f in self.counts:
             if f in counts:
-                self.counts[f] = counts[f]
+                self.counts[f] += counts[f]
         return counts
 
     def build_arch_bsp(self, arch, bsp):
