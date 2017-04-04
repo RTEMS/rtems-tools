@@ -48,29 +48,37 @@ class report(object):
         self.total = total
         self.total_len = len(str(total))
         self.passed = 0
+        self.user_input = 0
         self.failed = 0
+        self.expected_fail = 0
+        self.indeterminate = 0
+        self.benchmark = 0
         self.timeouts = 0
         self.invalids = 0
-        self.invalid_tests = 0
         self.results = {}
         self.name_max_len = 0
 
     def __str__(self):
-        msg  = 'Passed:   %*d%s' % (self.total_len, self.passed, os.linesep)
-        msg += 'Failed:   %*d%s' % (self.total_len, self.failed, os.linesep)
-        msg += 'Timeouts: %*d%s' % (self.total_len, self.timeouts, os.linesep)
-        msg += 'Invalid:  %*d%s' % (self.total_len, self.invalids, os.linesep)
+        msg  = 'Passed:        %*d%s' % (self.total_len, self.passed, os.linesep)
+        msg += 'Failed:        %*d%s' % (self.total_len, self.failed, os.linesep)
+        msg += 'User Input:    %*d%s' % (self.total_len, self.user_input, os.linesep)
+        msg += 'Expected Fail: %*d%s' % (self.total_len, self.expected_fail, os.linesep)
+        msg += 'Indeterminate: %*d%s' % (self.total_len, self.self.indeterminate, os.linesep)
+        msg += 'Benchmark:     %*d%s' % (self.total_len, self.self.benchmark, os.linesep)
+        msg += 'Timeout:       %*d%s' % (self.total_len, self.timeouts, os.linesep)
+        msg += 'Invalid:       %*d%s' % (self.total_len, self.invalids, os.linesep)
         return msg
 
-    def set_invalid_tests(self, invalid_tests):
-        self.invalid_tests = invalid_tests
-
     def start(self, index, total, name, executable, bsp_arch, bsp):
-        header = '[%*d/%*d] p:%-*d f:%-*d t:%-*d i:%-*d | %s/%s: %s' % \
+        header = '[%*d/%*d] p:%-*d f:%-*d u:%-*d e:%-*d I:%-*d B:%-*d t:%-*d i:%-*d | %s/%s: %s' % \
                  (len(str(total)), index,
                   len(str(total)), total,
                   len(str(total)), self.passed,
                   len(str(total)), self.failed,
+                  len(str(total)), self.user_input,
+                  len(str(total)), self.expected_fail,
+                  len(str(total)), self.indeterminate,
+                  len(str(total)), self.benchmark,
                   len(str(total)), self.timeouts,
                   len(str(total)), self.invalids,
                   bsp_arch,
@@ -96,6 +104,7 @@ class report(object):
     def end(self, name, output):
         start = False
         end = False
+        state = None
         timeout = False
         prefixed_output = []
         for line in output:
@@ -103,6 +112,8 @@ class report(object):
                 if line[1].startswith('*** '):
                     if line[1][4:].startswith('END OF '):
                         end = True
+                    if line[1][4:].startswith('TEST STATE:'):
+                        state = line[1][15:].strip()
                     if line[1][4:].startswith('TIMEOUT TIMEOUT'):
                         timeout = True
                     else:
@@ -116,23 +127,44 @@ class report(object):
             self.lock.release()
             raise error.general('test already finished: %s' % (name))
         self.results[name]['end'] = datetime.datetime.now()
-        if start and end:
-            status = 'passed'
-            self.passed += 1
-        elif timeout:
-            status = 'timeout'
-            self.timeouts += 1
-        elif start:
-            if not end:
-                status = 'failed'
-                self.failed += 1
-        else:
-            if self.invalid_tests and path.basename(name) in self.invalid_tests:
-                status = 'passed'
-                self.passed += 1
+        if state is None:
+            if start and end:
+                if state is None:
+                    status = 'passed'
+                    self.passed += 1
+            elif timeout:
+                status = 'timeout'
+                self.timeouts += 1
+            elif start:
+                if not end:
+                    status = 'failed'
+                    self.failed += 1
             else:
                 status = 'invalid'
                 self.invalids += 1
+        else:
+            if state == 'EXPECTED_FAIL':
+                if start and end:
+                    status = 'passed'
+                    self.passed += 1
+                else:
+                    status = 'expected-fail'
+                    self.expected_fail += 1
+            elif state == 'USER_INPUT':
+                status = 'user-input'
+                self.user_input += 1
+            elif state == 'INDETERMINATE':
+                if start and end:
+                    status = 'passed'
+                    self.passed += 1
+                else:
+                    status = 'indeterminate'
+                    self.indeterminate += 1
+            elif state == 'BENCHMARK':
+                status = 'benchmark'
+                self.benchmark += 1
+            else:
+                raise error.general('invalid test state: %s: %s' % (name, state))
         self.results[name]['result'] = status
         self.results[name]['output'] = prefixed_output
         if self.name_max_len < len(path.basename(name)):
@@ -150,7 +182,7 @@ class report(object):
             time = self.results[name]['end'] - self.results[name]['start']
             if mode != 'none':
                 header = self.results[name]['header']
-            if mode == 'all' or result != 'passed':
+            if mode == 'all' or result in ['failed', 'timeout', 'invalid']:
                 output = self.results[name]['output']
             else:
                 output = None
@@ -167,16 +199,32 @@ class report(object):
                 if results[name]['result'] == state:
                     log.output(' %s' % (path.basename(name)))
         log.output()
-        log.notice('Passed:   %*d' % (self.total_len, self.passed))
-        log.notice('Failed:   %*d' % (self.total_len, self.failed))
-        log.notice('Timeouts: %*d' % (self.total_len, self.timeouts))
-        log.notice('Invalid:  %*d' % (self.total_len, self.invalids))
-        log.output('----------%s' % ('-' * self.total_len))
-        log.notice('Total:    %*d' % (self.total_len, self.total))
+        log.notice('Passed:        %*d' % (self.total_len, self.passed))
+        log.notice('Failed:        %*d' % (self.total_len, self.failed))
+        log.notice('User Input:    %*d' % (self.total_len, self.user_input))
+        log.notice('Expected Fail: %*d' % (self.total_len, self.expected_fail))
+        log.notice('Indeterminate: %*d' % (self.total_len, self.indeterminate))
+        log.notice('Benchmark:     %*d' % (self.total_len, self.benchmark))
+        log.notice('Timeout:       %*d' % (self.total_len, self.timeouts))
+        log.notice('Invalid:       %*d' % (self.total_len, self.invalids))
+        log.output('---------------%s' % ('-' * self.total_len))
+        log.notice('Total:         %*d' % (self.total_len, self.total))
         log.output()
         if self.failed:
             log.output('Failures:')
             show_state(self.results, 'failed', self.name_max_len)
+        if self.user_input:
+            log.output('User Input:')
+            show_state(self.results, 'user-input', self.name_max_len)
+        if self.expected_fail:
+            log.output('Expected Fail:')
+            show_state(self.results, 'expected-fail', self.name_max_len)
+        if self.indeterminate:
+            log.output('Indeterminate:')
+            show_state(self.results, 'indeterminate', self.name_max_len)
+        if self.benchmark:
+            log.output('Benchmark:')
+            show_state(self.results, 'benchmark', self.name_max_len)
         if self.timeouts:
             log.output('Timeouts:')
             show_state(self.results, 'timeout', self.name_max_len)

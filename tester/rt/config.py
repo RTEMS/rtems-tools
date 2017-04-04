@@ -66,6 +66,7 @@ class file(config.file):
         self.report = report
         self.name = name
         self.timedout = False
+        self.kill_good = False
 
     def __del__(self):
         if self.console:
@@ -83,6 +84,13 @@ class file(config.file):
         self.timedout = True
         self._unlock()
         self.capture('*** TIMEOUT TIMEOUT')
+
+    def _ok_kill(self):
+        self.kill_good = True
+        try:
+            self.process.kill()
+        except:
+            pass
 
     def _dir_console(self, data):
         if self.console is not None:
@@ -116,7 +124,7 @@ class file(config.file):
                                          timeout = (int(self.expand('%{timeout}')),
                                                     self._timeout))
             self._lock()
-            if ec > 0:
+            if not self.kill_good and ec > 0:
                 self._error('execute failed: %s: exit-code:%d' % (' '.join(data), ec))
             elif self.timedout:
                 self.process.kill()
@@ -193,11 +201,14 @@ class file(config.file):
         self.load(self.name)
 
     def capture(self, text):
+        ok_to_kill = '*** TEST STATE: USER_INPUT' in text or '*** TEST STATE: BENCHMARK' in text
         text = [(']', l) for l in text.replace(chr(13), '').splitlines()]
         self._lock()
         if self.output is not None:
             self._realtime_trace(text)
             self.output += text
+        if ok_to_kill:
+            self._ok_kill()
         self._unlock()
 
     def capture_console(self, text):
@@ -217,4 +228,7 @@ class file(config.file):
 
     def kill(self):
         if self.process:
-            self.process.kill()
+            try:
+                self.process.kill()
+            except:
+                pass

@@ -303,9 +303,6 @@ def run(command_path = None):
         start_time = datetime.datetime.now()
         total = len(executables)
         reports = report.report(total)
-        invalid_tests = opts.defaults['invalid_tests']
-        if invalid_tests:
-            reports.set_invalid_tests([l.strip() for l in invalid_tests.splitlines()])
         reporting = 1
         jobs = int(opts.jobs(opts.defaults['_ncpus']))
         exe = 0
