@@ -51,12 +51,14 @@ import sys
 try:
     from . import error
     from . import execute
+    from . import host
     from . import log
     from . import options
     from . import path
 except (ValueError, SystemError):
     import error
     import execute
+    import host
     import log
     import options
     import path
@@ -211,7 +213,7 @@ class file(object):
         if len(sl):
             e = execute.capture_execution()
             for s in sl:
-                if options.host_windows:
+                if host.is_windows:
                     cmd = '%s -c "%s"' % (self.macros.expand('%{__sh}'), s[2:-1])
                 else:
                     cmd = s[2:-1]

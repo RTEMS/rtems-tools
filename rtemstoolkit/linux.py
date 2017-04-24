@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2016 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2017 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -33,7 +33,6 @@
 # RTEMS project's spec files.
 #
 
-import pprint
 import os
 import platform
 
@@ -48,9 +47,7 @@ except (ValueError, SystemError):
     import execute
     import path
 
-def load():
-    uname = os.uname()
-    smp_mflags = ''
+def cpus():
     processors = '/bin/grep processor /proc/cpuinfo'
     e = execute.capture_execution()
     exit_code, proc, output = e.shell(processors)
@@ -63,7 +60,12 @@ def load():
                     ncpus = int(count)
         except:
             pass
-    ncpus = str(ncpus + 1)
+    return ncpus + 1
+
+def overrides():
+    uname = os.uname()
+    smp_mflags = ''
+    ncpus = '%d' % cpus()
     if uname[4].startswith('arm'):
         cpu = 'arm'
     else:
@@ -153,4 +155,6 @@ def load():
     return defines
 
 if __name__ == '__main__':
-    pprint.pprint(load())
+    import pprint
+    pprint.pprint(cpus())
+    pprint.pprint(overrides())

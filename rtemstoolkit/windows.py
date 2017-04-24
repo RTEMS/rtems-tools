@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2016 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2017 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -32,7 +32,6 @@
 # Windows specific support and overrides.
 #
 
-import pprint
 import os
 
 #
@@ -46,7 +45,14 @@ except (ValueError, SystemError):
     import error
     import execute
 
-def load():
+def cpus():
+    if os.environ.has_key('NUMBER_OF_PROCESSORS'):
+        ncpus = int(os.environ['NUMBER_OF_PROCESSORS'])
+    else:
+        ncpus = 1
+    return ncpus
+
+def overrides():
     # Default to the native Windows Python.
     uname = 'win32'
     system = 'mingw32'
@@ -76,10 +82,7 @@ def load():
         except:
             pass
 
-    if os.environ.has_key('NUMBER_OF_PROCESSORS'):
-        ncpus = os.environ['NUMBER_OF_PROCESSORS']
-    else:
-        ncpus = '1'
+    ncpus = '%d' % (cpus())
 
     defines = {
         '_ncpus':         ('none',    'none',     ncpus),
@@ -140,4 +143,6 @@ def load():
     return defines
 
 if __name__ == '__main__':
-    pprint.pprint(load())
+    import pprint
+    pprint.pprint(cpus())
+    pprint.pprint(overrides())

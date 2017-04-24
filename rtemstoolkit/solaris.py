@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2016 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2017 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -22,7 +22,6 @@
 # RTEMS project's spec files.
 #
 
-import pprint
 import os
 
 try:
@@ -34,15 +33,19 @@ except (ValueError, SystemError):
     import error
     import execute
 
-def load():
-    uname = os.uname()
+def cpus():
     psrinfo = '/sbin/psrinfo|wc -l'
     e = execute.capture_execution()
     exit_code, proc, output = e.shell(psrinfo)
     if exit_code == 0:
-        ncpus = output
+        ncpus = int(output)
     else:
-        ncpus = '1'
+        ncpus = 1
+    return ncpus
+
+def overrides():
+    uname = os.uname()
+    ncpus = '%d' % (cpus())
     if uname[4] == 'i86pc':
         cpu = 'i386'
     else:
@@ -87,4 +90,6 @@ def load():
     return defines
 
 if __name__ == '__main__':
-    pprint.pprint(load())
+    import pprint
+    pprint.pprint(cpus())
+    pprint.pprint(overrides())

@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2016 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2017 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -44,15 +44,19 @@ try:
 except (ValueError, SystemError):
     import execute
 
-def load():
-    uname = os.uname()
+def cpus():
     sysctl = '/usr/sbin/sysctl '
     e = execute.capture_execution()
     exit_code, proc, output = e.shell(sysctl + 'hw.ncpu')
     if exit_code == 0:
-        ncpus = output.split(' ')[1].strip()
+        ncpus = int(output.split(' ')[1].strip())
     else:
-        ncpus = '1'
+        ncpus = 1
+    return ncpus
+
+def overrides():
+    uname = os.uname()
+    ncpus = '%d' % (cores())
     defines = {
         '_ncpus':         ('none',    'none',     ncpus),
         '_os':            ('none',    'none',     'darwin'),
@@ -83,4 +87,5 @@ def load():
 
 if __name__ == '__main__':
     import pprint
-    pprint.pprint(load())
+    pprint.pprint(cpus())
+    pprint.pprint(overrides())

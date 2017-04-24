@@ -50,6 +50,7 @@ try:
     from . import error
     from . import execute
     from . import git
+    from . import host
     from . import log
     from . import macros
     from . import path
@@ -58,17 +59,13 @@ except (ValueError, SystemError):
     import error
     import execute
     import git
+    import host
     import log
     import macros
     import path
     import version
 
 basepath = 'tb'
-
-#
-# Save the host state.
-#
-host_windows = False
 
 class command_line(object):
     """Process the command line in a common way for all Tool Builder commands."""
@@ -539,61 +536,7 @@ def load(opts):
     if not isinstance(opts, command_line):
         raise error.general('invalid options type passed to options loader')
 
-    global host_windows
-
-    overrides = None
-    if os.name == 'nt':
-        try:
-            import windows
-            overrides = windows.load()
-            host_windows = True
-        except:
-            raise error.general('failed to load Windows host support')
-    elif os.name == 'posix':
-        uname = os.uname()
-        try:
-            if uname[0].startswith('CYGWIN_NT'):
-                try:
-                    from . import windows
-                except:
-                    import windows
-                overrides = windows.load()
-            elif uname[0] == 'Darwin':
-                try:
-                    from . import darwin
-                except:
-                    import darwin
-                overrides = darwin.load()
-            elif uname[0] == 'FreeBSD':
-                try:
-                    from . import freebsd
-                except:
-                    import freebsd
-                overrides = freebsd.load()
-            elif uname[0] == 'NetBSD':
-                try:
-                    from . import netbsd
-                except:
-                    import netbsd
-                overrides = netbsd.load()
-            elif uname[0] == 'Linux':
-                try:
-                    from . import linux
-                except:
-                    import linux
-                overrides = linux.load()
-            elif uname[0] == 'SunOS':
-                try:
-                    from . import solaris
-                except:
-                    import solaris
-                overrides = solaris.load()
-        except:
-            raise error.general('failed to load %s host support' % (uname[0]))
-    else:
-        raise error.general('unsupported host type; please add')
-    if overrides is None:
-        raise error.general('no hosts defaults found; please add')
+    overrides = host.overrides()
     for k in overrides:
         opts.defaults[k] = overrides[k]
 

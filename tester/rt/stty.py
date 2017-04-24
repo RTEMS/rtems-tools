@@ -37,11 +37,11 @@ import sys
 import termios
 
 from rtemstoolkit import error
-from rtemstoolkit import options
+from rtemstoolkit import host
 from rtemstoolkit import path
 
 def save():
-    if not options.host_windows:
+    if not host.is_windows:
         try:
             sin = termios.tcgetattr(sys.stdin)
             sout = termios.tcgetattr(sys.stdout)
@@ -60,13 +60,13 @@ def restore(attributes):
 class tty:
 
     def __init__(self, dev):
-        if options.host_windows:
+        if host.is_windows:
             raise error.general('termios not support on host')
         self.dev = dev
         self.default_attr = None
         self.fd = None
         self.if_on = False
-        if options.host_windows:
+        if host.is_windows:
             raise error.general('TTY consoles not supported on Windows.')
         if not path.exists(dev):
             raise error.general('dev not found: %s' % (dev))
