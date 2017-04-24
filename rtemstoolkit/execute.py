@@ -261,6 +261,8 @@ class execute(object):
                                              name = '_stdout[%s]' % (name),
                                              args = (self,
                                                      io.open(proc.stdout.fileno(),
+                                                             mode = 'rb',
+                                                             buffering = 0,
                                                              closefd = False),
                                                      self.output,
                                                      ''))
@@ -271,6 +273,8 @@ class execute(object):
                                              name = '_stderr[%s]' % (name),
                                              args = (self,
                                                      io.open(proc.stderr.fileno(),
+                                                             mode = 'rb',
+                                                             buffering = 0,
                                                              closefd = False),
                                                      self.output,
                                                      self.error_prefix))
