@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2016 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2017 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -37,6 +37,7 @@
 from __future__ import print_function
 
 import functools
+import io
 import os
 import re
 import sys
@@ -193,7 +194,11 @@ class execute(object):
             line = ''
             try:
                 while True:
-                    data = fh.read(1)
+                    #
+                    # The io module file handling return up to the size passed
+                    # in.
+                    #
+                    data = fh.read(4096)
                     if len(data) == 0:
                         break
                     # str and bytes are the same type in Python2
@@ -255,7 +260,8 @@ class execute(object):
             stdout_thread = threading.Thread(target = _readthread,
                                              name = '_stdout[%s]' % (name),
                                              args = (self,
-                                                     proc.stdout,
+                                                     io.open(proc.stdout.fileno(),
+                                                             closefd = False),
                                                      self.output,
                                                      ''))
             stdout_thread.daemon = True
@@ -264,7 +270,8 @@ class execute(object):
             stderr_thread = threading.Thread(target = _readthread,
                                              name = '_stderr[%s]' % (name),
                                              args = (self,
-                                                     proc.stderr,
+                                                     io.open(proc.stderr.fileno(),
+                                                             closefd = False),
                                                      self.output,
                                                      self.error_prefix))
             stderr_thread.daemon = True
