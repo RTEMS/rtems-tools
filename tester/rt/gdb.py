@@ -253,8 +253,6 @@ class gdb(object):
                 line = self.script[self.script_line]
                 self.script_line += 1
                 self._put(line)
-        else:
-            self._put(line)
 
     def gdb_parse(self, lines):
         try:
