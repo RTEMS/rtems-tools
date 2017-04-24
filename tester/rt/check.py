@@ -795,9 +795,11 @@ class build:
         if builds is None:
             return None
         for b in self.config.excludes(arch):
-            builds.remove(b)
+            if b in builds:
+                builds.remove(b)
         for b in self.config.bsp_excludes(arch, bsp):
-            builds.remove(b)
+            if b in builds:
+                builds.remove(b)
         return builds
 
     def _arch_bsp_dir_make(self, arch, bsp):
