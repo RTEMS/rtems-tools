@@ -321,11 +321,17 @@ class warnings_errors:
         self.messages = { 'warnings' : { }, 'errors' : { } }
 
     def get_warning_messages(self, arch = None, bsp = None, build = None):
-        messages = self.messages['warnings'][self._key(arch, bsp, build)]
+        key = self._key(arch, bsp, build)
+        if key not in self.messages['warnings']:
+            return []
+        messages = self.messages['warnings'][key]
         return ['%s %s' % (m, messages[m]) for m in messages]
 
     def get_error_messages(self, arch = None, bsp = None, build = None):
-        messages = self.messages['errors'][self._key(arch, bsp, build)]
+        key = self._key(arch, bsp, build)
+        if key not in self.messages['errors']:
+            return []
+        messages = self.messages['errors'][key]
         return ['%s %s' % (m, messages[m]) for m in messages]
 
     def output(self, text):
