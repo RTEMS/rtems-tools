@@ -56,7 +56,7 @@ from rtemstoolkit import version
 def rtems_version():
     return version.version()
 
-def wrap(line, lineend = '', indent = 0):
+def wrap(line, lineend = '', indent = 0, width = 80):
     if type(line) is tuple or type(line) is list:
         if len(line) >= 2:
             s1 = line[0]
@@ -68,15 +68,16 @@ def wrap(line, lineend = '', indent = 0):
         s2 = [line]
     else:
         raise error.internal('line is not a tuple, list or string')
+    s1len = len(s1)
     s = ''
     first = True
     for ss in s2:
         if type(ss) is not str and type(ss) is not unicode:
             raise error.internal('text needs to be a string')
-        for l in textwrap.wrap(ss):
+        for l in textwrap.wrap(ss, width = width - s1len - indent):
             s += '%s%s%s%s%s' % (' ' * indent, s1, l, lineend, os.linesep)
-            if first and len(s1) > 0:
-                s1 = ' ' * len(s1)
+            if first and s1len > 0:
+                s1 = ' ' * s1len
     if lineend != '':
         s = s[:0 - len(os.linesep) - 1] + os.linesep
     return s
@@ -96,7 +97,7 @@ class warnings_errors:
                                      'LibCPU', 'CPU Kit'],
                         'exclude' : '.*Makefile.*',
                         'CPU Kit' : '.*cpukit/.*',
-                        'Network' : '.*libnetworking/.*',
+                        'Network' : '.*libnetworking/.*|.*librpc/.*',
                         'Tests'   : '.*testsuites/.*',
                         'BSP'     : '.*libbsp/.*',
                         'LibCPU'  : '.*libcpu/.*',
@@ -224,10 +225,12 @@ class warnings_errors:
                     gs = []
                     for g in range(0, len(self.groups['groups'])):
                         group = self.groups['groups'][g]
+                        if group in group_counts[build]:
+                            count = group_counts[build][group]
+                        else:
+                            count = 0
                         gs += ['%*s' % (cols_4[g % 4] - 2,
-                                        '%s : %4d' % \
-                                        (group,
-                                         group_counts[build][group]))]
+                                        '%s : %4d' % (group, count))]
                     for row in range(0, len(self.groups['groups']), 4):
                         if row + 4 > len(self.groups['groups']):
                             d = gs[row:] + \
@@ -242,7 +245,7 @@ class warnings_errors:
                             reverse = True)
                 for w in vw:
                     c1 = '%6d' % w[1]
-                    for l in textwrap.wrap(' ' + w[0]):
+                    for l in textwrap.wrap(' ' + w[0], width = cols_2[1] - 3):
                         s += textbox.row(cols_2, [c1, l], indent = 1)
                         c1 = ' ' * 6
                 s += textbox.line(cols_2, marker = '+', indent = 1)
@@ -413,7 +416,7 @@ class results:
                 if config_at != -1:
                     config_cmd = config_cmd[config_at:]
                 s1 = ' %*s:  ' % (max_col + 2, self._arch_bsp(f[0], f[1]))
-                log.output(wrap([s1, config_cmd], lineend = '\\'))
+                log.output(wrap([s1, config_cmd], lineend = '\\'), width = 75)
                 if f[4] is not None:
                     s1 = ' ' * len(s1)
                     for msg in f[4]:
@@ -436,7 +439,8 @@ class results:
                                                    self._arch_bsp(f[0], f[1]),
                                                    f[3]),
                                  config_cmd),
-                                lineend = '\\'))
+                                lineend = '\\',
+                                width = 75))
 
 class configuration:
 
@@ -866,7 +870,8 @@ class build:
             with open(self.options['warnings-report'], 'w') as f:
                 f.write(title() + os.linesep)
                 f.write(os.linesep)
-                f.write('Date: %s%s' % (datetime.date.today().strftime('%c'), os.linesep))
+                f.write('Date: %s%s' % (datetime.datetime.now().strftime('%c'),
+                                        os.linesep))
                 f.write(os.linesep)
                 f.write(command_line() + os.linesep)
                 f.write(self.warnings_errors.report())
