@@ -56,7 +56,7 @@ from rtemstoolkit import version
 def rtems_version():
     return version.version()
 
-def wrap(line, lineend = '', indent = 0, width = 80):
+def wrap(line, lineend = '', indent = 0, width = 75):
     if type(line) is tuple or type(line) is list:
         if len(line) >= 2:
             s1 = line[0]
@@ -74,7 +74,7 @@ def wrap(line, lineend = '', indent = 0, width = 80):
     for ss in s2:
         if type(ss) is not str and type(ss) is not unicode:
             raise error.internal('text needs to be a string')
-        for l in textwrap.wrap(ss, width = width - s1len - indent):
+        for l in textwrap.wrap(ss, width = width - s1len - indent - 1):
             s += '%s%s%s%s%s' % (' ' * indent, s1, l, lineend, os.linesep)
             if first and s1len > 0:
                 s1 = ' ' * s1len
@@ -415,8 +415,9 @@ class results:
                 config_at = config_cmd.find('configure')
                 if config_at != -1:
                     config_cmd = config_cmd[config_at:]
-                s1 = ' %*s:  ' % (max_col + 2, self._arch_bsp(f[0], f[1]))
-                log.output(wrap([s1, config_cmd], lineend = '\\'), width = 75)
+                log.output(' %*s:' % (max_col + 2, self._arch_bsp(f[0], f[1])))
+                s1 = ' ' * 6
+                log.output(wrap([s1, config_cmd], lineend = '\\', width = 75))
                 if f[4] is not None:
                     s1 = ' ' * len(s1)
                     for msg in f[4]:
@@ -435,12 +436,10 @@ class results:
                 config_at = config_cmd.find('configure')
                 if config_at != -1:
                     config_cmd = config_cmd[config_at:]
-                log.output(wrap((' %*s:  %5d  ' % (max_col + 2,
-                                                   self._arch_bsp(f[0], f[1]),
-                                                   f[3]),
-                                 config_cmd),
-                                lineend = '\\',
-                                width = 75))
+                log.output(' %*s:  %5d:' % (max_col + 2,
+                                            self._arch_bsp(f[0], f[1]),
+                                            f[3]))
+                log.output(wrap([' ' * 6, config_cmd], lineend = '\\', width = 75))
 
 class configuration:
 
@@ -905,12 +904,13 @@ class build:
         fc = 1
         s = ''
         for f in fails:
-            fcl = '%3d' % (fc)
+            fcl = ' %3d' % (fc)
             arch_bsp = '%s/%s' % (f[1], f[2])
             state = f[0]
-            s1 = '%s %-*s %-*s %-*s ' % (fcl, bsize, f[3], absize, arch_bsp, ssize, state)
-            s += wrap((s1, f[4]), lineend = '\\')
-            s1 = ' ' * (len(s1) + 2)
+            s += '%s %-*s %-*s %-*s:%s' % \
+                 (fcl, bsize, f[3], absize, arch_bsp, ssize, state, os.linesep)
+            s1 = ' ' * 6
+            s += wrap((s1, 'configure: ' + f[4]), lineend = '\\', width = 75)
             for e in self.warnings_errors.get_error_messages(f[1], f[2], f[3]):
                 s += wrap([s1, 'error: ' + e])
             fc += 1
