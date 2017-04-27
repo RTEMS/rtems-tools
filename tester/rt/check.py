@@ -436,9 +436,7 @@ class results:
                 config_at = config_cmd.find('configure')
                 if config_at != -1:
                     config_cmd = config_cmd[config_at:]
-                log.output(' %*s:  %5d:' % (max_col + 2,
-                                            self._arch_bsp(f[0], f[1]),
-                                            f[3]))
+                log.output(' %s (%5d):' % (self._arch_bsp(f[0], f[1]), f[3]))
                 log.output(wrap([' ' * 6, config_cmd], lineend = '\\', width = 75))
 
 class configuration:
@@ -473,7 +471,8 @@ class configuration:
 
     def _get_items(self, section, err = True):
         try:
-            items = [(name, key.replace(os.linesep, ' ')) for name, key in self.config.items(section)]
+            items = [(name, key.replace(os.linesep, ' ')) \
+                     for name, key in self.config.items(section)]
             return items
         except:
             if err:
