@@ -31,6 +31,7 @@
 from __future__ import print_function
 
 import argparse
+import copy
 import datetime
 import operator
 import os
@@ -542,8 +543,8 @@ class configuration:
             for exclude in self._comma_list(a, 'exclude', error = False):
                 arch['excludes'][exclude] = ['all']
             for i in self._get_items(a, False):
-                if i[0].startswith('exclude_'):
-                    exclude = i[0][len('exclude_'):]
+                if i[0].startswith('exclude-'):
+                    exclude = i[0][len('exclude-'):]
                     if exclude not in arch['excludes']:
                         arch['excludes'][exclude] = []
                     arch['excludes'][exclude] += sorted(set([b.strip() for b in i[1].split(',')]))
@@ -583,7 +584,7 @@ class configuration:
 
     def builds(self):
         if self.builds_['build'] in self.builds_['builds']:
-            build = self.builds_['builds'][self.builds_['build']]
+            build = copy.copy(self.builds_['builds'][self.builds_['build']])
             if ':' in build[0]:
                 return [self.builds_['build']]
             return build
@@ -614,7 +615,8 @@ class configuration:
     def bsp_excludes(self, arch, bsp):
         excludes = self.archs[arch]['excludes'].keys()
         for exclude in self.archs[arch]['excludes']:
-            if bsp not in self.archs[arch]['excludes'][exclude]:
+            if 'all' not in self.archs[arch]['excludes'][exclude] and \
+               bsp not in self.archs[arch]['excludes'][exclude]:
                 excludes.remove(exclude)
         return sorted(excludes)
 
@@ -642,8 +644,9 @@ class configuration:
             colon = ' '
             s1 = ' ' * len(s1)
         s += textbox.line(cols_1, marker = '+', indent = 1)
-        s += textbox.line(cols_1, line = '=', marker = '+', indent = 1)
+        s += os.linesep
         if profiles:
+            s += textbox.line(cols_1, line = '=', marker = '+', indent = 1)
             profiles = sorted(self.profiles['profiles'])
             bsps = 0
             for profile in profiles:
@@ -670,6 +673,7 @@ class configuration:
                         s += textbox.row(cols_2, [s1, ' ' + l], indent = 1)
                         s1 = ' ' * len(s1)
                 s += textbox.line(cols_2, marker = '+', indent = 1)
+            s += os.linesep
         if builds:
             s += textbox.line(cols_1, line = '=', marker = '+', indent = 1)
             s += textbox.row(cols_1,
@@ -705,6 +709,7 @@ class configuration:
                     s += textbox.row(cols_c, [s1, ' ' + l], indent = 1)
                     s1 = ' ' * len(s1)
                 s += textbox.line(cols_c, marker = '+', indent = 1)
+            s += os.linesep
         if architectures:
             s += textbox.line(cols_1, line = '=', marker = '+', indent = 1)
             archs = sorted(self.archs.keys())
@@ -744,7 +749,8 @@ class configuration:
                                 s1 = ' ' * len(s1)
                         excludes = []
                         for exclude in arch['excludes']:
-                            if bsp in arch['excludes'][exclude]:
+                            if 'all' in arch['excludes'][exclude] or \
+                               bsp in arch['excludes'][exclude]:
                                 excludes += [exclude]
                         excludes = ', '.join(excludes)
                         if len(excludes):
@@ -755,6 +761,7 @@ class configuration:
                         if len(bspopts) == 0 and len(excludes) == 0:
                             s += textbox.row(cols_b, [s1, ' '], indent = 1)
                     s += textbox.line(cols_b, marker = '+', indent = 1)
+            s += os.linesep
         return s
 
 class build:
@@ -802,12 +809,13 @@ class build:
         builds = self.config.builds()
         if builds is None:
             return None
-        for b in self.config.excludes(arch):
-            if b in builds:
-                builds.remove(b)
-        for b in self.config.bsp_excludes(arch, bsp):
-            if b in builds:
-                builds.remove(b)
+        excludes = set(self.config.excludes(arch) +
+                       self.config.bsp_excludes(arch, bsp))
+        remove = []
+        for e in excludes:
+            remove += [b for b in builds if e in b]
+        for b in remove:
+            builds.remove(b)
         return builds
 
     def _arch_bsp_dir_make(self, arch, bsp):
@@ -1102,6 +1110,15 @@ def run_args(args):
         log.default = log.log([logf])
         log.notice(title())
         log.output(command_line())
+
+        config = configuration()
+        config.load(config_file, opts.build)
+
+        if opts.config_report:
+            log.notice('Configuration Report:')
+            log.notice(config.report())
+            sys.exit(0)
+
         if opts.rtems is None:
             raise error.general('No RTEMS source provided on the command line')
         if opts.prefix is not None:
@@ -1112,14 +1129,6 @@ def run_args(args):
             build_dir = path.shell(opts.build_path)
         if opts.bsp is not None and opts.arch is None:
             raise error.general('BSP provided but no architecture')
-
-        config = configuration()
-        config.load(config_file, opts.build)
-
-        if opts.config_report:
-            log.notice('Configuration Report:')
-            log.notice(config.report())
-            sys.exit(0)
 
         options = { 'stop-on-error'   : opts.stop_on_error,
                     'no-clean'        : opts.no_clean,
