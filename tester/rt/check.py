@@ -445,10 +445,12 @@ class configuration:
     def __init__(self):
         self.config = configparser.ConfigParser()
         self.name = None
+        self.ini = None
         self.archs = { }
         self.builds_ = { }
         self.profiles = { }
         self.configurations = { }
+        self.macro_filter = re.compile('\$\{.+\}')
 
     def __str__(self):
         import pprint
@@ -464,11 +466,28 @@ class configuration:
     def _get_item(self, section, label, err = True):
         try:
             rec = self.config.get(section, label).replace(os.linesep, ' ')
-            return rec
         except:
             if err:
                 raise error.general('config: no "%s" found in "%s"' % (label, section))
-        return None
+            return None
+        #
+        # On Python 2.7 there is no extended interpolation so add support here.
+        # On Python 3 this should happen automatically and so the findall
+        # should find nothing.
+        #
+        for m in self.macro_filter.findall(rec):
+            if ':' not in m:
+                raise error.general('config: interpolation is ${section:value}: %s' % (m))
+            section_value = m[2:-1].split(':')
+            if len(section_value) != 2:
+                raise error.general('config: interpolation is ${section:value}: %s' % (m))
+            try:
+                ref = self.config.get(section_value[0],
+                                      section_value[1]).replace(os.linesep, ' ')
+                rec = rec.replace(m, ref)
+            except:
+                pass
+        return rec
 
     def _get_items(self, section, err = True):
         try:
@@ -480,8 +499,8 @@ class configuration:
                 raise error.general('config: section "%s" not found' % (section))
         return []
 
-    def _comma_list(self, section, label, error = True):
-        items = self._get_item(section, label, error)
+    def _comma_list(self, section, label, err = True):
+        items = self._get_item(section, label, err)
         if items is None:
             return []
         return sorted(set([a.strip() for a in items.split(',')]))
@@ -493,6 +512,36 @@ class configuration:
             if err:
                 raise error.general('config: section "%s" not found' % (section))
         return []
+
+    def _load(self, name):
+        #
+        # Load all the files.
+        #
+        self.ini = { 'base'     : path.dirname(name),
+                     'files'    : [] }
+        includes = [name]
+        still_loading = True
+        while still_loading:
+            still_loading = False
+            for include in includes:
+                if not path.exists(include):
+                    rebased_inc = path.join(self.ini['base'],
+                                            path.basename(include))
+                    if not path.exists(rebased_inc):
+                        e = 'config: cannot find configuration: %s' % (include)
+                        raise error.general(e)
+                    include = rebased_inc
+                if include not in self.ini['files']:
+                    try:
+                        self.config.read(include)
+                    except configparser.ParsingError as ce:
+                        raise error.general('config: %s' % (ce))
+                    still_loading = True
+                    self.ini['files'] += [include]
+            includes = []
+            if still_loading:
+                for section in self.config.sections():
+                    includes += self._comma_list(section, 'include', err = False)
 
     def _build_options(self, build, nesting = 0):
         if ':' in build:
@@ -517,15 +566,9 @@ class configuration:
         return options
 
     def load(self, name, build):
-        if not path.exists(name):
-            raise error.general('config: cannot read configuration: %s' % (name))
-        self.name = name
-        try:
-            self.config.read(name)
-        except configparser.ParsingError as ce:
-            raise error.general('config: %s' % (ce))
+        self._load(name)
         archs = []
-        self.profiles['profiles'] = self._comma_list('profiles', 'profiles', error = False)
+        self.profiles['profiles'] = self._comma_list('profiles', 'profiles', err = False)
         if len(self.profiles['profiles']) == 0:
             self.profiles['profiles'] = ['tier-%d' % (t) for t in range(1,4)]
         for p in self.profiles['profiles']:
@@ -540,7 +583,7 @@ class configuration:
         for a in set(archs):
             arch = {}
             arch['excludes'] = {}
-            for exclude in self._comma_list(a, 'exclude', error = False):
+            for exclude in self._comma_list(a, 'exclude', err = False):
                 arch['excludes'][exclude] = ['all']
             for i in self._get_items(a, False):
                 if i[0].startswith('exclude-'):
@@ -548,10 +591,10 @@ class configuration:
                     if exclude not in arch['excludes']:
                         arch['excludes'][exclude] = []
                     arch['excludes'][exclude] += sorted(set([b.strip() for b in i[1].split(',')]))
-            arch['bsps'] = self._comma_list(a, 'bsps', error = False)
+            arch['bsps'] = self._comma_list(a, 'bsps', err = False)
             for b in arch['bsps']:
                 arch[b] = {}
-                arch[b]['bspopts'] = self._comma_list(a, 'bspopts_%s' % (b), error = False)
+                arch[b]['bspopts'] = self._comma_list(a, 'bspopts_%s' % (b), err = False)
             self.archs[a] = arch
         builds = {}
         builds['default'] = self._get_item('builds', 'default')
@@ -637,24 +680,29 @@ class configuration:
         cols_1 = [width]
         cols_2 = [10, width - 10]
         s = textbox.line(cols_1, line = '=', marker = '+', indent = 1)
-        s1 = ' File'
-        colon = ':'
-        for l in textwrap.wrap(self.name, width = cols_2[1] - 3):
-            s += textbox.row(cols_2, [s1, ' ' + l], marker = colon, indent = 1)
-            colon = ' '
-            s1 = ' ' * len(s1)
+        s1 = ' File(s)'
+        for f in self.ini['files']:
+            colon = ':'
+            for l in textwrap.wrap(f, width = cols_2[1] - 3):
+                s += textbox.row(cols_2, [s1, ' ' + l], marker = colon, indent = 1)
+                colon = ' '
+                s1 = ' ' * len(s1)
         s += textbox.line(cols_1, marker = '+', indent = 1)
         s += os.linesep
         if profiles:
             s += textbox.line(cols_1, line = '=', marker = '+', indent = 1)
             profiles = sorted(self.profiles['profiles'])
-            bsps = 0
+            archs = []
+            bsps = []
             for profile in profiles:
-                archs = sorted(self.profiles[profile]['archs'])
-                for arch in archs:
-                    bsps += len(self.profiles[profile]['bsps_%s' % (arch)])
+                archs += self.profiles[profile]['archs']
+                for arch in sorted(self.profiles[profile]['archs']):
+                    bsps += self.profiles[profile]['bsps_%s' % (arch)]
+            archs = len(set(archs))
+            bsps = len(set(bsps))
             s += textbox.row(cols_1,
-                             [' Profiles : %d/%d' % (len(archs), bsps)],
+                             [' Profiles : %d (archs:%d, bsps:%d)' % \
+                              (len(profiles), archs, bsps)],
                              indent = 1)
             for profile in profiles:
                 textbox.row(cols_2,
@@ -666,12 +714,14 @@ class configuration:
                 profile = self.profiles[profile]
                 archs = sorted(profile['archs'])
                 for arch in archs:
-                    s += textbox.line(cols_2, marker = '+', indent = 1)
-                    s1 = ' ' + arch
-                    for l in textwrap.wrap(', '.join(profile['bsps_%s' % (arch)]),
-                                           width = cols_2[1] - 2):
-                        s += textbox.row(cols_2, [s1, ' ' + l], indent = 1)
-                        s1 = ' ' * len(s1)
+                    arch_bsps = ', '.join(profile['bsps_%s' % (arch)])
+                    if len(arch_bsps) > 0:
+                        s += textbox.line(cols_2, marker = '+', indent = 1)
+                        s1 = ' ' + arch
+                        for l in textwrap.wrap(arch_bsps,
+                                               width = cols_2[1] - 3):
+                            s += textbox.row(cols_2, [s1, ' ' + l], indent = 1)
+                            s1 = ' ' * len(s1)
                 s += textbox.line(cols_2, marker = '+', indent = 1)
             s += os.linesep
         if builds:
@@ -689,7 +739,7 @@ class configuration:
             for build in builds:
                 s1 = ' ' + build
                 for l in textwrap.wrap(', '.join(builds[build]),
-                                       width = cols_b[1] - 2):
+                                       width = cols_b[1] - 3):
                     s += textbox.row(cols_b, [s1, ' ' + l], indent = 1)
                     s1 = ' ' * len(s1)
                 s += textbox.line(cols_b, marker = '+', indent = 1)
