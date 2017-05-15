@@ -41,11 +41,7 @@ import textwrap
 
 import pprint
 
-try:
-    import configparser
-except:
-    import ConfigParser as configparser
-
+from rtemstoolkit import configuration
 from rtemstoolkit import execute
 from rtemstoolkit import error
 from rtemstoolkit import host
@@ -440,17 +436,13 @@ class results:
                 log.output(' %s (%5d):' % (self._arch_bsp(f[0], f[1]), f[3]))
                 log.output(wrap([' ' * 6, config_cmd], lineend = '\\', width = 75))
 
-class configuration:
+class configuration_:
 
     def __init__(self):
-        self.config = configparser.ConfigParser()
-        self.name = None
-        self.ini = None
+        self.config = configuration.configuration()
         self.archs = { }
         self.builds_ = { }
         self.profiles = { }
-        self.configurations = { }
-        self.macro_filter = re.compile('\$\{.+\}')
 
     def __str__(self):
         import pprint
@@ -463,90 +455,10 @@ class configuration:
              pprint.pformat(self.profiles, indent = 1, width = 80) + os.linesep
         return s
 
-    def _get_item(self, section, label, err = True):
-        try:
-            rec = self.config.get(section, label).replace(os.linesep, ' ')
-        except:
-            if err:
-                raise error.general('config: no "%s" found in "%s"' % (label, section))
-            return None
-        #
-        # On Python 2.7 there is no extended interpolation so add support here.
-        # On Python 3 this should happen automatically and so the findall
-        # should find nothing.
-        #
-        for m in self.macro_filter.findall(rec):
-            if ':' not in m:
-                raise error.general('config: interpolation is ${section:value}: %s' % (m))
-            section_value = m[2:-1].split(':')
-            if len(section_value) != 2:
-                raise error.general('config: interpolation is ${section:value}: %s' % (m))
-            try:
-                ref = self.config.get(section_value[0],
-                                      section_value[1]).replace(os.linesep, ' ')
-                rec = rec.replace(m, ref)
-            except:
-                pass
-        return rec
-
-    def _get_items(self, section, err = True):
-        try:
-            items = [(name, key.replace(os.linesep, ' ')) \
-                     for name, key in self.config.items(section)]
-            return items
-        except:
-            if err:
-                raise error.general('config: section "%s" not found' % (section))
-        return []
-
-    def _comma_list(self, section, label, err = True):
-        items = self._get_item(section, label, err)
-        if items is None:
-            return []
-        return sorted(set([a.strip() for a in items.split(',')]))
-
-    def _get_item_names(self, section, err = True):
-        try:
-            return [item[0] for item in self.config.items(section)]
-        except:
-            if err:
-                raise error.general('config: section "%s" not found' % (section))
-        return []
-
-    def _load(self, name):
-        #
-        # Load all the files.
-        #
-        self.ini = { 'base'     : path.dirname(name),
-                     'files'    : [] }
-        includes = [name]
-        still_loading = True
-        while still_loading:
-            still_loading = False
-            for include in includes:
-                if not path.exists(include):
-                    rebased_inc = path.join(self.ini['base'],
-                                            path.basename(include))
-                    if not path.exists(rebased_inc):
-                        e = 'config: cannot find configuration: %s' % (include)
-                        raise error.general(e)
-                    include = rebased_inc
-                if include not in self.ini['files']:
-                    try:
-                        self.config.read(include)
-                    except configparser.ParsingError as ce:
-                        raise error.general('config: %s' % (ce))
-                    still_loading = True
-                    self.ini['files'] += [include]
-            includes = []
-            if still_loading:
-                for section in self.config.sections():
-                    includes += self._comma_list(section, 'include', err = False)
-
     def _build_options(self, build, nesting = 0):
         if ':' in build:
             section, name = build.split(':', 1)
-            opts = [self._get_item(section, name)]
+            opts = [self.config.get_item(section, name)]
             return opts
         builds = self.builds_['builds']
         if build not in builds:
@@ -557,57 +469,60 @@ class configuration:
         for option in self.builds_['builds'][build]:
             if ':' in option:
                 section, name = option.split(':', 1)
-                opts = [self._get_item(section, name)]
+                opts = [self.config.get_item(section, name)]
             else:
-                opts = self._options(option, nesting + 1)
+                opts = self._build_options(option, nesting + 1)
             for opt in opts:
                 if opt not in options:
                     options += [opt]
         return options
 
     def load(self, name, build):
-        self._load(name)
+        self.config.load(name)
         archs = []
-        self.profiles['profiles'] = self._comma_list('profiles', 'profiles', err = False)
+        self.profiles['profiles'] = \
+            self.config.comma_list('profiles', 'profiles', err = False)
         if len(self.profiles['profiles']) == 0:
             self.profiles['profiles'] = ['tier-%d' % (t) for t in range(1,4)]
         for p in self.profiles['profiles']:
             profile = {}
             profile['name'] = p
-            profile['archs'] = self._comma_list(profile['name'], 'archs')
+            profile['archs'] = self.config.comma_list(profile['name'], 'archs')
             archs += profile['archs']
             for arch in profile['archs']:
                 bsps = 'bsps_%s' % (arch)
-                profile[bsps] = self._comma_list(profile['name'], bsps)
+                profile[bsps] = self.config.comma_list(profile['name'], bsps)
             self.profiles[profile['name']] = profile
         for a in set(archs):
             arch = {}
             arch['excludes'] = {}
-            for exclude in self._comma_list(a, 'exclude', err = False):
+            for exclude in self.config.comma_list(a, 'exclude', err = False):
                 arch['excludes'][exclude] = ['all']
-            for i in self._get_items(a, False):
+            for i in self.config.get_items(a, False):
                 if i[0].startswith('exclude-'):
                     exclude = i[0][len('exclude-'):]
                     if exclude not in arch['excludes']:
                         arch['excludes'][exclude] = []
-                    arch['excludes'][exclude] += sorted(set([b.strip() for b in i[1].split(',')]))
-            arch['bsps'] = self._comma_list(a, 'bsps', err = False)
+                    arch['excludes'][exclude] += \
+                        sorted(set([b.strip() for b in i[1].split(',')]))
+            arch['bsps'] = self.config.comma_list(a, 'bsps', err = False)
             for b in arch['bsps']:
                 arch[b] = {}
-                arch[b]['bspopts'] = self._comma_list(a, 'bspopts_%s' % (b), err = False)
+                arch[b]['bspopts'] = \
+                    self.config.comma_list(a, 'bspopts_%s' % (b), err = False)
             self.archs[a] = arch
         builds = {}
-        builds['default'] = self._get_item('builds', 'default')
+        builds['default'] = self.config.get_item('builds', 'default')
         if build is None:
             build = builds['default']
         builds['config'] = { }
-        for config in self._get_items('config'):
+        for config in self.config.get_items('config'):
             builds['config'][config[0]] = config[1]
         builds['build'] = build
-        builds_ = self._get_item_names('builds')
+        builds_ = self.config.get_item_names('builds')
         builds['builds'] = {}
         for build in builds_:
-            build_builds = self._comma_list('builds', build)
+            build_builds = self.config.comma_list('builds', build)
             has_config = False
             has_build = False
             for b in build_builds:
@@ -681,7 +596,7 @@ class configuration:
         cols_2 = [10, width - 10]
         s = textbox.line(cols_1, line = '=', marker = '+', indent = 1)
         s1 = ' File(s)'
-        for f in self.ini['files']:
+        for f in self.config.files():
             colon = ':'
             for l in textwrap.wrap(f, width = cols_2[1] - 3):
                 s += textbox.row(cols_2, [s1, ' ' + l], marker = colon, indent = 1)
@@ -1161,7 +1076,7 @@ def run_args(args):
         log.notice(title())
         log.output(command_line())
 
-        config = configuration()
+        config = configuration_()
         config.load(config_file, opts.build)
 
         if opts.config_report:
