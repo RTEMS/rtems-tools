@@ -130,6 +130,7 @@ def build(bld):
         source = ['__init__.py',
                   'check.py',
                   'config.py',
+                  'configuration.py',
                   'darwin.py',
                   'error.py',
                   'execute.py',
