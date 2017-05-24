@@ -72,10 +72,7 @@ def _output(text = os.linesep, log = None):
     if text is None:
         text = os.linesep
     if type(text) is list:
-        _text = ''
-        for l in text:
-            _text += l + os.linesep
-        text = _text
+        text = os.linesep.join(text) + os.linesep
     if log:
         log.output(text)
     elif default is not None:
@@ -168,9 +165,7 @@ class log:
         # Reformat the text to have local line types.
         text = text.replace(chr(13), '').splitlines()
         self._tail(text)
-        out = ''
-        for l in text:
-            out += l + os.linesep
+        out = os.linesep.join(text) + os.linesep
         self.lock.acquire()
         try:
             for f in range(0, len(self.fhs)):
