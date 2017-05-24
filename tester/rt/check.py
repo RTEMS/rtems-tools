@@ -38,6 +38,9 @@ import os
 import re
 import sys
 import textwrap
+import threading
+import time
+import traceback
 
 import pprint
 
@@ -49,6 +52,16 @@ from rtemstoolkit import log
 from rtemstoolkit import path
 from rtemstoolkit import textbox
 from rtemstoolkit import version
+
+#
+# Group loggin entries together.
+#
+log_lock = threading.Lock()
+
+#
+# The max build label size in the jobs list.
+#
+max_build_label = 0
 
 def rtems_version():
     return version.version()
@@ -79,53 +92,109 @@ def wrap(line, lineend = '', indent = 0, width = 75):
         s = s[:0 - len(os.linesep) - 1] + os.linesep
     return s
 
+def comma_split(options):
+    if options is None:
+        return None
+    return [o.strip() for o in options.split(',')]
+
 def title():
     return 'RTEMS Tools Project - RTEMS Kernel BSP Builder, %s' % (version.str())
 
 def command_line():
     return wrap(('command: ', ' '.join(sys.argv)), lineend = '\\')
 
+def jobs_option_parse(jobs_option):
+    try:
+        if '/' not in jobs_option:
+            return 1, int(jobs_option)
+        jos = jobs_option.split('/')
+        if len(jos) != 2:
+            raise error.general('invalid jobs option: %s' % (jobs_option))
+        return int(jos[0]), int(jos[1])
+    except:
+        pass
+    raise error.general('invalid jobs option: %s' % (jobs_option))
+
+def arch_bsp_build_parse(build):
+    if type(build) is str:
+        build_key = build
+    else:
+        build_key = build.key()
+    abb = build_key.split('.')
+    if len(abb) != 2:
+        raise error.general('invalid build key: %s' % (build_key))
+    ab = abb[0].split('/')
+    if len(ab) != 2:
+        raise error.general('invalid build key: %s' % (build_key))
+    return ab[0], ab[1], abb[1]
+
+def set_max_build_label(jobs):
+    global max_build_label
+    for job in jobs:
+        if len(job.build.key()) > max_build_label:
+            max_build_label = len(job.build.key())
+    max_build_label += 2
+
+class arch_bsp_build:
+
+    def __init__(self, arch, bsp, build, build_config):
+        self.arch = arch
+        self.bsp = bsp
+        self.build = build
+        self.build_config = build_config
+        self.start_time = None
+        self.stop_time = None
+
+    def __str__(self):
+        return self.key() + ': ' + self.build_config
+
+    def key(self):
+        return '%s/%s.%s' % (self.arch, self.bsp, self.build)
+
+    def get_arch_bsp(self):
+        return self.arch, self.bsp
+
+    def start(self):
+        self.start_time = datetime.datetime.now()
+
+    def stop(self):
+        self.stop_time = datetime.datetime.now()
+
+    def duration(self):
+        return self.stop_time - self.start_time
+
+class output_worker:
+
+    def __init__(self, we, build):
+        self.text = []
+        self.warnings_errors = we
+        self.build = build
+
+    def output(self, text):
+        self.warnings_errors.process_output(text, self.build)
+        self.text += text.splitlines()
+
+    def log_output(self, heading):
+        log_lock.acquire()
+        try:
+            log.output(heading + self.text)
+        except:
+            raise
+        finally:
+            log_lock.release()
+
 class warnings_errors:
 
-    def __init__(self, rtems):
-        self.rtems = path.host(rtems)
+    def __init__(self, source_base, groups):
+        self.lock = threading.Lock()
+        self.source_base = path.host(source_base)
+        self.groups = groups
         self.reset()
-        self.groups = { 'groups'  : ['Shared', 'BSP', 'Network', 'Tests',
-                                     'LibCPU', 'CPU Kit'],
-                        'exclude' : '.*Makefile.*',
-                        'CPU Kit' : '.*cpukit/.*',
-                        'Network' : '.*libnetworking/.*|.*librpc/.*',
-                        'Tests'   : '.*testsuites/.*',
-                        'BSP'     : '.*libbsp/.*',
-                        'LibCPU'  : '.*libcpu/.*',
-                        'Shared'  : '.*shared/.*' }
-        self.arch = None
-        self.bsp = None
-        self.build = None
 
-    def _opts(self, arch = None, bsp = None, build = None):
-        if arch is None:
-            arch = self.arch
-        if bsp is None:
-            bsp = self.bsp
-        if build is None:
-            build = self.build
-        return arch, bsp, build
-
-    def _key(self, arch, bsp, build):
-        arch, bsp, build = self._opts(arch, bsp, build)
-        return '%s/%s-%s' % (arch, bsp, build)
-
-    def _get_warnings(self, arch = None, bsp = None, build = None):
-        arch, bsp, build = self._opts(arch = arch, bsp = bsp, build = build)
-        if arch is None:
-            arch = '.*'
-        if bsp is None:
-            bsp = '.*'
-        if build is None:
-            build = '.*'
-        selector = re.compile('^%s/%s-%s$' % (arch, bsp, build))
-        warnings = [w for w in self.warnings if selector.match(w)]
+    def _get_warnings(self, build):
+        self.lock.acquire()
+        warnings = [w for w in self.warnings]
+        self.lock.release()
         return sorted(warnings)
 
     def _total(self, archive):
@@ -139,7 +208,9 @@ class warnings_errors:
             if 'groups' not in data:
                 data['groups'] = { }
             if category not in data['groups']:
-                data['groups'][category] = { 'totals' : { } }
+                data['groups'][category] = { }
+            if 'totals' not in data['groups'][category]:
+                data['groups'][category]['totals'] = { }
             if name not in data['groups'][category]:
                 data['groups'][category][name] = { }
             for group in groups:
@@ -162,25 +233,28 @@ class warnings_errors:
             data[category][name][warning] += count
             _group(data, category, name,  w, count, groups, group_regx)
 
-        data = { }
+        categories = ['arch', 'arch_bsp', 'build']
+        data = { 'groups': { } }
+        for category in categories:
+            data[category] = { }
+            data['groups'][category] = { }
         group_regx = { }
         for group in self.groups['groups']:
             group_regx[group] = re.compile(self.groups[group])
         exclude_regx = re.compile(exclude)
-        for warning in warnings:
-            arch = warning.split('/', 1)[0]
-            arch_bsp = warning.split('-', 1)[0]
-            build = warning.split('-', 1)[1]
+        for warning in self.warnings:
+            arch, bsp, build = arch_bsp_build_parse(warning)
+            arch_bsp = '%s/%s' % (arch, bsp)
             for w in self.warnings[warning]:
                 if not exclude_regx.match(w):
                     count = self.warnings[warning][w]
-                    _update(data, 'arch',     arch,     w, count,
+                    _update(data, 'arch', arch, w, count,
                            self.groups['groups'], group_regx)
                     _update(data, 'arch_bsp', arch_bsp, w, count,
                            self.groups['groups'], group_regx)
-                    _update(data, 'build',  build,  w, count,
+                    _update(data, 'build', build, w, count,
                            self.groups['groups'], group_regx)
-        for category in ['arch', 'arch_bsp', 'build']:
+        for category in categories:
             common = {}
             for name in data[category]:
                 for w in data[category][name]:
@@ -267,174 +341,537 @@ class warnings_errors:
             s += textbox.line(cols_1, marker = '+', indent = 1)
         return s
 
-    def report(self):
-        arch, bsp, build = self._opts()
-        warnings = self._get_warnings(arch, bsp, build)
-        total = 0
-        for build in warnings:
-            total += self._total(self.warnings[build])
-        if total == 0:
-            s = ' No warnings'
-        else:
-            data = self._analyze(warnings, self.groups['exclude'])
-            s = self._report_category('By Architecture (total : %d)' % (total),
-                                      data['arch'], data['groups']['arch'])
-            s += os.linesep
-            s += self._report_category('By BSP (total : %d)' % (total),
-                                       data['arch_bsp'], data['groups']['arch_bsp'])
-            s += os.linesep
-            s += self._report_category('By Build (total : %d)' % (total),
-                                       data['build'], data['groups']['build'])
-            s += os.linesep
-            s += self._report_warning_map()
-            s += os.linesep
-
+    def warnings_report(self):
+        self.lock.acquire()
+        s = ' No warnings'
+        try:
+            total = 0
+            for build in self.warnings:
+                total += self._total(self.warnings[build])
+            if total != 0:
+                data = self._analyze(self.warnings, self.groups['exclude'])
+                s = self._report_category('By Architecture (total : %d)' % (total),
+                                          data['arch'], data['groups']['arch'])
+                s += os.linesep
+                s += self._report_category('By BSP (total : %d)' % (total),
+                                           data['arch_bsp'], data['groups']['arch_bsp'])
+                s += os.linesep
+                s += self._report_category('By Build (total : %d)' % (total),
+                                           data['build'], data['groups']['build'])
+                s += os.linesep
+                s += self._report_warning_map()
+                s += os.linesep
+        finally:
+            self.lock.release()
         return s
 
-    def set_build(self, arch, bsp, build):
-        self.arch = arch
-        self.bsp = bsp
-        self.build = build
-        self.build_key = '%s/%s-%s' % (arch, bsp, build)
-        if self.build_key not in self.warnings:
-            self.warnings[self.build_key] = {}
-        if self.build_key not in self.errors:
-            self.errors[self.build_key] = {}
-
-    def clear_build(self):
-        self.arch = None
-        self.bsp = None
-        self.build = None
-        self.build_key = None
+    def clear_build(self, build):
+        self.lock.acquire()
+        self.warnings[build.key()] = {}
+        self.errors[build.key()] = {}
+        self.lock.release()
 
     def get_warning_count(self):
-        return self.warning_count
+        self.lock.acquire()
+        count = self.warning_count
+        self.lock.release()
+        return count
 
     def get_error_count(self):
-        return self.error_count
+        self.lock.acquire()
+        count = self.error_count
+        self.lock.release()
+        return count
 
     def reset(self):
+        self.lock.acquire()
         self.warnings = { }
         self.warning_count = 0
         self.errors = { }
         self.error_count = 0
         self.messages = { 'warnings' : { }, 'errors' : { } }
+        self.lock.release()
 
-    def get_warning_messages(self, arch = None, bsp = None, build = None):
-        key = self._key(arch, bsp, build)
-        if key not in self.messages['warnings']:
-            return []
-        messages = self.messages['warnings'][key]
-        return ['%s %s' % (m, messages[m]) for m in messages]
+    def _get_messages(self, build, key):
+        self.lock.acquire()
+        if type(build) is str:
+            build_key = build
+        else:
+            build_key = build.key()
+        if build_key not in self.messages[key]:
+            messages = []
+        else:
+            messages = self.messages[key][build_key]
+        messages = ['%s %s' % (m, messages[m]) for m in messages]
+        self.lock.release()
+        return messages
 
-    def get_error_messages(self, arch = None, bsp = None, build = None):
-        key = self._key(arch, bsp, build)
-        if key not in self.messages['errors']:
-            return []
-        messages = self.messages['errors'][key]
-        return ['%s %s' % (m, messages[m]) for m in messages]
+    def get_warning_messages(self, build):
+        return self._get_messages(build, 'warning')
 
-    def output(self, text):
+    def get_error_messages(self, build):
+        return self._get_messages(build, 'errors')
+
+    def process_output(self, text, build):
         def _line_split(line, source_base):
+            if line.count(':') < 2:
+                return None
             ls = line.split(' ', 1)
-            fname = ls[0].split(':')
-            #
-            # Ignore compiler option warnings.
-            #
-            if len(fname) < 4:
+            fname = ls[0].strip().split(':', 2)
+            if len(fname) != 3:
                 return None
             p = path.abspath(fname[0])
             p = p.replace(source_base, '')
             if path.isabspath(p):
                 p = p[1:]
-            return p, fname[1], fname[2], ls[1]
+            if len(fname[2]) == 0:
+                pos = None
+            else:
+                pos = fname[2]
+            return p, fname[1], pos, ls[1]
 
-        if self.build_key is not None and \
-           (' warning:' in text or ' error:' in text):
-            for l in text.splitlines():
-                if ' warning:' in l:
-                    self.warning_count += 1
-                    archive = self.warnings[self.build_key]
-                    messages = 'warnings'
-                elif ' error:' in l:
-                    self.error_count += 1
-                    archive = self.errors[self.build_key]
-                    messages = 'errors'
-                else:
-                    continue
-                line_parts = _line_split(l, self.rtems)
-                if line_parts is not None:
-                    src, line, pos, msg = line_parts
-                    where = '%s:%s:%s' % (src, line, pos)
-                    if where not in archive:
-                        archive[where] = 1
+        def _create_build_errors(build, archive):
+            if build.key() not in archive:
+                archive[build.key()] = { }
+            return archive[build.key()]
+
+        #
+        # The GNU linker does not supply 'error' in error messages. There is no
+        # line information which is understandable. Look for `bin/ld:` and
+        # `collect2:` in the output and then create the error when `collect2:`
+        # is seen.
+        #
+        # The order we inspect each line is important.
+        #
+        if ' warning:' in text or \
+           ' error:' in text or \
+           ' Error:' in text or \
+           'bin/ld:' in text:
+            self.lock.acquire()
+            try:
+                for l in text.splitlines():
+                    if 'bin/ld:' in l:
+                        archive =_create_build_errors(build, self.errors)
+                        if 'linker' not in archive:
+                            archive['linker'] = []
+                        archive['linker'] += [l.split(':', 1)[1].strip()]
+                    elif l.startswith('collect2:'):
+                        archive =_create_build_errors(build, self.errors)
+                        l = '/ld/collect2:0: error: '
+                        if 'linker' not in archive or len(archive['linker']) == 0:
+                            l += 'no error message found!'
+                        else:
+                            l += '; '.join(archive['linker'])
+                            archive['linker'] = []
+                        messages = 'errors'
+                    elif ' warning:' in l:
+                        self.warning_count += 1
+                        archive = _create_build_errors(build, self.warnings)
+                        messages = 'warnings'
+                    elif ' error:' in l or ' Error:' in l:
+                        self.error_count += 1
+                        archive =_create_build_errors(build, self.errors)
+                        messages = 'errors'
                     else:
-                        archive[where] += 1
-                    if self.build_key not in self.messages[messages]:
-                        self.messages[messages][self.build_key] = { }
-                    self.messages[messages][self.build_key][where] = msg
-
-        log.output(text)
+                        continue
+                    line_parts = _line_split(l, self.source_base)
+                    if line_parts is not None:
+                        src, line, pos, msg = line_parts
+                        if pos is not None:
+                            where = '%s:%s:%s' % (src, line, pos)
+                        else:
+                            where = '%s:%s' % (src, line)
+                        if where not in archive:
+                            archive[where] = 1
+                        else:
+                            archive[where] += 1
+                        if build.key() not in self.messages[messages]:
+                            self.messages[messages][build.key()] = { }
+                        self.messages[messages][build.key()][where] = msg
+            finally:
+                self.lock.release()
 
 class results:
 
-    def __init__(self):
-        self.passes = []
-        self.fails = []
+    def __init__(self, source_base, groups):
+        self.lock = threading.Lock()
+        self.errors = { 'pass':      0,
+                        'configure': 0,
+                        'build':     0,
+                        'tests':     0,
+                        'passes':    { },
+                        'fails':     { } }
+        self.counts = { 'h'        : 0,
+                        'exes'     : 0,
+                        'objs'     : 0,
+                        'libs'     : 0 }
+        self.warnings_errors = warnings_errors(source_base, groups)
 
     def _arch_bsp(self, arch, bsp):
         return '%s/%s' % (arch, bsp)
 
-    def add(self, good, arch, bsp, configure, warnings, error_messages):
-        if good:
-            self.passes += [(arch, bsp, configure, warnings, None)]
+    def _arch_bsp_passes(self, build):
+        if build.key() not in self.errors['passes']:
+            self.errors['passes'][build.key()] = []
+        return self.errors['passes'][build.key()]
+
+    def _arch_bsp_fails(self, build):
+        if build.key() not in self.errors['fails']:
+            self.errors['fails'][build.key()] = []
+        return self.errors['fails'][build.key()]
+
+    def _count(self, label):
+        count = 0
+        for build in self.errors[label]:
+            count += len(self.errors[label][build])
+        return count
+
+    def _max_col(self, label):
+        max_col = 0
+        for build in self.errors[label]:
+            arch, bsp, build_config = arch_bsp_build_parse(build)
+            arch_bsp = self._arch_bsp(arch, bsp)
+            if len(arch_bsp) > max_col:
+                max_col = len(arch_bsp)
+        return max_col
+
+    def get_warning_count(self):
+        return self.warnings_errors.get_warning_count()
+
+    def get_error_count(self):
+        return self.warnings_errors.get_error_count()
+
+    def get_warning_messages(self, build):
+        return self.warnings_errors.get_warning_messages(build)
+
+    def get_error_messages(self, build):
+        return self.warnings_errors.get_error_messages(build)
+
+    def status(self):
+        self.lock.acquire()
+        try:
+            s = 'Pass: %4d  Fail: %4d (configure:%d build:%d)' % \
+                (self.errors['pass'],
+                 self.errors['configure'] + self.errors['build'],
+                 self.errors['configure'], self.errors['build'])
+        except:
+            raise
+        finally:
+            self.lock.release()
+        return s;
+
+    def add_fail(self, phase, build, configure, warnings, error_messages):
+        fails = self._arch_bsp_fails(build)
+        self.lock.acquire()
+        try:
+            self.errors[phase] += 1
+            fails += [(phase, build.build_config, configure, error_messages)]
+        finally:
+            self.lock.release()
+
+    def add_pass(self, build, configure, warnings):
+        passes = self._arch_bsp_passes(build)
+        self.lock.acquire()
+        try:
+            self.errors['pass'] += 1
+            passes += [(build.build_config, configure, warnings, None)]
+        finally:
+            self.lock.release()
+
+    def pass_count(self):
+        return self._count('passes')
+
+    def fail_count(self):
+        return self._count('fails')
+
+    def _failures_report(self, build, count):
+        if type(build) is str:
+            build_key = build
         else:
-            self.fails += [(arch, bsp, configure, warnings, error_messages)]
+            build_key = build.key()
+        if build_key not in self.errors['fails'] or \
+           len(self.errors['fails'][build_key]) == 0:
+            return count, 0, ' No failure(s)'
+        absize = 0
+        bsize = 0
+        ssize = 0
+        arch, bsp, build_set = arch_bsp_build_parse(build_key)
+        arch_bsp = self._arch_bsp(arch, bsp)
+        fails = self.errors['fails'][build_key]
+        for f in fails:
+            if len(f[0]) > ssize:
+                ssize = len(f[0])
+        s = ''
+        for f in fails:
+            count += 1
+            fcl = ' %3d' % (count)
+            state = f[0]
+            s += '%s %s %s %-*s:%s' % \
+                 (fcl, build_set, arch_bsp, ssize, state, os.linesep)
+            s1 = ' ' * 6
+            s += wrap((s1, 'configure: ' + f[2]), lineend = '\\', width = 75)
+            s1 = ' ' * 5
+            for e in self.warnings_errors.get_error_messages(build):
+                s += wrap([s1 + 'error: ', e])
+        return count, len(fails), s
+
+    def failures_report(self, build = None):
+        s = ''
+        count = 0
+        if build is not None:
+            count, build_fails, bs = self._failures_report(build, count)
+            if build_fails > 0:
+                s += bs + os.linesep
+        else:
+            self.lock.acquire()
+            builds = sorted(self.errors['fails'].keys())
+            self.lock.release()
+            for build in builds:
+                count, build_fails, bs = self._failures_report(build, count)
+                if build_fails > 0:
+                    s += bs + os.linesep
+        if count == 0:
+            s = ' No failure(s)'
+        return s
+
+    def warnings_report(self):
+        return self.warnings_errors.warnings_report()
 
     def report(self):
-        log.notice('* Passes: %d   Failures: %d' %
-                   (len(self.passes), len(self.fails)))
+        self.lock.acquire()
+        log_lock.acquire()
+        passes = self.pass_count()
+        fails = self.fail_count()
+        log.notice('Passes: %d   Failures: %d' % (passes, fails))
         log.output()
         log.output('Build Report')
-        log.output('   Passes: %d   Failures: %d' %
-                   (len(self.passes), len(self.fails)))
+        log.output('   Passes: %d   Failures: %d' % (passes, fails))
         log.output(' Failures:')
-        if len(self.fails) == 0:
+        if fails == 0:
             log.output('  None')
         else:
-            max_col = 0
-            for f in self.fails:
-                arch_bsp = self._arch_bsp(f[0], f[1])
-                if len(arch_bsp) > max_col:
-                    max_col = len(arch_bsp)
-            for f in self.fails:
-                config_cmd = f[2]
-                config_at = config_cmd.find('configure')
-                if config_at != -1:
-                    config_cmd = config_cmd[config_at:]
-                log.output(' %*s:' % (max_col + 2, self._arch_bsp(f[0], f[1])))
-                s1 = ' ' * 6
-                log.output(wrap([s1, config_cmd], lineend = '\\', width = 75))
-                if f[4] is not None:
-                    s1 = ' ' * len(s1)
-                    for msg in f[4]:
-                        log.output(wrap([s1, msg], lineend = '\\'))
+            max_col = self._max_col('fails')
+            for build in self.errors['fails']:
+                arch, bsp, build_config = arch_bsp_build_parse(build)
+                arch_bsp = self._arch_bsp(arch, bsp)
+                for f in self.errors['fails'][build]:
+                    config_cmd = f[2]
+                    config_at = config_cmd.find('configure')
+                    if config_at != -1:
+                        config_cmd = config_cmd[config_at:]
+                    log.output(' %*s:' % (max_col + 2, arch_bsp))
+                    s1 = ' ' * 6
+                    log.output(wrap([s1, config_cmd], lineend = '\\', width = 75))
+                    if f[3] is not None:
+                        s1 = ' ' * len(s1)
+                        for msg in f[3]:
+                            log.output(wrap([s1, msg], lineend = '\\'))
         log.output(' Passes:')
-        if len(self.passes) == 0:
+        if passes == 0:
             log.output('  None')
         else:
-            max_col = 0
-            for f in self.passes:
-                arch_bsp = self._arch_bsp(f[0], f[1])
-                if len(arch_bsp) > max_col:
-                    max_col = len(arch_bsp)
-            for f in self.passes:
-                config_cmd = f[2]
-                config_at = config_cmd.find('configure')
-                if config_at != -1:
-                    config_cmd = config_cmd[config_at:]
-                log.output(' %s (%5d):' % (self._arch_bsp(f[0], f[1]), f[3]))
-                log.output(wrap([' ' * 6, config_cmd], lineend = '\\', width = 75))
+            max_col = self._max_col('passes')
+            for build in self.errors['passes']:
+                arch, bsp, build_config = arch_bsp_build_parse(build)
+                arch_bsp = self._arch_bsp(arch, bsp)
+                for f in self.errors['passes'][build]:
+                    config_cmd = f[1]
+                    config_at = config_cmd.find('configure')
+                    if config_at != -1:
+                        config_cmd = config_cmd[config_at:]
+                    log.output(' %s (%5d):' % (arch_bsp, f[2]))
+                    log.output(wrap([' ' * 6, config_cmd], lineend = '\\', width = 75))
+        log_lock.release()
+        self.lock.release()
+
+class arch_bsp_builder:
+
+    def __init__(self, results_, build, commands, build_dir, tag):
+        self.lock = threading.Lock()
+        self.state = 'ready'
+        self.thread = None
+        self.proc = None
+        self.results = results_
+        self.build = build
+        self.commands = commands
+        self.build_dir = build_dir
+        self.tag = tag
+        self.output = output_worker(results_.warnings_errors, build)
+        self.counts = { 'h'        : 0,
+                        'exes'     : 0,
+                        'objs'     : 0,
+                        'libs'     : 0 }
+
+    def _notice(self, text):
+        global max_build_label
+        arch, bsp, build_set = arch_bsp_build_parse(self.build.key())
+        label = '%s/%s (%s)' % (arch, bsp, build_set)
+        log.notice('[%s] %-*s %s' % (self.tag, max_build_label, label, text))
+
+    def _build_dir(self):
+        return path.join(self.build_dir, self.build.key())
+
+    def _make_build_dir(self):
+        if not path.exists(self._build_dir()):
+            path.mkdir(self._build_dir())
+
+    def _count_files(self):
+        for root, dirs, files in os.walk(self._build_dir()):
+            for file in files:
+                if file.endswith('.exe'):
+                    self.counts['exes'] += 1
+                elif file.endswith('.o'):
+                    self.counts['objs'] += 1
+                elif file.endswith('.a'):
+                    self.counts['libs'] += 1
+                elif file.endswith('.h'):
+                    self.counts['h'] += 1
+
+    def _execute(self, phase):
+        exit_code = 0
+        cmd = self.commands[phase]
+        try:
+            # This should locked; not sure how to do that
+            self.proc = execute.capture_execution(log = self.output)
+            log.output(wrap(('run: %s: ', self.build.key(), cmd), lineend = '\\'))
+            if not self.commands['dry-run']:
+                exit_code, proc, output = self.proc.shell(cmd,
+                                                          cwd = path.host(self._build_dir()))
+        except:
+            traceback.print_exc()
+            self.lock.acquire()
+            if self.proc is not None:
+                self.proc.kill()
+            self.lock.release()
+            exit_code = 1
+        self.lock.acquire()
+        self.proc = None
+        self.lock.release()
+        return exit_code == 0
+
+    def _configure(self):
+        return self._execute('configure')
+
+    def _make(self):
+        return self._execute('build')
+
+    def _worker(self):
+        self.lock.acquire()
+        self.state = 'running'
+        self.lock.release()
+        self.build.start()
+        warnings = self.results.get_warning_count()
+        ok = False
+        try:
+            log_lock.acquire()
+            try:
+                self._notice('Start')
+                self._notice('Creating: %s' % (self._build_dir()))
+            except:
+                raise
+            finally:
+                log_lock.release()
+            self._make_build_dir()
+            self._notice('Configuring')
+            ok = self._configure()
+            if not ok:
+                warnings = self.results.get_warning_count() - warnings
+                self.results.add_fail('configure',
+                                      self.build,
+                                      self.commands['configure'],
+                                      warnings,
+                                      self.results.get_error_messages(self.build))
+            self.lock.acquire()
+            if self.state == 'killing':
+                ok = False
+            self.lock.release()
+            if ok:
+                self._notice('Building')
+                ok = self._make()
+                if not ok:
+                    warnings = self.results.get_warning_count() - warnings
+                    self.results.add_fail('build',
+                                          self.build,
+                                          self.commands['configure'],
+                                          warnings,
+                                          self.results.get_error_messages(self.build))
+            if ok:
+                warnings = self.results.get_warning_count() - warnings
+                self.results.add_pass(self.build,
+                                      self.commands['configure'],
+                                      warnings)
+        except:
+            ok = False
+            self._notice('Build Exception')
+            traceback.print_exc()
+        self.build.stop()
+        log_lock.acquire()
+        try:
+            self._count_files()
+            if ok:
+                self._notice('PASS')
+            else:
+                self._notice('FAIL')
+            self._notice('Warnings:%d  exes:%d  objs:%d  libs:%d' % \
+                         (warnings, self.counts['exes'],
+                          self.counts['objs'], self.counts['libs']))
+            log.output('  %s: Failure Report:' % (self.build.key()))
+            log.output(self.results.failures_report(self.build))
+            self._notice('Finished (duration:%s)' % (str(self.build.duration())))
+            self._notice('Status: %s' % (self.results.status()))
+        except:
+            self._notice('Build Exception:')
+            traceback.print_exc()
+        finally:
+            log_lock.release()
+        self.lock.acquire()
+        self.state = 'finished'
+        self.lock.release()
+
+    def get_file_counts(self):
+        return self.counts
+
+    def run(self):
+        self.lock.acquire()
+        try:
+            if self.state != 'ready':
+                raise error.general('builder already run')
+            self.state = 'starting'
+            self.thread = threading.Thread(target = self._worker)
+            self.thread.start()
+        except:
+            raise
+        finally:
+            self.lock.release()
+
+    def kill(self):
+        self.lock.acquire()
+        if self.thread is not None:
+            self.state = 'killing'
+            if self.proc is not None:
+                try:
+                    self.proc.kill()
+                except:
+                    pass
+            self.lock.release()
+            self.thread.join(5)
+            self.lock.acquire()
+        self.state = 'finished'
+        self.lock.release()
+
+    def current_state(self):
+        self.lock.acquire()
+        state = self.state
+        self.lock.release()
+        return state
+
+    def log_output(self):
+        self.output.log_output(['-' * 79, '] %s: Build output:' % (self.build.key())])
+
+    def clean(self):
+        if not self.commands['no-clean']:
+            self._notice('Cleaning: %s' % (self._build_dir()))
+            path.removeall(self._build_dir())
 
 class configuration_:
 
@@ -445,7 +882,6 @@ class configuration_:
         self.profiles = { }
 
     def __str__(self):
-        import pprint
         s = self.name + os.linesep
         s += 'Archs:' + os.linesep + \
              pprint.pformat(self.archs, indent = 1, width = 80) + os.linesep
@@ -579,15 +1015,25 @@ class configuration_:
         return sorted(excludes)
 
     def bspopts(self, arch, bsp):
+        if arch not in self.archs:
+            raise error.general('invalid architecture: %s' % (arch))
+        if bsp not in self.archs[arch]:
+            raise error.general('invalid BSP: %s' % (bsp))
         return self.archs[arch][bsp]['bspopts']
 
     def profile_present(self, profile):
         return profile in self.profiles
 
     def profile_archs(self, profile):
+        if profile not in self.profiles:
+            raise error.general('invalid profile: %s' % (profile))
         return self.profiles[profile]['archs']
 
     def profile_arch_bsps(self, profile, arch):
+        if profile not in self.profiles:
+            raise error.general('invalid profile: %s' % (profile))
+        if 'bsps_%s' % (arch) not in self.profiles[profile]:
+            raise error.general('invalid profile arch: %s' % (arch))
         return self.profiles[profile]['bsps_%s' % (arch)]
 
     def report(self, profiles = True, builds = True, architectures = True):
@@ -729,7 +1175,30 @@ class configuration_:
             s += os.linesep
         return s
 
-class build:
+class build_jobs:
+
+    def __init__(self, config, arch, bsp):
+        self.arch = arch
+        self.bsp = bsp
+        self.builds = config.builds()
+        if self.builds is None:
+            raise error.general('build not found: %s' % (config.build()))
+        excludes = set(config.excludes(self.arch) +
+                       config.bsp_excludes(self.arch, self.bsp))
+        remove = []
+        for e in excludes:
+            remove += [b for b in self.builds if e in b]
+        for b in remove:
+            self.builds.remove(b)
+        self.build_set = { }
+        for build in self.builds:
+            self.build_set[build] = config.build_options(build)
+
+    def jobs(self):
+        return [arch_bsp_build(self.arch, self.bsp, b, self.build_set[b]) \
+                for b in sorted(self.build_set.keys())]
+
+class builder:
 
     def __init__(self, config, version, prefix, tools, rtems, build_dir, options):
         self.config = config
@@ -739,102 +1208,67 @@ class build:
         self.tools = tools
         self.rtems = rtems
         self.options = options
-        self.errors = { 'configure': 0,
-                        'build':     0,
-                        'tests':     0,
-                        'fails':     []}
         self.counts = { 'h'        : 0,
                         'exes'     : 0,
                         'objs'     : 0,
                         'libs'     : 0 }
-        self.warnings_errors = warnings_errors(rtems)
-        self.results = results()
+        self.results = results(rtems,
+                               { 'groups'  : ['Shared', 'BSP', 'Network', 'Tests',
+                                              'LibCPU', 'CPU Kit'],
+                                 'exclude' : '.*Makefile.*',
+                                 'CPU Kit' : '.*cpukit/.*',
+                                 'Network' : '.*libnetworking/.*|.*librpc/.*',
+                                 'Tests'   : '.*testsuites/.*',
+                                 'BSP'     : '.*libbsp/.*',
+                                 'LibCPU'  : '.*libcpu/.*',
+                                 'Shared'  : '.*shared/.*' })
         if not path.exists(path.join(rtems, 'configure')) or \
            not path.exists(path.join(rtems, 'Makefile.in')) or \
            not path.exists(path.join(rtems, 'cpukit')):
             raise error.general('RTEMS source path does not look like RTEMS')
 
-    def _error_str(self):
-        return 'Status: configure:%d build:%d' % \
-            (self.errors['configure'], self.errors['build'])
-
-    def _path(self, arch, bsp):
-        return path.join(self.build_dir, arch, bsp)
-
-    def _archs(self, build_data):
-        return sorted(build_data.keys())
-
     def _bsps(self, arch):
         return self.config.arch_bsps(arch)
 
-    def _build(self):
-        return self.config.build()
+    def _create_build_jobs(self, jobs, build_job_count):
+        max_job_size = len('%d' % len(jobs))
+        build_jobs = []
+        job_index = 1
+        for job in jobs:
+            tag = '%*d/%d' % (max_job_size, job_index, len(jobs))
+            build_jobs += [arch_bsp_builder(self.results,
+                                            job,
+                                            self._commands(job, build_job_count),
+                                            self.build_dir,
+                                            tag)]
+            job_index += 1
+        set_max_build_label(build_jobs)
+        return build_jobs
 
-    def _builds(self, arch, bsp):
-        builds = self.config.builds()
-        if builds is None:
-            return None
-        excludes = set(self.config.excludes(arch) +
-                       self.config.bsp_excludes(arch, bsp))
-        remove = []
-        for e in excludes:
-            remove += [b for b in builds if e in b]
-        for b in remove:
-            builds.remove(b)
-        return builds
-
-    def _arch_bsp_dir_make(self, arch, bsp):
-        if not path.exists(self._path(arch, bsp)):
-            path.mkdir(self._path(arch, bsp))
-
-    def _arch_bsp_dir_clean(self, arch, bsp):
-        if path.exists(self._path(arch, bsp)):
-            path.removeall(self._path(arch, bsp))
-
-    def _config_command(self, commands, arch, bsp):
-        if type(commands) is not list:
-            commands = [commands]
+    def _commands(self, build, build_jobs):
+        commands = { 'dry-run'  : self.options['dry-run'],
+                     'no-clean' : self.options['no-clean'],
+                     'configure': None,
+                     'build'    : None }
+        cmds = build.build_config.split()
+        cmds += self.config.bspopts(build.arch, build.bsp)
         cmd = [path.join(self.rtems, 'configure')]
-        commands += self.config.bspopts(arch, bsp)
-        for c in commands:
+        for c in cmds:
             c = c.replace('@PREFIX@', self.prefix)
             c = c.replace('@RTEMS_VERSION@', self.rtems_version)
-            c = c.replace('@ARCH@', arch)
-            c = c.replace('@BSP@', bsp)
+            c = c.replace('@ARCH@', build.arch)
+            c = c.replace('@BSP@', build.bsp)
             cmd += [c]
-        return ' '.join(cmd)
+        commands['configure'] = ' '.join(cmd)
+        cmd = 'make -j %s' % (build_jobs)
+        commands['build'] = cmd
+        return commands
 
-    def _build_set(self, builds):
-        build_set = { }
-        for build in builds:
-            build_set[build] = self.config.build_options(build)
-        return build_set
-
-    def _build_dir(self, arch, bsp, build):
-        return path.join(self._path(arch, bsp), build)
-
-    def _count_files(self, arch, bsp, build):
-        counts = { 'h'    : 0,
-                   'exes' : 0,
-                   'objs' : 0,
-                   'libs' : 0 }
-        for root, dirs, files in os.walk(self._build_dir(arch, bsp, build)):
-            for file in files:
-                if file.endswith('.exe'):
-                    counts['exes'] += 1
-                elif file.endswith('.o'):
-                    counts['objs'] += 1
-                elif file.endswith('.a'):
-                    counts['libs'] += 1
-                elif file.endswith('.h'):
-                    counts['h'] += 1
+    def _update_file_counts(self, counts):
         for f in self.counts:
             if f in counts:
                 self.counts[f] += counts[f]
         return counts
-
-    def _have_failures(self, fails):
-        return len(fails) != 0
 
     def _warnings_report(self):
         if self.options['warnings-report'] is not None:
@@ -845,172 +1279,111 @@ class build:
                                         os.linesep))
                 f.write(os.linesep)
                 f.write(command_line() + os.linesep)
-                f.write(self.warnings_errors.report())
+                f.write(self.results.warnings_errors.report())
 
     def _finished(self):
-        log.notice('+  warnings:%d  exes:%d  objs:%d  libs:%d' % \
-                   (self.warnings_errors.get_warning_count(), self.counts['exes'],
+        log.notice('Total: Warnings:%d  exes:%d  objs:%d  libs:%d' % \
+                   (self.results.get_warning_count(), self.counts['exes'],
                     self.counts['objs'], self.counts['libs']))
         log.output()
         log.output('Warnings:')
-        log.output(self.warnings_errors.report())
+        log.output(self.results.warnings_report())
         log.output()
         log.notice('Failures:')
-        log.notice(self.failures_report(self.errors['fails']))
+        log.notice(self.results.failures_report())
         self._warnings_report()
 
-    def failures_report(self, fails):
-        if not self._have_failures(fails):
-            return ' No failure(s)'
-        absize = 0
-        bsize = 0
-        ssize = 0
-        for f in fails:
-            arch_bsp = '%s/%s' % (f[1], f[2])
-            if len(arch_bsp) > absize:
-                absize = len(arch_bsp)
-            if len(f[3]) > bsize:
-                bsize = len(f[3])
-            if len(f[0]) > ssize:
-                ssize = len(f[0])
-        fc = 1
-        s = ''
-        for f in fails:
-            fcl = ' %3d' % (fc)
-            arch_bsp = '%s/%s' % (f[1], f[2])
-            state = f[0]
-            s += '%s %-*s %-*s %-*s:%s' % \
-                 (fcl, bsize, f[3], absize, arch_bsp, ssize, state, os.linesep)
-            s1 = ' ' * 6
-            s += wrap((s1, 'configure: ' + f[4]), lineend = '\\', width = 75)
-            for e in self.warnings_errors.get_error_messages(f[1], f[2], f[3]):
-                s += wrap([s1, 'error: ' + e])
-            fc += 1
-        return s
-
-    def build_arch_bsp(self, arch, bsp):
-        if not self.config.bsp_present(arch, bsp):
-            raise error.general('BSP not found: %s/%s' % (arch, bsp))
-        log.output('-' * 70)
-        log.notice('] BSP: %s/%s' % (arch, bsp))
-        log.notice('. Creating: %s' % (self._path(arch, bsp)))
-        self._arch_bsp_dir_clean(arch, bsp)
-        self._arch_bsp_dir_make(arch, bsp)
-        builds = self._builds(arch, bsp)
-        if builds is None:
-            raise error.general('build not found: %s' % (self._build()))
-        build_set = self._build_set(builds)
-        bsp_start = datetime.datetime.now()
+    def run_jobs(self, jobs):
+        if path.exists(self.build_dir):
+            log.notice('Cleaning: %s' % (self.build_dir))
+            path.removeall(self.build_dir)
+        start = datetime.datetime.now()
         env_path = os.environ['PATH']
         os.environ['PATH'] = path.host(path.join(self.tools, 'bin')) + \
                              os.pathsep + os.environ['PATH']
-        fails = []
-        for bs in sorted(build_set.keys()):
-            self.warnings_errors.set_build(arch, bsp, bs)
-            start = datetime.datetime.now()
-            log.output('- ' * 35)
-            log.notice('. Configuring: %s' % (bs))
-            try:
-                warnings = self.warnings_errors.get_warning_count()
-                result = '+ Pass'
-                bpath = self._build_dir(arch, bsp, bs)
-                good = True
-                error_messages = None
-                path.mkdir(bpath)
-                config_cmd = self._config_command(build_set[bs], arch, bsp)
-                cmd = config_cmd
-                e = execute.capture_execution(log = self.warnings_errors)
-                log.output(wrap(('run: ', cmd), lineend = '\\'))
-                if self.options['dry-run']:
-                    exit_code = 0
-                else:
-                    exit_code, proc, output = e.shell(cmd, cwd = path.host(bpath))
-                if exit_code != 0:
-                    result = '- FAIL'
-                    failure = ('configure', arch, bsp, bs, config_cmd)
-                    fails += [failure]
-                    self.errors['configure'] += 1
-                    self.errors['fails'] += [failure]
-                    log.notice('- Configure failed: %s' % (bs))
-                    log.output('cmd failed: %s' % (cmd))
-                    good = False
-                else:
-                    log.notice('. Building: %s' % (bs))
-                    cmd = 'make'
-                    if 'jobs' in self.options:
-                        cmd += ' -j %s' % (self.options['jobs'])
-                    log.output('run: ' + cmd)
-                    if self.options['dry-run']:
-                        exit_code = 0
-                    else:
-                        exit_code, proc, output = e.shell(cmd, cwd = path.host(bpath))
-                    if exit_code != 0:
-                        error_messages = self.warnings_errors.get_error_messages()
-                        result = '- FAIL'
-                        failure = ('build', arch, bsp, bs, config_cmd, error_messages)
-                        fails += [failure]
-                        self.errors['build'] += 1
-                        self.errors['fails'] += [failure]
-                        log.notice('- FAIL: %s: %s' % (bs, self._error_str()))
-                        log.output('cmd failed: %s' % (cmd))
-                        good = False
-                    files = self._count_files(arch, bsp, bs)
-                    log.notice('%s: %s: warnings:%d  exes:%d  objs:%s  libs:%d' % \
-                               (result, bs,
-                                self.warnings_errors.get_warning_count() - warnings,
-                                files['exes'], files['objs'], files['libs']))
-                log.notice('  %s' % (self._error_str()))
-                self.results.add(good, arch, bsp, config_cmd,
-                                 self.warnings_errors.get_warning_count() - warnings,
-                                 error_messages)
-                if not good and self.options['stop-on-error']:
-                    raise error.general('Configuring %s failed' % (bs))
-            finally:
-                end = datetime.datetime.now()
-                if not self.options['no-clean']:
-                    log.notice('. Cleaning: %s' % (self._build_dir(arch, bsp, bs)))
-                    path.removeall(self._build_dir(arch, bsp, bs))
-            log.notice('^ Time %s' % (str(end - start)))
-            self.warnings_errors.clear_build()
-        bsp_end = datetime.datetime.now()
-        log.notice('^ BSP Time %s' % (str(bsp_end - bsp_start)))
-        log.output('Failure Report:')
-        log.output(self.failures_report(fails))
+        job_count, build_job_count = jobs_option_parse(self.options['jobs'])
+        builds = self._create_build_jobs(jobs, build_job_count)
+        active_jobs = []
+        jobs_completed = 0
+        try:
+            while len(builds) > 0 or len(active_jobs) > 0:
+                new_jobs = job_count - len(active_jobs)
+                if new_jobs > 0:
+                    active_jobs += builds[:new_jobs]
+                    builds = builds[new_jobs:]
+                finished_jobs = []
+                for job in active_jobs:
+                    state = job.current_state()
+                    if state == 'ready':
+                        job.run()
+                    elif state != 'running':
+                        finished_jobs += [job]
+                for job in finished_jobs:
+                    self._update_file_counts(job.get_file_counts())
+                    job.log_output()
+                    job.clean()
+                    active_jobs.remove(job)
+                    jobs_completed += 1
+                time.sleep(0.250)
+        except:
+            for job in active_jobs:
+                try:
+                    job.kill()
+                except:
+                    pass
+            raise
+        end = datetime.datetime.now()
         os.environ['PATH'] = env_path
-
-    def build_bsp(self, arch, bsp):
-        self.build_arch_bsp(arch, bsp)
+        duration = end - start
+        if jobs_completed == 0:
+            jobs_completed = 1
         self._finished()
+        log.notice('Average BSP Build Time: %s' % \
+                   (str(duration / jobs_completed)))
+        log.notice('Total Time %s' % (str(duration)))
 
-    def build_arch(self, arch):
-        start = datetime.datetime.now()
-        log.output('=' * 70)
-        log.notice(']] Architecture: %s' % (arch))
-        if not self.config.arch_present(arch):
-            raise error.general('Architecture not found: %s' % (arch))
-        for bsp in self._bsps(arch):
-            self.build_arch_bsp(arch, bsp)
-        end = datetime.datetime.now()
-        log.notice('^ Architecture Time %s' % (str(end - start)))
-        self._finished()
+    def arch_bsp_jobs(self, arch, bsps):
+        jobs = []
+        for bsp in bsps:
+            jobs += build_jobs(self.config, arch, bsp).jobs()
+        return jobs
 
-    def build(self):
-        for arch in self.config.archs():
-            self.build_arch(arch)
-        log.notice('^ Profile Time %s' % (str(end - start)))
-        self._finished()
+    def bsp_jobs(self, bsps):
+        jobs = []
+        for bsp in bsps:
+            if bsp.count('/') != 1:
+                raise error.general('invalid bsp format (use: arch/bsp): %s' % (bsp))
+            arch, bsp = bsp.split('/')
+            jobs += build_jobs(self.config, arch, bsp).jobs()
+        return jobs
 
-    def build_profile(self, profile):
-        if not self.config.profile_present(profile):
-            raise error.general('Profile not found: %s' % (profile))
-        start = datetime.datetime.now()
-        log.notice(']] Profile: %s' % (profile))
-        for arch in self.config.profile_archs(profile):
-            for bsp in self.config.profile_arch_bsps(profile, arch):
-                self.build_arch_bsp(arch, bsp)
-        end = datetime.datetime.now()
-        log.notice('^ Profile Time %s' % (str(end - start)))
-        self._finished()
+    def arch_jobs(self, archs):
+        jobs = []
+        for arch in archs:
+            if not self.config.arch_present(arch):
+                raise error.general('Architecture not found: %s' % (arch))
+            jobs += self.arch_bsp_jobs(arch, self._bsps(arch))
+        return jobs
+
+    def profile_jobs(self, profiles):
+        jobs = []
+        for profile in profiles:
+            if not self.config.profile_present(profile):
+                raise error.general('Profile not found: %s' % (profile))
+            jobs += self.arch_jobs(self.config.profile_archs(profile))
+        return jobs
+
+    def build_bsps(self, bsps):
+        log.notice('BSPS(s): %s' % (', '.join(bsps)))
+        self.run_jobs(self.bsp_jobs(bsps))
+
+    def build_archs(self, archs):
+        log.notice('Architecture(s): %s' % (', '.join(archs)))
+        self.run_jobs(self.arch_jobs(archs))
+
+    def build_profiles(self, profiles):
+        log.notice('Profile(s): %s' % (', '.join(profiles)))
+        self.run_jobs(self.profile_jobs(profiles))
 
 def run_args(args):
     b = None
@@ -1045,27 +1418,27 @@ def run_args(args):
                            type = str)
         argsp.add_argument('--rtems', help = 'The RTEMS source tree.',
                            type = str)
+        argsp.add_argument('--build-path', help = 'Path to build in.',
+                           type = str)
+        argsp.add_argument('--log', help = 'Log file.', type = str)
         argsp.add_argument('--config-report', help = 'Report the configuration.',
                            action = 'store_true')
         argsp.add_argument('--warnings-report', help = 'Report the warnings to a file.',
                            type = str, default = None)
-        argsp.add_argument('--build-path', help = 'Path to build in.',
-                           type = str)
-        argsp.add_argument('--log', help = 'Log file.', type = str)
         argsp.add_argument('--stop-on-error', help = 'Stop on an error.',
                            action = 'store_true')
         argsp.add_argument('--no-clean', help = 'Do not clean the build output.',
                            action = 'store_true')
-        argsp.add_argument('--profiles', help = 'Build the listed profiles.',
+        argsp.add_argument('--profiles', help = 'Build the listed profiles (profile,profile,..).',
                            type = str, default = 'tier-1')
-        argsp.add_argument('--build', help = 'Build name to build.',
+        argsp.add_argument('--arch', help = 'Build the architectures (arch,arch,..).',
+                           type = str)
+        argsp.add_argument('--bsp', help = 'Build the BSPs (arch/bsp,arch/bsp,..).',
+                           type = str)
+        argsp.add_argument('--build', help = 'Build name to build (see --config-report).',
                            type = str, default='all')
-        argsp.add_argument('--arch', help = 'Build the specific architecture.',
-                           type = str)
-        argsp.add_argument('--bsp', help = 'Build the specific BSP.',
-                           type = str)
         argsp.add_argument('--jobs', help = 'Number of jobs to run.',
-                           type = int, default = host.cpus())
+                           type = str, default = '1/%d' % (host.cpus()))
         argsp.add_argument('--dry-run', help = 'Do not run the actual builds.',
                            action = 'store_true')
 
@@ -1092,8 +1465,6 @@ def run_args(args):
             tools = path.shell(opts.rtems_tools)
         if opts.build_path is not None:
             build_dir = path.shell(opts.build_path)
-        if opts.bsp is not None and opts.arch is None:
-            raise error.general('BSP provided but no architecture')
 
         options = { 'stop-on-error'   : opts.stop_on_error,
                     'no-clean'        : opts.no_clean,
@@ -1101,16 +1472,24 @@ def run_args(args):
                     'jobs'            : opts.jobs,
                     'warnings-report' : opts.warnings_report }
 
-        b = build(config, rtems_version(), prefix, tools,
-                  path.shell(opts.rtems), build_dir, options)
-        if opts.arch is not None:
-            if opts.bsp is not None:
-                b.build_bsp(opts.arch, opts.bsp)
-            else:
-                b.build_arch(opts.arch)
+        b = builder(config, rtems_version(), prefix, tools,
+                    path.shell(opts.rtems), build_dir, options)
+
+        profiles = comma_split(opts.profiles)
+        archs = comma_split(opts.arch)
+        bsps = comma_split(opts.bsp)
+
+        #
+        # The default is build a profile.
+        #
+        if bsps is not None:
+            if archs is not None:
+                raise error.general('--arch supplied with --bsp; use --bsp=arch/bsp,arch/bsp,..')
+            b.build_bsps(bsps)
+        elif archs is not None:
+            b.build_archs(archs)
         else:
-            for profile in opts.profiles.split(','):
-                b.build_profile(profile.strip())
+            b.build_profiles(profiles)
 
     except error.general as gerr:
         print(gerr)
