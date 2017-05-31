@@ -28,6 +28,7 @@
 #include <list>
 #include <string>
 #include <vector>
+#include "rld.h"
 
 namespace rld
 {
