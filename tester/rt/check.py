@@ -591,7 +591,7 @@ class results:
             build_key = build.key()
         if build_key not in self.errors['fails'] or \
            len(self.errors['fails'][build_key]) == 0:
-            return count, 0, ' No failure(s)'
+            return count, 0, ' No failures'
         absize = 0
         bsize = 0
         ssize = 0
@@ -631,7 +631,7 @@ class results:
                 if build_fails > 0:
                     s += bs + os.linesep
         if count == 0:
-            s = ' No failure(s)'
+            s = ' No failures'
         return s
 
     def warnings_report(self):
@@ -1034,7 +1034,7 @@ class configuration_:
             raise error.general('invalid profile: %s' % (profile))
         if 'bsps_%s' % (arch) not in self.profiles[profile]:
             raise error.general('invalid profile arch: %s' % (arch))
-        return self.profiles[profile]['bsps_%s' % (arch)]
+        return ['%s/%s' % (arch, bsp) for bsp in self.profiles[profile]['bsps_%s' % (arch)]]
 
     def report(self, profiles = True, builds = True, architectures = True):
         width = 70
@@ -1370,7 +1370,8 @@ class builder:
         for profile in profiles:
             if not self.config.profile_present(profile):
                 raise error.general('Profile not found: %s' % (profile))
-            jobs += self.arch_jobs(self.config.profile_archs(profile))
+            for arch in self.config.profile_archs(profile):
+                jobs += self.bsp_jobs(self.config.profile_arch_bsps(profile, arch))
         return jobs
 
     def build_bsps(self, bsps):
