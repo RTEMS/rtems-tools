@@ -1,0 +1,378 @@
+From 461152e4ebd94f7d8b1e20f4cd1c704138ba2083 Mon Sep 17 00:00:00 2001
+From: Sebastian Huber <sebastian.huber@embedded-brains.de>
+Date: Tue, 4 Jul 2017 12:56:22 +0200
+Subject: [PATCH] Add ffsl(), ffsll(), fls(), flsl(), flsll()
+
+Use compiler builtin for ffs().  Remove duplicate implementation from
+Cygwin.
+
+Signed-off-by: Sebastian Huber <sebastian.huber@embedded-brains.de>
+---
+ newlib/libc/misc/ffs.c         | 14 ++-------
+ newlib/libc/string/Makefile.am |  5 ++++
+ newlib/libc/string/Makefile.in | 64 +++++++++++++++++++++++++++++++++---------
+ newlib/libc/string/ffsl.c      | 34 ++++++++++++++++++++++
+ newlib/libc/string/ffsll.c     | 34 ++++++++++++++++++++++
+ newlib/libc/string/fls.c       | 38 +++++++++++++++++++++++++
+ newlib/libc/string/flsl.c      | 38 +++++++++++++++++++++++++
+ newlib/libc/string/flsll.c     | 38 +++++++++++++++++++++++++
+ winsup/cygwin/syscalls.cc      | 22 ---------------
+ 9 files changed, 240 insertions(+), 47 deletions(-)
+ create mode 100644 newlib/libc/string/ffsl.c
+ create mode 100644 newlib/libc/string/ffsll.c
+ create mode 100644 newlib/libc/string/fls.c
+ create mode 100644 newlib/libc/string/flsl.c
+ create mode 100644 newlib/libc/string/flsll.c
+
+diff --git a/newlib/libc/misc/ffs.c b/newlib/libc/misc/ffs.c
+index 7fc38c8..ba57009 100644
+--- a/newlib/libc/misc/ffs.c
++++ b/newlib/libc/misc/ffs.c
+@@ -29,18 +29,8 @@ No supporting OS subroutines are required.  */
+ #include <strings.h>
+ 
+ int
+-_DEFUN(ffs, (word),
+-       int word)
++ffs(int i)
+ {
+-  int i;
+ 
+-  if (!word)
+-    return 0;
+-
+-  i = 0;
+-  for (;;)
+-    {
+-      if (((1 << i++) & word) != 0)
+-	return i;
+-    }
++	return (__builtin_ffs(i));
+ }
+diff --git a/newlib/libc/string/Makefile.am b/newlib/libc/string/Makefile.am
+index bb5a78f..e62f286 100644
+--- a/newlib/libc/string/Makefile.am
++++ b/newlib/libc/string/Makefile.am
+@@ -8,6 +8,11 @@ GENERAL_SOURCES = \
+ 	bcopy.c \
+ 	bzero.c \
+ 	explicit_bzero.c \
++	ffsl.c \
++	ffsll.c \
++	fls.c \
++	flsl.c \
++	flsll.c \
+ 	index.c \
+ 	memchr.c \
+ 	memcmp.c \
+diff --git a/newlib/libc/string/Makefile.in b/newlib/libc/string/Makefile.in
+index bd330e4..63681d0 100644
+--- a/newlib/libc/string/Makefile.in
++++ b/newlib/libc/string/Makefile.in
+@@ -73,7 +73,9 @@ ARFLAGS = cru
+ lib_a_AR = $(AR) $(ARFLAGS)
+ lib_a_LIBADD =
+ am__objects_1 = lib_a-bcopy.$(OBJEXT) lib_a-bzero.$(OBJEXT) \
+-	lib_a-explicit_bzero.$(OBJEXT) lib_a-index.$(OBJEXT) \
++	lib_a-explicit_bzero.$(OBJEXT) lib_a-ffsl.$(OBJEXT) \
++	lib_a-ffsll.$(OBJEXT) lib_a-fls.$(OBJEXT) lib_a-flsl.$(OBJEXT) \
++	lib_a-flsll.$(OBJEXT) lib_a-index.$(OBJEXT) \
+ 	lib_a-memchr.$(OBJEXT) lib_a-memcmp.$(OBJEXT) \
+ 	lib_a-memcpy.$(OBJEXT) lib_a-memmove.$(OBJEXT) \
+ 	lib_a-memset.$(OBJEXT) lib_a-rindex.$(OBJEXT) \
+@@ -140,18 +142,19 @@ am__objects_1 = lib_a-bcopy.$(OBJEXT) lib_a-bzero.$(OBJEXT) \
+ lib_a_OBJECTS = $(am_lib_a_OBJECTS)
+ LTLIBRARIES = $(noinst_LTLIBRARIES)
+ libstring_la_LIBADD =
+-am__objects_4 = bcopy.lo bzero.lo explicit_bzero.lo index.lo memchr.lo \
+-	memcmp.lo memcpy.lo memmove.lo memset.lo rindex.lo \
+-	strcasecmp.lo strcat.lo strchr.lo strcmp.lo strcoll.lo \
+-	strcpy.lo strcspn.lo strdup.lo strdup_r.lo strerror.lo \
+-	strerror_r.lo strlcat.lo strlcpy.lo strlen.lo strlwr.lo \
+-	strncasecmp.lo strncat.lo strncmp.lo strncpy.lo strnlen.lo \
+-	strpbrk.lo strrchr.lo strsep.lo strsignal.lo strspn.lo \
+-	strtok.lo strtok_r.lo strupr.lo strxfrm.lo strstr.lo swab.lo \
+-	timingsafe_bcmp.lo timingsafe_memcmp.lo u_strerr.lo wcscat.lo \
+-	wcschr.lo wcscmp.lo wcscoll.lo wcscpy.lo wcscspn.lo wcslcat.lo \
+-	wcslcpy.lo wcslen.lo wcsncat.lo wcsncmp.lo wcsncpy.lo \
+-	wcsnlen.lo wcspbrk.lo wcsrchr.lo wcsspn.lo wcsstr.lo wcstok.lo \
++am__objects_4 = bcopy.lo bzero.lo explicit_bzero.lo ffsl.lo ffsll.lo \
++	fls.lo flsl.lo flsll.lo index.lo memchr.lo memcmp.lo memcpy.lo \
++	memmove.lo memset.lo rindex.lo strcasecmp.lo strcat.lo \
++	strchr.lo strcmp.lo strcoll.lo strcpy.lo strcspn.lo strdup.lo \
++	strdup_r.lo strerror.lo strerror_r.lo strlcat.lo strlcpy.lo \
++	strlen.lo strlwr.lo strncasecmp.lo strncat.lo strncmp.lo \
++	strncpy.lo strnlen.lo strpbrk.lo strrchr.lo strsep.lo \
++	strsignal.lo strspn.lo strtok.lo strtok_r.lo strupr.lo \
++	strxfrm.lo strstr.lo swab.lo timingsafe_bcmp.lo \
++	timingsafe_memcmp.lo u_strerr.lo wcscat.lo wcschr.lo wcscmp.lo \
++	wcscoll.lo wcscpy.lo wcscspn.lo wcslcat.lo wcslcpy.lo \
++	wcslen.lo wcsncat.lo wcsncmp.lo wcsncpy.lo wcsnlen.lo \
++	wcspbrk.lo wcsrchr.lo wcsspn.lo wcsstr.lo wcstok.lo \
+ 	wcswidth.lo wcsxfrm.lo wcwidth.lo wmemchr.lo wmemcmp.lo \
+ 	wmemcpy.lo wmemmove.lo wmemset.lo xpg_strerror_r.lo
+ @ELIX_LEVEL_1_FALSE@am__objects_5 = bcmp.lo memccpy.lo mempcpy.lo \
+@@ -351,6 +354,11 @@ GENERAL_SOURCES = \
+ 	bcopy.c \
+ 	bzero.c \
+ 	explicit_bzero.c \
++	ffsl.c \
++	ffsll.c \
++	fls.c \
++	flsl.c \
++	flsll.c \
+ 	index.c \
+ 	memchr.c \
+ 	memcmp.c \
+@@ -582,6 +590,36 @@ lib_a-explicit_bzero.o: explicit_bzero.c
+ lib_a-explicit_bzero.obj: explicit_bzero.c
+ 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-explicit_bzero.obj `if test -f 'explicit_bzero.c'; then $(CYGPATH_W) 'explicit_bzero.c'; else $(CYGPATH_W) '$(srcdir)/explicit_bzero.c'; fi`
+ 
++lib_a-ffsl.o: ffsl.c
++	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-ffsl.o `test -f 'ffsl.c' || echo '$(srcdir)/'`ffsl.c
++
++lib_a-ffsl.obj: ffsl.c
++	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-ffsl.obj `if test -f 'ffsl.c'; then $(CYGPATH_W) 'ffsl.c'; else $(CYGPATH_W) '$(srcdir)/ffsl.c'; fi`
++
++lib_a-ffsll.o: ffsll.c
++	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-ffsll.o `test -f 'ffsll.c' || echo '$(srcdir)/'`ffsll.c
++
++lib_a-ffsll.obj: ffsll.c
++	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-ffsll.obj `if test -f 'ffsll.c'; then $(CYGPATH_W) 'ffsll.c'; else $(CYGPATH_W) '$(srcdir)/ffsll.c'; fi`
++
++lib_a-fls.o: fls.c
++	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-fls.o `test -f 'fls.c' || echo '$(srcdir)/'`fls.c
++
++lib_a-fls.obj: fls.c
++	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-fls.obj `if test -f 'fls.c'; then $(CYGPATH_W) 'fls.c'; else $(CYGPATH_W) '$(srcdir)/fls.c'; fi`
++
++lib_a-flsl.o: flsl.c
++	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-flsl.o `test -f 'flsl.c' || echo '$(srcdir)/'`flsl.c
++
++lib_a-flsl.obj: flsl.c
++	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-flsl.obj `if test -f 'flsl.c'; then $(CYGPATH_W) 'flsl.c'; else $(CYGPATH_W) '$(srcdir)/flsl.c'; fi`
++
++lib_a-flsll.o: flsll.c
++	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-flsll.o `test -f 'flsll.c' || echo '$(srcdir)/'`flsll.c
++
++lib_a-flsll.obj: flsll.c
++	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-flsll.obj `if test -f 'flsll.c'; then $(CYGPATH_W) 'flsll.c'; else $(CYGPATH_W) '$(srcdir)/flsll.c'; fi`
++
+ lib_a-index.o: index.c
+ 	$(CC) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) $(AM_CPPFLAGS) $(CPPFLAGS) $(lib_a_CFLAGS) $(CFLAGS) -c -o lib_a-index.o `test -f 'index.c' || echo '$(srcdir)/'`index.c
+ 
+diff --git a/newlib/libc/string/ffsl.c b/newlib/libc/string/ffsl.c
+new file mode 100644
+index 0000000..4b1d52d
+--- /dev/null
++++ b/newlib/libc/string/ffsl.c
+@@ -0,0 +1,34 @@
++/*-
++ * Copyright (c) 2017 embedded brains GmbH
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ * 1. Redistributions of source code must retain the above copyright
++ *    notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ *    notice, this list of conditions and the following disclaimer in the
++ *    documentation and/or other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
++ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
++ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
++ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
++ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
++ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
++ * SUCH DAMAGE.
++ */
++
++#include <strings.h>
++
++int
++ffsl(long i)
++{
++
++	return (__builtin_ffsl(i));
++}
+diff --git a/newlib/libc/string/ffsll.c b/newlib/libc/string/ffsll.c
+new file mode 100644
+index 0000000..7172506
+--- /dev/null
++++ b/newlib/libc/string/ffsll.c
+@@ -0,0 +1,34 @@
++/*-
++ * Copyright (c) 2017 embedded brains GmbH
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ * 1. Redistributions of source code must retain the above copyright
++ *    notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ *    notice, this list of conditions and the following disclaimer in the
++ *    documentation and/or other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
++ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
++ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
++ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
++ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
++ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
++ * SUCH DAMAGE.
++ */
++
++#include <strings.h>
++
++int
++ffsll(long long i)
++{
++
++	return (__builtin_ffsll(i));
++}
+diff --git a/newlib/libc/string/fls.c b/newlib/libc/string/fls.c
+new file mode 100644
+index 0000000..a3e88d2
+--- /dev/null
++++ b/newlib/libc/string/fls.c
+@@ -0,0 +1,38 @@
++/*-
++ * Copyright (c) 2017 embedded brains GmbH
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ * 1. Redistributions of source code must retain the above copyright
++ *    notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ *    notice, this list of conditions and the following disclaimer in the
++ *    documentation and/or other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
++ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
++ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
++ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
++ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
++ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
++ * SUCH DAMAGE.
++ */
++
++#include <strings.h>
++#include <limits.h>
++
++int
++fls(int i)
++{
++
++	if (i == 0)
++		return 0;
++
++	return (sizeof(i) * CHAR_BIT - __builtin_clz(i));
++}
+diff --git a/newlib/libc/string/flsl.c b/newlib/libc/string/flsl.c
+new file mode 100644
+index 0000000..af6277d
+--- /dev/null
++++ b/newlib/libc/string/flsl.c
+@@ -0,0 +1,38 @@
++/*-
++ * Copyright (c) 2017 embedded brains GmbH
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ * 1. Redistributions of source code must retain the above copyright
++ *    notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ *    notice, this list of conditions and the following disclaimer in the
++ *    documentation and/or other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
++ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
++ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
++ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
++ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
++ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
++ * SUCH DAMAGE.
++ */
++
++#include <strings.h>
++#include <limits.h>
++
++int
++flsl(long i)
++{
++
++	if (i == 0)
++		return 0;
++
++	return (sizeof(i) * CHAR_BIT - __builtin_clzl(i));
++}
+diff --git a/newlib/libc/string/flsll.c b/newlib/libc/string/flsll.c
+new file mode 100644
+index 0000000..3936184
+--- /dev/null
++++ b/newlib/libc/string/flsll.c
+@@ -0,0 +1,38 @@
++/*-
++ * Copyright (c) 2017 embedded brains GmbH
++ * All rights reserved.
++ *
++ * Redistribution and use in source and binary forms, with or without
++ * modification, are permitted provided that the following conditions
++ * are met:
++ * 1. Redistributions of source code must retain the above copyright
++ *    notice, this list of conditions and the following disclaimer.
++ * 2. Redistributions in binary form must reproduce the above copyright
++ *    notice, this list of conditions and the following disclaimer in the
++ *    documentation and/or other materials provided with the distribution.
++ *
++ * THIS SOFTWARE IS PROVIDED BY THE AUTHOR AND CONTRIBUTORS ``AS IS'' AND
++ * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
++ * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
++ * ARE DISCLAIMED.  IN NO EVENT SHALL THE AUTHOR OR CONTRIBUTORS BE LIABLE
++ * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
++ * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
++ * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
++ * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
++ * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
++ * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
++ * SUCH DAMAGE.
++ */
++
++#include <strings.h>
++#include <limits.h>
++
++int
++flsll(long long i)
++{
++
++	if (i == 0)
++		return 0;
++
++	return (sizeof(i) * CHAR_BIT - __builtin_clzll(i));
++}
+-- 
+2.9.3
+
