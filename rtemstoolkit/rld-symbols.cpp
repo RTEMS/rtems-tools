@@ -38,29 +38,34 @@ namespace rld
      * Get the demangled name.
      */
     bool
-    is_cplusplus (const std::string& name)
+    demangle_name (const std::string& name, std::string& demangled)
     {
-      char* demangled_name = ::cplus_demangle (name.c_str (),
-                                               DMGL_ANSI | DMGL_PARAMS);
       bool yes = false;
-      if (demangled_name)
+      if (name.length() == 0)
+        demangled = name;
+      else
       {
-        yes = true;
-        ::free (demangled_name);
+        std::string wrapper = "_GLOBAL__sub_I_";
+        size_t      offset = 0;
+        if (name.compare (0, wrapper.length (), wrapper) == 0)
+          offset = wrapper.length ();
+        char* demangled_name = ::cplus_demangle (name.c_str () + offset,
+                                                 DMGL_ANSI | DMGL_PARAMS);
+        if (demangled_name)
+        {
+          demangled = demangled_name;
+          ::free (demangled_name);
+          yes = true;
+        }
       }
       return yes;
     }
 
-    void
-    demangle_name (std::string& name, std::string& demangled)
+    bool
+    is_cplusplus (const std::string& name)
     {
-      char* demangled_name = ::cplus_demangle (name.c_str (),
-                                               DMGL_ANSI | DMGL_PARAMS);
-      if (demangled_name)
-      {
-        demangled = demangled_name;
-        ::free (demangled_name);
-      }
+      std::string demangled;
+      return symbols::demangle_name (name, demangled);
     }
 
     symbol::symbol ()
@@ -83,8 +88,7 @@ namespace rld
     {
       if (!object_)
         throw rld_error_at ("object pointer is 0");
-      if (is_cplusplus ())
-        demangle_name (name_, demangled_);
+      demangle_name (name_, demangled_);
     }
 
     symbol::symbol (int                 index,
@@ -96,8 +100,7 @@ namespace rld
         esym_ (esym),
         references_ (0)
     {
-      if (is_cplusplus ())
-        demangle_name (name_, demangled_);
+      demangle_name (name_, demangled_);
     }
 
     symbol::symbol (const std::string&  name,
@@ -143,7 +146,7 @@ namespace rld
     bool
     symbol::is_cplusplus () const
     {
-      return (name_[0] == '_') && (name_[1] == 'Z');
+      return symbols::is_cplusplus (name_);
     }
 
     bool
@@ -279,7 +282,7 @@ namespace rld
           break;
       }
 
-      out << std::setw (5) << index_
+      out << std::setw (8) << index_
           << ' ' << binding
           << ' ' << type
           << ' ' << std::setw(6) << es.st_shndx

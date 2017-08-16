@@ -288,12 +288,18 @@ def bld_libiberty(bld, conf):
               source =['libiberty/concat.c',
                        'libiberty/cplus-dem.c',
                        'libiberty/cp-demangle.c',
+                       'libiberty/d-demangle.c',
+                       'libiberty/rust-demangle.c',
                        'libiberty/make-temp-file.c',
                        'libiberty/mkstemps.c',
                        'libiberty/safe-ctype.c',
                        'libiberty/stpcpy.c',
                        'libiberty/pex-common.c',
                        'libiberty/pex-one.c',
+                       'libiberty/xmalloc.c',
+                       'libiberty/xmemdup.c',
+                       'libiberty/xstrdup.c',
+                       'libiberty/xstrerror.c',
                        pex_host])
 
 #

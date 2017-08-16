@@ -59,6 +59,13 @@ namespace rld
        */
       ~buffer ();
 
+      /*
+       * Return true if the byte order is little-endian.
+       */
+      bool little_endian () const {
+        return le;
+      }
+
       /**
        * Clear the buffer reseting the level to zero.
        */
@@ -148,11 +155,23 @@ namespace rld
     {
       uint8_t bytes[sizeof (T)];
       T       v = value;
-      int     b = sizeof (T) - 1;
-      while (b >= 0)
+      if (buf.little_endian ())
       {
-        bytes[b--] = (uint8_t) v;
-        v >>= 8;
+        size_t b = sizeof (T);
+        while (b != 0)
+        {
+          bytes[--b] = (uint8_t) v;
+          v >>= 8;
+        }
+      }
+      else
+      {
+        size_t b = 0;
+        while (b < sizeof (T))
+        {
+          bytes[b++] = (uint8_t) v;
+          v >>= 8;
+        }
       }
       buf.write (bytes, sizeof (T));
     }
@@ -164,13 +183,25 @@ namespace rld
     void read (buffer& buf, T& value)
     {
       uint8_t bytes[sizeof (T)];
-      int     b = sizeof (T) - 1;
-      buf.read (bytes, sizeof(T));
+      buf.read (bytes, sizeof (T));
       value = 0;
-      while (b >= 0)
+      if (buf.little_endian ())
       {
-        value <<= 8;
-        value |= (T) bytes[b--];
+        size_t b = sizeof (T);
+        while (b != 0)
+        {
+          value <<= 8;
+          value |= (T) bytes[--b];
+        }
+      }
+      else
+      {
+        size_t b = 0;
+        while (b < sizeof (T))
+        {
+          value <<= 8;
+          value |= (T) bytes[b++];
+        }
       }
     }
 

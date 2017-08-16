@@ -406,6 +406,19 @@ namespace rld
       return elf_;
     }
 
+    byteorder
+    image::get_byteorder () const
+    {
+      switch (elf_.data_type ())
+      {
+        case ELFDATA2LSB:
+          return little_endian;
+        case ELFDATA2MSB:
+          return big_endian;
+      }
+      throw rld::error ("invalid elf data type", "byteorder: " + name ().path ());
+    }
+
     void
     image::symbol_referenced ()
     {

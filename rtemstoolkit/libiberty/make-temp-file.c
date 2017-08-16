@@ -1,6 +1,5 @@
 /* Utility to pick a temporary filename prefix.
-   Copyright (C) 1996, 1997, 1998, 2001, 2009, 2010
-   Free Software Foundation, Inc.
+   Copyright (C) 1996-2017 Free Software Foundation, Inc.
 
 This file is part of the libiberty library.
 Libiberty is free software; you can redistribute it and/or
@@ -57,7 +56,7 @@ extern int mkstemps (char *, int);
 
 /* Name of temporary file.
    mktemp requires 6 trailing X's.  */
-#define TEMP_FILE "rld--XXXXXX"
+#define TEMP_FILE "ccXXXXXX"
 #define TEMP_FILE_LEN (sizeof(TEMP_FILE) - 1)
 
 #if !defined(_WIN32) || defined(__CYGWIN__)
@@ -93,7 +92,7 @@ static char *memoized_tmpdir;
 
 /*
 
-@deftypefn Replacement char* choose_tmpdir ()
+@deftypefn Replacement const char* choose_tmpdir ()
 
 Returns a pointer to a directory path suitable for creating temporary
 files in.
@@ -102,7 +101,7 @@ files in.
 
 */
 
-char *
+const char *
 choose_tmpdir (void)
 {
   if (!memoized_tmpdir)
@@ -111,7 +110,7 @@ choose_tmpdir (void)
       const char *base = 0;
       char *tmpdir;
       unsigned int len;
-
+      
 #ifdef VMS
       /* Try VMS standard temp logical.  */
       base = try_dir ("/sys$scratch", base);
@@ -120,7 +119,7 @@ choose_tmpdir (void)
       base = try_dir (getenv ("TMP"), base);
       base = try_dir (getenv ("TEMP"), base);
 #endif
-
+      
 #ifdef P_tmpdir
       /* We really want a directory name here as if concatenated with say \dir
 	 we do not end up with a double \\ which defines an UNC path.  */
@@ -134,7 +133,7 @@ choose_tmpdir (void)
       base = try_dir (vartmp, base);
       base = try_dir (usrtmp, base);
       base = try_dir (tmp, base);
-
+      
       /* If all else fails, use the current directory!  */
       if (base == 0)
 	base = ".";

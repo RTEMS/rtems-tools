@@ -65,6 +65,15 @@ namespace rld
     typedef std::list < object* > object_list;
 
     /**
+     * Byte order of the image.
+     */
+    enum byteorder
+    {
+      big_endian,
+      little_endian
+    };
+
+    /**
      * A file is a single object file that is either in an @ref archive or
      * a separate stand alone @ref object file.
      */
@@ -332,6 +341,11 @@ namespace rld
        * @return elf::file& The @ref elf::file object of the image.
        */
       elf::file& elf ();
+
+      /**
+       * Return the image's byte order.
+       */
+      byteorder get_byteorder () const;
 
       /**
        * A symbol in the image has been referenced.

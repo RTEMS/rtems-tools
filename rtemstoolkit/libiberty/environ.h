@@ -1,5 +1,5 @@
-/* Execute a program and wait for a result.
-   Copyright (C) 2005-2017 Free Software Foundation, Inc.
+/* Declare the environ system variable.
+   Copyright (C) 2015-2017 Free Software Foundation, Inc.
 
 This file is part of the libiberty library.
 Libiberty is free software; you can redistribute it and/or
@@ -17,27 +17,19 @@ License along with libiberty; see the file COPYING.LIB.  If not,
 write to the Free Software Foundation, Inc., 51 Franklin Street - Fifth Floor,
 Boston, MA 02110-1301, USA.  */
 
-#include "config.h"
-#include "libiberty.h"
+/* On OSX, the environ variable can be used directly in the code of an
+   executable, but cannot be used in the code of a shared library (such as
+   GCC's liblto_plugin, which links in libiberty code).  Instead, the
+   function _NSGetEnviron can be called to get the address of environ.  */
 
-const char *
-pex_one (int flags, const char *executable, char * const *argv,
-	 const char *pname, const char *outname, const char *errname,
-	 int *status, int *err)
-{
-  struct pex_obj *obj;
-  const char *errmsg;
-
-  obj = pex_init (0, pname, NULL);
-  errmsg = pex_run (obj, flags, executable, argv, outname, errname, err);
-  if (errmsg == NULL)
-    {
-      if (!pex_get_status (obj, 1, status))
-	{
-	  *err = 0;
-	  errmsg = "pex_get_status failed";
-	}
-    }
-  pex_free (obj);
-  return errmsg;  
-}
+#ifndef HAVE_ENVIRON_DECL
+#  ifdef __APPLE__
+#     include <crt_externs.h>
+#     define environ (*_NSGetEnviron ())
+#  else
+#    ifndef environ
+extern char **environ;
+#    endif
+#  endif
+#  define HAVE_ENVIRON_DECL
+#endif

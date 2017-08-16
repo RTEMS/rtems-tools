@@ -56,18 +56,36 @@ namespace rld
   namespace exeinfo
   {
     /**
-     * Sections we decode.
+     * Default section list.
      */
-    const char* init_sections[] =
+    const char* default_init[] =
     {
       ".rtemsroset",
       ".ctors",
+      ".init",
       0
     };
 
-    const char* fini_sections[] =
+    const char* default_fini[] =
     {
       ".dtors",
+      ".fini",
+      0
+    };
+
+    /**
+     * ARM section list.
+     */
+    const char* arm_init[] =
+    {
+      ".rtemsroset",
+      ".init_array",
+      0
+    };
+
+    const char* arm_fini[] =
+    {
+      ".fini_array",
       0
     };
 
@@ -76,13 +94,14 @@ namespace rld
      */
     struct section
     {
-      const files::section& sec;      //< The executable's section.
-      buffer::buffer        data;     //< The section's data.
+      const files::section& sec;        //< The executable's section.
+      buffer::buffer        data;       //< The section's data.
+      files::byteorder      byteorder;  //< The image's byteorder.
 
       /**
        * Construct the section.
        */
-      section (const files::section& sec);
+      section (const files::section& sec, files::byteorder byteorder);
 
       /**
        * Copy construct.
@@ -111,10 +130,13 @@ namespace rld
      */
     struct image
     {
-      files::object    exe;       //< The object file that is the executable.
-      symbols::table   symbols;   //< The synbols for a map.
-      symbols::addrtab addresses; //< The symbols keyed by address.
-      files::sections  secs;      //< The sections in the executable.
+      files::object    exe;         //< The object file that is the executable.
+      symbols::table   symbols;     //< The synbols for a map.
+      symbols::addrtab addresses;   //< The symbols keyed by address.
+      files::sections  secs;        //< The sections in the executable.
+      const char**     init;        //< The init section's list for the machinetype.
+      const char**     fini;        //< The fini section's list for the machinetype.
+
 
       /**
        * Load the executable file.
@@ -147,9 +169,10 @@ namespace rld
       void output_init_fini (const char* label, const char** names);
     };
 
-    section::section (const files::section& sec)
+    section::section (const files::section& sec, files::byteorder byteorder)
       : sec (sec),
-        data (sec.size)
+        data (sec.size),
+        byteorder (byteorder)
     {
     }
 
@@ -218,7 +241,7 @@ namespace rld
             std::cout << "init:section-loader: " << fsec.name
                       << " added" << std::endl;
 
-          section sec (fsec);
+          section sec (fsec, img.exe.get_byteorder ());
           img.exe.seek (fsec.offset);
           sec.data.read (img.exe, fsec.size);
           secs.push_back (sec);
@@ -228,7 +251,9 @@ namespace rld
     }
 
     image::image (const std::string exe_name)
-      : exe (exe_name)
+      : exe (exe_name),
+        init (0),
+        fini (0)
     {
       /*
        * Open the executable file and begin the session on it.
@@ -239,6 +264,21 @@ namespace rld
       if (!exe.valid ())
         throw rld::error ("Not valid: " + exe.name ().full (),
                           "init::image");
+
+      /*
+       * Set up the section lists for the machiner type.
+       */
+      switch (exe.elf ().machinetype ())
+      {
+        case EM_ARM:
+          init = arm_init;
+          fini = arm_fini;
+          break;
+        default:
+          init  = default_init;
+          fini  = default_fini;
+          break;
+      }
 
       /*
        * Load the symbols and sections.
@@ -259,6 +299,17 @@ namespace rld
     image::output_sections ()
     {
       std::cout << "Sections: " << secs.size () << std::endl;
+
+      size_t max_section_name = 0;
+
+      for (files::sections::const_iterator si = secs.begin ();
+           si != secs.end ();
+           ++si)
+      {
+        const files::section& sec = *si;
+        if (sec.name.length() > max_section_name)
+          max_section_name = sec.name.length();
+      }
 
       for (files::sections::const_iterator si = secs.begin ();
            si != secs.end ();
@@ -286,15 +337,15 @@ namespace rld
         SF (SHF_ORDERED,         13, 'O');
 
         std::cout << "  " << std::left
-                  << std::setw (15) << sec.name
+                  << std::setw (max_section_name) << sec.name
                   << " " << flags
                   << std::right << std::hex << std::setfill ('0')
-                  << " address: 0x" << std::setw (8) << sec.address
+                  << " addr: 0x" << std::setw (8) << sec.address
                   << " 0x" << std::setw (8) << sec.address + sec.size
                   << std::dec << std::setfill (' ')
-                  << " size: " << std::setw (7) << sec.size
+                  << " size: " << std::setw (10) << sec.size
                   << " align: " << std::setw (3) << sec.alignment
-                  << " relocs: " << std::setw (4) << sec.relocs.size ()
+                  << " relocs: " << std::setw (6) << sec.relocs.size ()
                   << std::endl;
       }
 
@@ -304,13 +355,13 @@ namespace rld
     void
     image::output_init ()
     {
-      output_init_fini ("Init", init_sections);
+      output_init_fini ("Init", init);
     }
 
     void
     image::output_fini ()
     {
-      output_init_fini ("Fini", fini_sections);
+      output_init_fini ("Fini", fini);
     }
 
     void
@@ -347,13 +398,7 @@ namespace rld
                     << std::dec << std::setfill ('0');
           if (sym)
           {
-            /*
-             * C++ is adding '_GLOBAL__sub_I_' to the label. If present, strip
-             * and check the label.
-             */
             std::string label = sym->name ();
-            if (rld::starts_with (label, "_GLOBAL__sub_I_"))
-              label = rld::find_replace (label, "_GLOBAL__sub_I_", "");
             if (rld::symbols::is_cplusplus (label))
               rld::symbols::demangle_name (label, label);
             std::cout << " " << label;
