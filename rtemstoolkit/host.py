@@ -84,7 +84,7 @@ def _load():
     #except:
     #    raise error.general('failed to load %s host support' % (name))
 
-    platform = __import__(name, globals(), locals(), ['.', ''])
+    platform = __import__(name, globals(), locals(), ['.', ''], 1)
 
     if platform is None:
         raise error.general('failed to load %s host support' % (name))
