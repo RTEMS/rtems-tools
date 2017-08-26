@@ -68,7 +68,6 @@ def configure(conf):
 def build(bld):
     bld.stlib(target = 'ccovoar',
               source = ['app_common.cc',
-                        'ConfigFile.cc',
                         'CoverageFactory.cc',
                         'CoverageMap.cc',
                         'CoverageMapBase.cc',

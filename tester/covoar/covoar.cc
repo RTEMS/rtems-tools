@@ -80,73 +80,7 @@ void usage()
 }
 
 #define PrintableString(_s) \
-       ((!(_s)) ? "NOT SET" : (_s))
-
-/*
- *  Configuration File Support
- */
-#include "ConfigFile.h"
-Configuration::FileReader *CoverageConfiguration;
-Configuration::Options_t Options[] = {
-  { "explanations",         NULL },
-  { "format",               NULL },
-  { "symbolsFile",          NULL },
-  { "outputDirectory",      NULL },
-  { "executableExtension",  NULL },
-  { "coverageExtension",    NULL },
-  { "gcnosFile",            NULL },
-  { "target",               NULL },
-  { "verbose",              NULL },
-  { "projectName",          NULL },
-  { NULL,                   NULL }
-};
-
-bool isTrue(const char *value)
-{
-  if ( !value )                  return false;
-  if ( !strcmp(value, "true") )  return true;
-  if ( !strcmp(value, "TRUE") )  return true;
-  if ( !strcmp(value, "yes") )   return true;
-  if ( !strcmp(value, "YES") )   return true;
-  return false;
-}
-
-#define GET_BOOL(_opt, _val) \
-  if (isTrue(CoverageConfiguration->getOption(_opt))) \
-    _val = true;
-
-#define GET_STRING(_opt, _val) \
-  do { \
-    const char *_t; \
-    _t = CoverageConfiguration->getOption(_opt); \
-    if ( _t ) _val = _t; \
-  } while(0)
-
-
-void check_configuration(void)
-{
-  GET_BOOL( "verbose", Verbose );
-
-  GET_STRING( "format",               format );
-  GET_STRING( "target",               target );
-  GET_STRING( "explanations",         explanations );
-  GET_STRING( "symbolsFile",          symbolsFile );
-  GET_STRING( "outputDirectory",      outputDirectory );
-  GET_STRING( "executableExtension",  executableExtension );
-  GET_STRING( "coverageExtension",    coverageFileExtension );
-  GET_STRING( "gcnosFile",            gcnosFileName );
-  GET_STRING( "projectName",          projectName );
-
-  // Now calculate some values
-  if ( coverageFileExtension )
-    coverageExtensionLength = strlen( coverageFileExtension );
-
-  if ( executableExtension )
-    executableExtensionLength = strlen( executableExtension );
-
-  if ( format )
-    coverageFormat = Coverage::CoverageFormatToEnum( format );
-}
+((!(_s)) ? "NOT SET" : (_s))
 
 static void
 fatal_signal( int signum )
@@ -197,19 +131,17 @@ int main(
   rld::process::tempfile                         objdumpFile( ".dmp" );
   rld::process::tempfile                         err( ".err" );
   bool                                           debug = false;
+  std::string                                    option;
 
   setup_signals();
-
-  CoverageConfiguration = new Configuration::FileReader(Options);
 
   //
   // Process command line options.
   //
   progname = argv[0];
 
-  while ((opt = getopt(argc, argv, "C:1:L:e:c:g:E:f:s:T:O:p:v:d")) != -1) {
+  while ((opt = getopt(argc, argv, "1:L:e:c:g:E:f:s:T:O:p:v:d")) != -1) {
     switch (opt) {
-      case 'C': CoverageConfiguration->processFile( optarg ); break;
       case '1': singleExecutable      = optarg; break;
       case 'L': dynamicLibrary        = optarg; break;
       case 'e': executableExtension   = optarg; break;
@@ -228,11 +160,66 @@ int main(
         exit( -1 );
     }
   }
+  try
+  {
+   /*
+	* Validate inputs.
+	*/
 
-  // Do not trust any arguments until after this point.
-  check_configuration();
+   /*
+	* Target name must be set.
+	*/
+	if ( !target ) {
+	  option = "target -T";
+	  throw option;
+	}
 
-  // XXX We need to verify that all of the needed arguments are non-NULL.
+   /*
+	* Validate simulator format.
+	*/
+	if ( !format ) {
+	  option = "format -f";
+	  throw option;
+	}
+
+   /*
+	* Has path to explanations.txt been specified.
+	*/
+	if ( !explanations ) {
+	  option = "explanations -E";
+	  throw option;
+	}
+
+   /*
+	* Has coverage file extension been specified.
+	*/
+	if ( !coverageFileExtension ) {
+	  option = "coverage extension -c";
+	  throw option;
+	}
+
+   /*
+	* Has executable extension been specified.
+	*/
+	if ( !executableExtension ) {
+	  option = "executable extension -e";
+	  throw option;
+	}
+
+   /*
+	* Check for project name.
+	*/
+	if ( !projectName ) {
+	  option = "project name -p";
+	  throw option;
+	}
+  }
+  catch( std::string option )
+  {
+	std::cout << "error missing option: " + option << std::endl;
+	usage();
+	throw;
+  }
 
   // If a single executable was specified, process the remaining
   // arguments as coverage file names.
@@ -358,31 +345,6 @@ int main(
 	  eitr++;
     }
 #endif
-  }
-
-  //
-  // Validate inputs.
-  //
-
-  // Target name must be set.
-  if (!target) {
-    fprintf( stderr, "ERROR: target not specified\n" );
-    usage();
-    exit(-1);
-  }
-
-  // Validate format.
-  if (!format) {
-    fprintf( stderr, "ERROR: coverage format report not specified\n" );
-    usage();
-    exit(-1);
-  }
-
-  // Validate that we have a symbols of interest file.
-  if (!symbolsFile) {
-    fprintf( stderr, "ERROR: symbols of interest file not specified\n" );
-    usage();
-    exit(-1);
   }
 
   //
