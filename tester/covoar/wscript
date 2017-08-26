@@ -49,6 +49,11 @@ out = 'build'
 def init(ctx):
     pass
 
+rtl_includes = ['../../rtemstoolkit',
+		'../../rtemstoolkit/elftoolchain/common',
+		'../../rtemstoolkit/elftoolchain/libelf',
+		'../../rtemstoolkit/libiberty']
+
 def options(opt):
     opt.load('compiler_cxx')
 
@@ -57,6 +62,8 @@ def configure(conf):
     conf.check_cc(function_name='open64', header_name="stdlib.h", mandatory = False)
     conf.check_cc(function_name='stat64', header_name="stdlib.h", mandatory = False)
     conf.write_config_header('covoar-config.h')
+    conf.env.STLIBPATH_RLD = conf.path.abspath() + '/../../build/rtemstoolkit'
+    conf.env.STLIB_RLD = ['rld','iberty','elf']
 
 def build(bld):
     bld.stlib(target = 'ccovoar',
@@ -94,7 +101,8 @@ def build(bld):
                         'Target_powerpc.cc',
                         'Target_sparc.cc'],
               cflags = ['-O2', '-g'],
-              includes = ['.'])
+              cxxflags = ['-std=c++11', '-O2', '-g'],
+              includes = ['.'] + rtl_includes)
 
     bld.program(target = 'trace-converter',
                 source = ['TraceConverter.cc',
@@ -103,12 +111,12 @@ def build(bld):
                           'TraceReaderLogQEMU.cc',
                           'TraceWriterBase.cc',
                           'TraceWriterQEMU.cc'],
-                use = 'ccovoar',
+                use = ['ccovoar','RLD'],
                 cflags = ['-O2', '-g'],
-                includes = ['.'])
+                includes = ['.'] + rtl_includes)
 
     bld.program(target = 'covoar',
                 source = ['covoar.cc'],
-                use = 'ccovoar',
+                use = ['ccovoar','RLD'],
                 cflags = ['-O2', '-g'],
-                includes = ['.'])
+                includes = ['.'] + rtl_includes)
