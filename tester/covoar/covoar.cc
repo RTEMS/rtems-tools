@@ -23,6 +23,8 @@
 #include "TargetFactory.h"
 #include "GcovData.h"
 
+#include "rld-process.h"
+
 /*
  *  Variables to control general behavior
  */
@@ -45,7 +47,7 @@ char				     gcovBashCommand[256];
 const char*                          target = NULL;
 const char*                          format = NULL;
 FILE*				     gcnosFile = NULL;
-Gcov::GcovData* 		     gcovFile;
+Gcov::GcovData*          gcovFile;
 
 /*
  *  Print program usage message
@@ -146,6 +148,40 @@ void check_configuration(void)
     coverageFormat = Coverage::CoverageFormatToEnum( format );
 }
 
+static void
+fatal_signal( int signum )
+{
+  signal( signum, SIG_DFL );
+
+  rld::process::temporaries_clean_up();
+
+  /*
+   * Get the same signal again, this time not handled, so its normal effect
+   * occurs.
+   */
+  kill( getpid(), signum );
+}
+
+static void
+setup_signals( void )
+{
+  if ( signal( SIGINT, SIG_IGN ) != SIG_IGN )
+    signal( SIGINT, fatal_signal );
+#ifdef SIGHUP
+  if ( signal( SIGHUP, SIG_IGN ) != SIG_IGN )
+    signal( SIGHUP, fatal_signal );
+#endif
+  if ( signal( SIGTERM, SIG_IGN ) != SIG_IGN )
+    signal( SIGTERM, fatal_signal );
+#ifdef SIGPIPE
+  if ( signal( SIGPIPE, SIG_IGN ) != SIG_IGN )
+    signal( SIGPIPE, fatal_signal );
+#endif
+#ifdef SIGCHLD
+  signal( SIGCHLD, SIG_DFL );
+#endif
+}
+
 int main(
   int    argc,
   char** argv
@@ -158,6 +194,11 @@ int main(
   int                                            i;
   int                                            opt;
   const char*                                    singleExecutable = NULL;
+  rld::process::tempfile                         objdumpFile( ".dmp" );
+  rld::process::tempfile                         err( ".err" );
+  bool                                           debug = false;
+
+  setup_signals();
 
   CoverageConfiguration = new Configuration::FileReader(Options);
 
@@ -166,7 +207,7 @@ int main(
   //
   progname = argv[0];
 
-  while ((opt = getopt(argc, argv, "C:1:L:e:c:g:E:f:s:T:O:p:v")) != -1) {
+  while ((opt = getopt(argc, argv, "C:1:L:e:c:g:E:f:s:T:O:p:v:d")) != -1) {
     switch (opt) {
       case 'C': CoverageConfiguration->processFile( optarg ); break;
       case '1': singleExecutable      = optarg; break;
@@ -181,6 +222,7 @@ int main(
       case 'O': outputDirectory       = optarg; break;
       case 'v': Verbose               = true;   break;
       case 'p': projectName           = optarg; break;
+      case 'd': debug                 = true;   break;
       default: /* '?' */
         usage();
         exit( -1 );
@@ -394,7 +436,7 @@ int main(
       );
 
     // Load the objdump for the symbols in this executable.
-    objdumpProcessor->load( *eitr );
+    objdumpProcessor->load( *eitr, objdumpFile, err );
   }
 
   //
@@ -503,5 +545,12 @@ int main(
     AllExplanations->writeNotFound( notFound.c_str() );
   }
 
+  //Leave tempfiles around if debug flag (-d) is enabled.
+  if ( debug ) {
+	objdumpFile.override( "objdump_file" );
+	objdumpFile.keep();
+	err.override( "objdump_exec_log" );
+	err.keep();
+  }
   return 0;
 }

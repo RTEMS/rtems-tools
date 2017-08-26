@@ -34,8 +34,6 @@
  *  reading the QEMU coverage data files.
  */
 
-#include "covoar-config.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
@@ -44,11 +42,9 @@
 #include "TraceWriterQEMU.h"
 #include "ExecutableInfo.h"
 #include "CoverageMap.h"
-
-/* XXX really not always right */
-typedef uint32_t target_ulong;
-
 #include "qemu-traces.h"
+
+#include "rld-process.h"
 
 #if HAVE_STAT64
 #define STAT stat64
@@ -167,7 +163,7 @@ namespace Trace {
 
       status = fwrite( &entry, sizeof(entry), 1, traceFile );
       if (status != 1) {
-        fprintf( stderr, "Unable to emtry to %s\n", file );
+        fprintf( stderr, "Unable to write entry to %s\n", file );
         return false;
       }
     }

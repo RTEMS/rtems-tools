@@ -35,24 +35,19 @@
  *  reading the QEMU coverage data files.
  */
 
-#include "covoar-config.h"
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/stat.h>
 #include <string.h>
 
 #include "qemu-log.h"
-
 #include "app_common.h"
 #include "TraceReaderBase.h"
 #include "TraceReaderLogQEMU.h"
 #include "TraceList.h"
-
-/* XXX really not always right */
-typedef uint32_t target_ulong;
-
 #include "qemu-traces.h"
+
+#include "rld-process.h"
 
 #if HAVE_STAT64
 #define STAT stat64

@@ -9,6 +9,8 @@
 
 #include "TraceReaderBase.h"
 
+#include "rld-process.h"
+
 namespace Trace {
 
   /*! @class TraceReaderLogQEMU

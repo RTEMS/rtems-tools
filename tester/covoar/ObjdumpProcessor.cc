@@ -21,6 +21,9 @@
 #include "SymbolTable.h"
 #include "TargetFactory.h"
 
+#include "rld.h"
+#include "rld-process.h"
+
 namespace Coverage {
 
   void finalizeSymbol(
@@ -231,49 +234,33 @@ namespace Coverage {
     return TargetInfo->isNopLine( line, size );
   }
 
-  FILE* ObjdumpProcessor::getFile( std::string fileName )
+  void ObjdumpProcessor::getFile(
+    std::string fileName,
+    rld::process::tempfile& objdumpFile,
+    rld::process::tempfile& err
+    )
   {
-    char               dumpFile[128];
-    FILE*              objdumpFile;
-    char               buffer[ 512 ];
-    int                status;
-
-    sprintf( dumpFile, "%s.dmp", fileName.c_str() );
-
-    // Generate the objdump.
-    if (FileIsNewer( fileName.c_str(), dumpFile )) {
-      sprintf(
-        buffer,
-        "%s -Cda --section=.text --source %s | sed -e \'s/ *$//\' >%s",
-        TargetInfo->getObjdump(),
-        fileName.c_str(),
-        dumpFile
-      );
-
-      status = system( buffer );
-      if (status) {
-        fprintf(
-          stderr,
-          "ERROR: ObjdumpProcessor::getFile - command (%s) failed with %d\n",
-          buffer,
-          status
-        );
-        exit( -1 );
+    rld::process::status        status;
+    rld::process::arg_container args = { TargetInfo->getObjdump(),
+                                         "-Cda", "--section=.text", "--source",
+                                         fileName };
+    try
+    {
+      status = rld::process::execute( TargetInfo->getObjdump(),
+               args, objdumpFile.name(), err.name() );
+      if ( (status.type != rld::process::status::normal)
+           || (status.code != 0) ) {
+        throw rld::error( "Objdump error", "generating objdump" );
       }
-    }
+    } catch( rld::error& err )
+      {
+        std::cout << "Error while running" << TargetInfo->getObjdump()
+                  << "for" << fileName << std::endl;
+        std::cout << err.what << " in " << err.where << std::endl;
+        return;
+      }
 
-    // Open the objdump file.
-    objdumpFile = fopen( dumpFile, "r" );
-    if (!objdumpFile) {
-      fprintf(
-        stderr,
-        "ERROR: ObjdumpProcessor::getFile - unable to open %s\n",
-        dumpFile
-      );
-      exit(-1);
-    }
-
-    return objdumpFile;
+    objdumpFile.open( true );
   }
 
   uint32_t ObjdumpProcessor::getAddressAfter( uint32_t address )
@@ -295,40 +282,40 @@ namespace Coverage {
   }
 
   void ObjdumpProcessor::loadAddressTable (
-    ExecutableInfo* const executableInformation
+    ExecutableInfo* const    executableInformation,
+    rld::process::tempfile&  objdumpFile,
+    rld::process::tempfile&  err
   )
   {
-    char*              cStatus;
-    int                items;
-    FILE*              objdumpFile;
-    uint32_t           offset;
-    char               terminator;
+    int          items;
+    uint32_t     offset;
+    char         terminator;
+    std::string  line;
 
     // Obtain the objdump file.
-    if (!executableInformation->hasDynamicLibrary())
-      objdumpFile = getFile( executableInformation->getFileName() );
+    if ( !executableInformation->hasDynamicLibrary() )
+      getFile( executableInformation->getFileName(), objdumpFile, err );
     else
-      objdumpFile = getFile( executableInformation->getLibraryName() );
+      getFile( executableInformation->getLibraryName(), objdumpFile, err );
 
     // Process all lines from the objdump file.
-    while ( 1 ) {
+    while ( true ) {
 
       // Get the line.
-      cStatus = fgets( inputBuffer, MAX_LINE_LENGTH, objdumpFile );
-      if (cStatus == NULL) {
+      objdumpFile.read_line( line );
+      if ( line.empty() ) {
         break;
       }
-      inputBuffer[ strlen(inputBuffer) - 1] = '\0';
 
       // See if it is the dump of an instruction.
       items = sscanf(
-        inputBuffer,
+        line.c_str(),
         "%x%c",
         &offset, &terminator
       );
 
       // If it looks like an instruction ...
-      if ((items == 2) && (terminator == ':')){
+      if ((items == 2) && (terminator == ':')) {
         objdumpList.push_back(
           executableInformation->getLoadAddress() + offset
         );
@@ -337,42 +324,42 @@ namespace Coverage {
   }
 
   void ObjdumpProcessor::load(
-    ExecutableInfo* const executableInformation
+    ExecutableInfo* const    executableInformation,
+    rld::process::tempfile&  objdumpFile,
+    rld::process::tempfile&  err
   )
   {
-    char*              cStatus;
-    std::string        currentSymbol = "";
-    uint32_t           endAddress;
-    uint32_t           instructionOffset;
-    int                items;
-    int                found;
-    objdumpLine_t      lineInfo;
-    FILE*              objdumpFile;
-    uint32_t           offset;
-    bool               processSymbol = false;
-    uint32_t           startAddress = 0;
-    char               symbol[ MAX_LINE_LENGTH ];
-    char               terminator1;
-    char               terminatorOne;
-    char               terminator2;
-    objdumpLines_t     theInstructions;
-    char               instruction[ MAX_LINE_LENGTH ];
-    char               ID[ MAX_LINE_LENGTH ];
-    std::string        call = "";
-    std::string        jumpTableID = "";
+    std::string     currentSymbol = "";
+    uint32_t        endAddress;
+    uint32_t        instructionOffset;
+    int             items;
+    int             found;
+    objdumpLine_t   lineInfo;
+    uint32_t        offset;
+    bool            processSymbol = false;
+    uint32_t        startAddress = 0;
+    char            symbol[ MAX_LINE_LENGTH ];
+    char            terminator1;
+    char            terminatorOne;
+    char            terminator2;
+    objdumpLines_t  theInstructions;
+    char            instruction[ MAX_LINE_LENGTH ];
+    char            ID[ MAX_LINE_LENGTH ];
+    std::string     call = "";
+    std::string     jumpTableID = "";
+    std::string     line = "";
 
     // Obtain the objdump file.
-    if (!executableInformation->hasDynamicLibrary())
-      objdumpFile = getFile( executableInformation->getFileName() );
+    if ( !executableInformation->hasDynamicLibrary() )
+      getFile( executableInformation->getFileName(), objdumpFile, err );
     else
-      objdumpFile = getFile( executableInformation->getLibraryName() );
+      getFile( executableInformation->getLibraryName(), objdumpFile, err );
 
-    // Process all lines from the objdump file.
-    while ( 1 ) {
+    while ( true ) {
 
       // Get the line.
-      cStatus = fgets( inputBuffer, MAX_LINE_LENGTH, objdumpFile );
-      if (cStatus == NULL) {
+      objdumpFile.read_line( line );
+      if ( line.empty() ) {
 
         // If we are currently processing a symbol, finalize it.
         if (processSymbol) {
@@ -393,12 +380,11 @@ namespace Coverage {
             executableInformation->getFileName().c_str()
           );
         }
+        objdumpFile.close();
         break;
       }
 
-      inputBuffer[ strlen(inputBuffer) - 1] = '\0';
-
-      lineInfo.line          = inputBuffer;
+      lineInfo.line          = line;
       lineInfo.address       = 0xffffffff;
       lineInfo.isInstruction = false;
       lineInfo.isNop         = false;
@@ -408,14 +394,14 @@ namespace Coverage {
       // Look for the start of a symbol's objdump and extract
       // offset and symbol (i.e. offset <symbolname>:).
       items = sscanf(
-        inputBuffer,
+        line.c_str(),
         "%x <%[^>]>%c",
         &offset, symbol, &terminator1
       );
 
       // See if it is a jump table.
       found = sscanf(
-        inputBuffer,
+        line.c_str(),
         "%x%c\t%*[^\t]%c%s %*x %*[^+]%s",
         &instructionOffset, &terminatorOne, &terminator2, instruction, ID
       );
@@ -477,7 +463,7 @@ namespace Coverage {
 
         // See if it is the dump of an instruction.
         items = sscanf(
-          inputBuffer,
+          line.c_str(),
           "%x%c\t%*[^\t]%c",
           &instructionOffset, &terminator1, &terminator2
         );
@@ -489,8 +475,8 @@ namespace Coverage {
           lineInfo.address =
            executableInformation->getLoadAddress() + instructionOffset;
           lineInfo.isInstruction = true;
-          lineInfo.isNop         = isNop( inputBuffer, lineInfo.nopSize );
-          lineInfo.isBranch      = isBranchLine( inputBuffer );
+          lineInfo.isNop         = isNop( line.c_str(), lineInfo.nopSize );
+          lineInfo.isBranch      = isBranchLine( line.c_str() );
         }
 
         // Always save the line.

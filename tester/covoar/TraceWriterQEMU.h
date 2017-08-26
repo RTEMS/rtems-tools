@@ -11,6 +11,8 @@
 #include "TraceReaderBase.h"
 #include "TraceWriterBase.h"
 
+#include "rld-process.h"
+
 namespace Trace {
 
   /*! @class TraceWriterQEMU

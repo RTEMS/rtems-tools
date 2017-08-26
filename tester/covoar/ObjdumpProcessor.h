@@ -13,6 +13,8 @@
 #include "ExecutableInfo.h"
 #include "TargetBase.h"
 
+#include "rld-process.h"
+
 namespace Coverage {
 
   /*! @class ObjdumpProcessor
@@ -74,11 +76,11 @@ namespace Coverage {
      */
     typedef std::list<objdumpLine_t> objdumpLines_t;
 
-   
+
     /*!
      *  This object defines a list of instruction addresses
      *  that will be extracted from the objdump file.
-     */ 
+     */
     typedef std::list<uint32_t> objdumpFile_t;
 
     /*!
@@ -96,17 +98,21 @@ namespace Coverage {
     );
 
     /*!
-     *  This method returns a file pointer to the objdump file
-     *  for the given file name.  
+     *  This method fills a tempfile with the .text section of objdump
+     *  for the given file name.
      */
-    FILE* getFile( std::string fileName ); 
+    void getFile( std::string fileName,
+                  rld::process::tempfile& dmp,
+                  rld::process::tempfile& err );
 
     /*!
-     *  This method fills the objdumpList list with all the 
+     *  This method fills the objdumpList list with all the
      *  instruction addresses in the object dump file.
      */
     void loadAddressTable (
-      ExecutableInfo* const executableInformation
+      ExecutableInfo* const executableInformation,
+      rld::process::tempfile& dmp,
+      rld::process::tempfile& err
     );
 
     /*!
@@ -114,23 +120,25 @@ namespace Coverage {
      *  the specified executable.
      */
     void load(
-      ExecutableInfo* const executableInformation
+      ExecutableInfo* const executableInformation,
+      rld::process::tempfile& dmp,
+      rld::process::tempfile& err
     );
 
     /*!
-     *  This method returns the next address in othe objdumpList.
+     *  This method returns the next address in the objdumpList.
      */
     uint32_t getAddressAfter( uint32_t address );
 
     /*!
-     *  This method returns true if the instrucation is
+     *  This method returns true if the instruction is
      *  an instruction that results in a code branch, otherwise
      *  it returns false.
      */
     bool IsBranch( const char *instruction );
 
     /*!
-     *  This method returns true if the instruction from 
+     *  This method returns true if the instruction from
      *  the given line in the objdmp file is a branch instruction,
      *  otherwise it returns false.
      */
