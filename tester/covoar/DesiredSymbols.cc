@@ -335,6 +335,7 @@ namespace Coverage {
 
 
   void DesiredSymbols::createCoverageMap(
+    const std::string& exefileName,
     const std::string& symbolName,
     uint32_t           size
   )
@@ -363,19 +364,27 @@ namespace Coverage {
       // ensure that the specified size matches the existing size.
       if (itr->second.stats.sizeInBytes != size) {
 
+        // Changed ERROR to INFO because size mismatch is not treated as
+        // error anymore.
+        // Set smallest size as size and continue.
+        // Update value for longer byte size.
+        // 2015-07-22
         fprintf(
           stderr,
-          "ERROR: DesiredSymbols::createCoverageMap - Attempt to create "
-          "unified coverage maps for %s with different sizes (%d != %d)\n",
+          "INFO: DesiredSymbols::createCoverageMap - Attempt to create "
+          "unified coverage maps for %s with different sizes (%s/%d != %s/%d)\n",
+
           symbolName.c_str(),
+          exefileName.c_str(),
           itr->second.stats.sizeInBytes,
+          itr->second.sourceFile->getFileName().c_str(),
           size
         );
+
         if ( itr->second.stats.sizeInBytes < size )
           itr->second.stats.sizeInBytes = size;
         else
           size = itr->second.stats.sizeInBytes;
-        // exit( -1 );
       }
     }
 
@@ -384,13 +393,14 @@ namespace Coverage {
 
       highAddress = size - 1;
 
-      aCoverageMap = new CoverageMap( 0, highAddress );
+      aCoverageMap = new CoverageMap( exefileName, 0, highAddress );
       if (!aCoverageMap) {
 
         fprintf(
           stderr,
           "ERROR: DesiredSymbols::createCoverageMap - Unable to allocate "
-          "coverage map for %s\n",
+          "coverage map for %s:%s\n",
+          exefileName.c_str(),
           symbolName.c_str()
         );
         exit( -1 );
@@ -653,6 +663,8 @@ namespace Coverage {
 
     // Ensure that the source and destination coverage maps
     // are the same size.
+    // Changed from ERROR msg to INFO, because size mismatch is not
+    // treated as error anymore. 2015-07-20
     dMapSize = itr->second.stats.sizeInBytes;
     sBaseAddress = sourceCoverageMap->getFirstLowAddress();
     sMapSize = sourceCoverageMap->getSize();
@@ -660,12 +672,11 @@ namespace Coverage {
 
       fprintf(
         stderr,
-        "ERROR: DesiredSymbols::mergeCoverageMap - Unable to merge "
+        "INFO: DesiredSymbols::mergeCoverageMap - Unable to merge "
         "coverage map for %s because the sizes are different\n",
         symbolName.c_str()
       );
       return;
-      // exit( -1 );
     }
 
     // Merge the data for each address.

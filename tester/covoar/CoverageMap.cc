@@ -10,9 +10,10 @@
 namespace Coverage {
 
   CoverageMap::CoverageMap(
-    uint32_t low,
-    uint32_t high
-  ) : CoverageMapBase(low, high)
+    const std::string& exefileName,
+    uint32_t           low,
+    uint32_t           high
+  ) : CoverageMapBase(exefileName, low, high)
   {
   }
 

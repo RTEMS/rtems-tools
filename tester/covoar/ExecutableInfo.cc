@@ -89,6 +89,7 @@ namespace Coverage {
   }
 
   CoverageMapBase* ExecutableInfo::createCoverageMap (
+    const std::string& fileName,
     const std::string& symbolName,
     uint32_t           lowAddress,
     uint32_t           highAddress
@@ -99,7 +100,7 @@ namespace Coverage {
 
     itr = coverageMaps.find( symbolName );
     if ( itr == coverageMaps.end() ) {
-      theMap = new CoverageMap( lowAddress, highAddress );
+      theMap = new CoverageMap( fileName, lowAddress, highAddress );
       coverageMaps[ symbolName ] = theMap;
     } else {
       theMap = itr->second;

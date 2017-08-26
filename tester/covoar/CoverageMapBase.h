@@ -28,6 +28,11 @@ namespace Coverage {
      */
     typedef struct {
       /*!
+       *  This is the file from which this originated.
+       */
+      std::string fileName;
+
+      /*!
        *  This is the low address of the address map range.
        */
       uint32_t lowAddress;
@@ -48,12 +53,14 @@ namespace Coverage {
     /*! 
      *  This method constructs a CoverageMapBase instance.
      *
+     *  @param[in] exefileName specifies the executable this originated in
      *  @param[in] low specifies the lowest address of the coverage map
      *  @param[in] high specifies the highest address of the coverage map
      */
     CoverageMapBase(
-      uint32_t low,
-      uint32_t high
+      const std::string& exefileName,
+      uint32_t           low,
+      uint32_t           high
     );
 
     /*! 

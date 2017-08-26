@@ -16,13 +16,15 @@
 namespace Coverage {
 
   CoverageMapBase::CoverageMapBase(
-    uint32_t low,
-    uint32_t high
+    const std::string& exefileName,
+    uint32_t           low,
+    uint32_t           high
   )
   {
     uint32_t       a;
     AddressRange_t range;
 
+    range.fileName    = exefileName;
     range.lowAddress  = low;
     range.highAddress = high;
     RangeList.push_back( range );

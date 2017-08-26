@@ -3,7 +3,7 @@
  *
  *  This file contains the implementation of the functions supporting
  *  the reading of an objdump output file and adding nops to a
- *  coverage map. 
+ *  coverage map.
  */
 
 #include <assert.h>
@@ -97,7 +97,7 @@ namespace Coverage {
 
     // Create a coverage map for the symbol.
     aCoverageMap = executableInfo->createCoverageMap(
-      symbolName, lowAddress, endAddress
+      executableInfo->getFileName().c_str(), symbolName, lowAddress, endAddress
     );
 
     if (aCoverageMap) {
@@ -112,7 +112,8 @@ namespace Coverage {
 
       // Create a unified coverage map for the symbol.
       SymbolsToAnalyze->createCoverageMap(
-        symbolName, endAddress - lowAddress + 1
+        executableInfo->getFileName().c_str(), symbolName,
+        endAddress - lowAddress + 1
       );
     }
   }
@@ -170,7 +171,7 @@ namespace Coverage {
       std::string tmp = inLibName;
       if ( tmp.find( Library ) != tmp.npos ) {
         // fprintf( stderr, "%s - 0x%08x\n", inLibName, offset );
-        address = offset; 
+        address = offset;
         break;
       }
     }
@@ -182,9 +183,9 @@ namespace Coverage {
   }
 
   bool ObjdumpProcessor::IsBranch(
-    const char *instruction 
+    const char *instruction
   )
-  { 
+  {
     if ( !TargetInfo ) {
       fprintf(
         stderr,
@@ -230,7 +231,7 @@ namespace Coverage {
     return TargetInfo->isNopLine( line, size );
   }
 
-  FILE* ObjdumpProcessor::getFile( std::string fileName ) 
+  FILE* ObjdumpProcessor::getFile( std::string fileName )
   {
     char               dumpFile[128];
     FILE*              objdumpFile;
@@ -238,7 +239,7 @@ namespace Coverage {
     int                status;
 
     sprintf( dumpFile, "%s.dmp", fileName.c_str() );
-      
+
     // Generate the objdump.
     if (FileIsNewer( fileName.c_str(), dumpFile )) {
       sprintf(
@@ -259,7 +260,7 @@ namespace Coverage {
         );
         exit( -1 );
       }
-    } 
+    }
 
     // Open the objdump file.
     objdumpFile = fopen( dumpFile, "r" );
@@ -283,7 +284,7 @@ namespace Coverage {
     if (itr == objdumpList.end()) {
       return 0;
     }
-    
+
     itr++;
     if (itr == objdumpList.end()) {
       return 0;

@@ -93,6 +93,7 @@ namespace Coverage {
     /*!
      *  This method creates a coverage map for the specified symbol.
      *
+     *  @param[in] exefileName specifies the source of the information
      *  @param[in] symbolName specifies the name of the symbol
      *  @param[in] lowAddress specifies the low address of the coverage map
      *  @param[in] highAddress specifies the high address of the coverage map
@@ -100,6 +101,7 @@ namespace Coverage {
      *  @return Returns a pointer to the coverage map
      */
     CoverageMapBase* createCoverageMap (
+      const std::string& exefileName,
       const std::string& symbolName,
       uint32_t           lowAddress,
       uint32_t           highAddress

@@ -27,8 +27,9 @@ namespace Coverage {
      *  @param[in] high specifies the highest address of the coverage map.
      */
     CoverageMap(
-      uint32_t low,
-      uint32_t high
+      const std::string& exefileName,
+      uint32_t           low,
+      uint32_t           high
     );
 
     /* Inherit documentation from base class. */
