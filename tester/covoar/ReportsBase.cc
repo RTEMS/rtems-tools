@@ -210,10 +210,11 @@ void ReportsBase::WriteAnnotatedReport(
          itr != theInstructions->end();
          itr++ ) {
 
-      uint32_t     id = 0;
-      std::string  annotation = "";
-      std::string  line;
-      char         textLine[150];
+      uint32_t           id = 0;
+      std::string        annotation = "";
+      std::string        line;
+      const std::size_t  LINE_LENGTH = 150;
+      char               textLine[LINE_LENGTH];
 
       state = A_SOURCE;
 
@@ -236,7 +237,7 @@ void ReportsBase::WriteAnnotatedReport(
         }
       }
 
-      sprintf( textLine, "%-70s", itr->line.c_str() );
+      snprintf( textLine, LINE_LENGTH, "%-70s", itr->line.c_str() );
       line = textLine + annotation;
 
       PutAnnotatedLine( aFile, state, line, id);

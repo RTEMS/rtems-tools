@@ -52,7 +52,7 @@ namespace Coverage {
     #define PRINT_TEXT_ITEM( _t, _n ) \
        fprintf( \
          aFile, \
-         "<li>%s (<a href=\"%s\">text</a>)\n", \
+         "<li>%s (<a href=\"%s\">text</a>)</li>\n", \
         _t, _n );
 
     FILE*  aFile;
@@ -69,7 +69,7 @@ namespace Coverage {
     if (projectName)
       fprintf(
         aFile,
-         "%s</br>",
+         "%s<br>",
          projectName
       );
 
@@ -93,7 +93,7 @@ namespace Coverage {
 
     fprintf(
       aFile,
-      "</li>\n"
+      "</ul>\n"
       "<!-- INSERT PROJECT SPECIFIC ITEMS HERE -->\n"
       "</html>\n"
     );
@@ -144,7 +144,7 @@ namespace Coverage {
     if (projectName)
       fprintf(
         aFile,
-         "%s</br>",
+         "%s<br>",
          projectName
       );
 
@@ -181,7 +181,7 @@ namespace Coverage {
       if (projectName)
         fprintf(
           aFile,
-          "%s</br>",
+          "%s<br>",
           projectName
         );
 
@@ -197,7 +197,7 @@ namespace Coverage {
         "<th class=\"table-sortable:default\" align=\"left\">Symbol</th>\n"
         "<th class=\"table-sortable:default\" align=\"left\">Line</th>\n"
         "<th class=\"table-filterable table-sortable:default\" align=\"left\">File</th>\n"
-        "<th class=\"table-sortable:numeric\" align=\"left\">Size </br>Bytes</th>\n"
+        "<th class=\"table-sortable:numeric\" align=\"left\">Size <br>Bytes</th>\n"
         "<th class=\"table-sortable:default\" align=\"left\">Reason</th>\n"
         "<th class=\"table-filterable table-sortable:default\" align=\"left\">Taken</th>\n"
 	"<th class=\"table-filterable table-sortable:default\" align=\"left\">Not Taken</th>\n"
@@ -232,7 +232,7 @@ namespace Coverage {
     if (projectName)
       fprintf(
         aFile,
-        "%s</br>",
+        "%s<br>",
         projectName
       );
 
@@ -248,8 +248,8 @@ namespace Coverage {
       "<th class=\"table-sortable:default\" align=\"left\">Symbol</th>\n"
       "<th class=\"table-sortable:default\" align=\"left\">Range</th>\n"
       "<th class=\"table-filterable table-sortable:default\" align=\"left\">File</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"left\">Size </br>Bytes</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"left\">Size </br>Instructions</th>\n"
+      "<th class=\"table-sortable:numeric\" align=\"left\">Size <br>Bytes</th>\n"
+      "<th class=\"table-sortable:numeric\" align=\"left\">Size <br>Instructions</th>\n"
       "<th class=\"table-filterable table-sortable:default\" align=\"left\">Classification</th>\n"
       "<th class=\"table-sortable:default\" align=\"left\">Explanation</th>\n"
       "</tr>\n"
@@ -281,7 +281,7 @@ namespace Coverage {
     if (projectName)
       fprintf(
         aFile,
-        "%s</br>",
+        "%s<br>",
         projectName
       );
 
@@ -326,7 +326,7 @@ namespace Coverage {
     if (projectName)
       fprintf(
         aFile,
-        "%s</br>",
+        "%s<br>",
         projectName
       );
 
@@ -371,7 +371,7 @@ namespace Coverage {
     if (projectName)
       fprintf(
         aFile,
-        "%s</br>",
+        "%s<br>",
         projectName
       );
 
@@ -385,16 +385,16 @@ namespace Coverage {
       "<thead>\n"
       "<tr>\n"
       "<th class=\"table-sortable:default\" align=\"center\">Symbol</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">Total</br>Size</br>Bytes</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">Total</br>Size</br>Instr</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">#</br>Ranges</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">Uncovered</br>Size</br>Bytes</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">Uncovered</br>Size</br>Instr</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">#</br>Branches</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">#</br>Always</br>Taken</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">#</br>Never</br>Taken</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">Percent</br>Uncovered</br>Instructions</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">Percent</br>Uncovered</br>Bytes</th>\n"
+      "<th class=\"table-sortable:numeric\" align=\"center\">Total<br>Size<br>Bytes</th>\n"
+      "<th class=\"table-sortable:numeric\" align=\"center\">Total<br>Size<br>Instr</th>\n"
+      "<th class=\"table-sortable:numeric\" align=\"center\">#<br>Ranges</th>\n"
+      "<th class=\"table-sortable:numeric\" align=\"center\">Uncovered<br>Size<br>Bytes</th>\n"
+      "<th class=\"table-sortable:numeric\" align=\"center\">Uncovered<br>Size<br>Instr</th>\n"
+      "<th class=\"table-sortable:numeric\" align=\"center\">#<br>Branches</th>\n"
+      "<th class=\"table-sortable:numeric\" align=\"center\">#<br>Always<br>Taken</th>\n"
+      "<th class=\"table-sortable:numeric\" align=\"center\">#<br>Never<br>Taken</th>\n"
+      "<th class=\"table-sortable:numeric\" align=\"center\">Percent<br>Uncovered<br>Instructions</th>\n"
+      "<th class=\"table-sortable:numeric\" align=\"center\">Percent<br>Uncovered<br>Bytes</th>\n"
       "</tr>\n"
       "</thead>\n"
       "<tbody>\n",
@@ -728,7 +728,7 @@ namespace Coverage {
     // Range
     fprintf( 
       report, 
-      "<td class=\"covoar-td\" align=\"center\"><a href =\"annotated.html#range%d\">%s </br>%s</td>\n",
+      "<td class=\"covoar-td\" align=\"center\"><a href =\"annotated.html#range%d\">%s <br>%s</td>\n",
       rangePtr->id,    
       rangePtr->lowSourceLine.c_str(),
       rangePtr->highSourceLine.c_str()
