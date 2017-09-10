@@ -49,11 +49,6 @@ out = 'build'
 def init(ctx):
     pass
 
-rtl_includes = ['../../rtemstoolkit',
-		'../../rtemstoolkit/elftoolchain/common',
-		'../../rtemstoolkit/elftoolchain/libelf',
-		'../../rtemstoolkit/libiberty']
-
 def options(opt):
     opt.load('compiler_cxx')
 
@@ -66,6 +61,14 @@ def configure(conf):
     conf.env.STLIB_RLD = ['rld','iberty','elf']
 
 def build(bld):
+    rtemstoolkit = '../../rtemstoolkit'
+    rtl_includes = [rtemstoolkit,
+		    rtemstoolkit + '/elftoolchain/libelf',
+		    rtemstoolkit + '/elftoolchain/common',
+		    rtemstoolkit + '/libiberty']
+    if bld.env.DEST_OS == 'win32':
+        rtl_includes += [rtemstoolkit + '/win32']
+
     bld.stlib(target = 'ccovoar',
               source = ['app_common.cc',
                         'CoverageFactory.cc',
