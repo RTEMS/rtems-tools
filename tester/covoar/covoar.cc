@@ -25,6 +25,10 @@
 
 #include "rld-process.h"
 
+#ifdef _WIN32
+  #define kill(p,s) raise(s)
+#endif
+
 /*
  *  Variables to control general behavior
  */

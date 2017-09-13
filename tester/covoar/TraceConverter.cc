@@ -24,6 +24,10 @@
 #include "rld.h"
 #include "rld-process.h"
 
+#ifdef _WIN32
+  #define kill(p,s) raise(s)
+#endif
+
 char*       progname;
 
 void usage()

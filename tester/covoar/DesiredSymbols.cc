@@ -511,7 +511,7 @@ namespace Coverage {
       inputBuffer[ strlen(inputBuffer) - 1] = '\0';
 
       // Use only the base filename without directory path.
-#if WIN32
+#ifdef _WIN32
       #define realpath(N,R) _fullpath((R),(N),_MAX_PATH)
 #endif
       realpath( inputBuffer, rpath );

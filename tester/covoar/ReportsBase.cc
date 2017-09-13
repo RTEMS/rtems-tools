@@ -14,7 +14,7 @@
 #include "ReportsText.h"
 #include "ReportsHtml.h"
 
-#if WIN32
+#ifdef _WIN32
 #include <direct.h>
 #endif
 
@@ -39,7 +39,7 @@ FILE* ReportsBase::OpenFile(
   std::string  file;
 
   // Create the output directory if it does not already exist
-#if WIN32
+#ifdef _WIN32
   sc = _mkdir( outputDirectory );
 #else
   sc = mkdir( outputDirectory,0755 );
