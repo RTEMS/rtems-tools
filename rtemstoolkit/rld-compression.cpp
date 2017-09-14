@@ -273,8 +273,8 @@ namespace rld
 
           if (image.read (header, 2) == 2)
           {
-            uint32_t block_size =
-              (((uint32_t) header[0]) << 8) | (uint32_t) header[1];
+            ssize_t block_size =
+              (((ssize_t) header[0]) << 8) | (ssize_t) header[1];
 
             if (block_size == 0)
               throw rld::error ("Block size is invalid (0)", "compression");
