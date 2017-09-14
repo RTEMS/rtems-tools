@@ -253,7 +253,7 @@ namespace rld
     image::~image ()
     {
       if (references_)
-        throw rld_error_at ("references when destructing image");
+	std::cerr << "rtl:file:image: references when destructing";
       if (fd_ >= 0)
         ::close (fd_);
     }
