@@ -5,6 +5,10 @@
  *  which provide the functionality of the DesiredSymbols.
  */
 
+#ifdef __CYGWIN__
+#undef __STRICT_ANSI__
+#endif
+
 #include <libgen.h>
 #include <limits.h>
 #include <stdio.h>
