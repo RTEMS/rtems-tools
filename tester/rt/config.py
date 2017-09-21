@@ -92,7 +92,9 @@ class file(config.file):
         self.capture('*** TIMEOUT TIMEOUT')
 
     def _ok_kill(self):
+        self._lock()
         self.kill_good = True
+        self._unlock()
         try:
             self.process.kill()
         except:
@@ -281,9 +283,9 @@ class file(config.file):
             self.output += text
         if reset_target:
             self._target_reset()
+        self._unlock()
         if ok_to_kill:
             self._ok_kill()
-        self._unlock()
 
     def capture_console(self, text):
         self._lock()
