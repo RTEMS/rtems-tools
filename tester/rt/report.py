@@ -40,6 +40,13 @@ from rtemstoolkit import error
 from rtemstoolkit import log
 from rtemstoolkit import path
 
+#
+# Maybe this should be a configuration.
+#
+test_fail_excludes = [
+    'minimum'
+]
+
 class report(object):
     '''RTEMS Testing report.'''
 
@@ -110,14 +117,14 @@ class report(object):
         for line in output:
             if line[0] == ']':
                 if line[1].startswith('*** '):
+                    if line[1][4:].startswith('BEGIN OF '):
+                        start = True
                     if line[1][4:].startswith('END OF '):
                         end = True
                     if line[1][4:].startswith('TEST STATE:'):
                         state = line[1][15:].strip()
                     if line[1][4:].startswith('TIMEOUT TIMEOUT'):
                         timeout = True
-                    else:
-                        start = True
             prefixed_output += [line[0] + ' ' + line[1]]
         self.lock.acquire()
         if name not in self.results:
@@ -140,8 +147,13 @@ class report(object):
                     status = 'failed'
                     self.failed += 1
             else:
-                status = 'invalid'
-                self.invalids += 1
+                exe_name = name.split('.')[0]
+                if exe_name in test_fail_excludes:
+                    status = 'passed'
+                    self.passed += 1
+                else:
+                    status = 'invalid'
+                    self.invalids += 1
         else:
             if state == 'EXPECTED_FAIL':
                 if start and end:
@@ -170,6 +182,7 @@ class report(object):
         if self.name_max_len < len(path.basename(name)):
             self.name_max_len = len(path.basename(name))
         self.lock.release()
+        return status
 
     def log(self, name, mode):
         if mode != 'none':

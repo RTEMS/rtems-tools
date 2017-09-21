@@ -39,14 +39,16 @@ import os
 import threading
 import time
 
+from rtemstoolkit import path
+
+from . import telnet
+
 #
 # Not available on Windows. Not sure what this means.
 #
 if os.name != 'nt':
-    import fcntl
     from . import stty
 else:
-    fcntl = None
     stty = None
 
 def save():
@@ -84,42 +86,27 @@ class stdio(console):
         super(stdio, self).__init__('stdio', trace)
 
 class tty(console):
-    '''TTY console connects to serial ports.'''
-
-    raw = 'B115200,~BRKINT,IGNBRK,IGNCR,~ICANON,~ISIG,~IEXTEN,~ECHO,CLOCAL,~CRTSCTS'
+    '''TTY console connects to the target's console.'''
 
     def __init__(self, dev, output, setup = None, trace = False):
         self.tty = None
         self.read_thread = None
         self.dev = dev
         self.output = output
-        if setup is None:
-            self.setup = raw
-        else:
-            self.setup = setup
+        self.setup = setup
         super(tty, self).__init__(dev, trace)
 
     def __del__(self):
         super(tty, self).__del__()
-        if self._tracing():
-            print(':: tty close', self.dev)
-        if fcntl is not None:
-            fcntl.fcntl(me.tty.fd, fcntl.F_SETFL,
-                        fcntl.fcntl(me.tty.fd, fcntl.F_GETFL) & ~os.O_NONBLOCK)
         self.close()
 
     def open(self):
         def _readthread(me, x):
-            if self._tracing():
-                print(':: tty runner started', self.dev)
-            if fcntl is not None:
-                fcntl.fcntl(me.tty.fd, fcntl.F_SETFL,
-                            fcntl.fcntl(me.tty.fd, fcntl.F_GETFL) | os.O_NONBLOCK)
             line = ''
             while me.running:
                 time.sleep(0.05)
                 try:
-                    data = me.tty.fd.read()
+                    data = me.tty.read()
                 except IOError as ioe:
                     if ioe.errno == errno.EAGAIN:
                         continue
@@ -134,11 +121,10 @@ class tty(console):
                     if c == '\n':
                         me.output(line)
                         line = ''
-            if self._tracing():
-                print(':: tty runner finished', self.dev)
-        if self._tracing():
-            print(':: tty open', self.dev)
-        self.tty = stty.tty(self.dev)
+        if stty and path.exists(self.dev):
+            self.tty = stty.tty(self.dev)
+        else:
+            self.tty = telnet.tty(self.dev)
         self.tty.set(self.setup)
         self.tty.on()
         self.read_thread = threading.Thread(target = _readthread,

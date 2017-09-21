@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2013-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2013-2017 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -46,6 +46,7 @@ from rtemstoolkit import path
 
 from . import console
 from . import gdb
+from . import tftp
 
 timeout = 15
 
@@ -54,19 +55,24 @@ class file(config.file):
 
     _directives = ['%execute',
                    '%gdb',
+                   '%tftp',
                    '%console']
 
-    def __init__(self, report, name, opts, _directives = _directives):
+    def __init__(self, index, report, name, opts, _directives = _directives):
         super(file, self).__init__(name, opts, directives = _directives)
         self.lock = threading.Lock()
         self.realtime_trace = self.debug_trace('output')
         self.process = None
         self.console = None
         self.output = None
+        self.index = index
         self.report = report
         self.name = name
         self.timedout = False
+        self.test_started = False
         self.kill_good = False
+        self.kill_on_end = False
+        self.test_label = None
 
     def __del__(self):
         if self.console:
@@ -91,6 +97,29 @@ class file(config.file):
             self.process.kill()
         except:
             pass
+
+    def _target_reset(self):
+        if self.defined('target_reset_command'):
+            reset_cmd = self.expand('%{target_reset_command}').strip()
+            if len(reset_cmd) > 0:
+                rs_proc = execute.capture_execution()
+                ec, proc, output = rs_proc.open(reset_cmd, shell = True)
+                self._capture_console('target reset: %s: %s' % (reset_cmd, output))
+
+    def _output_length(self):
+        self._lock()
+        if self.test_started:
+            l = len(self.output)
+            self._unlock()
+            return l
+        self._unlock()
+        return 0
+
+    def _capture_console(self, text):
+        text = [('>', l) for l in text.replace(chr(13), '').splitlines()]
+        if self.output is not None:
+            self._realtime_trace(text)
+            self.output += text
 
     def _dir_console(self, data):
         if self.console is not None:
@@ -152,6 +181,28 @@ class file(config.file):
             if self.console:
                 self.console.close()
 
+    def _dir_tftp(self, data, total, index, exe, bsp_arch, bsp):
+        if len(data) != 2:
+            raise error.general('invalid %tftp arguments')
+        try:
+            port = int(data[1])
+        except:
+            raise error.general('invalid %tftp port')
+        self.kill_on_end = True
+        self.process = tftp.tftp(bsp_arch, bsp,
+                                 trace = self.debug_trace('gdb'))
+        if not self.in_error:
+            if self.console:
+                self.console.open()
+            self.process.open(executable = data[0],
+                              port = port,
+                              output_length = self._output_length,
+                              console = self.capture_console,
+                              timeout = (int(self.expand('%{timeout}')),
+                                         self._timeout))
+            if self.console:
+                self.console.close()
+
     def _directive_filter(self, results, directive, info, data):
         if results[0] == 'directive':
             _directive = results[1]
@@ -168,24 +219,30 @@ class file(config.file):
             else:
                 self._lock()
                 try:
+                    self.output = []
                     total = int(self.expand('%{test_total}'))
                     index = int(self.expand('%{test_index}'))
                     exe = self.expand('%{test_executable}')
                     bsp_arch = self.expand('%{bsp_arch}')
                     bsp = self.expand('%{bsp}')
                     self.report.start(index, total, exe, exe, bsp_arch, bsp)
-                    self.output = []
+                    if self.index == 1:
+                        self._target_reset()
                 finally:
                     self._unlock()
                 if _directive == '%execute':
                     self._dir_execute(ds, total, index, exe, bsp_arch, bsp)
                 elif _directive == '%gdb':
                     self._dir_gdb(ds, total, index, exe, bsp_arch, bsp)
+                elif _directive == '%tftp':
+                    self._dir_tftp(ds, total, index, exe, bsp_arch, bsp)
                 else:
                     raise error.general(self._name_line_msg('invalid directive'))
                 self._lock()
                 try:
-                    self.report.end(exe, self.output)
+                    status = self.report.end(exe, self.output)
+                    if status == 'timeout':
+                        self._target_reset()
                     self.process = None
                     self.output = None
                 finally:
@@ -201,22 +258,36 @@ class file(config.file):
         self.load(self.name)
 
     def capture(self, text):
-        ok_to_kill = '*** TEST STATE: USER_INPUT' in text or '*** TEST STATE: BENCHMARK' in text
+        if not self.test_started:
+            self.test_started = '*** BEGIN OF TEST ' in text
+        ok_to_kill = '*** TEST STATE: USER_INPUT' in text or \
+                     '*** TEST STATE: BENCHMARK' in text
+        reset_target = False
+        if ok_to_kill:
+            reset_target = True
+        if self.kill_on_end:
+            if self.test_label is None:
+                s = text.find('*** BEGIN OF TEST ')
+                if s >= 0:
+                    e = text[s + 3:].find('***')
+                    if e >= 0:
+                        self.test_label = text[s + len('*** BEGIN OF TEST '):s + e + 3 - 1]
+            if not ok_to_kill and self.test_label is not None:
+                ok_to_kill = '*** END OF TEST %s ***' % (self.test_label) in text
         text = [(']', l) for l in text.replace(chr(13), '').splitlines()]
         self._lock()
         if self.output is not None:
             self._realtime_trace(text)
             self.output += text
+        if reset_target:
+            self._target_reset()
         if ok_to_kill:
             self._ok_kill()
         self._unlock()
 
     def capture_console(self, text):
-        text = [('>', l) for l in text.replace(chr(13), '').splitlines()]
         self._lock()
-        if self.output is not None:
-            self._realtime_trace(text)
-            self.output += text
+        self._capture_console(text)
         self._unlock()
 
     def debug_trace(self, flag):

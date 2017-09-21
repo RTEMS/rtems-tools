@@ -32,6 +32,7 @@
 # RTEMS Testing Consoles
 #
 
+import fcntl
 import os
 import sys
 import termios
@@ -59,6 +60,8 @@ def restore(attributes):
 
 class tty:
 
+    raw = 'B115200,~BRKINT,IGNBRK,IGNCR,~ICANON,~ISIG,~IEXTEN,~ECHO,CLOCAL,~CRTSCTS'
+
     def __init__(self, dev):
         if host.is_windows:
             raise error.general('termios not support on host')
@@ -79,12 +82,21 @@ class tty:
         try:
             self.default_attr = termios.tcgetattr(self.fd)
         except:
+            close(self.fd)
             raise error.general('cannot get termios attrs: %s' % (dev))
+        try:
+            fcntl.fcntl(self.fd, fcntl.F_SETFL,
+                        fcntl.fcntl(self.fd, fcntl.F_GETFL) | os.O_NONBLOCK)
+        except:
+            close(self.fd)
+            raise error.general('cannot make tty non-blocking: %s' % (dev))
         self.attr = self.default_attr
 
     def __del__(self):
         if self.fd and self.default_attr:
             try:
+                fcntl.fcntl(self.fd, fcntl.F_SETFL,
+                            fcntl.fcntl(self.fd, fcntl.F_GETFL) & ~os.O_NONBLOCK)
                 self.fd.close()
             except:
                 pass
@@ -487,7 +499,9 @@ class tty:
     def vtime(self, _vtime):
         self.attr[6][termios.VTIME] = _vtime
 
-    def set(self, flags):
+    def set(self, flags = None):
+        if flags is None:
+            flags = self.raw
         for f in flags.split(','):
             if len(f) < 2:
                 raise error.general('invalid flag: %s' % (f))
@@ -542,6 +556,9 @@ class tty:
                 continue
             raise error.general('unknown tty flag: %s' % (f))
         self._update()
+
+    def read(self):
+        return self.fs.read()
 
 if __name__ == "__main__":
     if len(sys.argv) == 2:
