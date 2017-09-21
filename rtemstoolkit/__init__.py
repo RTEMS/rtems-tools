@@ -38,6 +38,7 @@ all = ['check',
        'mailer',
        'options',
        'path',
+       'reraise',
        'version']
 
 from . import check
@@ -50,4 +51,5 @@ from . import macros
 from . import mailer
 from . import options
 from . import path
+from . import reraise
 from . import version
