@@ -170,7 +170,7 @@ class tftp(object):
         self.listener = threading.Thread(target = self._runner,
                                          name = 'tftp-listener')
         self.listener.start()
-        step = 1.0
+        step = 0.5
         period = timeout[0]
         output_len = self.output_length()
         while not self.finished and period > 0:
