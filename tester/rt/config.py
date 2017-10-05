@@ -36,6 +36,7 @@ from __future__ import print_function
 
 import datetime
 import os
+import re
 import threading
 
 from rtemstoolkit import config
@@ -73,6 +74,7 @@ class file(config.file):
         self.kill_good = False
         self.kill_on_end = False
         self.test_label = None
+        self.target_reset_regx = None
 
     def __del__(self):
         if self.console:
@@ -257,6 +259,13 @@ class file(config.file):
                 print(' '.join(l))
 
     def run(self):
+        if self.defined('target_reset_regex'):
+            try:
+                regex = self.expand('%{target_reset_regex}')
+                self.target_reset_regx = re.compile(regex, re.MULTILINE)
+            except:
+                msg = 'invalid target reset regex: %s' % (regex)
+                raise error.general(msg)
         self.load(self.name)
 
     def capture(self, text):
@@ -264,9 +273,14 @@ class file(config.file):
             self.test_started = '*** BEGIN OF TEST ' in text
         ok_to_kill = '*** TEST STATE: USER_INPUT' in text or \
                      '*** TEST STATE: BENCHMARK' in text
-        reset_target = False
         if ok_to_kill:
             reset_target = True
+        else:
+            reset_target = False
+        if self.test_started and self.target_reset_regx is not None:
+            if self.target_reset_regx.match(text):
+                self.capture_console('target reset detected')
+                ok_to_kill = True
         if self.kill_on_end:
             if self.test_label is None:
                 s = text.find('*** BEGIN OF TEST ')
