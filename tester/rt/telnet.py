@@ -32,6 +32,7 @@
 # RTEMS Testing Consoles
 #
 
+import errno
 import os
 import sys
 import telnetlib
@@ -44,6 +45,7 @@ class tty:
 
     def __init__(self, dev):
         self.dev = dev
+        self.timeout = 5
         self.conn = None
         ds = dev.split(':')
         self.host = ds[0]
@@ -54,12 +56,8 @@ class tty:
                 self.port = int(ds[1])
             except:
                 raise error.general('invalid port: %s' % (dev))
-        try:
-            self.conn = telnetlib.Telnet(self.host, self.port, 5)
-        except IOError as ioe:
-            raise error.general('opening telnet dev: %s: %s' % (dev, ioe))
-        except:
-            raise error.general('opening telnet dev: %s: unknown' % (dev))
+        self.conn = telnetlib.Telnet()
+        self._reopen()
 
     def __del__(self):
         if self.conn:
@@ -72,6 +70,14 @@ class tty:
         s = 'host: %s port: %d' % ((self.host, self.port))
         return s
 
+    def _reopen(self):
+        try:
+            self.conn.open(self.host, self.port, self.timeout)
+        except IOError as ioe:
+            raise error.general('opening telnet dev: %s: %s' % (dev, ioe))
+        except:
+            raise error.general('opening telnet dev: %s: unknown' % (dev))
+
     def off(self):
         self.is_on = False
 
@@ -82,10 +88,18 @@ class tty:
         pass
 
     def read(self):
+        reopen = False
         try:
             data = self.conn.read_very_eager()
-        except EOFError:
+        except IOError as ioe:
+            if ioe.errno == errno.ECONNREFUSED:
+                reopen = True
             data = ''
+        except EOFError:
+            reopen = True
+            data = ''
+        if reopen:
+            self._reopen()
         return data
 
 if __name__ == "__main__":
