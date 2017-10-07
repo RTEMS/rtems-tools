@@ -75,6 +75,7 @@ class file(config.file):
         self.kill_on_end = False
         self.test_label = None
         self.target_reset_regx = None
+        self.target_start_regx = None
 
     def __del__(self):
         if self.console:
@@ -101,6 +102,17 @@ class file(config.file):
             self.process.kill()
         except:
             pass
+
+    def _target_regex(self, label):
+        regex = None
+        if self.defined(label):
+            r = self.expand('%%{%s}' % (label))
+            try:
+                regex = re.compile(r, re.MULTILINE)
+            except:
+                msg = 'invalid target regex: %s: %s' % (label, r)
+                raise error.general(msg)
+        return regex
 
     def _target_reset(self):
         if self.defined('target_reset_command'):
@@ -259,37 +271,38 @@ class file(config.file):
                 print(' '.join(l))
 
     def run(self):
-        if self.defined('target_reset_regex'):
-            try:
-                regex = self.expand('%{target_reset_regex}')
-                self.target_reset_regx = re.compile(regex, re.MULTILINE)
-            except:
-                msg = 'invalid target reset regex: %s' % (regex)
-                raise error.general(msg)
+        self.target_start_regx = self._target_regex('target_start_regex')
+        self.target_reset_regx = self._target_regex('target_reset_regex')
         self.load(self.name)
 
     def capture(self, text):
         if not self.test_started:
-            self.test_started = '*** BEGIN OF TEST ' in text
+            s = text.find('*** BEGIN OF TEST ')
+            if s >= 0:
+                self.test_started = True
+                e = text[s + 3:].find('***')
+                if e >= 0:
+                    self.test_label = text[s + len('*** BEGIN OF TEST '):s + e + 3 - 1]
+                self.capture_console('test start: %s' % (self.test_label))
         ok_to_kill = '*** TEST STATE: USER_INPUT' in text or \
                      '*** TEST STATE: BENCHMARK' in text
         if ok_to_kill:
             reset_target = True
         else:
             reset_target = False
-        if self.test_started and self.target_reset_regx is not None:
-            if self.target_reset_regx.match(text):
-                self.capture_console('target reset detected')
+        if self.test_started and self.target_start_regx is not None:
+            if self.target_start_regx.match(text):
+                self.capture_console('target start detected')
                 ok_to_kill = True
+        if not reset_target and self.target_reset_regx is not None:
+            if self.target_reset_regx.match(text):
+                self.capture_console('target reset condition detected')
+                reset_target = True
         if self.kill_on_end:
-            if self.test_label is None:
-                s = text.find('*** BEGIN OF TEST ')
-                if s >= 0:
-                    e = text[s + 3:].find('***')
-                    if e >= 0:
-                        self.test_label = text[s + len('*** BEGIN OF TEST '):s + e + 3 - 1]
-            if not ok_to_kill and self.test_label is not None:
-                ok_to_kill = '*** END OF TEST %s ***' % (self.test_label) in text
+            if not ok_to_kill and '*** END OF TEST ' in text:
+                self.capture_console('test end: %s' % (self.test_label))
+                if self.test_label is not None:
+                    ok_to_kill = '*** END OF TEST %s ***' % (self.test_label) in text
         text = [(']', l) for l in text.replace(chr(13), '').splitlines()]
         self._lock()
         if self.output is not None:
