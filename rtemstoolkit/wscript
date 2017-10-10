@@ -143,6 +143,7 @@ def build(bld):
                   'mailer.py',
                   'options.py',
                   'path.py',
+                  'reraise.py',
                   'stacktraces.py',
                   'textbox.py',
                   'version.py',
