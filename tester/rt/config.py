@@ -59,7 +59,7 @@ class file(config.file):
                    '%tftp',
                    '%console']
 
-    def __init__(self, index, report, name, opts, _directives = _directives):
+    def __init__(self, index, total, report, name, opts, _directives = _directives):
         super(file, self).__init__(name, opts, directives = _directives)
         self.lock = threading.Lock()
         self.realtime_trace = self.debug_trace('output')
@@ -67,6 +67,7 @@ class file(config.file):
         self.console = None
         self.output = None
         self.index = index
+        self.total = total
         self.report = report
         self.name = name
         self.timedout = False
@@ -114,13 +115,13 @@ class file(config.file):
                 raise error.general(msg)
         return regex
 
-    def _target_reset(self):
-        if self.defined('target_reset_command'):
-            reset_cmd = self.expand('%{target_reset_command}').strip()
-            if len(reset_cmd) > 0:
+    def _target_command(self, command):
+        if self.defined('target_%s_command' % (command)):
+            cmd = self.expand('%%{target_%s_command}' % (command)).strip()
+            if len(cmd) > 0:
                 rs_proc = execute.capture_execution()
-                ec, proc, output = rs_proc.open(reset_cmd, shell = True)
-                self._capture_console('target reset: %s: %s' % (reset_cmd, output))
+                ec, proc, output = rs_proc.open(cmd, shell = True)
+                self._capture_console('target %s: %s: %s' % (command, cmd, output))
 
     def _output_length(self):
         self._lock()
@@ -243,7 +244,7 @@ class file(config.file):
                     bsp = self.expand('%{bsp}')
                     self.report.start(index, total, exe, exe, bsp_arch, bsp)
                     if self.index == 1:
-                        self._target_reset()
+                        self._target_command('reset')
                 finally:
                     self._unlock()
                 if _directive == '%execute':
@@ -255,10 +256,16 @@ class file(config.file):
                 else:
                     raise error.general(self._name_line_msg('invalid directive'))
                 self._lock()
+                if self.index == self.total:
+                    self._target_command('off')
                 try:
                     status = self.report.end(exe, self.output)
+                    self._capture_console('test result: %s' % (status))
                     if status == 'timeout':
-                        self._target_reset()
+                        if self.index == self.total:
+                            self._target_command('off')
+                        else:
+                            self._target_command('reset')
                     self.process = None
                     self.output = None
                 finally:
@@ -309,7 +316,10 @@ class file(config.file):
             self._realtime_trace(text)
             self.output += text
         if reset_target:
-            self._target_reset()
+            if self.index == self.total:
+                self._target_command('off')
+            else:
+                self._target_command('reset')
         self._unlock()
         if ok_to_kill:
             self._ok_kill()

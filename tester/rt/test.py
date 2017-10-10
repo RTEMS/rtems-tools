@@ -72,7 +72,7 @@ class test(object):
             if not path.isdir(rtems_tools_bin):
                 raise error.general('cannot find RTEMS tools path: %s' % (rtems_tools_bin))
             self.opts.defaults['rtems_tools'] = rtems_tools_bin
-        self.config = config.file(index, self.report, self.bsp_config, self.opts)
+        self.config = config.file(index, total, self.report, self.bsp_config, self.opts)
 
     def run(self):
         if self.config:
