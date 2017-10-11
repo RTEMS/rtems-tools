@@ -46,12 +46,15 @@
 # telnet tty device.
 #
 [global]
-bsp:                      none,    none,   'beagleboneblack'
-jobs:                     none,    none,   '1'
-test_restarts:            none,    none,   '3'
-target_reset_command:     none,    none,   'wemo-reset CSEng1 5'
+bsp:                       none,    none,   'beagleboneblack'
+jobs:                      none,    none,   '1'
 
 [beagleboneblack]
-beagleboneblack:          none,    none,   '%{_rtscripts}/tftp.cfg'
-beagleboneblack_arch:     none,    none,   'arm'
-bsp_tty_dev:              none,    none,   'tuke:30007'
+beagleboneblack:           none,    none,   '%{_rtscripts}/tftp.cfg'
+beagleboneblack_arch:      none,    none,   'arm'
+test_restarts:             none,    none,   '3'
+target_reset_command:      none,    none,   'wemo-reset CSEng3 5'
+target_off_command:        none,    none,   'wemo-reset CSEng3 0'
+target_reset_regex:        none,    none,   '^No ethernet found.*|BOOTP broadcast 9.*'
+target_start_regex:        none,    none,   '^U-Boot SPL .*'
+bsp_tty_dev:               none,    none,   'tuke:30007'
