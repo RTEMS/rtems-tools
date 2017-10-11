@@ -72,7 +72,7 @@ class mail:
                 l = l[:l.index('\n')]
             return l.strip()
 
-        addr = self.opts.get_arg('--mail-from')
+        addr = self.opts.find_arg('--mail-from')
         if addr is not None:
             return addr[1]
         mailrc = None
@@ -83,9 +83,8 @@ class mail:
         if mailrc is not None and path.exists(mailrc):
             # set from="Joe Blow <joe@blow.org>"
             try:
-                mrc = open(mailrc, 'r')
-                lines = mrc.readlines()
-                mrc.close()
+                with open(mailrc, 'r') as mrc:
+                    lines = mrc.readlines()
             except IOError as err:
                 raise error.general('error reading: %s' % (mailrc))
             for l in lines:
@@ -100,7 +99,7 @@ class mail:
         return addr
 
     def smtp_host(self):
-        host = self.opts.get_arg('--smtp-host')
+        host = self.opts.find_arg('--smtp-host')
         if host is not None:
             return host[1]
         host = self.opts.defaults.get_value('%{_mail_smtp_host}')
@@ -119,6 +118,16 @@ class mail:
             raise error.general('sending mail: %s' % (str(se)))
         except socket.error as se:
             raise error.general('sending mail: %s' % (str(se)))
+
+    def send_file_as_body(self, to_addr, subject, name, intro = None):
+        try:
+            with open(name, 'r') as f:
+                body = f.readlines()
+        except IOError as err:
+            raise error.general('error reading mail body: %s' % (name))
+        if intro is not None:
+            body = intro + body
+        self.send(to_addr, from_addr, body)
 
 if __name__ == '__main__':
     import sys
