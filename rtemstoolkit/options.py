@@ -85,7 +85,7 @@ class command_line(object):
         basepath = base_path
 
         if log_default is not None and type(log_default) is not list:
-            raise error.general('log default is a list')
+            raise error.general('log default is not a list')
         self.log_default = log_default
 
         if defaults is None:
