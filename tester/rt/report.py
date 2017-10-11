@@ -208,41 +208,53 @@ class report(object):
                 log.output(result)
                 log.output(output)
 
-    def summary(self):
+    def score_card(self):
+        l = []
+        l += ['Passed:        %*d' % (self.total_len, self.passed)]
+        l += ['Failed:        %*d' % (self.total_len, self.failed)]
+        l += ['User Input:    %*d' % (self.total_len, self.user_input)]
+        l += ['Expected Fail: %*d' % (self.total_len, self.expected_fail)]
+        l += ['Indeterminate: %*d' % (self.total_len, self.indeterminate)]
+        l += ['Benchmark:     %*d' % (self.total_len, self.benchmark)]
+        l += ['Timeout:       %*d' % (self.total_len, self.timeouts)]
+        l += ['Invalid:       %*d' % (self.total_len, self.invalids)]
+        l += ['---------------%s' % ('-' * self.total_len)]
+        l += ['Total:         %*d' % (self.total_len, self.total)]
+        return os.linesep.join(l)
+
+    def failures(self):
         def show_state(results, state, max_len):
+            l = []
             for name in results:
                 if results[name]['result'] == state:
-                    log.output(' %s' % (path.basename(name)))
-        log.output()
-        log.notice('Passed:        %*d' % (self.total_len, self.passed))
-        log.notice('Failed:        %*d' % (self.total_len, self.failed))
-        log.notice('User Input:    %*d' % (self.total_len, self.user_input))
-        log.notice('Expected Fail: %*d' % (self.total_len, self.expected_fail))
-        log.notice('Indeterminate: %*d' % (self.total_len, self.indeterminate))
-        log.notice('Benchmark:     %*d' % (self.total_len, self.benchmark))
-        log.notice('Timeout:       %*d' % (self.total_len, self.timeouts))
-        log.notice('Invalid:       %*d' % (self.total_len, self.invalids))
-        log.output('---------------%s' % ('-' * self.total_len))
-        log.notice('Total:         %*d' % (self.total_len, self.total))
-        log.output()
+                    l += [' %s' % (path.basename(name))]
+            return l
+        l = []
         if self.failed:
-            log.output('Failures:')
-            show_state(self.results, 'failed', self.name_max_len)
+            l += ['Failures:']
+            l += show_state(self.results, 'failed', self.name_max_len)
         if self.user_input:
-            log.output('User Input:')
-            show_state(self.results, 'user-input', self.name_max_len)
+            l += ['User Input:']
+            l += show_state(self.results, 'user-input', self.name_max_len)
         if self.expected_fail:
-            log.output('Expected Fail:')
-            show_state(self.results, 'expected-fail', self.name_max_len)
+            l += ['Expected Fail:']
+            l += show_state(self.results, 'expected-fail', self.name_max_len)
         if self.indeterminate:
-            log.output('Indeterminate:')
-            show_state(self.results, 'indeterminate', self.name_max_len)
+            l += ['Indeterminate:']
+            l += show_state(self.results, 'indeterminate', self.name_max_len)
         if self.benchmark:
-            log.output('Benchmark:')
-            show_state(self.results, 'benchmark', self.name_max_len)
+            l += ['Benchmark:']
+            l += show_state(self.results, 'benchmark', self.name_max_len)
         if self.timeouts:
-            log.output('Timeouts:')
-            show_state(self.results, 'timeout', self.name_max_len)
+            l += ['Timeouts:']
+            l += show_state(self.results, 'timeout', self.name_max_len)
         if self.invalids:
-            log.output('Invalid:')
-            show_state(self.results, 'invalid', self.name_max_len)
+            l += ['Invalid:']
+            l += show_state(self.results, 'invalid', self.name_max_len)
+        return os.linesep.join(l)
+
+    def summary(self):
+        log.output()
+        log.notice(self.score_card())
+        log.output()
+        log.output(self.failures())

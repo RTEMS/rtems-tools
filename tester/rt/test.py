@@ -41,6 +41,7 @@ import time
 from rtemstoolkit import error
 from rtemstoolkit import log
 from rtemstoolkit import path
+from rtemstoolkit import mailer
 from rtemstoolkit import reraise
 from rtemstoolkit import stacktraces
 from rtemstoolkit import version
@@ -50,6 +51,20 @@ from . import config
 from . import console
 from . import options
 from . import report
+
+class log_capture(object):
+    def __init__(self):
+        self.log = []
+        log.capture = self.capture
+
+    def __str__(self):
+        return os.linesep.join(self.log)
+
+    def capture(self, text):
+        self.log += [l for l in text.replace(chr(13), '').splitlines()]
+
+    def get(self):
+        return self.log
 
 class test(object):
     def __init__(self, index, total, report, executable, rtems_tools, bsp, bsp_config, opts):
@@ -201,9 +216,15 @@ def run(command_path = None):
                     '--filter':      'Glob that executables must match to run (default: ' +
                               default_exefilter + ')',
                     '--stacktrace':  'Dump a stack trace on a user termination (^C)' }
+        mailer.append_options(optargs)
         opts = options.load(sys.argv,
                             optargs = optargs,
                             command_path = command_path)
+        mail = None
+        output = None
+        if opts.find_arg('--mail'):
+            mail = mailer.mail(opts)
+            output = log_capture()
         log.notice('RTEMS Testing - Tester, %s' % (version.str()))
         if opts.find_arg('--list-bsps'):
             bsps.list(opts)
@@ -303,8 +324,24 @@ def run(command_path = None):
             report_finished(reports, report_mode, -1, finished, job_trace)
         reports.summary()
         end_time = datetime.datetime.now()
-        log.notice('Average test time: %s' % (str((end_time - start_time) / total)))
-        log.notice('Testing time     : %s' % (str(end_time - start_time)))
+        average_time = 'Average test time: %s' % (str((end_time - start_time) / total))
+        total_time = 'Testing time     : %s' % (str(end_time - start_time))
+        log.notice(average_time)
+        log.notice(total_time)
+        if mail is not None and output is not None:
+            to_addr = opts.find_arg('--mail-to')
+            if to_addr:
+                to_addr = to_addr[1]
+            else:
+                to_addr = 'build@rtems.org'
+            subject = '[rtems-test] %s: %s' % (str(start_time).split('.')[0], bsp)
+            body = [total_time, average_time,
+                    '', 'Summary', '=======', '',
+                    reports.score_card(), '',
+                    reports.failures(),
+                    '', 'Log', '===', ''] + output.get()
+            mail.send(to_addr, subject, os.linesep.join(body))
+
     except error.general as gerr:
         print(gerr)
         sys.exit(1)
