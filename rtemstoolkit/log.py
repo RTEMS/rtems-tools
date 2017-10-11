@@ -53,6 +53,11 @@ except (ValueError, SystemError):
 default = None
 
 #
+# A global capture handler.
+#
+capture = None
+
+#
 # Global parameters.
 #
 tracing = False
@@ -81,6 +86,10 @@ def _output(text = os.linesep, log = None):
         lock.acquire()
         for l in text.replace(chr(13), '').splitlines():
             print(l)
+        lock.release()
+    if capture is not None:
+        lock.acquire()
+        capture(text)
         lock.release()
 
 def stderr(text = os.linesep, log = None):
