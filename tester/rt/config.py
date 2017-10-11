@@ -133,7 +133,7 @@ class file(config.file):
         return 0
 
     def _capture_console(self, text):
-        text = [('>', l) for l in text.replace(chr(13), '').splitlines()]
+        text = [('=>', l) for l in text.replace(chr(13), '').splitlines()]
         if self.output is not None:
             self._realtime_trace(text)
             self.output += text
