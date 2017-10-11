@@ -193,9 +193,11 @@ class report(object):
             exe = path.basename(self.results[name]['exe'])
             result = self.results[name]['result']
             time = self.results[name]['end'] - self.results[name]['start']
+            failed = result in ['failed', 'timeout', 'invalid']
+            result = 'Result: %-10s Time: %s %s' % (result, str(time), exe)
             if mode != 'none':
                 header = self.results[name]['header']
-            if mode == 'all' or result in ['failed', 'timeout', 'invalid']:
+            if mode == 'all' or failed:
                 output = self.results[name]['output']
             else:
                 output = None
@@ -203,8 +205,8 @@ class report(object):
             if header:
                 log.output(header)
             if output:
+                log.output(result)
                 log.output(output)
-                log.output('Result: %-10s Time: %s %s' % (result, str(time), exe))
 
     def summary(self):
         def show_state(results, state, max_len):
