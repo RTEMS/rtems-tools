@@ -147,7 +147,7 @@ class report(object):
                     status = 'failed'
                     self.failed += 1
             else:
-                exe_name = name.split('.')[0]
+                exe_name = path.basename(name).split('.')[0]
                 if exe_name in test_fail_excludes:
                     status = 'passed'
                     self.passed += 1
