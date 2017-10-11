@@ -120,6 +120,8 @@ class tftp(object):
             if self.console:
                 self.console('tftp: %s' % (exe))
             return open(exe, "rb")
+        if self.console:
+            self.console('tftp: re-requesting exe; target must have reset')
         self._stop()
         return None
 
