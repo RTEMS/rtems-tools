@@ -122,8 +122,8 @@ def build(bld):
                        'rtems-score.ini',
                        'rtems-score-object.ini',
                        'rtems-score-thread.ini',
+                       'rtems-score-threadq.ini',
                        'rtems-score-heap.ini',
-                       'rtems-score-coremutex.ini',
                        'rtld-base.ini',
                        'rtld-trace-buffer.ini',
                        'rtld-print.ini'])
