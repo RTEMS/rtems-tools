@@ -57,8 +57,6 @@ def configure(conf):
     conf.check_cc(function_name='open64', header_name="stdlib.h", mandatory = False)
     conf.check_cc(function_name='stat64', header_name="stdlib.h", mandatory = False)
     conf.write_config_header('covoar-config.h')
-    conf.env.STLIBPATH_RLD = conf.path.abspath() + '/../../build/rtemstoolkit'
-    conf.env.STLIB_RLD = ['rld','iberty','elf']
 
 def build(bld):
     rtemstoolkit = '../../rtemstoolkit'
@@ -68,6 +66,11 @@ def build(bld):
 		    rtemstoolkit + '/libiberty']
     if bld.env.DEST_OS == 'win32':
         rtl_includes += [rtemstoolkit + '/win32']
+
+    #
+    # The list of modules.
+    #
+    modules = ['rld', 'elf', 'iberty']
 
     bld.stlib(target = 'ccovoar',
               source = ['app_common.cc',
@@ -113,12 +116,12 @@ def build(bld):
                           'TraceReaderLogQEMU.cc',
                           'TraceWriterBase.cc',
                           'TraceWriterQEMU.cc'],
-                use = ['ccovoar','RLD'],
+                use = ['ccovoar'] + modules,
                 cflags = ['-O2', '-g'],
                 includes = ['.'] + rtl_includes)
 
     bld.program(target = 'covoar',
                 source = ['covoar.cc'],
-                use = ['ccovoar','RLD'],
+                use = ['ccovoar'] + modules,
                 cflags = ['-O2', '-g'],
                 includes = ['.'] + rtl_includes)
