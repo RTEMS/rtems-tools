@@ -244,7 +244,7 @@ class file(config.file):
                     bsp = self.expand('%{bsp}')
                     self.report.start(index, total, exe, exe, bsp_arch, bsp)
                     if self.index == 1:
-                        self._target_command('reset')
+                        self._target_command('on')
                 finally:
                     self._unlock()
                 if _directive == '%execute':
