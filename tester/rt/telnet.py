@@ -74,9 +74,12 @@ class tty:
         try:
             self.conn.open(self.host, self.port, self.timeout)
         except IOError as ioe:
-            raise error.general('opening telnet dev: %s: %s' % (dev, ioe))
+            raise error.general('opening telnet: %s:%d: %s' % (self.host,
+                                                               self.port,
+                                                               ioe))
         except:
-            raise error.general('opening telnet dev: %s: unknown' % (dev))
+            raise error.general('opening telnet: %s:%d: unknown' % (self.host,
+                                                                    self.port))
 
     def off(self):
         self.is_on = False
