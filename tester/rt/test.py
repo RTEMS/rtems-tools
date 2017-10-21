@@ -34,6 +34,7 @@ import copy
 import datetime
 import fnmatch
 import os
+import re
 import sys
 import threading
 import time
@@ -64,7 +65,24 @@ class log_capture(object):
         self.log += [l for l in text.replace(chr(13), '').splitlines()]
 
     def get(self):
-        return self.log
+        s = []
+        status = []
+        status_regx = re.compile('^\[\s*\d+/\s*\d+\] p:.+')
+        for l in self.log:
+            if status_regx.match(l):
+                status += [l]
+            else:
+                if len(status) == 1:
+                    s += [status[0]]
+                    status = []
+                elif len(status) > 1:
+                    s += [status[0]]
+                    if len(status) > 2:
+                        s += [' <skipped passes>' + os.linesep]
+                    s += [status[-1]]
+                    status = []
+                s += [l]
+        return s
 
 class test(object):
     def __init__(self, index, total, report, executable, rtems_tools, bsp, bsp_config, opts):
