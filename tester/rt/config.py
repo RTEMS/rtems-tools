@@ -115,9 +115,15 @@ class file(config.file):
                 raise error.general(msg)
         return regex
 
-    def _target_command(self, command):
+    def _target_command(self, command, bsp_arch = None, bsp = None, exe = None):
         if self.defined('target_%s_command' % (command)):
             cmd = self.expand('%%{target_%s_command}' % (command)).strip()
+            if bsp_arch is not None and '@ARCH@' in cmd:
+                cmd = cmd.replace('@ARCH@', bsp_arch)
+            if bsp is not None and '@BSP@' in cmd:
+                cmd = cmd.replace('@BSP@', bsp)
+            if exe is not None and '@EXE@' in cmd:
+                cmd = cmd.replace('@EXE@', exe)
             if len(cmd) > 0:
                 rs_proc = execute.capture_execution()
                 ec, proc, output = rs_proc.open(cmd, shell = True)
@@ -244,7 +250,8 @@ class file(config.file):
                     bsp = self.expand('%{bsp}')
                     self.report.start(index, total, exe, exe, bsp_arch, bsp)
                     if self.index == 1:
-                        self._target_command('on')
+                        self._target_command('on', bsp_arch, bsp, exe)
+                    self._target_command('pretest', bsp_arch, bsp, exe)
                 finally:
                     self._unlock()
                 if _directive == '%execute':
@@ -257,15 +264,16 @@ class file(config.file):
                     raise error.general(self._name_line_msg('invalid directive'))
                 self._lock()
                 if self.index == self.total:
-                    self._target_command('off')
+                    self._target_command('off', bsp_arch, bsp, exe)
+                self._target_command('posttest', bsp_arch, bsp, exe)
                 try:
                     status = self.report.end(exe, self.output)
                     self._capture_console('test result: %s' % (status))
                     if status == 'timeout':
                         if self.index == self.total:
-                            self._target_command('off')
+                            self._target_command('off', bsp_arch, bsp, exe)
                         else:
-                            self._target_command('reset')
+                            self._target_command('reset', bsp_arch, bsp, exe)
                     self.process = None
                     self.output = None
                 finally:
