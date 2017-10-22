@@ -49,6 +49,7 @@ from rtemstoolkit import execute
 from rtemstoolkit import error
 from rtemstoolkit import host
 from rtemstoolkit import log
+from rtemstoolkit import mailer
 from rtemstoolkit import path
 from rtemstoolkit import textbox
 from rtemstoolkit import version
@@ -267,7 +268,7 @@ class warnings_errors:
             data[category]['common'] = common
         return data
 
-    def _report_category(self, label, warnings, group_counts):
+    def _report_category(self, label, warnings, group_counts, summary):
         width = 70
         cols_1 = [width]
         cols_2 = [8, width - 8]
@@ -311,15 +312,16 @@ class warnings_errors:
                             d = gs[row:+4]
                         s += textbox.row(cols_4, d, indent = 1)
                 s += textbox.line(cols_2_4, marker = '+', indent = 1)
-                vw = sorted([(w, warnings[build][w]) for w in build_warnings],
-                            key = operator.itemgetter(1),
-                            reverse = True)
-                for w in vw:
-                    c1 = '%6d' % w[1]
-                    for l in textwrap.wrap(' ' + w[0], width = cols_2[1] - 3):
-                        s += textbox.row(cols_2, [c1, l], indent = 1)
-                        c1 = ' ' * 6
-                s += textbox.line(cols_2, marker = '+', indent = 1)
+                if not summary:
+                    vw = sorted([(w, warnings[build][w]) for w in build_warnings],
+                                key = operator.itemgetter(1),
+                                reverse = True)
+                    for w in vw:
+                        c1 = '%6d' % w[1]
+                        for l in textwrap.wrap(' ' + w[0], width = cols_2[1] - 3):
+                            s += textbox.row(cols_2, [c1, l], indent = 1)
+                            c1 = ' ' * 6
+                    s += textbox.line(cols_2, marker = '+', indent = 1)
         return s
 
     def _report_warning_map(self):
@@ -341,9 +343,9 @@ class warnings_errors:
             s += textbox.line(cols_1, marker = '+', indent = 1)
         return s
 
-    def warnings_report(self):
+    def warnings_report(self, summary):
         self.lock.acquire()
-        s = ' No warnings'
+        s = ' No warnings' + os.linesep
         try:
             total = 0
             for build in self.warnings:
@@ -351,16 +353,20 @@ class warnings_errors:
             if total != 0:
                 data = self._analyze(self.warnings, self.groups['exclude'])
                 s = self._report_category('By Architecture (total : %d)' % (total),
-                                          data['arch'], data['groups']['arch'])
+                                          data['arch'], data['groups']['arch'],
+                                          summary)
                 s += os.linesep
                 s += self._report_category('By BSP (total : %d)' % (total),
-                                           data['arch_bsp'], data['groups']['arch_bsp'])
+                                           data['arch_bsp'], data['groups']['arch_bsp'],
+                                           summary)
                 s += os.linesep
                 s += self._report_category('By Build (total : %d)' % (total),
-                                           data['build'], data['groups']['build'])
+                                           data['build'], data['groups']['build'],
+                                           summary)
                 s += os.linesep
-                s += self._report_warning_map()
-                s += os.linesep
+                if not summary:
+                    s += self._report_warning_map()
+                    s += os.linesep
         finally:
             self.lock.release()
         return s
@@ -631,11 +637,11 @@ class results:
                 if build_fails > 0:
                     s += bs + os.linesep
         if count == 0:
-            s = ' No failures'
+            s = ' No failures' + os.linesep
         return s
 
-    def warnings_report(self):
-        return self.warnings_errors.warnings_report()
+    def warnings_report(self, summary = False):
+        return self.warnings_errors.warnings_report(summary)
 
     def report(self):
         self.lock.acquire()
@@ -923,7 +929,7 @@ class configuration_:
         for p in self.profiles['profiles']:
             profile = {}
             profile['name'] = p
-            profile['archs'] = self.config.comma_list(profile['name'], 'archs')
+            profile['archs'] = self.config.comma_list(profile['name'], 'archs', err = False)
             archs += profile['archs']
             for arch in profile['archs']:
                 bsps = 'bsps_%s' % (arch)
@@ -1281,6 +1287,17 @@ class builder:
                 f.write(command_line() + os.linesep)
                 f.write(self.results.warnings_errors.report())
 
+    def _failures_report(self):
+        if self.options['failures-report'] is not None:
+            with open(self.options['failures-report'], 'w') as f:
+                f.write(title() + os.linesep)
+                f.write(os.linesep)
+                f.write('Date: %s%s' % (datetime.datetime.now().strftime('%c'),
+                                        os.linesep))
+                f.write(os.linesep)
+                f.write(command_line() + os.linesep)
+                f.write(self.results.failures_report())
+
     def _finished(self):
         log.notice('Total: Warnings:%d  exes:%d  objs:%d  libs:%d' % \
                    (self.results.get_warning_count(), self.counts['exes'],
@@ -1292,19 +1309,23 @@ class builder:
         log.notice('Failures:')
         log.notice(self.results.failures_report())
         self._warnings_report()
+        self._failures_report()
 
     def run_jobs(self, jobs):
         if path.exists(self.build_dir):
             log.notice('Cleaning: %s' % (self.build_dir))
             path.removeall(self.build_dir)
-        start = datetime.datetime.now()
+        self.start = datetime.datetime.now()
+        self.end = datetime.datetime.now()
+        self.duration = self.end - self.start
+        self.average = self.duration
         env_path = os.environ['PATH']
         os.environ['PATH'] = path.host(path.join(self.tools, 'bin')) + \
                              os.pathsep + os.environ['PATH']
         job_count, build_job_count = jobs_option_parse(self.options['jobs'])
         builds = self._create_build_jobs(jobs, build_job_count)
         active_jobs = []
-        jobs_completed = 0
+        self.jobs_completed = 0
         try:
             while len(builds) > 0 or len(active_jobs) > 0:
                 new_jobs = job_count - len(active_jobs)
@@ -1323,7 +1344,7 @@ class builder:
                     job.log_output()
                     job.clean()
                     active_jobs.remove(job)
-                    jobs_completed += 1
+                    self.jobs_completed += 1
                 time.sleep(0.250)
         except:
             for job in active_jobs:
@@ -1332,15 +1353,15 @@ class builder:
                 except:
                     pass
             raise
-        end = datetime.datetime.now()
+        self.end = datetime.datetime.now()
         os.environ['PATH'] = env_path
-        duration = end - start
-        if jobs_completed == 0:
-            jobs_completed = 1
+        self.duration = self.end - self.start
+        if self.jobs_completed == 0:
+            self.jobs_completed = 1
         self._finished()
-        log.notice('Average BSP Build Time: %s' % \
-                   (str(duration / jobs_completed)))
-        log.notice('Total Time %s' % (str(duration)))
+        self.average = self.duration / self.jobs_completed
+        log.notice('Average BSP Build Time: %s' % (str(self.average)))
+        log.notice('Total Time %s' % (str(self.duration)))
 
     def arch_bsp_jobs(self, arch, bsps):
         jobs = []
@@ -1401,6 +1422,7 @@ def run_args(args):
             if 'msys' in cspath[0] and cspath[0].endswith('bin'):
                 os.environ['PATH'] = os.pathsep.join(cspath[1:])
 
+        start = datetime.datetime.now()
         top = os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))
         prefix = '/opt/rtems/%s' % (rtems_version())
         tools = prefix
@@ -1423,8 +1445,11 @@ def run_args(args):
                            type = str)
         argsp.add_argument('--log', help = 'Log file.', type = str)
         argsp.add_argument('--config-report', help = 'Report the configuration.',
-                           action = 'store_true')
+                           type = str, default = None,
+                           choices = ['all', 'profiles', 'builds', 'archs'])
         argsp.add_argument('--warnings-report', help = 'Report the warnings to a file.',
+                           type = str, default = None)
+        argsp.add_argument('--failures-report', help = 'Report the failures to a file.',
                            type = str, default = None)
         argsp.add_argument('--stop-on-error', help = 'Stop on an error.',
                            action = 'store_true')
@@ -1442,20 +1467,48 @@ def run_args(args):
                            type = str, default = '1/%d' % (host.cpus()))
         argsp.add_argument('--dry-run', help = 'Do not run the actual builds.',
                            action = 'store_true')
+        mailer.add_arguments(argsp)
 
         opts = argsp.parse_args(args[1:])
+        mail = None
+        if opts.mail:
+            mail = mailer.mail(opts)
+            # Request these now to generate any errors.
+            from_addr = mail.from_address()
+            smtp_host = mail.smtp_host()
+            if 'mail_to' in opts and opts.mail_to is not None:
+                to_addr = opts.mail_to
+            else:
+                to_addr = 'build@rtems.org'
         if opts.log is not None:
             logf = opts.log
         log.default = log.log([logf])
         log.notice(title())
         log.output(command_line())
+        if mail:
+            log.notice('Mail: from:%s to:%s smtp:%s' % (from_addr,
+                                                        to_addr,
+                                                        smtp_host))
 
         config = configuration_()
         config.load(config_file, opts.build)
 
         if opts.config_report:
-            log.notice('Configuration Report:')
-            log.notice(config.report())
+            log.notice('Configuration Report: %s' % (opts.config_report))
+            c_profiles = False
+            c_builds = False
+            c_archs = False
+            if opts.config_report == 'all':
+                c_profiles = True
+                c_builds = True
+                c_archs = True
+            elif opts.config_report == 'profiles':
+                c_profiles = True
+            elif opts.config_report == 'builds':
+                c_builds = True
+            elif opts.config_report == 'archs':
+                c_archs = True
+            log.notice(config.report(c_profiles, c_builds, c_archs))
             sys.exit(0)
 
         if opts.rtems is None:
@@ -1471,7 +1524,8 @@ def run_args(args):
                     'no-clean'        : opts.no_clean,
                     'dry-run'         : opts.dry_run,
                     'jobs'            : opts.jobs,
-                    'warnings-report' : opts.warnings_report }
+                    'warnings-report' : opts.warnings_report,
+                    'failures-report' : opts.failures_report }
 
         b = builder(config, rtems_version(), prefix, tools,
                     path.shell(opts.rtems), build_dir, options)
@@ -1485,12 +1539,49 @@ def run_args(args):
         #
         if bsps is not None:
             if archs is not None:
-                raise error.general('--arch supplied with --bsp; use --bsp=arch/bsp,arch/bsp,..')
+                raise error.general('--arch supplied with --bsp;' \
+                                    ' use --bsp=arch/bsp,arch/bsp,..')
+            what = 'BSPs: %s' % (' '.join(bsps))
             b.build_bsps(bsps)
         elif archs is not None:
+            what = 'Archs: %s' % (' '.join(archs))
             b.build_archs(archs)
         else:
+            what = 'Profile(s): %s' % (' '.join(profiles))
             b.build_profiles(profiles)
+        end = datetime.datetime.now()
+
+        #
+        # Email the results of the build.
+        #
+        if mail is not None:
+            subject = '[rtems-bsp-builder] %s: %s' % (str(start).split('.')[0],
+                                                      what)
+            t = title()
+            body = t + os.linesep
+            body += '=' * len(t) + os.linesep
+            body += os.linesep
+            body += 'Host: %s' % (os.uname()[3]) + os.linesep
+            body += os.linesep
+            body += command_line()
+            body += os.linesep
+            body += 'Total Time            : %s for %d completed job(s)' % \
+                    (str(b.duration), b.jobs_completed)
+            body += os.linesep
+            body += 'Average BSP Build Time: %s' % (str(b.average))
+            body += os.linesep + os.linesep
+            body += 'Builds' + os.linesep
+            body += '======' + os.linesep
+            body += os.linesep.join([' ' + cb for cb in config.builds()])
+            body += os.linesep + os.linesep
+            body += 'Failures Report' + os.linesep
+            body += '===============' + os.linesep
+            body += b.results.failures_report()
+            body += os.linesep
+            body += 'Warnings Report' + os.linesep
+            body += '===============' + os.linesep
+            body += b.results.warnings_report(summary = True)
+            mail.send(to_addr, subject, body)
 
     except error.general as gerr:
         print(gerr)

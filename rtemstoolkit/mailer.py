@@ -51,15 +51,41 @@ except (ValueError, SystemError):
     import options
     import path
 
+_options = {
+    '--mail'     : 'Send email report or results.',
+    '--smtp-host': 'SMTP host to send via.',
+    '--mail-to'  : 'Email address to send the email too.',
+    '--mail-from': 'Email address the report is from.'
+}
+
 def append_options(opts):
-    opts['--mail'] = 'Send email report or results.'
-    opts['--smtp-host'] = 'SMTP host to send via.'
-    opts['--mail-to'] = 'Email address to send the email too.'
-    opts['--mail-from'] = 'Email address the report is from.'
+    for o in _options:
+        opts[o] = _options[o]
+
+def add_arguments(argsp):
+    argsp.add_argument('--mail', help = _options['--mail'], action = 'store_true')
+    for o in ['--smtp-host', '--mail-to', '--mail-from']:
+        argsp.add_argument(o, help = _options[o], type = str)
 
 class mail:
     def __init__(self, opts):
         self.opts = opts
+
+    def _args_are_macros(self):
+        return type(self.opts) is 'command_line'
+
+    def _get_arg(self, arg):
+        if self._args_are_macros():
+            value = self.opts.find_arg(arg)[1]
+        else:
+            if arg.startswith('--'):
+                arg = arg[2:]
+            arg = arg.replace('-', '_')
+            if arg in vars(self.opts):
+                value = vars(self.opts)[arg]
+            else:
+                value = None
+        return value
 
     def from_address(self):
 
@@ -72,9 +98,9 @@ class mail:
                 l = l[:l.index('\n')]
             return l.strip()
 
-        addr = self.opts.find_arg('--mail-from')
+        addr = self._get_arg('--mail-from')
         if addr is not None:
-            return addr[1]
+            return addr
         mailrc = None
         if 'MAILRC' in os.environ:
             mailrc = os.environ['MAILRC']
@@ -95,14 +121,18 @@ class mail:
                         addr = fa[fa.index('=') + 1:].replace('"', ' ').strip()
             if addr is not None:
                 return addr
-        addr = self.opts.defaults.get_value('%{_sbgit_mail}')
+        if self._args_are_macros():
+            addr = self.opts.defaults.get_value('%{_sbgit_mail}')
+        else:
+            raise error.general('no valid from address for mail')
         return addr
 
     def smtp_host(self):
-        host = self.opts.find_arg('--smtp-host')
+        host = self._get_arg('--smtp-host')
         if host is not None:
             return host[1]
-        host = self.opts.defaults.get_value('%{_mail_smtp_host}')
+        if self._args_are_macros():
+            host = self.opts.defaults.get_value('%{_mail_smtp_host}')
         if host is not None:
             return host
         return 'localhost'
