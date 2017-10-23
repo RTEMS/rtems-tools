@@ -90,7 +90,7 @@ class report(object):
                   len(str(total)), self.invalids,
                   bsp_arch,
                   bsp,
-                  path.basename(executable))
+                  path.basename(name))
         self.lock.acquire()
         if name in self.results:
             self.lock.release()
