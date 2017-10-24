@@ -79,7 +79,7 @@ class log_capture(object):
                 elif len(status) > 1:
                     s += [status[0]]
                     if len(status) > 2:
-                        s += [' <skipped passes>' + os.linesep]
+                        s += [' <<skipping passes>>']
                     s += [status[-1]]
                     status = []
                 s += [l]
