@@ -288,6 +288,14 @@ def run(command_path = None):
         output = None
         if opts.find_arg('--mail'):
             mail = mailer.mail(opts)
+            # Request these now to generate any errors.
+            from_addr = mail.from_address()
+            smtp_host = mail.smtp_host()
+            to_addr = opts.find_arg('--mail-to')
+            if to_addr:
+                to_addr = to_addr[1]
+            else:
+                to_addr = 'build@rtems.org'
             output = log_capture()
         log.notice('RTEMS Testing - Tester, %s' % (version.str()))
         if opts.find_arg('--list-bsps'):
@@ -384,11 +392,6 @@ def run(command_path = None):
         log.notice(average_time)
         log.notice(total_time)
         if mail is not None and output is not None:
-            to_addr = opts.find_arg('--mail-to')
-            if to_addr:
-                to_addr = to_addr[1]
-            else:
-                to_addr = 'build@rtems.org'
             subject = '[rtems-test] %s: %s' % (str(start_time).split('.')[0], bsp)
             body = [total_time, average_time,
                     '', 'Summary', '=======', '',
