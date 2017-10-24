@@ -199,7 +199,7 @@ def report_finished(reports, report_mode, reporting, finished, job_trace):
     return reporting
 
 def load_configuration(bsp, opts):
-    mandatory = ['tester', 'arch']
+    mandatory = ['bsp', 'arch', 'tester']
     cfg = configuration.configuration()
     path_ = opts.defaults.expand('%%{_configdir}/bsps/%s.ini' % (bsp))
     ini_name = path.basename(path_)
@@ -215,7 +215,6 @@ def load_configuration(bsp, opts):
             opts.defaults.set_write_map(bsp, add = True)
             for i in cfg.get_items(bsp, flatten = False):
                 opts.defaults[i[0]] = i[1]
-            opts.defaults['bsp'] = bsp
             if not opts.defaults.set_read_map(bsp):
                 raise error.general('cannot set BSP read map: %s' % (bsp))
             # Get a copy of the required fields we need
@@ -241,7 +240,7 @@ def load_configuration(bsp, opts):
                             if opts.defaults.get(r) is None:
                                 raise error.general('user value missing, BSP %s requires: %s' % \
                                                     (bsp, ', '.join(requires)))
-            return
+            return opts.defaults['bsp']
     raise error.general('cannot find bsp configuration file: %s.ini' % (bsp))
 
 def _job_trace(tst, msg, total, exe, active, reporting):
@@ -319,8 +318,7 @@ def run(command_path = None):
         bsp = opts.find_arg('--rtems-bsp')
         if bsp is None or len(bsp) != 2:
             raise error.general('RTEMS BSP not provided or an invalid option')
-        bsp = bsp[1]
-        load_configuration(bsp, opts)
+        bsp = load_configuration(bsp[1], opts)
         bsp_config = opts.defaults.expand(opts.defaults['tester'])
         report_mode = opts.find_arg('--report-mode')
         if report_mode:
