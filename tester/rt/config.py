@@ -127,16 +127,18 @@ class file(config.file):
             if fexe is not None and '@FEXE@' in cmd:
                 cmd = cmd.replace('@FEXE@', exe)
             if len(cmd) > 0:
-                rs_proc = execute.capture_execution()
-                ec, proc, output = rs_proc.open(cmd, shell = True)
+                output = ''
+                if not self.opts.dry_run():
+                    rs_proc = execute.capture_execution()
+                    ec, proc, output = rs_proc.open(cmd, shell = True)
                 self._capture_console('target %s: %s' % (command, cmd))
                 if len(output) > 0:
                     output = os.linesep.join([' ' + l for l in output.splitlines()])
                     self._capture_console(output)
 
     def _target_exe_filter(self, exe):
-        if self.defined('target_exe_filter_command'):
-            f = self.expand('%{target_exe_filter_command}').strip()
+        if self.defined('target_exe_filter'):
+            f = self.expand('%{target_exe_filter}').strip()
             # Be like sed and use the first character as the delmiter.
             if len(f) > 0:
                 delimiter = f[0]
@@ -191,37 +193,39 @@ class file(config.file):
         if len(data) == 0:
             raise error.general(self._name_line_msg('no console configuration provided'))
         console_trace = trace = self.debug_trace('console')
-        if data[0] == 'stdio':
-            self.console = console.stdio(trace = console_trace)
-        elif data[0] == 'tty':
-            if len(data) < 2 or len(data) >3:
-                raise error.general(self._name_line_msg('no tty configuration provided'))
-            if len(data) == 3:
-                settings = data[2]
+        if not self.opts.dry_run():
+            if data[0] == 'stdio':
+                self.console = console.stdio(trace = console_trace)
+            elif data[0] == 'tty':
+                if len(data) < 2 or len(data) >3:
+                    raise error.general(self._name_line_msg('no tty configuration provided'))
+                if len(data) == 3:
+                    settings = data[2]
+                else:
+                    settings = None
+                self.console = console.tty(data[1],
+                                           output = self.capture,
+                                           setup = settings,
+                                           trace = console_trace)
             else:
-                settings = None
-            self.console = console.tty(data[1],
-                                       output = self.capture,
-                                       setup = settings,
-                                       trace = console_trace)
-        else:
-            raise error.general(self._name_line_msg('invalid console type'))
+                raise error.general(self._name_line_msg('invalid console type'))
 
     def _dir_execute(self, data, total, index, exe, bsp_arch, bsp):
         self.process = execute.execute(output = self.capture)
+        if self.console:
+            self.console.open()
         if not self.in_error:
-            if self.console:
-                self.console.open()
             self.capture_console('run: %s' % (' '.join(data)))
-            ec, proc = self.process.open(data,
-                                         timeout = (int(self.expand('%{timeout}')),
-                                                    self._timeout))
-            self._lock()
-            if not self.kill_good and ec > 0:
-                self._error('execute failed: %s: exit-code:%d' % (' '.join(data), ec))
-            elif self.timedout:
-                self.process.kill()
-            self._unlock()
+            if not self.opts.dry_run():
+                ec, proc = self.process.open(data,
+                                             timeout = (int(self.expand('%{timeout}')),
+                                                        self._timeout))
+                self._lock()
+                if not self.kill_good and ec > 0:
+                    self._error('execute failed: %s: exit-code:%d' % (' '.join(data), ec))
+                elif self.timedout:
+                    self.process.kill()
+                self._unlock()
             if self.console:
                 self.console.close()
 
@@ -237,11 +241,12 @@ class file(config.file):
         if not self.in_error:
             if self.console:
                 self.console.open()
-            self.process.open(data[0], data[1],
-                              script = script,
-                              output = self.capture,
-                              gdb_console = self.capture_console,
-                              timeout = int(self.expand('%{timeout}')))
+            if not self.opts.dry_run():
+                self.process.open(data[0], data[1],
+                                  script = script,
+                                  output = self.capture,
+                                  gdb_console = self.capture_console,
+                                  timeout = int(self.expand('%{timeout}')))
             if self.console:
                 self.console.close()
 
@@ -253,19 +258,20 @@ class file(config.file):
         except:
             raise error.general('invalid %tftp port')
         self.kill_on_end = True
-        self.process = tftp.tftp(bsp_arch, bsp,
-                                 trace = self.debug_trace('gdb'))
-        if not self.in_error:
-            if self.console:
-                self.console.open()
-            self.process.open(executable = exe,
-                              port = port,
-                              output_length = self._output_length,
-                              console = self.capture_console,
-                              timeout = (int(self.expand('%{timeout}')),
-                                         self._timeout))
-            if self.console:
-                self.console.close()
+        if not self.opts.dry_run():
+            self.process = tftp.tftp(bsp_arch, bsp,
+                                     trace = self.debug_trace('tftp'))
+            if not self.in_error:
+                if self.console:
+                    self.console.open()
+                self.process.open(executable = exe,
+                                  port = port,
+                                  output_length = self._output_length,
+                                  console = self.capture_console,
+                                  timeout = (int(self.expand('%{timeout}')),
+                                             self._timeout))
+                if self.console:
+                    self.console.close()
 
     def _directive_filter(self, results, directive, info, data):
         if results[0] == 'directive':
@@ -287,7 +293,7 @@ class file(config.file):
                     total = int(self.expand('%{test_total}'))
                     index = int(self.expand('%{test_index}'))
                     exe = self.expand('%{test_executable}')
-                    bsp_arch = self.expand('%{bsp_arch}')
+                    bsp_arch = self.expand('%{arch}')
                     bsp = self.expand('%{bsp}')
                     fexe = self._target_exe_filter(exe)
                     self.report.start(index, total, exe, fexe, bsp_arch, bsp)

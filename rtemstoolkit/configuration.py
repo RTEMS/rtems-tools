@@ -36,6 +36,7 @@ from __future__ import print_function
 
 import os
 import re
+import yaml
 
 try:
     import configparser
@@ -51,6 +52,23 @@ class configuration:
         self.config = configparser.ConfigParser()
         self.ini = None
         self.macro_filter = re.compile('\$\{.+\}')
+
+    def __str__(self):
+        if self.ini is None:
+            return 'empty'
+        s = ['Base: %s' % (self.ini['base'])]
+        s += ['Files:']
+        for f in self.ini['files']:
+            s += [' %s' % (f)]
+        s += ['Defaults:']
+        for default in self.config.defaults():
+            s += ' ' + default
+        s += ['Sections:']
+        for section in self.config.sections():
+            s += [' [%s]' % (section)]
+            for option in self.config.options(section):
+                s += ['  %s = %s' % (option, self.config.get(section, option))]
+        return os.linesep.join(s)
 
     def get_item(self, section, label, err = True):
         try:
@@ -78,10 +96,14 @@ class configuration:
                 pass
         return rec
 
-    def get_items(self, section, err = True):
+    def get_items(self, section, err = True, flatten = True):
         try:
-            items = [(name, key.replace(os.linesep, ' ')) \
-                     for name, key in self.config.items(section)]
+            items = []
+            for name, key in self.config.items(section):
+                if flatten:
+                    items += [(name, key.replace(os.linesep, ' '))]
+                else:
+                    items += [(name, key)]
             return items
         except:
             if err:
@@ -101,6 +123,9 @@ class configuration:
             if err:
                 raise error.general('config: section "%s" not found' % (section))
         return []
+
+    def has_section(self, section):
+        return self.config.has_section(section)
 
     def load(self, name):
         #
@@ -131,7 +156,6 @@ class configuration:
             if still_loading:
                 for section in self.config.sections():
                     includes += self.comma_list(section, 'include', err = False)
-
 
     def files(self):
         return self.ini['files']

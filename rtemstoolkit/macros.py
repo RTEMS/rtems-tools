@@ -134,18 +134,19 @@ class macros:
         for f in self.files:
             text += '> %s%s' % (f, os.linesep)
         for map in self.macros:
-            if map in self.read_maps:
-                if self.read_map_locked:
-                    rm = 'R'
-                else:
-                    rm = 'r'
-            else:
-                rm = '-'
+            rm = '-'
+            for rmap in self.read_maps:
+                if rmap[4:] == '___%s' % (map):
+                    if self.read_map_locked:
+                        rm = 'R[%s]' % (rmap[:4])
+                    else:
+                        rm = 'r[%s]' % (rmap[:4])
+                    break
             if map == self.write_map:
                 wm = 'w'
             else:
                 wm = '-'
-            text += '[%s] %s%s%s' % (map, rm, wm, os.linesep)
+            text += '[%s] %s,%s%s' % (map, wm, rm, os.linesep)
             for k in sorted(self.macros[map].keys()):
                 d = self.macros[map][k]
                 text += " %s:%s '%s'%s '%s'%s" % \
@@ -250,7 +251,7 @@ class macros:
         return self.macros.keys()
 
     def get_read_maps(self):
-        return [rm[5:] for rm in self.read_maps]
+        return [rm[7:] for rm in self.read_maps]
 
     def key_filter(self, key):
         if key.startswith('%{') and key[-1] is '}':
@@ -493,7 +494,7 @@ class macros:
         if not self.read_map_locked:
             if _map in self.macros:
                 if _map not in self.get_read_maps():
-                    rm = '%04d_%s' % (len(self.read_maps), _map)
+                    rm = '%04d___%s' % (len(self.read_maps), _map)
                     self.read_maps = sorted(self.read_maps + [rm])
                 return True
         return False
@@ -502,16 +503,24 @@ class macros:
         if not self.read_map_locked:
             if _map in self.get_read_maps():
                 for i in range(0, len(self.read_maps)):
-                    if '%04d_%s' % (i, _map) == self.read_maps[i]:
+                    if '%04d___%s' % (i, _map) == self.read_maps[i]:
                         self.read_maps.pop(i)
                 return True
         return False
 
-    def set_write_map(self, map):
-        if map in self.macros:
-            self.write_map = map
+    def set_write_map(self, _map, add = False):
+        if _map in self.macros:
+            self.write_map = _map
+            return True
+        elif add:
+            self.write_map = _map
+            self.macros[_map] = {}
             return True
         return False
+
+    def unset_write_map(self):
+        self.write_map = 'global'
+        return True
 
     def lock_read_map(self):
         self.read_map_locked = True

@@ -153,13 +153,17 @@ def removeall(path):
 
     path = host(path)
     shutil.rmtree(path, onerror = _onerror)
-    return
 
 def expand(name, paths):
     l = []
     for p in paths:
         l += [join(p, name)]
     return l
+
+def expanduser(path):
+    path = host(path)
+    path = os.path.expanduser(path)
+    return shell(path)
 
 def collect_files(path_):
     #

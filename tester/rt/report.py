@@ -98,7 +98,7 @@ class report(object):
         self.results[name] = { 'index': index,
                                'bsp': bsp,
                                'bsp_arch': bsp_arch,
-                               'exe': executable,
+                               'exe': name,
                                'start': datetime.datetime.now(),
                                'end': None,
                                'result': None,

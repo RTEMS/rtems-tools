@@ -39,6 +39,7 @@ import sys
 import threading
 import time
 
+from rtemstoolkit import configuration
 from rtemstoolkit import error
 from rtemstoolkit import log
 from rtemstoolkit import path
@@ -95,8 +96,7 @@ class test(object):
         self.opts.defaults['test_index'] = str(index)
         self.opts.defaults['test_total'] = str(total)
         self.opts.defaults['bsp'] = bsp
-        self.opts.defaults['bsp_arch'] = '%%{%s_arch}' % (bsp)
-        self.opts.defaults['bsp_opts'] = '%%{%s_opts}' % (bsp)
+        self.opts.defaults['bsp_arch'] = '%{arch}'
         if not path.isfile(executable):
             raise error.general('cannot find executable: %s' % (executable))
         self.opts.defaults['test_executable'] = executable
@@ -198,6 +198,52 @@ def report_finished(reports, report_mode, reporting, finished, job_trace):
                     print('}} ', t.name)
     return reporting
 
+def load_configuration(bsp, opts):
+    mandatory = ['tester', 'arch']
+    cfg = configuration.configuration()
+    path_ = opts.defaults.expand('%%{_configdir}/bsps/%s.ini' % (bsp))
+    ini_name = path.basename(path_)
+    for p in path.dirname(path_).split(':'):
+        if path.exists(path.join(p, ini_name)):
+            cfg.load(path.join(p, ini_name))
+            if not cfg.has_section(bsp):
+                raise error.general('bsp section not found in ini: [%s]' % (bsp))
+            item_names = cfg.get_item_names(bsp, err = False)
+            for m in mandatory:
+                if m not in item_names:
+                    raise error.general('mandatory item not found in bsp section: %s' % (m))
+            opts.defaults.set_write_map(bsp, add = True)
+            for i in cfg.get_items(bsp, flatten = False):
+                opts.defaults[i[0]] = i[1]
+            opts.defaults['bsp'] = bsp
+            if not opts.defaults.set_read_map(bsp):
+                raise error.general('cannot set BSP read map: %s' % (bsp))
+            # Get a copy of the required fields we need
+            requires = cfg.comma_list(bsp, 'requires', err = False)
+            del cfg
+            user_config = opts.find_arg('--user-config')
+            if user_config is not None:
+                user_config = path.expanduser(user_config[1])
+                if not path.exists(user_config):
+                    raise error.general('cannot find user configuration file: %s' % (user_config))
+            else:
+                if 'HOME' in os.environ:
+                    user_config = path.join(os.environ['HOME'], '.rtemstesterrc')
+            if user_config:
+                if path.exists(user_config):
+                    cfg = configuration.configuration()
+                    cfg.load(user_config)
+                    if cfg.has_section(bsp):
+                        for i in cfg.get_items(bsp, flatten = False):
+                            opts.defaults[i[0]] = i[1]
+                        # Check for the required values.
+                        for r in requires:
+                            if opts.defaults.get(r) is None:
+                                raise error.general('user value missing, BSP %s requires: %s' % \
+                                                    (bsp, ', '.join(requires)))
+            return
+    raise error.general('cannot find bsp configuration file: %s.ini' % (bsp))
+
 def _job_trace(tst, msg, total, exe, active, reporting):
     s = ''
     for a in active:
@@ -228,6 +274,7 @@ def run(command_path = None):
     try:
         optargs = { '--rtems-tools': 'The path to the RTEMS tools',
                     '--rtems-bsp':   'The RTEMS BSP to run the test on',
+                    '--user-config': 'Path to your local user configuration INI file',
                     '--report-mode': 'Reporting modes, failures (default),all,none',
                     '--list-bsps':   'List the supported BSPs',
                     '--debug-trace': 'Debug trace based on specific flags',
@@ -271,18 +318,10 @@ def run(command_path = None):
             rtems_tools = '%{_prefix}'
         bsp = opts.find_arg('--rtems-bsp')
         if bsp is None or len(bsp) != 2:
-            raise error.general('RTEMS BSP not provided or invalid option')
-        opts.defaults.load('%%{_configdir}/bsps/%s.mc' % (bsp[1]))
-        bsp = opts.defaults.get('%{bsp}')
-        if not bsp:
-            raise error.general('BSP definition (%{bsp}) not found in the global map')
-        bsp = bsp[2]
-        if not opts.defaults.set_read_map(bsp):
-            raise error.general('no BSP map found')
-        bsp_script = opts.defaults.get(bsp)
-        if not bsp_script:
-            raise error.general('BSP script not found: %s' % (bsp))
-        bsp_config = opts.defaults.expand(opts.defaults[bsp])
+            raise error.general('RTEMS BSP not provided or an invalid option')
+        bsp = bsp[1]
+        load_configuration(bsp, opts)
+        bsp_config = opts.defaults.expand(opts.defaults['tester'])
         report_mode = opts.find_arg('--report-mode')
         if report_mode:
             if report_mode[1] != 'failures' and \
