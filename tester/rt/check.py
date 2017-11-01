@@ -343,7 +343,7 @@ class warnings_errors:
             s += textbox.line(cols_1, marker = '+', indent = 1)
         return s
 
-    def warnings_report(self, summary):
+    def warnings_report(self, summary = False):
         self.lock.acquire()
         s = ' No warnings' + os.linesep
         try:
@@ -1285,7 +1285,7 @@ class builder:
                                         os.linesep))
                 f.write(os.linesep)
                 f.write(command_line() + os.linesep)
-                f.write(self.results.warnings_errors.report())
+                f.write(self.results.warnings_errors.warnings_report())
 
     def _failures_report(self):
         if self.options['failures-report'] is not None:
