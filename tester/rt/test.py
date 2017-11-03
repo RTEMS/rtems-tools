@@ -283,7 +283,7 @@ def run(command_path = None):
         bsp = opts.find_arg('--rtems-bsp')
         if bsp is None or len(bsp) != 2:
             raise error.general('RTEMS BSP not provided or an invalid option')
-        bsp = coinfig.load(bsp[1], opts)
+        bsp = config.load(bsp[1], opts)
         bsp_config = opts.defaults.expand(opts.defaults['tester'])
         report_mode = opts.find_arg('--report-mode')
         if report_mode:

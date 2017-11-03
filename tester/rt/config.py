@@ -61,7 +61,7 @@ class file(config.file):
                    '%console']
 
     def __init__(self, index, total, report, name, opts,
-                 console_prefix = '] ', _directives = _directives):
+                 console_prefix = ']', _directives = _directives):
         super(file, self).__init__(name, opts, directives = _directives)
         self.lock = threading.Lock()
         self.realtime_trace = self.exe_trace('output')
@@ -336,7 +336,7 @@ class file(config.file):
 
     def _realtime_trace(self, text):
         for l in text:
-            print(''.join(l))
+            print(l)
 
     def run(self):
         self.target_start_regx = self._target_regex('target_start_regex')
