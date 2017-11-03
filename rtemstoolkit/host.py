@@ -97,8 +97,23 @@ def overrides():
     _load()
     return platform.overrides()
 
+def label(mode = 'all'):
+    import platform
+    if mode == 'system':
+        return platform.system()
+    compact = platform.platform(aliased = True)
+    if mode == 'compact':
+        return compact
+    extended = ' '.join(platform.uname())
+    if mode == 'extended':
+        return extended
+    if mode == 'all':
+        return '%s (%s)' % (compact, extended)
+    raise error.general('invalid platform mode: %s' % (mode))
+
 if __name__ == '__main__':
     import pprint
+    pprint.pprint(platform())
     _load()
     print('Name      : %s' % (name))
     if is_windows:

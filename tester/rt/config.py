@@ -39,6 +39,7 @@ import os
 import re
 import threading
 
+from rtemstoolkit import configuration
 from rtemstoolkit import config
 from rtemstoolkit import error
 from rtemstoolkit import execute
@@ -59,10 +60,13 @@ class file(config.file):
                    '%tftp',
                    '%console']
 
-    def __init__(self, index, total, report, name, opts, _directives = _directives):
+    def __init__(self, index, total, report, name, opts,
+                 console_prefix = '] ', _directives = _directives):
         super(file, self).__init__(name, opts, directives = _directives)
         self.lock = threading.Lock()
-        self.realtime_trace = self.debug_trace('output')
+        self.realtime_trace = self.exe_trace('output')
+        self.console_trace = self.exe_trace('console')
+        self.console_prefix = console_prefix
         self.process = None
         self.console = None
         self.output = None
@@ -182,9 +186,10 @@ class file(config.file):
         return 0
 
     def _capture_console(self, text):
-        text = [('=>', l) for l in text.replace(chr(13), '').splitlines()]
+        text = [('=> ', l) for l in text.replace(chr(13), '').splitlines()]
         if self.output is not None:
-            self._realtime_trace(text)
+            if self.console_trace:
+                self._realtime_trace(text)
             self.output += text
 
     def _dir_console(self, data):
@@ -192,7 +197,7 @@ class file(config.file):
             raise error.general(self._name_line_msg('console already configured'))
         if len(data) == 0:
             raise error.general(self._name_line_msg('no console configuration provided'))
-        console_trace = trace = self.debug_trace('console')
+        console_trace = trace = self.exe_trace('console')
         if not self.opts.dry_run():
             if data[0] == 'stdio':
                 self.console = console.stdio(trace = console_trace)
@@ -233,8 +238,8 @@ class file(config.file):
         if len(data) < 3 or len(data) > 4:
             raise error.general('invalid %gdb arguments')
         self.process = gdb.gdb(bsp_arch, bsp,
-                               trace = self.debug_trace('gdb'),
-                               mi_trace = self.debug_trace('gdb-mi'))
+                               trace = self.exe_trace('gdb'),
+                               mi_trace = self.exe_trace('gdb-mi'))
         script = self.expand('%%{%s}' % data[2])
         if script:
             script = [l.strip() for l in script.splitlines()]
@@ -260,7 +265,7 @@ class file(config.file):
         self.kill_on_end = True
         if not self.opts.dry_run():
             self.process = tftp.tftp(bsp_arch, bsp,
-                                     trace = self.debug_trace('tftp'))
+                                     trace = self.exe_trace('tftp'))
             if not self.in_error:
                 if self.console:
                     self.console.open()
@@ -296,7 +301,8 @@ class file(config.file):
                     bsp_arch = self.expand('%{arch}')
                     bsp = self.expand('%{bsp}')
                     fexe = self._target_exe_filter(exe)
-                    self.report.start(index, total, exe, fexe, bsp_arch, bsp)
+                    if self.report is not None:
+                        self.report.start(index, total, exe, fexe, bsp_arch, bsp)
                     if self.index == 1:
                         self._target_command('on', bsp_arch, bsp, exe, fexe)
                     self._target_command('pretest', bsp_arch, bsp, exe, fexe)
@@ -315,12 +321,12 @@ class file(config.file):
                     self._target_command('off', bsp_arch, bsp, exe, fexe)
                 self._target_command('posttest', bsp_arch, bsp, exe, fexe)
                 try:
-                    status = self.report.end(exe, self.output)
-                    self._capture_console('test result: %s' % (status))
+                    status = ''
+                    if self.report is not None:
+                        status = self.report.end(exe, self.output)
+                        self._capture_console('test result: %s' % (status))
                     if status == 'timeout':
-                        if self.index == self.total:
-                            self._target_command('off', bsp_arch, bsp, exe, fexe)
-                        else:
+                        if self.index != self.total:
                             self._target_command('reset', bsp_arch, bsp, exe, fexe)
                     self.process = None
                     self.output = None
@@ -329,9 +335,8 @@ class file(config.file):
         return None, None, None
 
     def _realtime_trace(self, text):
-        if self.realtime_trace:
-            for l in text:
-                print(' '.join(l))
+        for l in text:
+            print(''.join(l))
 
     def run(self):
         self.target_start_regx = self._target_regex('target_start_regex')
@@ -360,16 +365,17 @@ class file(config.file):
         if not reset_target and self.target_reset_regx is not None:
             if self.target_reset_regx.match(text):
                 self.capture_console('target reset condition detected')
-                reset_target = True
+                self._target_command('reset')
         if self.kill_on_end:
             if not ok_to_kill and '*** END OF TEST ' in text:
                 self.capture_console('test end: %s' % (self.test_label))
                 if self.test_label is not None:
                     ok_to_kill = '*** END OF TEST %s ***' % (self.test_label) in text
-        text = [(']', l) for l in text.replace(chr(13), '').splitlines()]
+        text = [(self.console_prefix, l) for l in text.replace(chr(13), '').splitlines()]
         self._lock()
         if self.output is not None:
-            self._realtime_trace(text)
+            if self.realtime_trace:
+                self._realtime_trace(text)
             self.output += text
         if reset_target:
             if self.index == self.total:
@@ -385,8 +391,8 @@ class file(config.file):
         self._capture_console(text)
         self._unlock()
 
-    def debug_trace(self, flag):
-        dt = self.macros['debug_trace']
+    def exe_trace(self, flag):
+        dt = self.macros['exe_trace']
         if dt:
             if flag in dt.split(','):
                 return True
@@ -398,3 +404,48 @@ class file(config.file):
                 self.process.kill()
             except:
                 pass
+
+def load(bsp, opts):
+    mandatory = ['bsp', 'arch', 'tester']
+    cfg = configuration.configuration()
+    path_ = opts.defaults.expand('%%{_configdir}/bsps/%s.ini' % (bsp))
+    ini_name = path.basename(path_)
+    for p in path.dirname(path_).split(':'):
+        if path.exists(path.join(p, ini_name)):
+            cfg.load(path.join(p, ini_name))
+            if not cfg.has_section(bsp):
+                raise error.general('bsp section not found in ini: [%s]' % (bsp))
+            item_names = cfg.get_item_names(bsp, err = False)
+            for m in mandatory:
+                if m not in item_names:
+                    raise error.general('mandatory item not found in bsp section: %s' % (m))
+            opts.defaults.set_write_map(bsp, add = True)
+            for i in cfg.get_items(bsp, flatten = False):
+                opts.defaults[i[0]] = i[1]
+            if not opts.defaults.set_read_map(bsp):
+                raise error.general('cannot set BSP read map: %s' % (bsp))
+            # Get a copy of the required fields we need
+            requires = cfg.comma_list(bsp, 'requires', err = False)
+            del cfg
+            user_config = opts.find_arg('--user-config')
+            if user_config is not None:
+                user_config = path.expanduser(user_config[1])
+                if not path.exists(user_config):
+                    raise error.general('cannot find user configuration file: %s' % (user_config))
+            else:
+                if 'HOME' in os.environ:
+                    user_config = path.join(os.environ['HOME'], '.rtemstesterrc')
+            if user_config:
+                if path.exists(user_config):
+                    cfg = configuration.configuration()
+                    cfg.load(user_config)
+                    if cfg.has_section(bsp):
+                        for i in cfg.get_items(bsp, flatten = False):
+                            opts.defaults[i[0]] = i[1]
+            # Check for the required values.
+            for r in requires:
+                if opts.defaults.get(r) is None:
+                    raise error.general('user value missing, BSP %s requires \'%s\': missing: %s' % \
+                                        (bsp, ', '.join(requires), r))
+            return opts.defaults['bsp']
+    raise error.general('cannot find bsp configuration file: %s.ini' % (bsp))

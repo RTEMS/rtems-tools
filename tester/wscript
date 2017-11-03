@@ -59,6 +59,7 @@ def build(bld):
                   'rt/gdb.py',
                   'rt/options.py',
                   'rt/report.py',
+                  'rt/run.py',
                   'rt/stty.py',
                   'rt/telnet.py',
                   'rt/test.py',
@@ -83,7 +84,8 @@ def build(bld):
         install_from = '.',
         install_path = '${PREFIX}/share/rtems/tester')
     bld.install_files('${PREFIX}/bin',
-                      ['rtems-test',
+                      ['rtems-run',
+                       'rtems-test',
                        'rtems-bsp-builder'],
                       chmod = 0o755)
 
