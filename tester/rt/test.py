@@ -349,7 +349,11 @@ def run(command_path = None):
         log.notice(average_time)
         log.notice(total_time)
         if mail is not None and output is not None:
-            subject = '[rtems-test] %s: %s' % (str(start_time).split('.')[0], bsp)
+            m_arch = opts.defaults.expand('%{arch}')
+            m_bsp = opts.defaults.expand('%{bsp}')
+            subject = '[rtems-test] %s/%s: %s' % (m_arch,
+                                                  m_bsp,
+                                                  reports.score_card('short'))
             body = [total_time, average_time,
                     '', 'Host', '====', host.label(mode = 'all'),
                     '', 'Summary', '=======', '',

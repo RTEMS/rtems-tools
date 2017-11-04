@@ -208,19 +208,26 @@ class report(object):
                 log.output(result)
                 log.output(output)
 
-    def score_card(self):
-        l = []
-        l += ['Passed:        %*d' % (self.total_len, self.passed)]
-        l += ['Failed:        %*d' % (self.total_len, self.failed)]
-        l += ['User Input:    %*d' % (self.total_len, self.user_input)]
-        l += ['Expected Fail: %*d' % (self.total_len, self.expected_fail)]
-        l += ['Indeterminate: %*d' % (self.total_len, self.indeterminate)]
-        l += ['Benchmark:     %*d' % (self.total_len, self.benchmark)]
-        l += ['Timeout:       %*d' % (self.total_len, self.timeouts)]
-        l += ['Invalid:       %*d' % (self.total_len, self.invalids)]
-        l += ['---------------%s' % ('-' * self.total_len)]
-        l += ['Total:         %*d' % (self.total_len, self.total)]
-        return os.linesep.join(l)
+    def score_card(self, mode = 'full'):
+        if mode == 'short':
+            return 'Passed:%d Failed:%d Timeout:%d Invalid:%d' % (self.passed,
+                                                                  self.failed,
+                                                                  self.timeouts,
+                                                                  self.invalids)
+        elif mode == 'full':
+            l = []
+            l += ['Passed:        %*d' % (self.total_len, self.passed)]
+            l += ['Failed:        %*d' % (self.total_len, self.failed)]
+            l += ['User Input:    %*d' % (self.total_len, self.user_input)]
+            l += ['Expected Fail: %*d' % (self.total_len, self.expected_fail)]
+            l += ['Indeterminate: %*d' % (self.total_len, self.indeterminate)]
+            l += ['Benchmark:     %*d' % (self.total_len, self.benchmark)]
+            l += ['Timeout:       %*d' % (self.total_len, self.timeouts)]
+            l += ['Invalid:       %*d' % (self.total_len, self.invalids)]
+            l += ['---------------%s' % ('-' * self.total_len)]
+            l += ['Total:         %*d' % (self.total_len, self.total)]
+            return os.linesep.join(l)
+        raise error.general('invalid socre card mode: %s' % (mode))
 
     def failures(self):
         def show_state(results, state, max_len):
