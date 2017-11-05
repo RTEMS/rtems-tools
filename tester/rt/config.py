@@ -67,6 +67,7 @@ class file(config.file):
         self.realtime_trace = self.exe_trace('output')
         self.console_trace = self.exe_trace('console')
         self.console_prefix = console_prefix
+        self.show_header = not self.defined('test_disable_header')
         self.process = None
         self.console = None
         self.output = None
@@ -301,8 +302,8 @@ class file(config.file):
                     bsp_arch = self.expand('%{arch}')
                     bsp = self.expand('%{bsp}')
                     fexe = self._target_exe_filter(exe)
-                    if self.report is not None:
-                        self.report.start(index, total, exe, fexe, bsp_arch, bsp)
+                    self.report.start(index, total, exe, fexe,
+                                      bsp_arch, bsp, self.show_header)
                     if self.index == 1:
                         self._target_command('on', bsp_arch, bsp, exe, fexe)
                     self._target_command('pretest', bsp_arch, bsp, exe, fexe)
@@ -321,10 +322,14 @@ class file(config.file):
                     self._target_command('off', bsp_arch, bsp, exe, fexe)
                 self._target_command('posttest', bsp_arch, bsp, exe, fexe)
                 try:
-                    status = ''
-                    if self.report is not None:
-                        status = self.report.end(exe, self.output)
-                        self._capture_console('test result: %s' % (status))
+                    status = self.report.end(exe, self.output, self.console_prefix)
+                    version = self.report.get_config('version', not_found = 'n/p')
+                    build = self.report.get_config('build', not_found = 'n/p')
+                    tools = self.report.get_config('tools', not_found = 'n/p')
+                    self._capture_console('test result: %s' % (status))
+                    self._capture_console('test version: %s' % (version))
+                    self._capture_console('test build: %s' % (build))
+                    self._capture_console('test tools: %s' % (tools))
                     if status == 'timeout':
                         if self.index != self.total:
                             self._target_command('reset', bsp_arch, bsp, exe, fexe)
@@ -336,7 +341,7 @@ class file(config.file):
 
     def _realtime_trace(self, text):
         for l in text:
-            print(l)
+            print(''.join(l))
 
     def run(self):
         self.target_start_regx = self._target_regex('target_start_regex')

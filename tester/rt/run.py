@@ -143,9 +143,11 @@ def run(command_path = None):
         executables = find_executables(opts.params())
         if len(executables) != 1:
             raise error.general('one executable required, found %d' % (len(executables)))
+        opts.defaults['test_disable_header'] = '1'
+        reports = report.report(1)
         start_time = datetime.datetime.now()
         opts.defaults['exe_trace'] = debug_trace
-        tst = test(1, 1, None, executables[0], rtems_tools, bsp, bsp_config, opts)
+        tst = test(1, 1, reports, executables[0], rtems_tools, bsp, bsp_config, opts)
         tst.run()
         end_time = datetime.datetime.now()
         total_time = 'Run time     : %s' % (str(end_time - start_time))

@@ -55,14 +55,18 @@ class report(object):
         self.total = total
         self.total_len = len(str(total))
         self.passed = 0
-        self.user_input = 0
         self.failed = 0
+        self.user_input = 0
         self.expected_fail = 0
         self.indeterminate = 0
         self.benchmark = 0
         self.timeouts = 0
         self.invalids = 0
+        self.wrong_version = 0
+        self.wrong_build = 0
+        self.wrong_tools = 0
         self.results = {}
+        self.config = {}
         self.name_max_len = 0
 
     def __str__(self):
@@ -74,10 +78,14 @@ class report(object):
         msg += 'Benchmark:     %*d%s' % (self.total_len, self.self.benchmark, os.linesep)
         msg += 'Timeout:       %*d%s' % (self.total_len, self.timeouts, os.linesep)
         msg += 'Invalid:       %*d%s' % (self.total_len, self.invalids, os.linesep)
+        msg += 'Wrong Version  %*d%s' % (self.total_len, self.wrong_version, os.linesep)
+        msg += 'Wrong Build    %*d%s' % (self.total_len, self.wrong_build, os.linesep)
+        msg += 'Wrong Tools    %*d%s' % (self.total_len, self.wrong_tools, os.linesep)
         return msg
 
-    def start(self, index, total, name, executable, bsp_arch, bsp):
-        header = '[%*d/%*d] p:%-*d f:%-*d u:%-*d e:%-*d I:%-*d B:%-*d t:%-*d i:%-*d | %s/%s: %s' % \
+    def start(self, index, total, name, executable, bsp_arch, bsp, show_header):
+        header = '[%*d/%*d] p:%-*d f:%-*d u:%-*d e:%-*d I:%-*d B:%-*d ' \
+                 't:%-*d i:%-*d W:%-*d | %s/%s: %s' % \
                  (len(str(total)), index,
                   len(str(total)), total,
                   len(str(total)), self.passed,
@@ -88,6 +96,7 @@ class report(object):
                   len(str(total)), self.benchmark,
                   len(str(total)), self.timeouts,
                   len(str(total)), self.invalids,
+                  len(str(total)), self.wrong_version + self.wrong_build + self.wrong_tools,
                   bsp_arch,
                   bsp,
                   path.basename(name))
@@ -106,25 +115,36 @@ class report(object):
                                'header': header }
 
         self.lock.release()
-        log.notice(header, stdout_only = True)
+        if show_header:
+            log.notice(header, stdout_only = True)
 
-    def end(self, name, output):
+    def end(self, name, output, output_prefix):
         start = False
         end = False
         state = None
+        version = None
+        build = None
+        tools = None
         timeout = False
         prefixed_output = []
         for line in output:
-            if line[0] == ']':
+            if line[0] == output_prefix:
                 if line[1].startswith('*** '):
-                    if line[1][4:].startswith('BEGIN OF '):
+                    banner = line[1][4:]
+                    if banner.startswith('BEGIN OF '):
                         start = True
-                    if line[1][4:].startswith('END OF '):
+                    elif line[1][4:].startswith('END OF '):
                         end = True
-                    if line[1][4:].startswith('TEST STATE:'):
-                        state = line[1][15:].strip()
-                    if line[1][4:].startswith('TIMEOUT TIMEOUT'):
+                    elif banner.startswith('TIMEOUT TIMEOUT'):
                         timeout = True
+                    elif banner.startswith('TEST VERSION:'):
+                        version = banner[13:].strip()
+                    elif banner.startswith('TEST STATE:'):
+                        state = banner[11:].strip()
+                    elif banner.startswith('TEST BUILD:'):
+                        build = ','.join(banner[11:].strip().split(' '))
+                    elif banner.startswith('TEST TOOLS:'):
+                        tools = banner[11:].strip()
             prefixed_output += [line[0] + ' ' + line[1]]
         self.lock.acquire()
         if name not in self.results:
@@ -134,9 +154,27 @@ class report(object):
             self.lock.release()
             raise error.general('test already finished: %s' % (name))
         self.results[name]['end'] = datetime.datetime.now()
-        if state is None:
+        if version:
+            if 'version' not in self.config:
+                self.config['version'] = version
+            else:
+                if version != self.config['version']:
+                    state = 'WRONG-VERSION'
+        if build:
+            if 'build' not in self.config:
+                self.config['build'] = build
+            else:
+                if build != self.config['build']:
+                    state = 'WRONG-BUILD'
+        if tools:
+            if 'tools' not in self.config:
+                self.config['tools'] = tools
+            else:
+                if tools != self.config['tools']:
+                    state = 'WRONG-TOOLS'
+        if state is None or state == 'EXPECTED-PASS':
             if start and end:
-                if state is None:
+                if state is None or state == 'EXPECTED-PASS':
                     status = 'passed'
                     self.passed += 1
             elif timeout:
@@ -175,6 +213,15 @@ class report(object):
             elif state == 'BENCHMARK':
                 status = 'benchmark'
                 self.benchmark += 1
+            elif state == 'WRONG-VERSION':
+                status = 'wrong-version'
+                self.wrong_version += 1
+            elif state == 'WRONG-BUILD':
+                status = 'wrong-build'
+                self.wrong_build += 1
+            elif state == 'WRONG-TOOLS':
+                status = 'wrong-tools'
+                self.wrong_tools += 1
             else:
                 raise error.general('invalid test state: %s: %s' % (name, state))
         self.results[name]['result'] = status
@@ -185,6 +232,8 @@ class report(object):
         return status
 
     def log(self, name, mode):
+        status_fails = ['failed', 'timeout', 'invalid',
+                        'wrong-version', 'wrong-build', 'wrong-tools']
         if mode != 'none':
             self.lock.acquire()
             if name not in self.results:
@@ -193,7 +242,7 @@ class report(object):
             exe = path.basename(self.results[name]['exe'])
             result = self.results[name]['result']
             time = self.results[name]['end'] - self.results[name]['start']
-            failed = result in ['failed', 'timeout', 'invalid']
+            failed = result in status_fails
             result = 'Result: %-10s Time: %s %s' % (result, str(time), exe)
             if mode != 'none':
                 header = self.results[name]['header']
@@ -208,12 +257,16 @@ class report(object):
                 log.output(result)
                 log.output(output)
 
+    def get_config(self, config, not_found = None):
+        if config in self.config:
+            return self.config[config]
+        return not_found
+
     def score_card(self, mode = 'full'):
         if mode == 'short':
-            return 'Passed:%d Failed:%d Timeout:%d Invalid:%d' % (self.passed,
-                                                                  self.failed,
-                                                                  self.timeouts,
-                                                                  self.invalids)
+            wrongs = self.wrong_version + self.wrong_build + self.wrong_tools
+            return 'Passed:%d Failed:%d Timeout:%d Invalid:%d Wrong:%d' % \
+                (self.passed, self.failed, self.timeouts, self.invalids, wrongs)
         elif mode == 'full':
             l = []
             l += ['Passed:        %*d' % (self.total_len, self.passed)]
@@ -224,6 +277,9 @@ class report(object):
             l += ['Benchmark:     %*d' % (self.total_len, self.benchmark)]
             l += ['Timeout:       %*d' % (self.total_len, self.timeouts)]
             l += ['Invalid:       %*d' % (self.total_len, self.invalids)]
+            l += ['Wrong Version: %*d' % (self.total_len, self.wrong_version)]
+            l += ['Wrong Build:   %*d' % (self.total_len, self.wrong_build)]
+            l += ['Wrong Tools:   %*d' % (self.total_len, self.wrong_tools)]
             l += ['---------------%s' % ('-' * self.total_len)]
             l += ['Total:         %*d' % (self.total_len, self.total)]
             return os.linesep.join(l)
@@ -258,10 +314,18 @@ class report(object):
         if self.invalids:
             l += ['Invalid:']
             l += show_state(self.results, 'invalid', self.name_max_len)
+        if self.wrong_version:
+            l += ['Wrong Version:']
+            l += show_state(self.results, 'wrong-version', self.name_max_len)
+        if self.wrong_build:
+            l += ['Wrong Build:']
+            l += show_state(self.results, 'wrong-build', self.name_max_len)
+        if self.wrong_tools:
+            l += ['Wrong Tools:']
+            l += show_state(self.results, 'wrong-tools', self.name_max_len)
         return os.linesep.join(l)
 
     def summary(self):
         log.output()
         log.notice(self.score_card())
-        log.output()
         log.output(self.failures())

@@ -351,15 +351,25 @@ def run(command_path = None):
         if mail is not None and output is not None:
             m_arch = opts.defaults.expand('%{arch}')
             m_bsp = opts.defaults.expand('%{bsp}')
-            subject = '[rtems-test] %s/%s: %s' % (m_arch,
-                                                  m_bsp,
-                                                  reports.score_card('short'))
+            build = ' %s:' % (reports.get_config('build', not_found = ''))
+            subject = '[rtems-test] %s/%s:%s %s' % (m_arch,
+                                                    m_bsp,
+                                                    build,
+                                                    reports.score_card('short'))
+            np = 'Not present in test'
+            ver = reports.get_config('version', not_found = np)
+            build = reports.get_config('build', not_found = np)
+            tools = reports.get_config('tools', not_found = np)
             body = [total_time, average_time,
                     '', 'Host', '====', host.label(mode = 'all'),
+                    '', 'Configuration', '=============',
+                    'Version: %s' % (ver),
+                    'Build  : %s' % (build),
+                    'Tools  : %s' % (tools),
                     '', 'Summary', '=======', '',
                     reports.score_card(), '',
                     reports.failures(),
-                    '', 'Log', '===', ''] + output.get()
+                    'Log', '===', ''] + output.get()
             mail.send(to_addr, subject, os.linesep.join(body))
 
     except error.general as gerr:
