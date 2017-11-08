@@ -38,7 +38,7 @@ subdirs = ['rtemstoolkit',
            'tools/gdb/python']
 
 def get_version(ctx):
-    version = '4.12'
+    version = '5'
     revision = 'not_released'
     release = '%s.%s' % (version, revision)
     if os.path.exists('VERSION'):
