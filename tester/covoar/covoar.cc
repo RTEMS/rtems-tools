@@ -44,13 +44,13 @@ std::list<Coverage::ExecutableInfo*> executablesToAnalyze;
 const char*                          explanations = NULL;
 char*                                progname;
 const char*                          symbolsFile = NULL;
-const char*		             gcnosFileName = NULL;
-char				     gcnoFileName[FILE_NAME_LENGTH];
-char				     gcdaFileName[FILE_NAME_LENGTH];
-char				     gcovBashCommand[256];
+const char*                          gcnosFileName = NULL;
+char                                 gcnoFileName[FILE_NAME_LENGTH];
+char                                 gcdaFileName[FILE_NAME_LENGTH];
+char                                 gcovBashCommand[256];
 const char*                          target = NULL;
 const char*                          format = NULL;
-FILE*				     gcnosFile = NULL;
+FILE*                                gcnosFile = NULL;
 Gcov::GcovData*          gcovFile;
 
 /*
@@ -166,63 +166,63 @@ int main(
   }
   try
   {
-   /*
-	* Validate inputs.
-	*/
+    /*
+     * Validate inputs.
+     */
 
-   /*
-	* Target name must be set.
-	*/
-	if ( !target ) {
-	  option = "target -T";
-	  throw option;
-	}
+    /*
+     * Target name must be set.
+     */
+    if ( !target ) {
+      option = "target -T";
+      option;
+    }
 
-   /*
-	* Validate simulator format.
-	*/
-	if ( !format ) {
-	  option = "format -f";
-	  throw option;
-	}
+    /*
+     * Validate simulator format.
+     */
+    if ( !format ) {
+      option = "format -f";
+      throw option;
+    }
 
-   /*
-	* Has path to explanations.txt been specified.
-	*/
-	if ( !explanations ) {
-	  option = "explanations -E";
-	  throw option;
-	}
+    /*
+     * Has path to explanations.txt been specified.
+     */
+    if ( !explanations ) {
+      option = "explanations -E";
+      throw option;
+    }
 
-   /*
-	* Has coverage file extension been specified.
-	*/
-	if ( !coverageFileExtension ) {
-	  option = "coverage extension -c";
-	  throw option;
-	}
+    /*
+     * Has coverage file extension been specified.
+     */
+    if ( !coverageFileExtension ) {
+      option = "coverage extension -c";
+      throw option;
+    }
 
-   /*
-	* Has executable extension been specified.
-	*/
-	if ( !executableExtension ) {
-	  option = "executable extension -e";
-	  throw option;
-	}
+    /*
+     * Has executable extension been specified.
+     */
+    if ( !executableExtension ) {
+      option = "executable extension -e";
+      throw option;
+    }
 
-   /*
-	* Check for project name.
-	*/
-	if ( !projectName ) {
-	  option = "project name -p";
-	  throw option;
-	}
+    /*
+     * Check for project name.
+     */
+    if ( !projectName ) {
+      option = "project name -p";
+      throw option;
+    }
   }
   catch( std::string option )
   {
-	std::cout << "error missing option: " + option << std::endl;
-	usage();
-	throw;
+    std::cout << "error missing option: " + option << std::endl;
+    usage();
+    throw;
   }
 
   // If a single executable was specified, process the remaining
@@ -236,12 +236,9 @@ int main(
         "WARNING: Unable to read executable %s\n",
         singleExecutable
       );
-    }
-
-    else {
+    } else {
 
       for (i=optind; i < argc; i++) {
-
         // Ensure that the coverage file is readable.
         if (!FileIsReadable( argv[i] )) {
           fprintf(
@@ -249,21 +246,21 @@ int main(
             "WARNING: Unable to read coverage file %s\n",
             argv[i]
           );
-        }
-
-        else
+        } else {
           coverageFileNames.push_back( argv[i] );
+        }
       }
 
       // If there was at least one coverage file, create the
       // executable information.
       if (!coverageFileNames.empty()) {
-        if (dynamicLibrary)
+        if (dynamicLibrary) {
           executableInfo = new Coverage::ExecutableInfo(
             singleExecutable, dynamicLibrary
           );
-        else
+        } else {
           executableInfo = new Coverage::ExecutableInfo( singleExecutable );
+        }
 
         executablesToAnalyze.push_back( executableInfo );
       }
@@ -282,9 +279,7 @@ int main(
           "WARNING: Unable to read executable %s\n",
           argv[i]
         );
-      }
-
-      else {
+      } else {
         coverageFileName = argv[i];
         coverageFileName.replace(
           coverageFileName.length() - executableExtensionLength,
@@ -298,9 +293,7 @@ int main(
             "WARNING: Unable to read coverage file %s\n",
             coverageFileName.c_str()
           );
-        }
-
-        else {
+        } else {
           executableInfo = new Coverage::ExecutableInfo( argv[i] );
           executablesToAnalyze.push_back( executableInfo );
           coverageFileNames.push_back( coverageFileName );
@@ -318,16 +311,17 @@ int main(
   }
 
   if (Verbose) {
-    if (singleExecutable)
+    if (singleExecutable) {
       fprintf(
         stderr,
         "Processing a single executable and multiple coverage files\n"
       );
-    else
+    } else {
       fprintf(
         stderr,
         "Processing multiple executable/coverage file pairs\n"
       );
+    }
     fprintf( stderr, "Coverage Format : %s\n", format );
     fprintf( stderr, "Target          : %s\n", PrintableString(target) );
     fprintf( stderr, "\n" );
@@ -335,18 +329,18 @@ int main(
     // Process each executable/coverage file pair.
     eitr = executablesToAnalyze.begin();
     for (citr = coverageFileNames.begin();
-	 citr != coverageFileNames.end();
-	 citr++) {
+         citr != coverageFileNames.end();
+         citr++) {
 
-	fprintf(
-	  stderr,
-	  "Coverage file %s for executable %s\n",
-	  (*citr).c_str(),
-	  ((*eitr)->getFileName()).c_str()
-	);
+      fprintf(
+        stderr,
+        "Coverage file %s for executable %s\n",
+        (*citr).c_str(),
+        ((*eitr)->getFileName()).c_str()
+      );
 
-	if (!singleExecutable)
-	  eitr++;
+      if (!singleExecutable)
+        eitr++;
     }
 #endif
   }
@@ -361,12 +355,13 @@ int main(
   // Create the set of desired symbols.
   SymbolsToAnalyze = new Coverage::DesiredSymbols();
   SymbolsToAnalyze->load( symbolsFile );
-  if (Verbose)
+  if (Verbose) {
     fprintf(
       stderr,
       "Analyzing %u symbols\n",
       (unsigned int) SymbolsToAnalyze->set.size()
     );
+  }
 
   // Create explanations.
   AllExplanations = new Coverage::Explanations();
@@ -388,18 +383,20 @@ int main(
        eitr != executablesToAnalyze.end();
        eitr++) {
 
-    if (Verbose)
+    if (Verbose) {
       fprintf(
         stderr,
         "Extracting information from %s\n",
         ((*eitr)->getFileName()).c_str()
       );
+    }
 
     // If a dynamic library was specified, determine the load address.
-    if (dynamicLibrary)
+    if (dynamicLibrary) {
       (*eitr)->setLoadAddress(
         objdumpProcessor->determineLoadAddress( *eitr )
       );
+    }
 
     // Load the objdump for the symbols in this executable.
     objdumpProcessor->load( *eitr, objdumpFile, err );
@@ -415,13 +412,14 @@ int main(
        citr != coverageFileNames.end();
        citr++) {
 
-    if (Verbose)
+    if (Verbose) {
       fprintf(
         stderr,
         "Processing coverage file %s for executable %s\n",
         (*citr).c_str(),
         ((*eitr)->getFileName()).c_str()
       );
+    }
 
     // Process its coverage file.
     coverageReader->processFile( (*citr).c_str(), *eitr );
@@ -432,20 +430,23 @@ int main(
     // DEBUG Print ExecutableInfo content
     //(*eitr)->dumpExecutableInfo();
 
-    if (!singleExecutable)
+    if (!singleExecutable) {
       eitr++;
+    }
   }
 
   // Do necessary preprocessing of uncovered ranges and branches
-  if (Verbose)
+  if (Verbose) {
     fprintf( stderr, "Preprocess uncovered ranges and branches\n" );
+  }
   SymbolsToAnalyze->preprocess();
 
   //
   // Generate Gcov reports
   //
-  if (Verbose)
+  if (Verbose) {
     fprintf( stderr, "Generating Gcov reports...\n");
+  }
   gcnosFile = fopen ( gcnosFileName , "r" );
 
   if ( !gcnosFile ) {
@@ -456,8 +457,9 @@ int main(
       gcovFile = new Gcov::GcovData();
       strcpy( gcnoFileName, inputBuffer );
 
-      if ( Verbose )
-	fprintf( stderr, "Processing file: %s\n", gcnoFileName );
+      if ( Verbose ) {
+        fprintf( stderr, "Processing file: %s\n", gcnoFileName );
+      }
 
       if ( gcovFile->readGcnoFile( gcnoFileName ) ) {
         // Those need to be in this order
@@ -469,33 +471,37 @@ int main(
 
       delete gcovFile;
     }
-  fclose( gcnosFile );
+    fclose( gcnosFile );
   }
 
   // Determine the uncovered ranges and branches.
-  if (Verbose)
+  if (Verbose) {
     fprintf( stderr, "Computing uncovered ranges and branches\n" );
+  }
   SymbolsToAnalyze->computeUncovered();
 
   // Calculate remainder of statistics.
-  if (Verbose)
+  if (Verbose) {
     fprintf( stderr, "Calculate statistics\n" );
+  }
   SymbolsToAnalyze->calculateStatistics();
 
   // Look up the source lines for any uncovered ranges and branches.
-  if (Verbose)
+  if (Verbose) {
     fprintf(
       stderr, "Looking up source lines for uncovered ranges and branches\n"
     );
+  }
   SymbolsToAnalyze->findSourceForUncovered();
 
   //
   // Report the coverage data.
   //
-  if (Verbose)
+  if (Verbose) {
     fprintf(
       stderr, "Generate Reports\n"
     );
+  }
   Coverage::GenerateReports();
 
   // Write explanations that were not found.
@@ -506,17 +512,18 @@ int main(
     notFound += "/";
     notFound += "ExplanationsNotFound.txt";
 
-    if (Verbose)
+    if (Verbose) {
       fprintf( stderr, "Writing Not Found Report (%s)\n", notFound.c_str() );
+    }
     AllExplanations->writeNotFound( notFound.c_str() );
   }
 
   //Leave tempfiles around if debug flag (-d) is enabled.
   if ( debug ) {
-	objdumpFile.override( "objdump_file" );
-	objdumpFile.keep();
-	err.override( "objdump_exec_log" );
-	err.keep();
+    objdumpFile.override( "objdump_file" );
+    objdumpFile.keep();
+    err.override( "objdump_exec_log" );
+    err.keep();
   }
   return 0;
 }
