@@ -161,7 +161,7 @@ int main(
       case 'd': debug                 = true;   break;
       default: /* '?' */
         usage();
-        exit( -1 );
+        exit(EXIT_FAILURE);
     }
   }
   try
@@ -222,7 +222,7 @@ int main(
   {
     std::cout << "error missing option: " + option << std::endl;
     usage();
-    throw;
+    exit(EXIT_FAILURE);
   }
 
   // If a single executable was specified, process the remaining
@@ -307,7 +307,7 @@ int main(
     fprintf(
       stderr, "ERROR: No information to analyze\n"
     );
-    exit( -1 );
+    exit(EXIT_FAILURE);
   }
 
   if (Verbose) {
@@ -372,7 +372,7 @@ int main(
   coverageReader = Coverage::CreateCoverageReader(coverageFormat);
   if (!coverageReader) {
     fprintf( stderr, "ERROR: Unable to create coverage file reader\n" );
-    exit(-1);
+    exit(EXIT_FAILURE);
   }
 
   // Create the objdump processor.
