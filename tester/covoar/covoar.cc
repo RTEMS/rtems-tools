@@ -175,7 +175,7 @@ int main(
      */
     if ( !target ) {
       option = "target -T";
-      option;
+      throw option;
     }
 
     /*
