@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2016-2017 Chris Johns (chrisj@rtems.org)
+# Copyright 2016-2018 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -935,7 +935,10 @@ class configuration_:
                 bsps = 'bsps_%s' % (arch)
                 profile[bsps] = self.config.comma_list(profile['name'], bsps)
             self.profiles[profile['name']] = profile
+        invalid_chars = re.compile(r'[^a-zA-Z0-9_-]')
         for a in set(archs):
+            if len(invalid_chars.findall(a)) != 0:
+                raise error.general('invalid character(s) in arch name: %s' % (a))
             arch = {}
             arch['excludes'] = {}
             for exclude in self.config.comma_list(a, 'exclude', err = False):
@@ -949,6 +952,8 @@ class configuration_:
                         sorted(set([b.strip() for b in i[1].split(',')]))
             arch['bsps'] = self.config.comma_list(a, 'bsps', err = False)
             for b in arch['bsps']:
+                if len(invalid_chars.findall(b)) != 0:
+                    raise error.general('invalid character(s) in BSP name: %s' % (b))
                 arch[b] = {}
                 arch[b]['bspopts'] = \
                     self.config.comma_list(a, 'bspopts_%s' % (b), err = False)
