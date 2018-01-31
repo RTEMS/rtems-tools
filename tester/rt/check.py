@@ -739,7 +739,7 @@ class arch_bsp_builder:
         try:
             # This should locked; not sure how to do that
             self.proc = execute.capture_execution(log = self.output)
-            log.output(wrap(('run: %s: ', self.build.key(), cmd), lineend = '\\'))
+            log.output(wrap(('run:', self.build.key(), cmd), lineend = '\\'))
             if not self.commands['dry-run']:
                 exit_code, proc, output = self.proc.shell(cmd,
                                                           cwd = path.host(self._build_dir()))
