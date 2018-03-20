@@ -581,6 +581,7 @@ def load(opts):
                     from . import linux
                 except:
                     import linux
+                overrides = linux.load()
             elif uname[0] == 'SunOS':
                 try:
                     from . import solaris
