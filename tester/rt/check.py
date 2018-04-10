@@ -461,6 +461,7 @@ class warnings_errors:
                         if 'linker' not in archive:
                             archive['linker'] = []
                         archive['linker'] += [l.split(':', 1)[1].strip()]
+                        messages = 'errors'
                     elif l.startswith('collect2:'):
                         archive =_create_build_errors(build, self.errors)
                         l = '/ld/collect2:0: error: '
