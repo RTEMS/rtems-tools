@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2013-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2013-2018 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -33,9 +33,9 @@ from rtemstoolkit import log
 from rtemstoolkit import path
 
 def list(opts):
-    path_ = opts.defaults.expand('%%{_configdir}/bsps/*.mc')
+    path_ = opts.defaults.expand('%%{_configdir}/bsps/*.ini')
     bsps = path.collect_files(path_)
     log.notice(' BSP List:')
     for bsp in bsps:
-        log.notice('  %s' % (path.basename(bsp[:-3])))
+        log.notice('  %s' % (path.basename(bsp[:-4])))
     raise error.exit()
