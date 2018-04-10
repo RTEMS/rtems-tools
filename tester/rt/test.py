@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2013-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2013-2018 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -171,6 +171,8 @@ def find_executables(paths, glob):
                 for f in files:
                     if fnmatch.fnmatch(f.lower(), glob):
                         executables += [path.join(root, f)]
+    norun = re.compile('.*\.norun.*')
+    executables = [e for e in executables if not norun.match(e)]
     return sorted(executables)
 
 def report_finished(reports, report_mode, reporting, finished, job_trace):
@@ -207,14 +209,6 @@ def _job_trace(tst, msg, total, exe, active, reporting):
                                                 path.basename(tst.executable),
                                                 msg,
                                                 reporting, total, exe, s))
-
-def list_bsps(opts):
-    path_ = opts.defaults.expand('%%{_configdir}/bsps/*.mc')
-    bsps = path.collect_files(path_)
-    log.notice(' BSP List:')
-    for bsp in bsps:
-        log.notice('  %s' % (path.basename(bsp[:-3])))
-    raise error.exit()
 
 def killall(tests):
     for test in tests:
