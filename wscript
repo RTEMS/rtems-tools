@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2014-2015 Chris Johns (chrisj@rtems.org)
+# Copyright 2014-2018 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -50,7 +50,18 @@ def get_version(ctx):
         v.read('VERSION')
         release = v.get('version', 'release')
     else:
-        from rtemstoolkit import git
+        #
+        # waf after 1.9.9 does not place the current directory in Python's
+        # system path which means importing the RTEMS toolkit
+        # fails. Temporarily add it so we can import the git module.
+        #
+        import sys
+        current_sys_path = sys.path
+        try:
+            sys.path = [os.getcwd()] + sys.path
+            from rtemstoolkit import git
+        finally:
+            sys.path = current_sys_path
         repo = git.repo('.')
         if repo.valid():
             head = repo.head()
