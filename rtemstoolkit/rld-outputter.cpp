@@ -332,6 +332,7 @@ namespace rld
       catch (...)
       {
         out.close ();
+        ::unlink (name.c_str ());
         throw;
       }
 
@@ -410,6 +411,7 @@ namespace rld
       catch (...)
       {
         delete [] buffer;
+        app.remove_on_close ();
         app.close ();
         throw;
       }
@@ -427,13 +429,13 @@ namespace rld
     }
 
     void
-    application (const std::string&        name,
-                 const std::string&        entry,
-                 const std::string&        exit,
-                 const files::object_list& dependents,
-                 const files::cache&       cache,
-                 const symbols::table&     symbols,
-                 bool                      one_file)
+    rap_application (const std::string&        name,
+                     const std::string&        entry,
+                     const std::string&        exit,
+                     const files::object_list& dependents,
+                     const files::cache&       cache,
+                     const symbols::table&     symbols,
+                     bool                      one_file)
     {
       if (rld::verbose () >= RLD_VERBOSE_INFO)
         std::cout << "outputter:application: " << name << std::endl;
@@ -458,6 +460,7 @@ namespace rld
       }
       catch (...)
       {
+        app.remove_on_close ();
         app.close ();
         throw;
       }

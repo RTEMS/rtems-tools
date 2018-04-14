@@ -229,7 +229,8 @@ namespace rld
         references_ (0),
         fd_ (-1),
         symbol_refs (0),
-        writable (false)
+        writable (false),
+        remove (false)
     {
     }
 
@@ -238,7 +239,8 @@ namespace rld
         references_ (0),
         fd_ (-1),
         symbol_refs (0),
-        writable (false)
+        writable (false),
+        remove (false)
     {
     }
 
@@ -246,7 +248,8 @@ namespace rld
       : references_ (0),
         fd_ (-1),
         symbol_refs (0),
-        writable (false)
+        writable (false),
+        remove (false)
     {
     }
 
@@ -255,7 +258,16 @@ namespace rld
       if (references_)
 	std::cerr << "rtl:file:image: references when destructing";
       if (fd_ >= 0)
+      {
         ::close (fd_);
+        if (writable && remove)
+        {
+          if (rld::verbose () >= RLD_VERBOSE_INFO)
+            std::cout << "image::close: removing " << name ().full ()
+                        << std::endl;
+          ::unlink (name_.path ().c_str ());
+        }
+      }
     }
 
     void
@@ -313,6 +325,14 @@ namespace rld
         {
           ::close (fd_);
           fd_ = -1;
+          if (writable && remove)
+          {
+            if (rld::verbose () >= RLD_VERBOSE_INFO)
+              std::cout << "image::close: removing " << name ().full ()
+                        << std::endl;
+            ::unlink (name_.path ().c_str ());
+            remove = false;
+          }
         }
       }
     }

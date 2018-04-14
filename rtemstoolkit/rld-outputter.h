@@ -111,13 +111,13 @@ namespace rld
      *              the user requested.
      * @param symbols The symbol table used to resolve the application.
      */
-    void application (const std::string&        name,
-                      const std::string&        entry,
-                      const std::string&        exit,
-                      const files::object_list& dependents,
-                      const files::cache&       cache,
-                      const symbols::table&     symbols,
-                      bool                      one_file);
+    void rap_application (const std::string&        name,
+                          const std::string&        entry,
+                          const std::string&        exit,
+                          const files::object_list& dependents,
+                          const files::cache&       cache,
+                          const symbols::table&     symbols,
+                          bool                      one_file);
 
   }
 }

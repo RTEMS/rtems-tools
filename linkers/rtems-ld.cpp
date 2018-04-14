@@ -504,9 +504,9 @@ main (int argc, char* argv[])
                                            dependents, cache);
         else if (output_type == "rap")
         {
-          rld::outputter::application (output, entry, exit,
-                                       dependents, cache, symbols,
-                                       one_file);
+          rld::outputter::rap_application (output, entry, exit,
+                                           dependents, cache, symbols,
+                                           one_file);
           if (!outra.empty ())
           {
             rld::path::paths ra_libs;

@@ -388,6 +388,14 @@ namespace rld
         return writable;
       }
 
+      /**
+       * Remove a writable file on close. This flag can be set when an error
+       * happens while writing a file.
+       */
+      void remove_on_close () {
+        remove = true;
+      }
+
     private:
 
       file      name_;       //< The name of the file.
@@ -396,6 +404,7 @@ namespace rld
       elf::file elf_;        //< The libelf reference.
       int       symbol_refs; //< The number of symbols references made.
       bool      writable;    //< The image is writable.
+      bool      remove;      //< Remove the image on close if writable.
     };
 
     /**

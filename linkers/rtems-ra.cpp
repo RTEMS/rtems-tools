@@ -375,9 +375,9 @@ main (int argc, char* argv[])
 
             /* Todo: include absolute name for rap_name */
 
-            rld::outputter::application (rap_name, entry, exit,
-                                         dependents, *cache, symbols,
-                                         true);
+            rld::outputter::rap_application (rap_name, entry, exit,
+                                             dependents, *cache, symbols,
+                                             true);
           }
 
           dependents.clear ();
