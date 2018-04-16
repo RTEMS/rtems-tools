@@ -438,6 +438,49 @@ namespace rld
       uint32_t    fini_off;            //< The strtab offset to the fini label.
     };
 
+    /*
+     * Per machine specific special handling.
+     */
+    bool
+    machine_symbol_check (const symbols::symbol& sym)
+    {
+      int symsec = sym.section_index ();
+
+      /*
+       * Ignore section index 0
+       */
+      if (symsec == 0)
+        return false;
+
+      /*
+       * Ignore sparc common section
+       */
+      if ((elf::object_machine_type () == EM_SPARC) && (symsec == 65522))
+        return false;
+
+      return true;
+    }
+
+    bool
+    machine_relocation_check (const files::relocation& reloc)
+    {
+      /*
+       * Drop some ARM relocations.
+       */
+      if (elf::object_machine_type () == EM_ARM)
+      {
+        switch (reloc.type)
+        {
+          case 40:  /* R_ARM_V4BX */
+            return false;
+          default:
+            break;
+        }
+      }
+
+      return true;
+    }
+
     const char*
     section_name (int sec)
     {
@@ -726,19 +769,24 @@ namespace rld
            ++fri, ++rc)
       {
         const files::relocation& freloc = *fri;
+        bool                     merge_reloc = machine_relocation_check (freloc);
 
         if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
           std::cout << " " << std::setw (2) << sec.relocs.size ()
-                    << '/' << std::setw (2) << rc
-                    << std::hex << ": reloc.info=0x" << freloc.info << std::dec
+                    << '/' << std::setw (2) << rc << ':'
+                    << " merge=" << merge_reloc
+                    << std::hex
+                    << " reloc.type=" << freloc.type
+                    << " reloc.info=0x" << freloc.info
+                    << std::dec
                     << " reloc.offset=" << freloc.offset
                     << " reloc.addend=" << freloc.addend
                     << " reloc.symtype=" << freloc.symtype
                     << " reloc.symsect=" << freloc.symsect
                     << " reloc.symbinding=" << freloc.symbinding
                     << std::endl;
-
-        sec.relocs.push_back (relocation (freloc, offset));
+        if (merge_reloc)
+          sec.relocs.push_back (relocation (freloc, offset));
       }
 
       std::stable_sort (sec.relocs.begin (),
@@ -1014,13 +1062,12 @@ namespace rld
         {
           if ((sym.binding () == STB_GLOBAL) || (sym.binding () == STB_WEAK))
           {
-            int         symsec = sym.section_index ();
+            int symsec = sym.section_index ();
 
-            /* Ignore section index 0 */
-            if (symsec == 0)
-              continue;
-            /* Ignore sparc common section */
-            if ((elf::object_machine_type () == EM_SPARC) && (symsec == 65522))
+            /*
+             * Do not noting if the symbol is reject at the machine level.
+             */
+            if (!machine_symbol_check (sym))
               continue;
 
             sections    rap_sec = obj.find (symsec);
@@ -1354,6 +1401,21 @@ namespace rld
 
             offset = sec.offset + reloc.offset;
 
+            if (rld::verbose () >= RLD_VERBOSE_TRACE)
+              std::cout << "  " << std::setw (2) << sr
+                        << '/' << std::setw (2) << rc << ':'
+                        << std::hex
+                        << " reloc.info=0x" << reloc.info
+                        << std::dec
+                        << " reloc.offset=" << reloc.offset
+                        << " reloc.addend=" << reloc.addend
+                        << " reloc.symtype=" << reloc.symtype
+                        << " reloc.symsect=" << reloc.symsect
+                        << " (" << obj.obj.get_section (reloc.symsect).name << ')'
+                        << " reloc.symvalue=" << reloc.symvalue
+                        << " reloc.symbinding=" << reloc.symbinding
+                        << std::endl;
+
             if ((reloc.symtype == STT_SECTION) || (reloc.symbinding == STB_LOCAL))
             {
               int rap_symsect = obj.find (reloc.symsect);
@@ -1371,15 +1433,11 @@ namespace rld
 
               if (rld::verbose () >= RLD_VERBOSE_TRACE)
                 std::cout << "  " << std::setw (2) << sr
-                          << '/' << std::setw (2) << rc
-                          <<":  rsym: sect=" << section_names[rap_symsect]
+                          << '/' << std::setw (2) << rc << ':'
+                          << " rsym: sect=" << section_names[rap_symsect]
                           << " rap_symsect=" << rap_symsect
                           << " sec.offset=" << obj.secs[rap_symsect].offset
                           << " sec.osecs=" << obj.secs[rap_symsect].osecs[reloc.symsect].offset
-                          << " (" << obj.obj.get_section (reloc.symsect).name << ')'
-                          << " reloc.symsect=" << reloc.symsect
-                          << " reloc.symvalue=" << reloc.symvalue
-                          << " reloc.addend=" << reloc.addend
                           << " addend=" << addend
                           << std::endl;
             }
