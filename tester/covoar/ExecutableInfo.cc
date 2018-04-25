@@ -67,12 +67,12 @@ namespace Coverage {
     return aCoverageMap;
   }
 
-  std::string ExecutableInfo::getFileName ( void ) const
+  const std::string& ExecutableInfo::getFileName ( void ) const
   {
     return executableName;
   }
 
-  std::string ExecutableInfo::getLibraryName( void ) const
+  const std::string& ExecutableInfo::getLibraryName( void ) const
   {
     return libraryName;
   }

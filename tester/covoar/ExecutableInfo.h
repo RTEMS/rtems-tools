@@ -67,14 +67,14 @@ namespace Coverage {
      *
      *  @return Returns the executable's file name
      */
-    std::string getFileName( void ) const;
+    const std::string& getFileName( void ) const;
 
     /*!
      *  This method returns the library name associated with the executable.
      *
      *  @return Returns the executable's library name
      */
-    std::string getLibraryName( void ) const;
+    const std::string& getLibraryName( void ) const;
 
     /*!
      *  This method returns the load address of the dynamic library
@@ -111,7 +111,7 @@ namespace Coverage {
      *  This method indicates whether a dynamic library has been
      *  associated with the executable.
      *
-     *  @return Returns TRUE if 
+     *  @return Returns TRUE if
      */
     bool hasDynamicLibrary( void );
 

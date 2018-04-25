@@ -247,15 +247,15 @@ namespace Coverage {
     try
     {
       status = rld::process::execute( TargetInfo->getObjdump(),
-               args, objdumpFile.name(), err.name() );
+                                      args, objdumpFile.name(), err.name() );
       if ( (status.type != rld::process::status::normal)
            || (status.code != 0) ) {
         throw rld::error( "Objdump error", "generating objdump" );
       }
     } catch( rld::error& err )
       {
-        std::cout << "Error while running" << TargetInfo->getObjdump()
-                  << "for" << fileName << std::endl;
+        std::cout << "Error while running " << TargetInfo->getObjdump()
+                  << " on " << fileName << std::endl;
         std::cout << err.what << " in " << err.where << std::endl;
         return;
       }

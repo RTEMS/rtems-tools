@@ -29,34 +29,92 @@
   #define kill(p,s) raise(s)
 #endif
 
+typedef std::list<std::string> CoverageNames;
+typedef std::list<Coverage::ExecutableInfo*> Executables;
+
 /*
- *  Variables to control general behavior
+ * Create a build path from the executable paths. Also extract the build prefix
+ * and BSP names.
  */
-const char*                          coverageFileExtension = NULL;
-std::list<std::string>               coverageFileNames;
-int                                  coverageExtensionLength = 0;
-Coverage::CoverageFormats_t          coverageFormat;
-Coverage::CoverageReaderBase*        coverageReader = NULL;
-char*                                executable = NULL;
-const char*                          executableExtension = NULL;
-int                                  executableExtensionLength = 0;
-std::list<Coverage::ExecutableInfo*> executablesToAnalyze;
-const char*                          explanations = NULL;
-char*                                progname;
-const char*                          symbolsFile = NULL;
-const char*                          gcnosFileName = NULL;
-char                                 gcnoFileName[FILE_NAME_LENGTH];
-char                                 gcdaFileName[FILE_NAME_LENGTH];
-char                                 gcovBashCommand[256];
-const char*                          target = NULL;
-const char*                          format = NULL;
-FILE*                                gcnosFile = NULL;
-Gcov::GcovData*          gcovFile;
+static void createBuildPath(Executables& executablesToAnalyze,
+                            std::string& buildPath,
+                            std::string& buildPrefix,
+                            std::string& buildBSP)
+{
+  for (const auto& exe : executablesToAnalyze) {
+    rld::strings eparts;
+    rld::split(eparts, rld::path::path_abs(exe->getFileName()), RLD_PATH_SEPARATOR);
+    std::string fail; // empty means all is OK else an error string
+    for (rld::path::paths::reverse_iterator pri = eparts.rbegin();
+         pri != eparts.rend();
+         ++pri) {
+      if (*pri == "testsuites") {
+        ++pri;
+        if (pri == eparts.rend()) {
+          fail = "invalid executable path, no BSP";
+          break;
+        }
+        if (buildBSP.empty()) {
+          buildBSP = *pri;
+        } else {
+          if (buildBSP != *pri) {
+            fail = "executable BSP does not match: " + buildBSP;
+            break;
+          }
+        }
+        ++pri;
+        if (pri == eparts.rend() || *pri != "c") {
+          fail = "invalid executable path, no 'c'";
+          break;
+        }
+        ++pri;
+        if (pri == eparts.rend()) {
+          fail = "invalid executable path, no arch prefix";
+          break;
+        }
+        if (buildPrefix.empty()) {
+          buildPrefix = *pri;
+        } else {
+          if (buildBSP != *pri) {
+            fail = "executable build prefix does not match: " + buildPrefix;
+            break;
+          }
+        }
+        ++pri;
+        if (pri == eparts.rend()) {
+          fail = "invalid executable path, no build top";
+          break;
+        }
+        //
+        // The remaining parts of the path is the build path. Iterator over them
+        // and collect into a new paths variable to join to make a path.
+        //
+        rld::path::paths bparts;
+        for (; pri != eparts.rend(); ++pri)
+          bparts.insert(bparts.begin(), *pri);
+        std::string thisBuildPath;
+        rld::path::path_join(thisBuildPath, bparts, thisBuildPath);
+        if (buildPath.empty()) {
+          buildPath = thisBuildPath;
+        } else {
+          if (buildBSP != *pri) {
+            fail = "executable build path does not match: " + buildPath;
+          }
+        }
+        break;
+      }
+    }
+    if (!fail.empty()) {
+      std::cerr << "ERROR: " << fail << std::endl;
+      exit(EXIT_FAILURE);
+    }
+  }
+}
 
 /*
  *  Print program usage message
  */
-void usage()
+void usage(const std::string& progname)
 {
   fprintf(
     stderr,
@@ -69,17 +127,18 @@ void usage()
     "  -f FORMAT                 - coverage file format "
            "(RTEMS, QEMU, TSIM or Skyeye)\n"
     "  -E EXPLANATIONS           - name of file with explanations\n"
-    "  -s SYMBOLS_FILE           - name of file with symbols of interest\n"
+    "  -s SYMBOL_SET_FILE        - path to the INI format symbol sets\n"
     "  -1 EXECUTABLE             - name of executable to get symbols from\n"
     "  -e EXE_EXTENSION          - extension of the executables to analyze\n"
     "  -c COVERAGEFILE_EXTENSION - extension of the coverage files to analyze\n"
     "  -g GCNOS_LIST             - name of file with list of *.gcno files\n"
     "  -p PROJECT_NAME           - name of the project\n"
     "  -C ConfigurationFileName  - name of configuration file\n"
-    "  -O Output_Directory       - name of output directory (default=."
+    "  -O Output_Directory       - name of output directory (default=.\n"
+    "  -d debug                  - disable cleaning of tempfiles."
     "\n",
-    progname,
-    progname
+    progname.c_str(),
+    progname.c_str()
   );
 }
 
@@ -125,42 +184,58 @@ int main(
   char** argv
 )
 {
-  std::list<std::string>::iterator               citr;
-  std::string                                    coverageFileName;
-  std::list<Coverage::ExecutableInfo*>::iterator eitr;
-  Coverage::ExecutableInfo*                      executableInfo = NULL;
-  int                                            i;
-  int                                            opt;
-  const char*                                    singleExecutable = NULL;
-  rld::process::tempfile                         objdumpFile( ".dmp" );
-  rld::process::tempfile                         err( ".err" );
-  bool                                           debug = false;
-  std::string                                    option;
+  CoverageNames                 coverageFileNames;
+  std::string                   coverageFileName;
+  Executables                   executablesToAnalyze;
+  Coverage::ExecutableInfo*     executableInfo = NULL;
+  std::string                   executableExtension = "exe";
+  std::string                   coverageExtension = "cov";
+  Coverage::CoverageFormats_t   coverageFormat;
+  Coverage::CoverageReaderBase* coverageReader = NULL;
+  char*                         executable = NULL;
+  const char*                   explanations = NULL;
+  const char*                   gcnosFileName = NULL;
+  char                          gcnoFileName[FILE_NAME_LENGTH];
+  char                          gcdaFileName[FILE_NAME_LENGTH];
+  char                          gcovBashCommand[256];
+  std::string                   target;
+  const char*                   format = "html";
+  FILE*                         gcnosFile = NULL;
+  Gcov::GcovData*               gcovFile;
+  const char*                   singleExecutable = NULL;
+  rld::process::tempfile        objdumpFile( ".dmp" );
+  rld::process::tempfile        err( ".err" );
+  rld::process::tempfile        syms( ".syms" );
+  bool                          debug = false;
+  std::string                   symbolSet;
+  std::string                   progname;
+  std::string                   option;
+  int                           opt;
 
   setup_signals();
 
   //
   // Process command line options.
   //
-  progname = argv[0];
+  progname = rld::path::basename(argv[0]);
 
-  while ((opt = getopt(argc, argv, "1:L:e:c:g:E:f:s:T:O:p:v:d")) != -1) {
+  while ((opt = getopt(argc, argv, "1:L:e:c:g:E:f:s:S:T:O:p:vd")) != -1) {
     switch (opt) {
-      case '1': singleExecutable      = optarg; break;
-      case 'L': dynamicLibrary        = optarg; break;
-      case 'e': executableExtension   = optarg; break;
-      case 'c': coverageFileExtension = optarg; break;
-      case 'g': gcnosFileName         = optarg; break;
-      case 'E': explanations          = optarg; break;
-      case 'f': format                = optarg; break;
-      case 's': symbolsFile           = optarg; break;
-      case 'T': target                = optarg; break;
-      case 'O': outputDirectory       = optarg; break;
-      case 'v': Verbose               = true;   break;
-      case 'p': projectName           = optarg; break;
-      case 'd': debug                 = true;   break;
+      case '1': singleExecutable    = optarg; break;
+      case 'L': dynamicLibrary      = optarg; break;
+      case 'e': executableExtension = optarg; break;
+      case 'c': coverageExtension   = optarg; break;
+      case 'g': gcnosFileName       = optarg; break;
+      case 'E': explanations        = optarg; break;
+      case 'f': format              = optarg; break;
+      case 'S': symbolSet           = optarg; break;
+      case 'T': target              = optarg; break;
+      case 'O': outputDirectory     = optarg; break;
+      case 'v': Verbose             = true;   break;
+      case 'p': projectName         = optarg; break;
+      case 'd': debug               = true;   break;
       default: /* '?' */
-        usage();
+        usage(progname);
         exit(EXIT_FAILURE);
     }
   }
@@ -171,18 +246,10 @@ int main(
      */
 
     /*
-     * Target name must be set.
+     * Validate that we have a symbols of interest file.
      */
-    if ( !target ) {
-      option = "target -T";
-      throw option;
-    }
-
-    /*
-     * Validate simulator format.
-     */
-    if ( !format ) {
-      option = "format -f";
+    if ( symbolSet.empty() ) {
+      option = "symbol set file -S";
       throw option;
     }
 
@@ -191,22 +258,6 @@ int main(
      */
     if ( !explanations ) {
       option = "explanations -E";
-      throw option;
-    }
-
-    /*
-     * Has coverage file extension been specified.
-     */
-    if ( !coverageFileExtension ) {
-      option = "coverage extension -c";
-      throw option;
-    }
-
-    /*
-     * Has executable extension been specified.
-     */
-    if ( !executableExtension ) {
-      option = "executable extension -e";
       throw option;
     }
 
@@ -220,8 +271,8 @@ int main(
   }
   catch( std::string option )
   {
-    std::cout << "error missing option: " + option << std::endl;
-    usage();
+    std::cerr << "error missing option: " + option << std::endl;
+    usage(progname);
     exit(EXIT_FAILURE);
   }
 
@@ -238,7 +289,7 @@ int main(
       );
     } else {
 
-      for (i=optind; i < argc; i++) {
+      for (int i = optind; i < argc; i++) {
         // Ensure that the coverage file is readable.
         if (!FileIsReadable( argv[i] )) {
           fprintf(
@@ -266,11 +317,10 @@ int main(
       }
     }
   }
-
-  // If not invoked with a single executable, process the remaining
-  // arguments as executables and derive the coverage file names.
   else {
-    for (i = optind; i < argc; i++) {
+    // If not invoked with a single executable, process the remaining
+    // arguments as executables and derive the coverage file names.
+    for (int i = optind; i < argc; i++) {
 
       // Ensure that the executable is readable.
       if (!FileIsReadable( argv[i] )) {
@@ -282,9 +332,9 @@ int main(
       } else {
         coverageFileName = argv[i];
         coverageFileName.replace(
-          coverageFileName.length() - executableExtensionLength,
-          executableExtensionLength,
-          coverageFileExtension
+          coverageFileName.length() - executableExtension.size(),
+          executableExtension.size(),
+          coverageExtension
         );
 
         if (!FileIsReadable( coverageFileName.c_str() )) {
@@ -310,6 +360,33 @@ int main(
     exit(EXIT_FAILURE);
   }
 
+  // The executablesToAnalyze and coverageFileNames containers need
+  // to be the name size of some of the code below breaks. Lets
+  // check and make sure.
+  if (executablesToAnalyze.size() != coverageFileNames.size()) {
+    std::cerr << "ERROR: executables and coverage name size mismatch" << std::endl;
+    exit(EXIT_FAILURE);
+  }
+
+  //
+  // Find the top of the BSP's build tree and if we have found the top
+  // check the executable is under the same path and BSP.
+  //
+  std::string buildPath;
+  std::string buildTarget;
+  std::string buildBSP;
+  createBuildPath(executablesToAnalyze,
+                  buildPath,
+                  buildTarget,
+                  buildBSP);
+
+  //
+  // Use a command line target if provided.
+  //
+  if (!target.empty()) {
+    buildTarget = target;
+  }
+
   if (Verbose) {
     if (singleExecutable) {
       fprintf(
@@ -323,12 +400,12 @@ int main(
       );
     }
     fprintf( stderr, "Coverage Format : %s\n", format );
-    fprintf( stderr, "Target          : %s\n", PrintableString(target) );
+    fprintf( stderr, "Target          : %s\n", buildTarget.c_str() );
     fprintf( stderr, "\n" );
-#if 1
+
     // Process each executable/coverage file pair.
-    eitr = executablesToAnalyze.begin();
-    for (citr = coverageFileNames.begin();
+    Executables::iterator eitr = executablesToAnalyze.begin();
+    for (CoverageNames::iterator citr = coverageFileNames.begin();
          citr != coverageFileNames.end();
          citr++) {
 
@@ -342,7 +419,6 @@ int main(
       if (!singleExecutable)
         eitr++;
     }
-#endif
   }
 
   //
@@ -350,18 +426,21 @@ int main(
   //
 
   // Create data based on target.
-  TargetInfo = Target::TargetFactory( target );
+  TargetInfo = Target::TargetFactory( buildTarget );
 
   // Create the set of desired symbols.
   SymbolsToAnalyze = new Coverage::DesiredSymbols();
-  SymbolsToAnalyze->load( symbolsFile );
-  if (Verbose) {
-    fprintf(
-      stderr,
-      "Analyzing %u symbols\n",
-      (unsigned int) SymbolsToAnalyze->set.size()
-    );
+
+  //
+  // Read symbol configuration file and load needed symbols.
+  //
+  if (!SymbolsToAnalyze->load( symbolSet, buildTarget, buildBSP, Verbose )) {
+      exit(EXIT_FAILURE);
   }
+
+  if ( Verbose )
+    std::cout << "Analyzing " << SymbolsToAnalyze->set.size()
+              << " symbols" << std::endl;
 
   // Create explanations.
   AllExplanations = new Coverage::Explanations();
@@ -379,7 +458,7 @@ int main(
   objdumpProcessor = new Coverage::ObjdumpProcessor();
 
   // Prepare each executable for analysis.
-  for (eitr = executablesToAnalyze.begin();
+  for (Executables::iterator eitr = executablesToAnalyze.begin();
        eitr != executablesToAnalyze.end();
        eitr++) {
 
@@ -407,22 +486,19 @@ int main(
   //
 
   // Process each executable/coverage file pair.
-  eitr = executablesToAnalyze.begin();
-  for (citr = coverageFileNames.begin();
-       citr != coverageFileNames.end();
-       citr++) {
-
+  Executables::iterator eitr = executablesToAnalyze.begin();
+  for (const auto& cname : coverageFileNames) {
     if (Verbose) {
       fprintf(
         stderr,
         "Processing coverage file %s for executable %s\n",
-        (*citr).c_str(),
+        cname.c_str(),
         ((*eitr)->getFileName()).c_str()
       );
     }
 
     // Process its coverage file.
-    coverageReader->processFile( (*citr).c_str(), *eitr );
+    coverageReader->processFile( cname.c_str(), *eitr );
 
     // Merge each symbols coverage map into a unified coverage map.
     (*eitr)->mergeCoverage();
@@ -524,6 +600,8 @@ int main(
     objdumpFile.keep();
     err.override( "objdump_exec_log" );
     err.keep();
+    syms.override( "symbols_list" );
+    syms.keep();
   }
   return 0;
 }

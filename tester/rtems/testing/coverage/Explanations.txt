@@ -1,0 +1,35 @@
+schedulerpriorityyield.c:47
+Simple Test Case
+Branch Never Taken
+New test where there is more than one thread at a priority with the
+executing thread being non-preemptive.  Create a higher priority thread
+and then yield.
+
+   init task at priority 2, non-preemptive
+   create task at priority 2
+   create task at priority 1
+   yield
++++
+
+schedulerpriorityyield.c:51
+Simple Test Case
+Branch Always Taken
+New test where only one thread at a priority (non-preemptive), create a
+thread at higher priority, then yield.
+
+   init task at priority 2, non-preemptive
+   create task at priority 1
+   yield
++++
+
+schedulerpriorityyield.c:52
+Simple Test Case
+Not Executed
+Same test case as schedulerpriorityyield.c:51
++++
+
+coremsg.c:86
+Simple Test Case
+We need to request enough messages of a certain size that the math
+overflows to less than a single message.
++++

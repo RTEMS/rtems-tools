@@ -293,9 +293,17 @@ namespace Coverage {
     /*!
      *  This method creates the set of symbols to analyze from the symbols
      *  listed in the specified file.
+     *
+     *  @param[in] symbolsSet An INI format file of the symbols to be loaded.
+     *  @param[in] buildTarget The build target
+     *  @param[in] buildBSP The BSP
+     *  @return Returns false if the load fails.
      */
-    void load(
-      const char* const symbolsFile
+    bool load(
+      const std::string& symbolsSet,
+      const std::string& buildTarget,
+      const std::string& buildBSP,
+      bool               verbose
     );
 
     /*!

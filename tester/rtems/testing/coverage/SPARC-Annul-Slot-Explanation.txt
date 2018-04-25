@@ -1,0 +1,56 @@
+The SPARC assembly is often hard to understand because a single
+instruction will show up as not executed.  The instructions before
+and after it will be marked as executed.  The instruction before
+the one not executed should be a "bxx,a" instruction which means
+that the instruction following the branch instruction is executed
+ONLY if the branch is taken.  Otherwise it is "annulled" or skipped.
+
+So when you see these cases, it means the branch was NOT taken.
+
+===================================================================
+Subject: <offlist> annul slot explanation
+From: Jiri Gaisler <jiri@gaisler.com>
+Date: Wed, 3 Jun 2009 14:57:48 -0500
+To: Joel Sherrill <Joel.Sherrill@OARcorp.com>
+
+
+Joel Sherrill wrote:
+> > Hi,
+> >
+> > I am trying to look at more coverage cases and
+> > wanted to make sure I am reading things correctly.
+> >
+> > The code in question is:
+> >
+> >
+> >      if ( the_thread->current_priority > interested_priority )
+> > 200fd00:    d8 00 e0 14     ld  [ %g3 + 0x14 ], %o4
+> > 200fd04:    80 a3 00 04     cmp  %o4, %g4
+> > 200fd08:    38 80 00 1c     bgu,a   200fd78 <killinfo+0x224>
+> > 200fd0c:    98 10 00 04     mov  %g4,
+> > %o4                                            <== NOT EXECUTED
+> >
+> >      /*
+> >       *  If this thread is not interested, then go on to the next thread.
+> >       */
+> >
+> >      api = the_thread->API_Extensions[ THREAD_API_POSIX ];
+> > 200fd10:    d4 00 e1 6c     ld  [ %g3 + 0x16c ], %o2
+> >
+> > Am I correct in interpreting this as meaning 0x200fd0c
+> > is not executed because the bgu,a is never taken. And it
+> > is not executed as part of falling through.
+
+Yes, this is correct. The branch delay slot is only executed
+when the branch is taken.
+
+Jiri.
+
+> >
+> > So in this case we need a test where the "if" condition
+> > is true if I am reading things correctly.
+> >
+> > Thanks.  There are a number of these 4 byte cases which
+> > are probably easy to hit if I read the code correctly.
+> >
+> >

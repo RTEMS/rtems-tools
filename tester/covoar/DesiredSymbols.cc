@@ -16,6 +16,13 @@
 #include <string.h>
 #include <unistd.h>
 
+#include <iostream>
+
+#include "rld.h"
+#include <rld-config.h>
+#include "rld-symbols.h"
+#include "rld-files.h"
+
 #include "DesiredSymbols.h"
 #include "app_common.h"
 #include "CoverageMap.h"
@@ -31,75 +38,90 @@ namespace Coverage {
   {
   }
 
-  void DesiredSymbols::load(
-    const char* const symbolsFile
+  bool DesiredSymbols::load(
+    const std::string& symbolsSet,
+    const std::string& buildTarget,
+    const std::string& buildBSP,
+    bool               verbose
   )
   {
-    int                     cStatus;
-    bool                    done = false;
-    FILE*                   sFile;
-    SymbolInformation*      symInfo;
-    int                     line = 1;
-    std::string             symbol;
+    rld::files::cache cache;
+    bool              r = true;
 
-    // Ensure that symbols file name is given.
-    if ( !symbolsFile ) {
-      fprintf(
-        stderr,
-        "ERROR: DesiredSymbols::load - no symbols file specified\n"
-      );
-      exit(-1);
-    }
+    //
+    // Load the INI file looking for a top level:
+    //
+    //  [symbols-sets]
+    //  sets = A, B, C
+    //
+    // For each set read the libraries from the configuration file and load.
+    //
+    //  [A]
+    //  libraries = @BUILD-PREFIX@/c/@BSP@/A/libA.a
+    //
+    //  [B]
+    //  libraries = @BUILD-PREFIX@/c/@BSP@/B/libB.a
+    //
+    try {
+      cache.open();
 
-    // Open symbols file.
-    sFile = fopen( symbolsFile, "r" );
-    if ( !sFile ) {
-      fprintf(
-        stderr,
-        "ERROR: DesiredSymbols::load - unable to open symbols file %s\n",
-        symbolsFile
-      );
-      exit(-1);
-    }
+      rld::config::config config;
 
-    // Process symbols file.
-    while ( !done ) {
+      if (verbose)
+        std::cerr << "Loading symbol sets: " << symbolsSet << std::endl;
 
-      symInfo = new SymbolInformation;
+      config.load (symbolsSet);
 
-      // Skip blank lines between symbols
-      do {
-        inputBuffer[0] = '\0';
-        inputBuffer2[0] = '\0';
-        cStatus = fscanf( sFile, "%s %s", inputBuffer, inputBuffer2 );
-        if ( cStatus == EOF ) {
-          done = true;
+      const rld::config::section& sym_section = config.get_section("symbol-sets");
+
+      rld::strings sets;
+      rld::config::parse_items (sym_section, "sets", sets, true);
+
+      for (const std::string set : sets) {
+        if (verbose)
+          std::cerr << " Symbol set: " << set << std::endl;
+        const rld::config::section& set_section = config.get_section(set);
+        rld::strings libs;
+        rld::config::parse_items (set_section, "libraries", libs, true);
+        for (std::string lib : libs) {
+          lib = rld::find_replace(lib, "@BUILD-TARGET@", buildTarget);
+          lib = rld::find_replace(lib, "@BSP@", buildBSP);
+          if (verbose)
+            std::cerr << " Loading library: " << lib << std::endl;
+          cache.add(lib);
         }
-        else {
-          //inputBuffer[ strlen(inputBuffer) - 1] = '\0';
-          line++;
-        }
-      } while ( !done && (inputBuffer[0] == '\0') );
-
-      // Have we already seen this one?
-      if ( !done ) {
-        if (set.find( inputBuffer ) != set.end()) {
-          fprintf(
-            stderr,
-            "File: %s, Line %d: Duplicate symbol: %s\n",
-            symbolsFile,
-            line,
-            inputBuffer
-          );
-
-          delete symInfo;
-        }
-
-        // Add this to the set of symbols.
-        else
-          set[ inputBuffer ] = *symInfo;
       }
+
+      rld::symbols::table symbols;
+
+      cache.load_symbols (symbols, true);
+
+      for (auto& kv : symbols.globals()) {
+        const rld::symbols::symbol& sym = *(kv.second);
+        set[sym.name()] = *(new SymbolInformation);
+      }
+      for (auto& kv : symbols.weaks()) {
+        const rld::symbols::symbol& sym = *(kv.second);
+        set[sym.name()] = *(new SymbolInformation);
+      }
+      for (auto& kv : symbols.locals()) {
+        const rld::symbols::symbol& sym = *(kv.second);
+        set[sym.name()] = *(new SymbolInformation);
+      }
+
+    } catch (rld::error re) {
+      std::cerr << "error: "
+                << re.where << ": " << re.what
+                << std::endl;
+      r = false;
+    } catch (...) {
+      cache.close();
+      throw;
     }
+
+    cache.close();
+
+    return r;
   }
 
   void DesiredSymbols::preprocess( void )
