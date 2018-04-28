@@ -116,30 +116,26 @@ static void createBuildPath(Executables& executablesToAnalyze,
  */
 void usage(const std::string& progname)
 {
-  fprintf(
-    stderr,
-    "Usage: %s [-v] -T TARGET -f FORMAT [-E EXPLANATIONS] -1 EXECUTABLE coverage1 ... coverageN\n"
-    "--OR--\n"
-    "Usage: %s [-v] -T TARGET -f FORMAT [-E EXPLANATIONS] -e EXE_EXTENSION -c COVERAGEFILE_EXTENSION EXECUTABLE1 ... EXECUTABLE2\n"
-    "\n"
-    "  -v                        - verbose at initialization\n"
-    "  -T TARGET                 - target name\n"
-    "  -f FORMAT                 - coverage file format "
-           "(RTEMS, QEMU, TSIM or Skyeye)\n"
-    "  -E EXPLANATIONS           - name of file with explanations\n"
-    "  -s SYMBOL_SET_FILE        - path to the INI format symbol sets\n"
-    "  -1 EXECUTABLE             - name of executable to get symbols from\n"
-    "  -e EXE_EXTENSION          - extension of the executables to analyze\n"
-    "  -c COVERAGEFILE_EXTENSION - extension of the coverage files to analyze\n"
-    "  -g GCNOS_LIST             - name of file with list of *.gcno files\n"
-    "  -p PROJECT_NAME           - name of the project\n"
-    "  -C ConfigurationFileName  - name of configuration file\n"
-    "  -O Output_Directory       - name of output directory (default=.\n"
-    "  -d debug                  - disable cleaning of tempfiles."
-    "\n",
-    progname.c_str(),
-    progname.c_str()
-  );
+  std::cerr <<"Usage: " << progname
+            <<" [-v] -T TARGET -f FORMAT [-E EXPLANATIONS] -1 EXECUTABLE coverage1 ... coverageN" << std::endl
+            << "--OR--" << std::endl
+            << "Usage: " << progname
+            << " [-v] -T TARGET -f FORMAT [-E EXPLANATIONS] -e EXE_EXTENSION -c COVERAGEFILE_EXTENSION EXECUTABLE1 ... EXECUTABLE2" << std::endl
+            << std::endl
+            << "  -v                        - verbose at initialization" << std::endl
+            << "  -T TARGET                 - target name" << std::endl
+            << "  -f FORMAT                 - coverage file format (RTEMS, QEMU, TSIM or Skyeye)" << std::endl
+            << "  -E EXPLANATIONS           - name of file with explanations" << std::endl
+            << "  -s SYMBOL_SET_FILE        - path to the INI format symbol sets" << std::endl
+            << "  -1 EXECUTABLE             - name of executable to get symbols from" << std::endl
+            << "  -e EXE_EXTENSION          - extension of the executables to analyze" << std::endl
+            << "  -c COVERAGEFILE_EXTENSION - extension of the coverage files to analyze" << std::endl
+            << "  -g GCNOS_LIST             - name of file with list of *.gcno files" << std::endl
+            << "  -p PROJECT_NAME           - name of the project" << std::endl
+            << "  -C ConfigurationFileName  - name of configuration file" << std::endl
+            << "  -O Output_Directory       - name of output directory (default=." << std::endl
+            << "  -d debug                  - disable cleaning of tempfile" << std::endl
+            << std::endl;
 }
 
 #define PrintableString(_s) \
@@ -282,21 +278,15 @@ int main(
 
     // Ensure that the executable is readable.
     if (!FileIsReadable( singleExecutable )) {
-      fprintf(
-        stderr,
-        "WARNING: Unable to read executable %s\n",
-        singleExecutable
-      );
+      std::cerr << "warning: Unable to read executable: " << singleExecutable
+                << std::endl;
     } else {
 
       for (int i = optind; i < argc; i++) {
         // Ensure that the coverage file is readable.
         if (!FileIsReadable( argv[i] )) {
-          fprintf(
-            stderr,
-            "WARNING: Unable to read coverage file %s\n",
-            argv[i]
-          );
+          std::cerr << "warning: Unable to read coverage file: " << argv[i]
+                    << std::endl;
         } else {
           coverageFileNames.push_back( argv[i] );
         }
@@ -321,14 +311,9 @@ int main(
     // If not invoked with a single executable, process the remaining
     // arguments as executables and derive the coverage file names.
     for (int i = optind; i < argc; i++) {
-
       // Ensure that the executable is readable.
       if (!FileIsReadable( argv[i] )) {
-        fprintf(
-          stderr,
-          "WARNING: Unable to read executable %s\n",
-          argv[i]
-        );
+        std::cerr << "warning: Unable to read executable: " << argv[i] << std::endl;
       } else {
         coverageFileName = argv[i];
         coverageFileName.replace(
@@ -338,11 +323,8 @@ int main(
         );
 
         if (!FileIsReadable( coverageFileName.c_str() )) {
-          fprintf(
-            stderr,
-            "WARNING: Unable to read coverage file %s\n",
-            coverageFileName.c_str()
-          );
+          std::cerr << "warning: Unable to read coverage file: " << coverageFileName
+                    << std::endl;
         } else {
           executableInfo = new Coverage::ExecutableInfo( argv[i] );
           executablesToAnalyze.push_back( executableInfo );
@@ -354,9 +336,7 @@ int main(
 
   // Ensure that there is at least one executable to process.
   if (executablesToAnalyze.empty()) {
-    fprintf(
-      stderr, "ERROR: No information to analyze\n"
-    );
+    std::cerr << "error: No information to analyze" << std::endl;
     exit(EXIT_FAILURE);
   }
 
@@ -389,33 +369,20 @@ int main(
 
   if (Verbose) {
     if (singleExecutable) {
-      fprintf(
-        stderr,
-        "Processing a single executable and multiple coverage files\n"
-      );
+      std::cerr << "Processing a single executable and multiple coverage files"
+                << std::endl;
     } else {
-      fprintf(
-        stderr,
-        "Processing multiple executable/coverage file pairs\n"
-      );
+      std::cerr << "Processing multiple executable/coverage file pairs" << std::endl;
     }
-    fprintf( stderr, "Coverage Format : %s\n", format );
-    fprintf( stderr, "Target          : %s\n", buildTarget.c_str() );
-    fprintf( stderr, "\n" );
+    std::cerr << "Coverage Format : " << format << std::endl
+              << "Target          : " << buildTarget.c_str() << std::endl
+              << std::endl;
 
     // Process each executable/coverage file pair.
     Executables::iterator eitr = executablesToAnalyze.begin();
-    for (CoverageNames::iterator citr = coverageFileNames.begin();
-         citr != coverageFileNames.end();
-         citr++) {
-
-      fprintf(
-        stderr,
-        "Coverage file %s for executable %s\n",
-        (*citr).c_str(),
-        ((*eitr)->getFileName()).c_str()
-      );
-
+    for (const auto& cname : coverageFileNames) {
+      std::cerr << "Coverage file " << cname
+                << " for executable: " << (*eitr)->getFileName() << std::endl;
       if (!singleExecutable)
         eitr++;
     }
@@ -439,7 +406,7 @@ int main(
   }
 
   if ( Verbose )
-    std::cout << "Analyzing " << SymbolsToAnalyze->set.size()
+    std::cerr << "Analyzing " << SymbolsToAnalyze->set.size()
               << " symbols" << std::endl;
 
   // Create explanations.
@@ -450,7 +417,7 @@ int main(
   // Create coverage map reader.
   coverageReader = Coverage::CreateCoverageReader(coverageFormat);
   if (!coverageReader) {
-    fprintf( stderr, "ERROR: Unable to create coverage file reader\n" );
+    std::cerr << "error: Unable to create coverage file reader" << std::endl;
     exit(EXIT_FAILURE);
   }
 
@@ -458,27 +425,18 @@ int main(
   objdumpProcessor = new Coverage::ObjdumpProcessor();
 
   // Prepare each executable for analysis.
-  for (Executables::iterator eitr = executablesToAnalyze.begin();
-       eitr != executablesToAnalyze.end();
-       eitr++) {
-
-    if (Verbose) {
-      fprintf(
-        stderr,
-        "Extracting information from %s\n",
-        ((*eitr)->getFileName()).c_str()
-      );
-    }
+  for (auto& exe : executablesToAnalyze) {
+    if (Verbose)
+      std::cerr << "Extracting information from: " << exe->getFileName()
+                << std::endl;
 
     // If a dynamic library was specified, determine the load address.
     if (dynamicLibrary) {
-      (*eitr)->setLoadAddress(
-        objdumpProcessor->determineLoadAddress( *eitr )
-      );
+      exe->setLoadAddress( objdumpProcessor->determineLoadAddress( exe ) );
     }
 
     // Load the objdump for the symbols in this executable.
-    objdumpProcessor->load( *eitr, objdumpFile, err );
+    objdumpProcessor->load( exe, objdumpFile, err );
   }
 
   //
@@ -488,23 +446,20 @@ int main(
   // Process each executable/coverage file pair.
   Executables::iterator eitr = executablesToAnalyze.begin();
   for (const auto& cname : coverageFileNames) {
-    if (Verbose) {
-      fprintf(
-        stderr,
-        "Processing coverage file %s for executable %s\n",
-        cname.c_str(),
-        ((*eitr)->getFileName()).c_str()
-      );
-    }
+    Coverage::ExecutableInfo* exe = *eitr;
+    if (Verbose)
+      std::cerr << "Processing coverage file " << cname
+                << " for executable " << exe->getFileName()
+                << std::endl;
 
     // Process its coverage file.
-    coverageReader->processFile( cname.c_str(), *eitr );
+    coverageReader->processFile( cname.c_str(), exe );
 
     // Merge each symbols coverage map into a unified coverage map.
-    (*eitr)->mergeCoverage();
+    exe->mergeCoverage();
 
     // DEBUG Print ExecutableInfo content
-    //(*eitr)->dumpExecutableInfo();
+    //exe->dumpExecutableInfo();
 
     if (!singleExecutable) {
       eitr++;
@@ -512,72 +467,69 @@ int main(
   }
 
   // Do necessary preprocessing of uncovered ranges and branches
-  if (Verbose) {
-    fprintf( stderr, "Preprocess uncovered ranges and branches\n" );
-  }
+  if (Verbose)
+    std::cerr << "Preprocess uncovered ranges and branches" << std::endl;
+
   SymbolsToAnalyze->preprocess();
 
   //
   // Generate Gcov reports
   //
-  if (Verbose) {
-    fprintf( stderr, "Generating Gcov reports...\n");
-  }
-  gcnosFile = fopen ( gcnosFileName , "r" );
+  if (gcnosFileName) {
+    if (Verbose)
+      std::cerr << "Generating Gcov reports..." << std::endl;
 
-  if ( !gcnosFile ) {
-    fprintf( stderr, "Unable to open %s\n", gcnosFileName );
-  }
-  else {
-    while ( fscanf( gcnosFile, "%s", inputBuffer ) != EOF) {
-      gcovFile = new Gcov::GcovData();
-      strcpy( gcnoFileName, inputBuffer );
+    gcnosFile = fopen ( gcnosFileName , "r" );
 
-      if ( Verbose ) {
-        fprintf( stderr, "Processing file: %s\n", gcnoFileName );
+    if ( !gcnosFile )
+      std::cerr << "Unable to open " << gcnosFileName << std::endl;
+    else {
+      while ( fscanf( gcnosFile, "%s", inputBuffer ) != EOF) {
+        gcovFile = new Gcov::GcovData();
+        strcpy( gcnoFileName, inputBuffer );
+
+        if ( Verbose )
+          std::cerr << "Processing file: " << gcnoFileName << std::endl;
+
+        if ( gcovFile->readGcnoFile( gcnoFileName ) ) {
+          // Those need to be in this order
+          gcovFile->processCounters();
+          gcovFile->writeReportFile();
+          gcovFile->writeGcdaFile();
+          gcovFile->writeGcovFile();
+        }
+
+        delete gcovFile;
       }
-
-      if ( gcovFile->readGcnoFile( gcnoFileName ) ) {
-        // Those need to be in this order
-        gcovFile->processCounters();
-        gcovFile->writeReportFile();
-        gcovFile->writeGcdaFile();
-        gcovFile->writeGcovFile();
-      }
-
-      delete gcovFile;
+      fclose( gcnosFile );
     }
-    fclose( gcnosFile );
   }
 
   // Determine the uncovered ranges and branches.
-  if (Verbose) {
-    fprintf( stderr, "Computing uncovered ranges and branches\n" );
-  }
+  if (Verbose)
+    std::cerr << "Computing uncovered ranges and branches" << std::endl;
+
   SymbolsToAnalyze->computeUncovered();
 
   // Calculate remainder of statistics.
-  if (Verbose) {
-    fprintf( stderr, "Calculate statistics\n" );
-  }
+  if (Verbose)
+    std::cerr << "Calculate statistics" << std::endl;
+
   SymbolsToAnalyze->calculateStatistics();
 
   // Look up the source lines for any uncovered ranges and branches.
-  if (Verbose) {
-    fprintf(
-      stderr, "Looking up source lines for uncovered ranges and branches\n"
-    );
-  }
+  if (Verbose)
+    std::cerr << "Looking up source lines for uncovered ranges and branches"
+              << std::endl;
+
   SymbolsToAnalyze->findSourceForUncovered();
 
   //
   // Report the coverage data.
   //
-  if (Verbose) {
-    fprintf(
-      stderr, "Generate Reports\n"
-    );
-  }
+  if (Verbose)
+    std::cerr << "Generate Reports" << std::endl;
+
   Coverage::GenerateReports();
 
   // Write explanations that were not found.
@@ -588,9 +540,9 @@ int main(
     notFound += "/";
     notFound += "ExplanationsNotFound.txt";
 
-    if (Verbose) {
-      fprintf( stderr, "Writing Not Found Report (%s)\n", notFound.c_str() );
-    }
+    if (Verbose)
+      std::cerr << "Writing Not Found Report (" << notFound<< ')' << std::endl;
+
     AllExplanations->writeNotFound( notFound.c_str() );
   }
 
@@ -603,5 +555,6 @@ int main(
     syms.override( "symbols_list" );
     syms.keep();
   }
+
   return 0;
 }
