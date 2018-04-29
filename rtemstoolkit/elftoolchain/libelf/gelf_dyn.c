@@ -31,7 +31,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: gelf_dyn.c 189 2008-07-20 10:38:08Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 GElf_Dyn *
 gelf_getdyn(Elf_Data *d, int ndx, GElf_Dyn *dst)

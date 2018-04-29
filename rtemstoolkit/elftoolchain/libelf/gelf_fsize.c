@@ -31,7 +31,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: gelf_fsize.c 189 2008-07-20 10:38:08Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 size_t
 elf32_fsize(Elf_Type t, size_t c, unsigned int v)

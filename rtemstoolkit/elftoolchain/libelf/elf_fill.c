@@ -30,7 +30,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: elf_fill.c 189 2008-07-20 10:38:08Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 void
 elf_fill(int fill)

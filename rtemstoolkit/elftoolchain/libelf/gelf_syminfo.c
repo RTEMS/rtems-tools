@@ -31,7 +31,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: gelf_syminfo.c 1166 2010-09-04 00:54:36Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 GElf_Syminfo *
 gelf_getsyminfo(Elf_Data *d, int ndx, GElf_Syminfo *dst)

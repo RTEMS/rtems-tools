@@ -35,7 +35,7 @@
 #include "_libelf.h"
 #include "_libelf_ar.h"
 
-LIBELF_VCSID("$Id: libelf_ar.c 1341 2011-01-01 04:28:29Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 #define	LIBELF_NALLOC_SIZE	16
 

@@ -32,7 +32,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: elf_errmsg.c 1345 2011-01-01 11:17:52Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 /*
  * Retrieve a human readable translation for an error message.

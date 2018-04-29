@@ -34,7 +34,7 @@
 #include "_libelf.h"
 #include "_libelf_ar.h"
 
-LIBELF_VCSID("$Id: libelf_ar_util.c 2066 2011-10-26 15:40:28Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 /*
  * Convert a string bounded by `start' and `start+sz' (exclusive) to a

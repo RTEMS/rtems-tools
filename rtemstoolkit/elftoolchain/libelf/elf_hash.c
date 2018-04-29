@@ -30,7 +30,7 @@
 
 #include "_libelf_config.h"
 
-LIBELF_VCSID("$Id: elf_hash.c 189 2008-07-20 10:38:08Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 /*
  * This elf_hash function is defined by the System V ABI.

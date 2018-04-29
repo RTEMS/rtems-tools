@@ -32,7 +32,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: elf_memory.c 189 2008-07-20 10:38:08Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 Elf *
 elf_memory(char *image, size_t sz)

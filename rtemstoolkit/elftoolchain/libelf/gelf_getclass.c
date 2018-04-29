@@ -30,7 +30,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: gelf_getclass.c 189 2008-07-20 10:38:08Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 int
 gelf_getclass(Elf *e)

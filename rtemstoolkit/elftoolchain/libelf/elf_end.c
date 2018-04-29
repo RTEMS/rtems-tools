@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2006,2008-2009,2011 Joseph Koshy
+ * Copyright (c) 2006,2008 Joseph Koshy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -34,7 +34,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: elf_end.c 1922 2011-09-23 08:04:33Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 int
 elf_end(Elf *e)
@@ -76,12 +76,8 @@ elf_end(Elf *e)
 			break;
 		}
 
-		if (e->e_rawfile) {
-			if (e->e_flags & LIBELF_F_RAWFILE_MMAP)
-				(void) munmap(e->e_rawfile, e->e_rawsize);
-			else if (e->e_flags & LIBELF_F_RAWFILE_MALLOC)
-				free(e->e_rawfile);
-		}
+		if (e->e_flags & LIBELF_F_MMAP)
+			(void) munmap(e->e_rawfile, e->e_rawsize);
 
 		sv = e;
 		if ((e = e->e_parent) != NULL)

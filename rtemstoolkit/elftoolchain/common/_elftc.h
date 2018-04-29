@@ -23,7 +23,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: _elftc.h 2064 2011-10-26 15:12:32Z jkoshy $
+ * $Id$
  */
 
 /**
@@ -78,11 +78,7 @@
 #endif
 
 #if defined(__linux__) || defined(__GNU__) || defined(__GLIBC__)
-#if defined(__GNUC__)
-#define	ELFTC_VCSID(ID)		__asm__(".ident\t\"" ID "\"")
-#else
 #define	ELFTC_VCSID(ID)		/**/
-#endif
 #endif
 
 #if defined(__NetBSD__)

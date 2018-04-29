@@ -33,7 +33,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: gelf_ehdr.c 1678 2011-07-28 04:36:34Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 Elf32_Ehdr *
 elf32_getehdr(Elf *e)

@@ -30,7 +30,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: elf_getarhdr.c 1341 2011-01-01 04:28:29Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 Elf_Arhdr *
 elf_getarhdr(Elf *e)

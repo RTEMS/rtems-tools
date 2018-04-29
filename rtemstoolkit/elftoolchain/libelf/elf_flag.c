@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2006,2008-2009,2011 Joseph Koshy
+ * Copyright (c) 2006,2008 Joseph Koshy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -30,7 +30,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: elf_flag.c 1918 2011-09-22 10:42:06Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 unsigned int
 elf_flagarhdr(Elf_Arhdr *a, Elf_Cmd c, unsigned int flags)
@@ -51,7 +51,7 @@ elf_flagarhdr(Elf_Arhdr *a, Elf_Cmd c, unsigned int flags)
 	else
 		r = a->ar_flags &= ~flags;
 
-	return (r & LIBELF_F_API_MASK);
+	return (r & LIBELF_F_MASK);
 }
 
 unsigned int
@@ -73,7 +73,7 @@ elf_flagdata(Elf_Data *d, Elf_Cmd c, unsigned int flags)
 	else
 		r = d->d_flags &= ~flags;
 
-	return (r & LIBELF_F_API_MASK);
+	return (r & LIBELF_F_MASK);
 }
 
 unsigned int
@@ -135,7 +135,7 @@ elf_flagelf(Elf *e, Elf_Cmd c, unsigned int flags)
 		r = e->e_flags |= flags;
 	else
 		r = e->e_flags &= ~flags;
-	return (r & LIBELF_F_API_MASK);
+	return (r & LIBELF_F_MASK);
 }
 
 unsigned int
@@ -185,7 +185,7 @@ elf_flagscn(Elf_Scn *s, Elf_Cmd c, unsigned int flags)
 		r = s->s_flags |= flags;
 	else
 		r = s->s_flags &= ~flags;
-	return (r & LIBELF_F_API_MASK);
+	return (r & LIBELF_F_MASK);
 }
 
 unsigned int

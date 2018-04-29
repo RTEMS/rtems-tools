@@ -31,7 +31,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: elf_data.c 1765 2011-08-22 05:59:05Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 Elf_Data *
 elf_getdata(Elf_Scn *s, Elf_Data *d)

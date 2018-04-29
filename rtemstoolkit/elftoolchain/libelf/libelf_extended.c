@@ -31,7 +31,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: libelf_extended.c 1360 2011-01-08 08:27:41Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 /*
  * Retrieve section #0, allocating a new section if needed.

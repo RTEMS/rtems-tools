@@ -30,7 +30,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: elf_getarsym.c 1360 2011-01-08 08:27:41Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 Elf_Arsym *
 elf_getarsym(Elf *ar, size_t *ptr)

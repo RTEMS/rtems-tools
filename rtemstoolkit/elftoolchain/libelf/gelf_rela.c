@@ -31,7 +31,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: gelf_rela.c 189 2008-07-20 10:38:08Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 GElf_Rela *
 gelf_getrela(Elf_Data *d, int ndx, GElf_Rela *dst)

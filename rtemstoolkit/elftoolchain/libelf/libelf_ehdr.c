@@ -33,7 +33,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: libelf_ehdr.c 1677 2011-07-28 04:35:53Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 /*
  * Retrieve counts for sections, phdrs and the section string table index

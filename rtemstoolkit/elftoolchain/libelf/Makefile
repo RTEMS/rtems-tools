@@ -1,4 +1,4 @@
-# $Id: Makefile 1345 2011-01-01 11:17:52Z jkoshy $
+# $Id$
 
 TOP=	${.CURDIR}/..
 

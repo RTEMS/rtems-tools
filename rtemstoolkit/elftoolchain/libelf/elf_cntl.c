@@ -28,7 +28,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: elf_cntl.c 189 2008-07-20 10:38:08Z jkoshy $");
+LIBELF_VCSID("$Id$");
 
 int
 elf_cntl(Elf *e, Elf_Cmd c)
