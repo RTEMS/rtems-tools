@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2008 Joseph Koshy
+ * Copyright (c) 2008-2011 Joseph Koshy
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -22,6 +22,8 @@
  * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
+ *
+ * $Id: _libelf_config.h 2032 2011-10-23 09:07:00Z jkoshy $
  */
 
 #ifdef __FreeBSD__
@@ -113,6 +115,30 @@
 
 #endif	/* __NetBSD__ */
 
+#ifdef __APPLE__
+
+#define	LIBELF_VCSID(ID)
+
+#if	defined(__amd64__)
+
+#define	LIBELF_ARCH		EM_X86_64
+#define	LIBELF_BYTEORDER	ELFDATA2LSB
+#define	LIBELF_CLASS		ELFCLASS64
+
+#elif	defined(__i386__)
+
+#define	LIBELF_ARCH		EM_386
+#define	LIBELF_BYTEORDER	ELFDATA2LSB
+#define	LIBELF_CLASS		ELFCLASS32
+
+#else
+#error	Unknown Apple architecture.
+#endif
+
+#define	roundup2	roundup
+
+#endif  /* __APPLE__ */
+
 /*
  * GNU & Linux compatibility.
  *
@@ -147,3 +173,25 @@
 #define	roundup2	roundup
 
 #endif /* defined(__linux__) || defined(__GNU__) || defined(__GLIBC__) */
+
+#if defined(__WIN32__) || defined(__CYGWIN__)
+
+#define	LIBELF_VCSID(ID)
+
+#if	defined(__amd64__)
+
+#define	LIBELF_ARCH		EM_X86_64
+#define	LIBELF_BYTEORDER	ELFDATA2LSB
+#define	LIBELF_CLASS		ELFCLASS64
+
+#elif	defined(__i386__)
+
+#define	LIBELF_ARCH		EM_386
+#define	LIBELF_BYTEORDER	ELFDATA2LSB
+#define	LIBELF_CLASS		ELFCLASS32
+
+#else
+#error	Unknown Apple architecture.
+#endif
+
+#endif  /* __APPLE__ */

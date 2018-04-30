@@ -28,7 +28,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id$");
+LIBELF_VCSID("$Id: elf.c 1345 2011-01-01 11:17:52Z jkoshy $");
 
 struct _libelf_globals _libelf = {
 	.libelf_arch		= LIBELF_ARCH,

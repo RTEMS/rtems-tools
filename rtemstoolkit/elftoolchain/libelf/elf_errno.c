@@ -30,7 +30,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id$");
+LIBELF_VCSID("$Id: elf_errno.c 1345 2011-01-01 11:17:52Z jkoshy $");
 
 int
 elf_errno(void)

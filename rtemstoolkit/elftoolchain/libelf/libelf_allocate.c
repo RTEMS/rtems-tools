@@ -40,7 +40,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id$");
+LIBELF_VCSID("$Id: libelf_allocate.c 1341 2011-01-01 04:28:29Z jkoshy $");
 
 Elf *
 _libelf_allocate_elf(void)

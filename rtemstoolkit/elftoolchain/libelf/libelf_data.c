@@ -30,7 +30,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id$");
+LIBELF_VCSID("$Id: libelf_data.c 1264 2010-11-12 14:53:23Z jkoshy $");
 
 int
 _libelf_xlate_shtype(uint32_t sht)

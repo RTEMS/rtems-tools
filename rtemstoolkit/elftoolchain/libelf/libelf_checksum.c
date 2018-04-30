@@ -30,7 +30,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id$");
+LIBELF_VCSID("$Id: libelf_checksum.c 189 2008-07-20 10:38:08Z jkoshy $");
 
 static unsigned long
 _libelf_sum(unsigned long c, const unsigned char *s, size_t size)

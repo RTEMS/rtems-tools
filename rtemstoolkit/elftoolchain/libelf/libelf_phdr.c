@@ -33,7 +33,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id$");
+LIBELF_VCSID("$Id: libelf_phdr.c 1677 2011-07-28 04:35:53Z jkoshy $");
 
 void *
 _libelf_getphdr(Elf *e, int ec)

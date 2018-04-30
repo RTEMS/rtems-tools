@@ -32,7 +32,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id$");
+LIBELF_VCSID("$Id: libelf_convert.m4 1734 2011-08-16 09:55:07Z jkoshy $");
 
 /* WARNING: GENERATED FROM __file__. */
 

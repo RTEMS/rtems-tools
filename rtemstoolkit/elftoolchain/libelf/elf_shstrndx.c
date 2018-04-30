@@ -31,7 +31,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id$");
+LIBELF_VCSID("$Id: elf_shstrndx.c 466 2009-08-04 17:17:42Z jkoshy $");
 
 static int
 _libelf_getshdrstrndx(Elf *e, size_t *strndx)

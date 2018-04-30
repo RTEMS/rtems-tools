@@ -36,7 +36,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id$");
+LIBELF_VCSID("$Id: elf_scn.c 1077 2010-08-09 15:37:40Z jkoshy $");
 
 /*
  * Load an ELF section table and create a list of Elf_Scn structures.
@@ -95,7 +95,7 @@ _libelf_load_section_headers(Elf *e, void *ehdr)
 	if (!STAILQ_EMPTY(&e->e_u.e_elf.e_scn)) {
 		assert(STAILQ_FIRST(&e->e_u.e_elf.e_scn) ==
 		    STAILQ_LAST(&e->e_u.e_elf.e_scn, _Elf_Scn, s_next));
-
+    
 		i = 1;
 		src += fsz;
 	}

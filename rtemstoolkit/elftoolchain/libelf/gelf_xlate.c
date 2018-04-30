@@ -32,7 +32,7 @@
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id$");
+LIBELF_VCSID("$Id: gelf_xlate.c 1678 2011-07-28 04:36:34Z jkoshy $");
 
 Elf_Data *
 elf32_xlatetof(Elf_Data *dst, const Elf_Data *src, unsigned int encoding)
