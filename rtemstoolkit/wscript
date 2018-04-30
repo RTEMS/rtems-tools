@@ -59,6 +59,7 @@ def build(bld):
     # The include paths.
     #
     conf['includes'] = ['elftoolchain/libelf',
+                        'elftoolchain/libdwarf',
                         'elftoolchain/common',
                         'libiberty']
     if bld.env.DEST_OS == 'win32':
@@ -168,7 +169,9 @@ def conf_elftoolchain(conf):
 
 def bld_elftoolchain(bld, conf):
     libelf = 'elftoolchain/libelf/'
+    libdwarf = 'elftoolchain/libdwarf/'
     libelf_m4_rule = '${M4} -D SRCDIR=../rtemstoolkit/' + libelf[:-1] + ' ${SRC} > ${TGT}'
+    libdwarf_m4_rule = '${M4} -D SRCDIR=../rtemstoolkit/' + libdwarf[:-1] + ' ${SRC} > ${TGT}'
     if bld.env.DEST_OS == 'win32':
         includes = ['win32']
     else:
@@ -254,6 +257,81 @@ def bld_elftoolchain(bld, conf):
                        libelf + 'libelf_phdr.c',
                        libelf + 'libelf_shdr.c',
                        libelf + 'libelf_xlate.c'] + libelf_m4_source + host_source)
+
+    libdwarf_m4_source = ['dwarf_funcs.c',
+                          'dwarf_pro_funcs.c',
+                          'dwarf_pro_pubnames.c',
+                          'dwarf_pro_types.c',
+                          'dwarf_pro_vars.c',
+                          'dwarf_pro_weaks.c',
+                          'dwarf_pubnames.c',
+                          'dwarf_pubtypes.c',
+                          'dwarf_types.c',
+                          'dwarf_vars.c',
+                          'dwarf_weaks.c']
+    for s in libdwarf_m4_source:
+        bld(target = s, source = libdwarf + s[:-2] + '.m4', rule = libdwarf_m4_rule)
+
+    bld.stlib(target = 'dwarf',
+              features = 'c',
+              install_path = None,
+              includes = [bld.bldnode.abspath(),
+                          'elftoolchain/libelf',
+                          'elftoolchain/libdwarf',
+                          'elftoolchain/common'] + includes,
+              cflags = conf['cflags'],
+              source =[libdwarf + 'dwarf_abbrev.c',
+                       libdwarf + 'dwarf_arange.c',
+                       libdwarf + 'dwarf_attr.c',
+                       libdwarf + 'dwarf_attrval.c',
+                       libdwarf + 'dwarf_cu.c',
+                       libdwarf + 'dwarf_dealloc.c',
+                       libdwarf + 'dwarf_die.c',
+                       libdwarf + 'dwarf_dump.c',
+                       libdwarf + 'dwarf_errmsg.c',
+                       libdwarf + 'dwarf_finish.c',
+                       libdwarf + 'dwarf_form.c',
+                       libdwarf + 'dwarf_frame.c',
+                       libdwarf + 'dwarf_init.c',
+                       libdwarf + 'dwarf_lineno.c',
+                       libdwarf + 'dwarf_loclist.c',
+                       libdwarf + 'dwarf_macinfo.c',
+                       libdwarf + 'dwarf_pro_arange.c',
+                       libdwarf + 'dwarf_pro_attr.c',
+                       libdwarf + 'dwarf_pro_die.c',
+                       libdwarf + 'dwarf_pro_expr.c',
+                       libdwarf + 'dwarf_pro_finish.c',
+                       libdwarf + 'dwarf_pro_frame.c',
+                       libdwarf + 'dwarf_pro_init.c',
+                       libdwarf + 'dwarf_pro_lineno.c',
+                       libdwarf + 'dwarf_pro_macinfo.c',
+                       libdwarf + 'dwarf_pro_reloc.c',
+                       libdwarf + 'dwarf_pro_sections.c',
+                       libdwarf + 'dwarf_ranges.c',
+                       libdwarf + 'dwarf_reloc.c',
+                       libdwarf + 'dwarf_seterror.c',
+                       libdwarf + 'dwarf_str.c',
+                       libdwarf + 'libdwarf.c',
+                       libdwarf + 'libdwarf_abbrev.c',
+                       libdwarf + 'libdwarf_arange.c',
+                       libdwarf + 'libdwarf_attr.c',
+                       libdwarf + 'libdwarf_die.c',
+                       libdwarf + 'libdwarf_error.c',
+                       libdwarf + 'libdwarf_elf_access.c',
+                       libdwarf + 'libdwarf_elf_init.c',
+                       libdwarf + 'libdwarf_frame.c',
+                       libdwarf + 'libdwarf_info.c',
+                       libdwarf + 'libdwarf_init.c',
+                       libdwarf + 'libdwarf_lineno.c',
+                       libdwarf + 'libdwarf_loc.c',
+                       libdwarf + 'libdwarf_loclist.c',
+                       libdwarf + 'libdwarf_macinfo.c',
+                       libdwarf + 'libdwarf_nametbl.c',
+                       libdwarf + 'libdwarf_ranges.c',
+                       libdwarf + 'libdwarf_reloc.c',
+                       libdwarf + 'libdwarf_rw.c',
+                       libdwarf + 'libdwarf_sections.c',
+                       libdwarf + 'libdwarf_str.c'] + libdwarf_m4_source)
 
 #
 # Libiberty module.
