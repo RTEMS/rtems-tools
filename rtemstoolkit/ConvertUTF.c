@@ -446,9 +446,10 @@ ConversionResult ConvertUTF32toUTF8 (
 	}
 	switch (bytesToWrite) { /* note: everything falls through. */
 	    case 4: *--target = (UTF8)((ch | byteMark) & byteMask); ch >>= 6;
-	    case 3: *--target = (UTF8)((ch | byteMark) & byteMask); ch >>= 6;
-	    case 2: *--target = (UTF8)((ch | byteMark) & byteMask); ch >>= 6;
-	    case 1: *--target = (UTF8) (ch | firstByteMark[bytesToWrite]);
+	    /* fall-thru */
+	    case 3: *--target = (UTF8)((ch | byteMark) & byteMask); ch >>= 6; /* fall-thru */
+	    case 2: *--target = (UTF8)((ch | byteMark) & byteMask); ch >>= 6; /* fall-thru */
+	    case 1: *--target = (UTF8) (ch | firstByteMark[bytesToWrite]);    /* fall-thru */
 	}
 	target += bytesToWrite;
     }
@@ -480,12 +481,12 @@ ConversionResult ConvertUTF8toUTF32 (
 	 * The cases all fall through. See "Note A" below.
 	 */
 	switch (extraBytesToRead) {
-	    case 5: ch += *source++; ch <<= 6;
-	    case 4: ch += *source++; ch <<= 6;
-	    case 3: ch += *source++; ch <<= 6;
-	    case 2: ch += *source++; ch <<= 6;
-	    case 1: ch += *source++; ch <<= 6;
-	    case 0: ch += *source++;
+	    case 5: ch += *source++; ch <<= 6; /* fall-thru */
+	    case 4: ch += *source++; ch <<= 6; /* fall-thru */
+	    case 3: ch += *source++; ch <<= 6; /* fall-thru */
+	    case 2: ch += *source++; ch <<= 6; /* fall-thru */
+	    case 1: ch += *source++; ch <<= 6; /* fall-thru */
+	    case 0: ch += *source++;           /* fall-thru */
 	}
 	ch -= offsetsFromUTF8[extraBytesToRead];
 
