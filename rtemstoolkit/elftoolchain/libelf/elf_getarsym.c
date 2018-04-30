@@ -24,13 +24,11 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-
 #include <libelf.h>
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: elf_getarsym.c 1360 2011-01-08 08:27:41Z jkoshy $");
+ELFTC_VCSID("$Id: elf_getarsym.c 3174 2015-03-27 17:13:41Z emaste $");
 
 Elf_Arsym *
 elf_getarsym(Elf *ar, size_t *ptr)

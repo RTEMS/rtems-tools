@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2014-2016 Chris Johns (chrisj@rtems.org)
+# Copyright 2014-2018 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -40,7 +40,7 @@ def configure(conf):
     conf.load('compiler_c')
     conf.load('compiler_cxx')
     conf_libiberty(conf)
-    conf_libelf(conf)
+    conf_elftoolchain(conf)
 
     conf.find_program('m4')
 
@@ -58,7 +58,9 @@ def build(bld):
     #
     # The include paths.
     #
-    conf['includes'] = ['elftoolchain/libelf', 'elftoolchain/common', 'libiberty']
+    conf['includes'] = ['elftoolchain/libelf',
+                        'elftoolchain/common',
+                        'libiberty']
     if bld.env.DEST_OS == 'win32':
         conf['includes'] += ['win32']
 
@@ -75,7 +77,7 @@ def build(bld):
     # Create each of the modules as object files each with their own
     # configurations.
     #
-    bld_libelf(bld, conf)
+    bld_elftoolchain(bld, conf)
     bld_libiberty(bld, conf)
 
     #
@@ -161,20 +163,22 @@ def tags(ctx):
 #
 # Libelf module.
 #
-def conf_libelf(conf):
+def conf_elftoolchain(conf):
     pass
 
-def bld_libelf(bld, conf):
+def bld_elftoolchain(bld, conf):
     libelf = 'elftoolchain/libelf/'
-    m4_rule = '${M4} -D SRCDIR=../rtemstoolkit/' + libelf[:-1] + ' ${SRC} > ${TGT}'
+    libelf_m4_rule = '${M4} -D SRCDIR=../rtemstoolkit/' + libelf[:-1] + ' ${SRC} > ${TGT}'
     if bld.env.DEST_OS == 'win32':
         includes = ['win32']
     else:
         includes = []
 
-    bld(target = 'libelf_convert.c', source = libelf + 'libelf_convert.m4', rule = m4_rule)
-    bld(target = 'libelf_fsize.c',   source = libelf + 'libelf_fsize.m4',   rule = m4_rule)
-    bld(target = 'libelf_msize.c',   source = libelf + 'libelf_msize.m4',   rule = m4_rule)
+    libelf_m4_source = ['libelf_convert.c',
+                        'libelf_fsize.c',
+                        'libelf_msize.c']
+    for s in libelf_m4_source:
+        bld(target = s, source = libelf + s[:-2] + '.m4', rule = libelf_m4_rule)
 
     host_source = []
 
@@ -212,6 +216,7 @@ def bld_libelf(bld, conf):
                        libelf + 'elf_kind.c',
                        libelf + 'elf_memory.c',
                        libelf + 'elf_next.c',
+                       libelf + 'elf_open.c',
                        libelf + 'elf_rand.c',
                        libelf + 'elf_rawfile.c',
                        libelf + 'elf_phnum.c',
@@ -244,12 +249,11 @@ def bld_libelf(bld, conf):
                        libelf + 'libelf_data.c',
                        libelf + 'libelf_ehdr.c',
                        libelf + 'libelf_extended.c',
+                       libelf + 'libelf_memory.c',
+                       libelf + 'libelf_open.c',
                        libelf + 'libelf_phdr.c',
                        libelf + 'libelf_shdr.c',
-                       libelf + 'libelf_xlate.c',
-                       'libelf_convert.c',
-                       'libelf_fsize.c',
-                       'libelf_msize.c'] + host_source)
+                       libelf + 'libelf_xlate.c'] + libelf_m4_source + host_source)
 
 #
 # Libiberty module.

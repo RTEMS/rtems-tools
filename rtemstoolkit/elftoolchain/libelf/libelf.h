@@ -23,16 +23,21 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: libelf.h 1345 2011-01-01 11:17:52Z jkoshy $
+ * $Id: libelf.h 3174 2015-03-27 17:13:41Z emaste $
  */
 
 #ifndef	_LIBELF_H_
 #define	_LIBELF_H_
 
-#include <sys/param.h>
-#include <sys/queue.h>
+#include <sys/types.h>
 
 #include <elfdefinitions.h>
+
+/* Not defined anywhere on Windows */
+#if defined(__WIN32__)
+typedef int gid_t;
+typedef int uid_t;
+#endif
 
 /* Library private data structures */
 typedef struct _Elf Elf;
@@ -112,13 +117,6 @@ typedef struct _Elf_Data {
 	uint64_t	d_size;
 	Elf_Type	d_type;
 	unsigned int	d_version;
-
-	/*
-	 * Members that are not part of the public API.
-	 */
-	Elf_Scn		*d_scn;		/* containing section */
-	unsigned int	d_flags;
-	STAILQ_ENTRY(_Elf_Data)	d_next;
 } Elf_Data;
 
 /*
@@ -137,7 +135,7 @@ typedef struct {
 	/*
 	 * Members that are not part of the public API.
 	 */
-	int		ar_flags;
+	unsigned int	ar_flags;
 } Elf_Arhdr;
 
 /*
@@ -184,7 +182,9 @@ enum Elf_Error {
 #define	ELF_F_ARCHIVE	   0x100U /* archive creation */
 #define	ELF_F_ARCHIVE_SYSV 0x200U /* SYSV style archive */
 
-__BEGIN_DECLS
+#ifdef __cplusplus
+extern "C" {
+#endif
 Elf		*elf_begin(int _fd, Elf_Cmd _cmd, Elf *_elf);
 int		elf_cntl(Elf *_elf, Elf_Cmd _cmd);
 int		elf_end(Elf *_elf);
@@ -220,6 +220,8 @@ Elf_Data	*elf_newdata(Elf_Scn *_scn);
 Elf_Scn		*elf_newscn(Elf *_elf);
 Elf_Scn		*elf_nextscn(Elf *_elf, Elf_Scn *_scn);
 Elf_Cmd		elf_next(Elf *_elf);
+Elf		*elf_open(int _fd);
+Elf		*elf_openmemory(char *_image, size_t _size);
 off_t		elf_rand(Elf *_elf, off_t _off);
 Elf_Data	*elf_rawdata(Elf_Scn *_scn, Elf_Data *_data);
 char		*elf_rawfile(Elf *_elf, size_t *_size);
@@ -253,6 +255,8 @@ Elf_Data	*elf64_xlatetof(Elf_Data *_dst, const Elf_Data *_src,
 			unsigned int _enc);
 Elf_Data	*elf64_xlatetom(Elf_Data *_dst, const Elf_Data *_src,
 			unsigned int _enc);
-__END_DECLS
+#ifdef __cplusplus
+}
+#endif
 
 #endif	/* _LIBELF_H_ */

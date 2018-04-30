@@ -23,12 +23,24 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: _libelf_config.h 2032 2011-10-23 09:07:00Z jkoshy $
+ * $Id: _libelf_config.h 3566 2017-08-31 02:28:40Z emaste $
  */
 
-#ifdef __FreeBSD__
+#if defined(__APPLE__) || defined(__DragonFly__)
 
-#define	LIBELF_VCSID(ID)	__FBSDID(ID)
+#if	defined(__amd64__)
+#define	LIBELF_ARCH		EM_X86_64
+#define	LIBELF_BYTEORDER	ELFDATA2LSB
+#define	LIBELF_CLASS		ELFCLASS64
+#elif	defined(__i386__)
+#define	LIBELF_ARCH		EM_386
+#define	LIBELF_BYTEORDER	ELFDATA2LSB
+#define	LIBELF_CLASS		ELFCLASS32
+#endif
+
+#endif	/* __DragonFly__ */
+
+#ifdef __FreeBSD__
 
 /*
  * Define LIBELF_{ARCH,BYTEORDER,CLASS} based on the machine architecture.
@@ -38,6 +50,12 @@
 #if	defined(__amd64__)
 
 #define	LIBELF_ARCH		EM_X86_64
+#define	LIBELF_BYTEORDER	ELFDATA2LSB
+#define	LIBELF_CLASS		ELFCLASS64
+
+#elif	defined(__aarch64__)
+
+#define	LIBELF_ARCH		EM_AARCH64
 #define	LIBELF_BYTEORDER	ELFDATA2LSB
 #define	LIBELF_CLASS		ELFCLASS64
 
@@ -79,6 +97,12 @@
 #define	LIBELF_BYTEORDER	ELFDATA2MSB
 #define	LIBELF_CLASS		ELFCLASS32
 
+#elif	defined(__riscv) && (__riscv_xlen == 64)
+
+#define	LIBELF_ARCH		EM_RISCV
+#define	LIBELF_BYTEORDER	ELFDATA2LSB
+#define	LIBELF_CLASS		ELFCLASS64
+
 #elif	defined(__sparc__)
 
 #define	LIBELF_ARCH		EM_SPARCV9
@@ -90,12 +114,20 @@
 #endif
 #endif  /* __FreeBSD__ */
 
+/*
+ * Definitions for Minix3.
+ */
+#ifdef __minix
+
+#define	LIBELF_ARCH		EM_386
+#define	LIBELF_BYTEORDER	ELFDATA2LSB
+#define	LIBELF_CLASS		ELFCLASS32
+
+#endif	/* __minix */
 
 #ifdef __NetBSD__
 
 #include <machine/elf_machdep.h>
-
-#define	LIBELF_VCSID(ID)	__RCSID(ID)
 
 #if	!defined(ARCH_ELFSIZE)
 #error	ARCH_ELFSIZE is not defined.
@@ -115,29 +147,15 @@
 
 #endif	/* __NetBSD__ */
 
-#ifdef __APPLE__
+#if defined(__OpenBSD__)
 
-#define	LIBELF_VCSID(ID)
+#include <machine/exec.h>
 
-#if	defined(__amd64__)
+#define	LIBELF_ARCH		ELF_TARG_MACH
+#define	LIBELF_BYTEORDER	ELF_TARG_DATA
+#define	LIBELF_CLASS		ELF_TARG_CLASS
 
-#define	LIBELF_ARCH		EM_X86_64
-#define	LIBELF_BYTEORDER	ELFDATA2LSB
-#define	LIBELF_CLASS		ELFCLASS64
-
-#elif	defined(__i386__)
-
-#define	LIBELF_ARCH		EM_386
-#define	LIBELF_BYTEORDER	ELFDATA2LSB
-#define	LIBELF_CLASS		ELFCLASS32
-
-#else
-#error	Unknown Apple architecture.
 #endif
-
-#define	roundup2	roundup
-
-#endif  /* __APPLE__ */
 
 /*
  * GNU & Linux compatibility.
@@ -160,8 +178,6 @@
 
 #endif	/* defined(__linux__) */
 
-#define	LIBELF_VCSID(ID)
-
 #if	LIBELF_CLASS == ELFCLASS32
 #define	Elf_Note		Elf32_Nhdr
 #elif   LIBELF_CLASS == ELFCLASS64
@@ -170,28 +186,26 @@
 #error  LIBELF_CLASS needs to be one of ELFCLASS32 or ELFCLASS64
 #endif
 
-#define	roundup2	roundup
-
 #endif /* defined(__linux__) || defined(__GNU__) || defined(__GLIBC__) */
 
 #if defined(__WIN32__) || defined(__CYGWIN__)
 
-#define	LIBELF_VCSID(ID)
+#define LIBELF_VCSID(ID)
 
-#if	defined(__amd64__)
+#if     defined(__amd64__)
 
-#define	LIBELF_ARCH		EM_X86_64
-#define	LIBELF_BYTEORDER	ELFDATA2LSB
-#define	LIBELF_CLASS		ELFCLASS64
+#define LIBELF_ARCH             EM_X86_64
+#define LIBELF_BYTEORDER        ELFDATA2LSB
+#define LIBELF_CLASS            ELFCLASS64
 
-#elif	defined(__i386__)
+#elif   defined(__i386__)
 
-#define	LIBELF_ARCH		EM_386
-#define	LIBELF_BYTEORDER	ELFDATA2LSB
-#define	LIBELF_CLASS		ELFCLASS32
+#define LIBELF_ARCH             EM_386
+#define LIBELF_BYTEORDER        ELFDATA2LSB
+#define LIBELF_CLASS            ELFCLASS32
 
 #else
-#error	Unknown Apple architecture.
+#error  Unknown Windows architecture.
 #endif
 
-#endif  /* __APPLE__ */
+#endif  /* __WIN32__ || __CYGWIN__ */

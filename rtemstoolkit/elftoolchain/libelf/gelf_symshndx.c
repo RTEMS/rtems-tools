@@ -24,14 +24,12 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-
 #include <assert.h>
 #include <gelf.h>
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: gelf_symshndx.c 189 2008-07-20 10:38:08Z jkoshy $");
+ELFTC_VCSID("$Id: gelf_symshndx.c 3174 2015-03-27 17:13:41Z emaste $");
 
 GElf_Sym *
 gelf_getsymshndx(Elf_Data *d, Elf_Data *id, int ndx, GElf_Sym *dst,
@@ -39,15 +37,19 @@ gelf_getsymshndx(Elf_Data *d, Elf_Data *id, int ndx, GElf_Sym *dst,
 {
 	int ec;
 	Elf *e;
-	Elf_Scn *scn;
 	size_t msz;
+	Elf_Scn *scn;
 	uint32_t sh_type;
+	struct _Libelf_Data *ld, *lid;
+
+	ld = (struct _Libelf_Data *) d;
+	lid = (struct _Libelf_Data *) id;
 
 	if (gelf_getsym(d, ndx, dst) == 0)
 		return (NULL);
 
-	if (id == NULL || (scn = id->d_scn) == NULL ||
-	    (e = scn->s_elf) == NULL || (e != d->d_scn->s_elf) ||
+	if (lid == NULL || (scn = lid->d_scn) == NULL ||
+	    (e = scn->s_elf) == NULL || (e != ld->d_scn->s_elf) ||
 	    shindex == NULL) {
 		LIBELF_SET_ERROR(ARGUMENT, 0);
 		return (NULL);
@@ -70,8 +72,9 @@ gelf_getsymshndx(Elf_Data *d, Elf_Data *id, int ndx, GElf_Sym *dst,
 	msz = _libelf_msize(ELF_T_WORD, ec, e->e_version);
 
 	assert(msz > 0);
+	assert(ndx >= 0);
 
-	if (msz * ndx >= id->d_size) {
+	if (msz * (size_t) ndx >= id->d_size) {
 		LIBELF_SET_ERROR(ARGUMENT, 0);
 		return (NULL);
 	}
@@ -87,15 +90,19 @@ gelf_update_symshndx(Elf_Data *d, Elf_Data *id, int ndx, GElf_Sym *gs,
 {
 	int ec;
 	Elf *e;
-	Elf_Scn *scn;
 	size_t msz;
+	Elf_Scn *scn;
 	uint32_t sh_type;
+	struct _Libelf_Data *ld, *lid;
+
+	ld = (struct _Libelf_Data *) d;
+	lid = (struct _Libelf_Data *) id;
 
 	if (gelf_update_sym(d, ndx, gs) == 0)
 		return (0);
 
-	if (id == NULL || (scn = id->d_scn) == NULL ||
-	    (e = scn->s_elf) == NULL || (e != d->d_scn->s_elf)) {
+	if (lid == NULL || (scn = lid->d_scn) == NULL ||
+	    (e = scn->s_elf) == NULL || (e != ld->d_scn->s_elf)) {
 		LIBELF_SET_ERROR(ARGUMENT, 0);
 		return (0);
 	}
@@ -115,9 +122,11 @@ gelf_update_symshndx(Elf_Data *d, Elf_Data *id, int ndx, GElf_Sym *gs,
 	}
 
 	msz = _libelf_msize(ELF_T_WORD, ec, e->e_version);
-	assert(msz > 0);
 
-	if (msz * ndx >= id->d_size) {
+	assert(msz > 0);
+	assert(ndx >= 0);
+
+	if (msz * (size_t) ndx >= id->d_size) {
 		LIBELF_SET_ERROR(ARGUMENT, 0);
 		return (0);
 	}

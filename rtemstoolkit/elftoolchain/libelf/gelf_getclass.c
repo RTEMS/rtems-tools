@@ -24,13 +24,11 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-
 #include <gelf.h>
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: gelf_getclass.c 189 2008-07-20 10:38:08Z jkoshy $");
+ELFTC_VCSID("$Id: gelf_getclass.c 3174 2015-03-27 17:13:41Z emaste $");
 
 int
 gelf_getclass(Elf *e)

@@ -24,13 +24,11 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-
 #include <libelf.h>
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: elf_flag.c 1918 2011-09-22 10:42:06Z jkoshy $");
+ELFTC_VCSID("$Id: elf_flag.c 3174 2015-03-27 17:13:41Z emaste $");
 
 unsigned int
 elf_flagarhdr(Elf_Arhdr *a, Elf_Cmd c, unsigned int flags)
@@ -58,6 +56,7 @@ unsigned int
 elf_flagdata(Elf_Data *d, Elf_Cmd c, unsigned int flags)
 {
 	unsigned int r;
+	struct _Libelf_Data *ld;
 
 	if (d == NULL)
 		return (0);
@@ -68,10 +67,12 @@ elf_flagdata(Elf_Data *d, Elf_Cmd c, unsigned int flags)
 		return (0);
 	}
 
+	ld = (struct _Libelf_Data *) d;
+
 	if (c == ELF_C_SET)
-		r = d->d_flags |= flags;
+		r = ld->d_flags |= flags;
 	else
-		r = d->d_flags &= ~flags;
+		r = ld->d_flags &= ~flags;
 
 	return (r & LIBELF_F_API_MASK);
 }
@@ -108,7 +109,7 @@ elf_flagehdr(Elf *e, Elf_Cmd c, unsigned int flags)
 unsigned int
 elf_flagelf(Elf *e, Elf_Cmd c, unsigned int flags)
 {
-	int r;
+	unsigned int r;
 
 	if (e == NULL)
 		return (0);
@@ -170,7 +171,7 @@ elf_flagphdr(Elf *e, Elf_Cmd c, unsigned int flags)
 unsigned int
 elf_flagscn(Elf_Scn *s, Elf_Cmd c, unsigned int flags)
 {
-	int r;
+	unsigned int r;
 
 	if (s == NULL)
 		return (0);

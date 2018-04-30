@@ -24,16 +24,16 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-
 #include <assert.h>
 #include <gelf.h>
 #include <libelf.h>
+#include <limits.h>
+#include <stdint.h>
 #include <string.h>
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: gelf_ehdr.c 1678 2011-07-28 04:36:34Z jkoshy $");
+ELFTC_VCSID("$Id: gelf_ehdr.c 3177 2015-03-30 18:19:41Z emaste $");
 
 Elf32_Ehdr *
 elf32_getehdr(Elf *e)

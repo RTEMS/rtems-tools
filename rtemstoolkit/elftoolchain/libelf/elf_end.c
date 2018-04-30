@@ -24,17 +24,17 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-
-#include <sys/mman.h>
-
 #include <assert.h>
 #include <libelf.h>
 #include <stdlib.h>
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: elf_end.c 1922 2011-09-23 08:04:33Z jkoshy $");
+#if	ELFTC_HAVE_MMAP
+#include <sys/mman.h>
+#endif
+
+ELFTC_VCSID("$Id: elf_end.c 3174 2015-03-27 17:13:41Z emaste $");
 
 int
 elf_end(Elf *e)
@@ -77,10 +77,12 @@ elf_end(Elf *e)
 		}
 
 		if (e->e_rawfile) {
-			if (e->e_flags & LIBELF_F_RAWFILE_MMAP)
-				(void) munmap(e->e_rawfile, e->e_rawsize);
-			else if (e->e_flags & LIBELF_F_RAWFILE_MALLOC)
+			if (e->e_flags & LIBELF_F_RAWFILE_MALLOC)
 				free(e->e_rawfile);
+#if	ELFTC_HAVE_MMAP
+			else if (e->e_flags & LIBELF_F_RAWFILE_MMAP)
+				(void) munmap(e->e_rawfile, e->e_rawsize);
+#endif
 		}
 
 		sv = e;

@@ -24,25 +24,28 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-
 #include <assert.h>
 #include <gelf.h>
+#include <limits.h>
+#include <stdint.h>
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: gelf_cap.c 1166 2010-09-04 00:54:36Z jkoshy $");
+ELFTC_VCSID("$Id: gelf_cap.c 3177 2015-03-30 18:19:41Z emaste $");
 
 GElf_Cap *
-gelf_getcap(Elf_Data *d, int ndx, GElf_Cap *dst)
+gelf_getcap(Elf_Data *ed, int ndx, GElf_Cap *dst)
 {
 	int ec;
 	Elf *e;
+	size_t msz;
 	Elf_Scn *scn;
 	Elf32_Cap *cap32;
 	Elf64_Cap *cap64;
-	size_t msz;
 	uint32_t sh_type;
+	struct _Libelf_Data *d;
+
+	d = (struct _Libelf_Data *) ed;
 
 	if (d == NULL || ndx < 0 || dst == NULL ||
 	    (scn = d->d_scn) == NULL ||
@@ -68,21 +71,21 @@ gelf_getcap(Elf_Data *d, int ndx, GElf_Cap *dst)
 
 	assert(msz > 0);
 
-	if (msz * ndx >= d->d_size) {
+	if (msz * (size_t) ndx >= d->d_data.d_size) {
 		LIBELF_SET_ERROR(ARGUMENT, 0);
 		return (NULL);
 	}
 
 	if (ec == ELFCLASS32) {
 
-		cap32 = (Elf32_Cap *) d->d_buf + ndx;
+		cap32 = (Elf32_Cap *) d->d_data.d_buf + ndx;
 
 		dst->c_tag  = cap32->c_tag;
 		dst->c_un.c_val = (Elf64_Xword) cap32->c_un.c_val;
 
 	} else {
 
-		cap64 = (Elf64_Cap *) d->d_buf + ndx;
+		cap64 = (Elf64_Cap *) d->d_data.d_buf + ndx;
 
 		*dst = *cap64;
 	}
@@ -91,15 +94,18 @@ gelf_getcap(Elf_Data *d, int ndx, GElf_Cap *dst)
 }
 
 int
-gelf_update_cap(Elf_Data *d, int ndx, GElf_Cap *gc)
+gelf_update_cap(Elf_Data *ed, int ndx, GElf_Cap *gc)
 {
 	int ec;
 	Elf *e;
+	size_t msz;
 	Elf_Scn *scn;
 	Elf32_Cap *cap32;
 	Elf64_Cap *cap64;
-	size_t msz;
 	uint32_t sh_type;
+	struct _Libelf_Data *d;
+
+	d = (struct _Libelf_Data *) ed;
 
 	if (d == NULL || ndx < 0 || gc == NULL ||
 	    (scn = d->d_scn) == NULL ||
@@ -124,18 +130,18 @@ gelf_update_cap(Elf_Data *d, int ndx, GElf_Cap *gc)
 	msz = _libelf_msize(ELF_T_CAP, ec, e->e_version);
 	assert(msz > 0);
 
-	if (msz * ndx >= d->d_size) {
+	if (msz * (size_t) ndx >= d->d_data.d_size) {
 		LIBELF_SET_ERROR(ARGUMENT, 0);
 		return (0);
 	}
 
 	if (ec == ELFCLASS32) {
-		cap32 = (Elf32_Cap *) d->d_buf + ndx;
+		cap32 = (Elf32_Cap *) d->d_data.d_buf + ndx;
 
 		LIBELF_COPY_U32(cap32, gc, c_tag);
 		LIBELF_COPY_U32(cap32, gc, c_un.c_val);
 	} else {
-		cap64 = (Elf64_Cap *) d->d_buf + ndx;
+		cap64 = (Elf64_Cap *) d->d_data.d_buf + ndx;
 
 		*cap64 = *gc;
 	}

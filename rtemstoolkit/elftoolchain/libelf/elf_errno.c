@@ -24,13 +24,11 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-
 #include <libelf.h>
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: elf_errno.c 1345 2011-01-01 11:17:52Z jkoshy $");
+ELFTC_VCSID("$Id: elf_errno.c 3174 2015-03-27 17:13:41Z emaste $");
 
 int
 elf_errno(void)

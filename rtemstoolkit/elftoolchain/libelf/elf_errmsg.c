@@ -24,21 +24,19 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-
 #include <libelf.h>
 #include <stdio.h>
 #include <string.h>
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: elf_errmsg.c 1345 2011-01-01 11:17:52Z jkoshy $");
+ELFTC_VCSID("$Id: elf_errmsg.c 3174 2015-03-27 17:13:41Z emaste $");
 
 /*
  * Retrieve a human readable translation for an error message.
  */
 
-const char *_libelf_errors[] = {
+static const char *_libelf_errors[] = {
 #define	DEFINE_ERROR(N,S)	[ELF_E_##N] = S
 	DEFINE_ERROR(NONE,	"No Error"),
 	DEFINE_ERROR(ARCHIVE,	"Malformed ar(1) archive"),
@@ -76,7 +74,7 @@ elf_errmsg(int error)
 	if (error < ELF_E_NONE || error >= ELF_E_NUM)
 		return _libelf_errors[ELF_E_NUM];
 	if (oserr) {
-		(void) snprintf(LIBELF_PRIVATE(msg),
+		(void) snprintf((char *) LIBELF_PRIVATE(msg),
 		    sizeof(LIBELF_PRIVATE(msg)), "%s: %s",
 		    _libelf_errors[error], strerror(oserr));
 		return (const char *)&LIBELF_PRIVATE(msg);

@@ -24,13 +24,11 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-
 #include <libelf.h>
 
-#include "_libelf_config.h"
+#include "_libelf.h"
 
-LIBELF_VCSID("$Id: elf_hash.c 189 2008-07-20 10:38:08Z jkoshy $");
+ELFTC_VCSID("$Id: elf_hash.c 3174 2015-03-27 17:13:41Z emaste $");
 
 /*
  * This elf_hash function is defined by the System V ABI.

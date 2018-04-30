@@ -21,9 +21,9 @@
 .\" out of the use of this software, even if advised of the possibility of
 .\" such damage.
 .\"
-.\" $Id: elf_begin.3 1925 2011-09-23 09:34:05Z jkoshy $ 
+.\" $Id: elf_begin.3 3182 2015-04-10 16:08:10Z emaste $
 .\"
-.Dd September 23, 2011
+.Dd December 11, 2011
 .Os
 .Dt ELF_BEGIN 3
 .Sh NAME
@@ -272,7 +272,7 @@ was created.
 .It Bq Er ELF_E_ARGUMENT
 An
 .Xr ar 1
-archive was opened with with
+archive was opened with
 .Ar cmd
 set to
 .Dv ELF_C_RDWR .
@@ -299,6 +299,10 @@ Function
 .Fn elf_begin
 was called before a working version was established with
 .Xr elf_version 3 .
+.It Bq Er ELF_E_VERSION
+The ELF object referenced by argument
+.Ar fd
+was of an unsupported ELF version.
 .El
 .Sh SEE ALSO
 .Xr elf 3 ,

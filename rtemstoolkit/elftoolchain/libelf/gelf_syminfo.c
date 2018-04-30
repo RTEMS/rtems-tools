@@ -24,25 +24,26 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-
 #include <assert.h>
 #include <gelf.h>
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: gelf_syminfo.c 1166 2010-09-04 00:54:36Z jkoshy $");
+ELFTC_VCSID("$Id: gelf_syminfo.c 3174 2015-03-27 17:13:41Z emaste $");
 
 GElf_Syminfo *
-gelf_getsyminfo(Elf_Data *d, int ndx, GElf_Syminfo *dst)
+gelf_getsyminfo(Elf_Data *ed, int ndx, GElf_Syminfo *dst)
 {
 	int ec;
 	Elf *e;
+	size_t msz;
 	Elf_Scn *scn;
+	uint32_t sh_type;
+	struct _Libelf_Data *d;
 	Elf32_Syminfo *syminfo32;
 	Elf64_Syminfo *syminfo64;
-	size_t msz;
-	uint32_t sh_type;
+
+	d = (struct _Libelf_Data *) ed;
 
 	if (d == NULL || ndx < 0 || dst == NULL ||
 	    (scn = d->d_scn) == NULL ||
@@ -67,22 +68,23 @@ gelf_getsyminfo(Elf_Data *d, int ndx, GElf_Syminfo *dst)
 	msz = _libelf_msize(ELF_T_SYMINFO, ec, e->e_version);
 
 	assert(msz > 0);
+	assert(ndx >= 0);
 
-	if (msz * ndx >= d->d_size) {
+	if (msz * (size_t) ndx >= d->d_data.d_size) {
 		LIBELF_SET_ERROR(ARGUMENT, 0);
 		return (NULL);
 	}
 
 	if (ec == ELFCLASS32) {
 
-		syminfo32 = (Elf32_Syminfo *) d->d_buf + ndx;
+		syminfo32 = (Elf32_Syminfo *) d->d_data.d_buf + ndx;
 
 		dst->si_boundto = syminfo32->si_boundto;
 		dst->si_flags   = syminfo32->si_flags;
 
 	} else {
 
-		syminfo64 = (Elf64_Syminfo *) d->d_buf + ndx;
+		syminfo64 = (Elf64_Syminfo *) d->d_data.d_buf + ndx;
 
 		*dst = *syminfo64;
 	}
@@ -91,15 +93,18 @@ gelf_getsyminfo(Elf_Data *d, int ndx, GElf_Syminfo *dst)
 }
 
 int
-gelf_update_syminfo(Elf_Data *d, int ndx, GElf_Syminfo *gs)
+gelf_update_syminfo(Elf_Data *ed, int ndx, GElf_Syminfo *gs)
 {
 	int ec;
 	Elf *e;
+	size_t msz;
 	Elf_Scn *scn;
+	uint32_t sh_type;
+	struct _Libelf_Data *d;
 	Elf32_Syminfo *syminfo32;
 	Elf64_Syminfo *syminfo64;
-	size_t msz;
-	uint32_t sh_type;
+
+	d = (struct _Libelf_Data *) ed;
 
 	if (d == NULL || ndx < 0 || gs == NULL ||
 	    (scn = d->d_scn) == NULL ||
@@ -122,21 +127,23 @@ gelf_update_syminfo(Elf_Data *d, int ndx, GElf_Syminfo *gs)
 	}
 
 	msz = _libelf_msize(ELF_T_SYMINFO, ec, e->e_version);
-	assert(msz > 0);
 
-	if (msz * ndx >= d->d_size) {
+	assert(msz > 0);
+	assert(ndx >= 0);
+
+	if (msz * (size_t) ndx >= d->d_data.d_size) {
 		LIBELF_SET_ERROR(ARGUMENT, 0);
 		return (0);
 	}
 
 	if (ec == ELFCLASS32) {
-		syminfo32 = (Elf32_Syminfo *) d->d_buf + ndx;
+		syminfo32 = (Elf32_Syminfo *) d->d_data.d_buf + ndx;
 
 		syminfo32->si_boundto  = gs->si_boundto;
 		syminfo32->si_flags  = gs->si_flags;
 
 	} else {
-		syminfo64 = (Elf64_Syminfo *) d->d_buf + ndx;
+		syminfo64 = (Elf64_Syminfo *) d->d_data.d_buf + ndx;
 
 		*syminfo64 = *gs;
 	}

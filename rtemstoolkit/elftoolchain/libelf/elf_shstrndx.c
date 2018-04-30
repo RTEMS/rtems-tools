@@ -24,14 +24,12 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-
 #include <ar.h>
 #include <libelf.h>
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: elf_shstrndx.c 466 2009-08-04 17:17:42Z jkoshy $");
+ELFTC_VCSID("$Id: elf_shstrndx.c 3174 2015-03-27 17:13:41Z emaste $");
 
 static int
 _libelf_getshdrstrndx(Elf *e, size_t *strndx)

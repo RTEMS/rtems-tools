@@ -24,13 +24,11 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-
 #include <libelf.h>
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: elf_getbase.c 977 2010-06-06 11:50:31Z jkoshy $");
+ELFTC_VCSID("$Id: elf_getbase.c 3174 2015-03-27 17:13:41Z emaste $");
 
 off_t
 elf_getbase(Elf *e)

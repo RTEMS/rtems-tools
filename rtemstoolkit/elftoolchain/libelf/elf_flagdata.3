@@ -1,4 +1,4 @@
-.\" Copyright (c) 2006-2008 Joseph Koshy.  All rights reserved.
+.\" Copyright (c) 2006-2008,2011 Joseph Koshy.  All rights reserved.
 .\"
 .\" Redistribution and use in source and binary forms, with or without
 .\" modification, are permitted provided that the following conditions
@@ -21,9 +21,9 @@
 .\" out of the use of this software, even if advised of the possibility of
 .\" such damage.
 .\"
-.\" $Id: elf_flagdata.3 221 2008-08-10 04:56:27Z jkoshy $
+.\" $Id: elf_flagdata.3 3479 2016-06-25 20:44:33Z jkoshy $
 .\"
-.Dd October 22, 2007
+.Dd December 3, 2011
 .Os
 .Dt ELF_FLAGDATA 3
 .Sh NAME
@@ -64,6 +64,38 @@ Arguments
 and
 .Ar scn
 denote the data structures whose flags need to be changed.
+These values should have been returned by prior calls to
+functions in the ELF(3) API set:
+.Bl -bullet -compact
+.It
+Argument
+.Ar arhdr
+should have been returned by a prior call to
+.Xr elf_getarhdr 3 .
+.It
+Argument
+.Ar data
+should have been returned by a prior call to one of
+.Xr elf_newdata 3 ,
+.Xr elf_getdata 3
+or
+.Xr elf_rawdata 3 .
+.It
+Argument
+.Ar elf
+should have been allocated by a prior call to one of
+.Xr elf_begin 3
+or
+.Xr elf_memory 3 .
+.It
+Argument
+.Ar scn
+should have been returned by a prior call to one of
+.Xr elf_getscn 3 ,
+.Xr elf_newscn 3
+or
+.Xr elf_nextscn 3 .
+.El
 These values are allowed to be NULL to simplify error handling in
 application code.
 .Pp
@@ -134,7 +166,7 @@ Using a value of zero for argument
 will return the current set of flags for the data structure being
 queried.
 .Sh RETURN VALUES
-These functions return the updated flags is successful, and zero if
+These functions return the updated flags if successful, or zero if
 an error is detected.
 .Sh COMPATIBILITY
 The
@@ -176,16 +208,13 @@ was called without a program header being allocated.
 .Xr elf 3 ,
 .Xr elf32_newehdr 3 ,
 .Xr elf32_newphdr 3 ,
-.Xr elf32_newshdr 3 ,
 .Xr elf64_newehdr 3 ,
 .Xr elf64_newphdr 3 ,
-.Xr elf64_newshdr 3 ,
 .Xr elf_newdata 3 ,
 .Xr elf_update 3 ,
 .Xr gelf 3 ,
 .Xr gelf_newehdr 3 ,
 .Xr gelf_newphdr 3 ,
-.Xr gelf_newshdr 3 ,
 .Xr gelf_update_dyn 3 ,
 .Xr gelf_update_move 3 ,
 .Xr gelf_update_rel 3 ,

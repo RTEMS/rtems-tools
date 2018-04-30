@@ -24,17 +24,18 @@
  * SUCH DAMAGE.
  */
 
-#include <sys/cdefs.h>
-
 #include <libelf.h>
 
 #include "_libelf.h"
 
-LIBELF_VCSID("$Id: libelf_data.c 1264 2010-11-12 14:53:23Z jkoshy $");
+ELFTC_VCSID("$Id: libelf_data.c 3174 2015-03-27 17:13:41Z emaste $");
 
 int
 _libelf_xlate_shtype(uint32_t sht)
 {
+	/*
+	 * Look for known section types.
+	 */
 	switch (sht) {
 	case SHT_DYNAMIC:
 		return (ELF_T_DYN);
@@ -83,6 +84,18 @@ _libelf_xlate_shtype(uint32_t sht)
 	case SHT_SUNW_versym:	/* == SHT_GNU_versym */
 		return (ELF_T_HALF);
 	default:
+		/*
+		 * Values in the range [SHT_LOOS..SHT_HIUSER] (i.e.,
+		 * OS, processor and user-defined section types) are
+		 * legal, but since we do not know anything more about
+		 * their semantics, we return a type of ELF_T_BYTE.
+		 */
+		if (sht >= SHT_LOOS && sht <= SHT_HIUSER)
+			return (ELF_T_BYTE);
+
+		/*
+		 * Other values are unsupported.
+		 */
 		return (-1);
 	}
 }

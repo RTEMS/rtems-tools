@@ -44,12 +44,6 @@
 #define __rangeof(type, start, end) \
   (__offsetof(type, end) - __offsetof(type, start))
 
-/*
- * Hack. Have to put this somewhere.
- */
-typedef int gid_t;
-typedef int uid_t;
-
 /* Macros for counting and rounding. */
 #ifndef howmany
 #define howmany(x, y)   (((x)+((y)-1))/(y))
