@@ -492,7 +492,7 @@ extern const char *__progname;
 #if defined(__WIN32__) || defined(__CYGWIN__)
 
 #if defined(__CYGWIN__)
-#include <sys/endian.h>
+#include <endian.h>
 #else /* __CYGWIN */
 #include <winsock2.h>
 #define htobe32(x)      (x)
