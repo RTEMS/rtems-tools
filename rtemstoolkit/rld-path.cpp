@@ -145,7 +145,13 @@ namespace rld
         }
         else if (dir == "..")
         {
+          /*
+           * If the path goes above the root of where we are there is nothing
+           * that can be done so return the path passed in.
+           */
           aps.pop_back ();
+          if (aps.empty ())
+            return path;
         }
         else
         {
