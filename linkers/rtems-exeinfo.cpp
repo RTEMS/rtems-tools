@@ -43,6 +43,7 @@
 
 #include <rld.h>
 #include <rld-buffer.h>
+#include <rld-dwarf.h>
 #include <rld-files.h>
 #include <rld-process.h>
 #include <rld-rtems.h>
@@ -131,6 +132,7 @@ namespace rld
     struct image
     {
       files::object    exe;         //< The object file that is the executable.
+      dwarf::file      debug;       //< The executable's DWARF details.
       symbols::table   symbols;     //< The synbols for a map.
       symbols::addrtab addresses;   //< The symbols keyed by address.
       files::sections  secs;        //< The sections in the executable.
@@ -147,6 +149,11 @@ namespace rld
        * Clean up.
        */
       ~image ();
+
+      /*
+       * Check the compiler and flags match.
+       */
+      void output_compilation_unit (bool objects);
 
       /*
        * Output the sections.
@@ -260,6 +267,7 @@ namespace rld
        */
       exe.open ();
       exe.begin ();
+      debug.begin (exe.elf ());
 
       if (!exe.valid ())
         throw rld::error ("Not valid: " + exe.name ().full (),
@@ -284,6 +292,7 @@ namespace rld
        * Load the symbols and sections.
        */
       exe.load_symbols (symbols, true);
+      debug.load_debug ();
       symbols.globals (addresses);
       symbols.weaks (addresses);
       symbols.locals (addresses);
@@ -292,7 +301,186 @@ namespace rld
 
     image::~image ()
     {
-      exe.close ();
+    }
+
+    void
+    image::output_compilation_unit (bool objects)
+    {
+      dwarf::compilation_units& cus = debug.get_cus ();
+
+      std::cout << "Compilation: " << std::endl;
+
+      rld::strings flag_exceptions = { "-O",
+                                       "-g",
+                                       "-mtune=",
+                                       "-fno-builtin",
+                                       "-fno-inline",
+                                       "-fexceptions",
+                                       "-fnon-call-exceptions",
+                                       "-fvisibility=",
+                                       "-fno-stack-protector",
+                                       "-fbuilding-libgcc",
+                                       "-fno-implicit-templates",
+                                       "-ffunction-sections",
+                                       "-fdata-sections",
+                                       "-frandom-seed=",
+                                       "-fno-common",
+                                       "-fno-keep-inline-functions" };
+
+      dwarf::producer_sources producers;
+
+      debug.get_producer_sources (producers);
+
+      /*
+       * Find which flags are common to the building of all source. We are only
+       * interested in files that have any flags. This filters out things like
+       * the assembler which does not have flags.
+       */
+
+      rld::strings all_flags;
+
+      size_t source_max = 0;
+
+      for (auto& p : producers)
+      {
+        dwarf::source_flags_compare compare;
+        std::sort (p.sources.begin (), p.sources.end (), compare);
+
+        for (auto& s : p.sources)
+        {
+          size_t len = rld::path::basename (s.source).length ();
+          if (len > source_max)
+            source_max = len;
+
+          if (!s.flags.empty ())
+          {
+            for (auto& f : s.flags)
+            {
+              bool add = true;
+              for (auto& ef : flag_exceptions)
+              {
+                if (rld::starts_with (f, ef))
+                {
+                  add = false;
+                  break;
+                }
+              }
+              if (add)
+              {
+                for (auto& af : all_flags)
+                {
+                  if (f == af)
+                  {
+                    add = false;
+                    break;
+                  }
+                }
+                if (add)
+                  all_flags.push_back (f);
+              }
+            }
+          }
+        }
+      }
+
+      rld::strings common_flags;
+
+      for (auto& flag : all_flags)
+      {
+        bool found_in_all = true;
+        for (auto& p : producers)
+        {
+          for (auto& s : p.sources)
+          {
+            if (!s.flags.empty ())
+            {
+              bool flag_found = false;
+              for (auto& f : s.flags)
+              {
+                if (flag == f)
+                {
+                  flag_found = true;
+                  break;
+                }
+              }
+              if (!flag_found)
+              {
+                found_in_all = false;
+                break;
+              }
+            }
+            if (!found_in_all)
+              break;
+          }
+        }
+        if (found_in_all)
+          common_flags.push_back (flag);
+      }
+
+      std::cout << " Producers: " << producers.size () << std::endl;
+
+      for (auto& p : producers)
+      {
+        std::cout << "  | " << p.producer
+                  << ": " << p.sources.size () << " objects" << std::endl;
+      }
+
+      std::cout << " Common flags: " << common_flags.size () << std::endl
+                << "  |";
+
+      for (auto& f : common_flags)
+        std::cout << ' ' << f;
+      std::cout << std::endl;
+
+      if (objects)
+      {
+        std::cout << " Object files: " << cus.size () << std::endl;
+
+        rld::strings filter_flags = common_flags;
+        filter_flags.insert (filter_flags.end (),
+                             flag_exceptions.begin (),
+                             flag_exceptions.end());
+
+        for (auto& p : producers)
+        {
+          std::cout << ' ' << p.producer
+                    << ": " << p.sources.size () << " objects" << std::endl;
+          for (auto& s : p.sources)
+          {
+            std::cout << "   | "
+                      << std::setw (source_max + 1) << std::left
+                      << rld::path::basename (s.source);
+            if (!s.flags.empty ())
+            {
+              bool first = true;
+              for (auto& f : s.flags)
+              {
+                bool present = false;
+                for (auto& ff : filter_flags)
+                {
+                  if (rld::starts_with(f, ff))
+                  {
+                    present = true;
+                    break;
+                  }
+                }
+                if (!present)
+                {
+                  if (first)
+                  {
+                    std::cout << ':';
+                    first = false;
+                  }
+                  std::cout << ' ' << f;
+                }
+              }
+            }
+            std::cout << std::endl;
+          }
+        }
+      }
+
+      std::cout << std::endl;
     }
 
     void
@@ -442,7 +630,8 @@ usage (int exit_code)
             << " -a        : all output excluding the map (also --all)" << std::endl
             << " -S        : show all section (also --sections)" << std::endl
             << " -I        : show init section tables (also --init)" << std::endl
-            << " -F        : show fini section tables (also --fini)" << std::endl;
+            << " -F        : show fini section tables (also --fini)" << std::endl
+            << " -O        : show object files (also --objects)" << std::endl;
   ::exit (exit_code);
 }
 
@@ -480,12 +669,21 @@ setup_signals (void)
 #endif
 }
 
+void
+unhandled_exception (void)
+{
+  std::cerr << "error: exception handling error, please report" << std::endl;
+  exit (1);
+}
+
 int
 main (int argc, char* argv[])
 {
   int ec = 0;
 
   setup_signals ();
+
+  std::set_terminate(unhandled_exception);
 
   try
   {
@@ -495,6 +693,7 @@ main (int argc, char* argv[])
     bool        sections = false;
     bool        init = false;
     bool        fini = false;
+    bool        objects = false;
 
     rld::set_cmdline (argc, argv);
 
@@ -537,6 +736,10 @@ main (int argc, char* argv[])
           sections = true;
           break;
 
+        case 'O':
+          objects = true;
+          break;
+
         case '?':
           usage (3);
           break;
@@ -566,6 +769,7 @@ main (int argc, char* argv[])
       sections = true;
       init = true;
       fini = true;
+      objects = true;
     }
 
     /*
@@ -589,11 +793,13 @@ main (int argc, char* argv[])
      */
     rld::exeinfo::image exe (exe_name);
 
-    std::cout << "exe: " << exe.exe.name ().full () << std::endl;
+    std::cout << "exe: " << exe.exe.name ().full () << std::endl
+              << std::endl;
 
     /*
      * Generate the output.
      */
+    exe.output_compilation_unit (objects);
     if (sections)
       exe.output_sections ();
     if (init)

@@ -70,7 +70,7 @@ def build(bld):
     #
     # The list of modules.
     #
-    modules = ['rld', 'elf', 'iberty']
+    modules = ['rld', 'dwarf', 'elf', 'iberty']
 
     #
     # The list of defines
