@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2016, Chris Johns <chrisj@rtems.org>
+ * Copyright (c) 2016-2018, Chris Johns <chrisj@rtems.org>
  *
  * RTEMS Tools Project (http://www.rtems.org/)
  * This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -171,7 +171,7 @@ namespace rld
 
     section::section (const files::section& sec, files::byteorder byteorder)
       : sec (sec),
-        data (sec.size),
+        data (sec.size, byteorder == rld::files::little_endian),
         byteorder (byteorder)
     {
     }
@@ -376,12 +376,9 @@ namespace rld
 
       std::cout << label << " sections: " << ifsecs.size () << std::endl;
 
-      for (sections::iterator ii = ifsecs.begin ();
-           ii != ifsecs.end ();
-           ++ii)
+      for (auto& sec : ifsecs)
       {
-        section&     sec = *ii;
-        const size_t machine_size = sizeof (uint32_t);
+        const size_t machine_size = exe.elf ().machine_size ();
         const int    count = sec.data.level () / machine_size;
 
         std::cout << " " << sec.sec.name << std::endl;
