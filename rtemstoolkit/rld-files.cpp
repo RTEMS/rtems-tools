@@ -256,10 +256,12 @@ namespace rld
     image::~image ()
     {
       if (references_)
-	std::cerr << "rtl:file:image: references when destructing";
+	std::cerr << "rtl:file:image: references when destructing" << std::endl;
+
       if (fd_ >= 0)
       {
         ::close (fd_);
+        fd_= -1;
         if (writable && remove)
         {
           if (rld::verbose () >= RLD_VERBOSE_INFO)
@@ -267,6 +269,22 @@ namespace rld
                         << std::endl;
           ::unlink (name_.path ().c_str ());
         }
+      }
+
+      try
+      {
+        elf_.end ();
+      }
+      catch (rld::error re)
+      {
+        std::cerr << "error: rld::files::image:::~image: "
+                  << re.where << ": " << re.what
+                  << std::endl;
+      }
+      catch (...)
+      {
+        std::cerr << "error: rld::files::image:::~image: unhandled exception"
+                  << std::endl;
       }
     }
 
@@ -537,8 +555,22 @@ namespace rld
 
     archive::~archive ()
     {
-      end ();
-      close ();
+      try
+      {
+        end ();
+        close ();
+      }
+      catch (rld::error re)
+      {
+        std::cerr << "error: rld::files::archive::~archive: "
+                  << re.where << ": " << re.what
+                  << std::endl;
+      }
+      catch (...)
+      {
+        std::cerr << "error: rld::files::archive::~archive: unhandled exception"
+                  << std::endl;
+      }
     }
 
     void
@@ -960,8 +992,22 @@ namespace rld
 
     object::~object ()
     {
-      end ();
-      close ();
+      try
+      {
+        end ();
+        close ();
+      }
+      catch (rld::error re)
+      {
+        std::cerr << "error: rld::files::object::~object: "
+                  << re.where << ": " << re.what
+                  << std::endl;
+      }
+      catch (...)
+      {
+        std::cerr << "error: rld::files::object::~object: unhandled exception"
+                  << std::endl;
+      }
     }
 
     void
@@ -1318,7 +1364,21 @@ namespace rld
 
     cache::~cache ()
     {
-      close ();
+      try
+      {
+        close ();
+      }
+      catch (rld::error re)
+      {
+        std::cerr << "error: rld::files:cache::~cache: "
+                  << re.where << ": " << re.what
+                  << std::endl;
+      }
+      catch (...)
+      {
+        std::cerr << "error: rld::files::cache::~cache: unhandled exception"
+                  << std::endl;
+      }
     }
 
     void

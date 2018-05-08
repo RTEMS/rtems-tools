@@ -435,7 +435,21 @@ namespace rld
 
     file::~file ()
     {
-      end ();
+      try
+      {
+        end ();
+      }
+      catch (rld::error re)
+      {
+        std::cerr << "error: rld::elf::file::~file: "
+                  << re.where << ": " << re.what
+                  << std::endl;
+      }
+      catch (...)
+      {
+        std::cerr << "error: rld::elf::file::~file: unhandled exception"
+                  << std::endl;
+      }
     }
 
     void
@@ -447,7 +461,8 @@ namespace rld
     void
     file::reference_release ()
     {
-      --refs;
+      if (refs > 0)
+        --refs;
     }
 
     void
@@ -525,16 +540,14 @@ namespace rld
       if (archive_ && (ek != ELF_K_ELF))
         throw rld::error ("File format in archive not ELF",
                           "elf:file:begin: " + name__);
+
+      if (ek == ELF_K_AR)
+        archive = true;
+      else if (ek == ELF_K_ELF)
+        archive = false;
       else
-      {
-        if (ek == ELF_K_AR)
-          archive = true;
-        else if (ek == ELF_K_ELF)
-          archive = false;
-        else
-          throw rld::error ("File format not ELF or archive",
-                            "elf:file:begin: " + name__);
-      }
+        throw rld::error ("File format not ELF or archive",
+                          "elf:file:begin: " + name__);
 
       if (!writable_)
       {
@@ -545,7 +558,7 @@ namespace rld
         if (ek == ELF_K_ELF)
         {
           oclass = ::gelf_getclass (elf__);
-          ident_str = elf_getident (elf__, &ident_size);
+          ident_str = ::elf_getident (elf__, &ident_size);
         }
       }
 
@@ -567,15 +580,6 @@ namespace rld
       if (refs > 0)
         throw rld::error ("References still held", "elf:file:end: " + name_);
 
-      if (elf_)
-      {
-        if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
-          std::cout << "libelf::end: " << elf_
-                    << ' ' << name_ << std::endl;
-        ::elf_end (elf_);
-        elf_ = 0;
-      }
-
       if (fd_ >= 0)
       {
         if (!writable)
@@ -595,12 +599,21 @@ namespace rld
         fd_ = -1;
         name_.clear ();
         archive = false;
-        elf_ = 0;
         oclass = 0;
         ident_str = 0;
         ident_size = 0;
         writable = false;
+
         secs.clear ();
+
+        if (elf_)
+        {
+          if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+            std::cout << "libelf::end: " << elf_
+                      << ' ' << name_ << std::endl;
+          ::elf_end (elf_);
+          elf_ = 0;
+        }
       }
     }
 
