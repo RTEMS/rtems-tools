@@ -227,7 +227,8 @@ int main(
       case 'S': symbolSet           = optarg; break;
       case 'T': target              = optarg; break;
       case 'O': outputDirectory     = optarg; break;
-      case 'v': Verbose             = true;   break;
+      case 'v': Verbose             = true;
+                rld::verbose_inc ();          break;
       case 'p': projectName         = optarg; break;
       case 'd': debug               = true;   break;
       default: /* '?' */
