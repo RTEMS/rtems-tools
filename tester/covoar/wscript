@@ -62,6 +62,7 @@ def build(bld):
     rtemstoolkit = '../../rtemstoolkit'
     rtl_includes = [rtemstoolkit,
 		    rtemstoolkit + '/elftoolchain/libelf',
+		    rtemstoolkit + '/elftoolchain/libdwarf',
 		    rtemstoolkit + '/elftoolchain/common',
 		    rtemstoolkit + '/libiberty']
     if bld.env.DEST_OS == 'win32':
