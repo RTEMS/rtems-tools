@@ -655,6 +655,16 @@ namespace rld
        */
       void reference_release ();
 
+      /**
+       * Get the machine size in bytes.
+       */
+      size_t machine_size () const;
+
+      /**
+       * Returns true if little endian.
+       */
+      bool is_little_endian () const;
+
     private:
 
       /**

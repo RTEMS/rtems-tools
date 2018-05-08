@@ -1082,6 +1082,28 @@ namespace rld
       return writable;
     }
 
+    size_t
+    file::machine_size () const
+    {
+      size_t bytes;
+      switch (object_class ())
+      {
+      case ELFCLASS64:
+        bytes = sizeof (uint64_t);
+        break;
+      default:
+        bytes = sizeof (uint32_t);
+        break;
+      }
+      return bytes;
+    }
+
+    bool
+    file::is_little_endian () const
+    {
+      return data_type () == ELFDATA2LSB;
+    }
+
     void
     file::check (const char* where) const
     {
