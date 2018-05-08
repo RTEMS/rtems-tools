@@ -11,7 +11,6 @@
  *  reading *.gcno and writing *.gcda files for gcov support
  */
 
-#include <libgen.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -61,7 +60,7 @@ namespace Gcov {
 
     if ( (tempString == NULL) && (tempString2 == NULL) ){
       fprintf(stderr, "ERROR: incorrect name of *.gcno file\n");
-    } 
+    }
     else
     {
       strcpy( tempString, ".gcda");		// construct gcda file name
@@ -238,7 +237,7 @@ namespace Gcov {
 	    status = readFrameHeader( &header, gcovFile);
 
 	    if ( status <= 0 ){
-                // Not printing error message because this 
+                // Not printing error message because this
 		// happenns at the end of each file
 	    	return false;
 	    }
@@ -260,11 +259,11 @@ namespace Gcov {
 
 				status = fread( &intBuffer, 4, header.length, gcovFile );
 				if ( status != (int) header.length){
-					fprintf( 
+					fprintf(
 						stderr, "Error while reading BLOCKS from gcov file...\n"
-						"Header lenght is %u instead of %u\n", 
-						header.length, 
-						status 
+						"Header lenght is %u instead of %u\n",
+						header.length,
+						status
 					);
 					return false;
 				}
@@ -478,15 +477,13 @@ namespace Gcov {
 
   void GcovData::writeGcovFile( )
   {
-    char        path[512];
-    char        command[512];
-
-    //fprintf (stderr, "Attempting to run gcov for: %s\n", cFileName );
-    strcpy( path, cFileName );
-    dirname( path );
-    sprintf( command, "( cd %s && gcov %s &>> gcov.log)", path, basename( cFileName ) );
-    //fprintf (stderr, "> %s\n", command );
-    system( command );
+    //std::cerr << "Attempting to run gcov for: " << cFileName << std::endl;
+    std::ostringstream command;
+    command << "( cd " << rld::path::dirname (cFileName)
+	    << " && gcov " << rld::path::basename (cFileName)
+	    << " &>> gcov.log)";
+    //std::cerr << "> " << command << std::endl;
+    system( command.str ().c_str () );
   }
 
   bool GcovData::processCounters(  )

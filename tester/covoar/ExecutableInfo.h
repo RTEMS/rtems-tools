@@ -11,6 +11,10 @@
 #include <stdint.h>
 #include <string>
 
+#include <rld-dwarf.h>
+#include <rld-files.h>
+#include <rld-symbols.h>
+
 #include "CoverageMapBase.h"
 #include "SymbolTable.h"
 
@@ -67,14 +71,14 @@ namespace Coverage {
      *
      *  @return Returns the executable's file name
      */
-    const std::string& getFileName( void ) const;
+    const std::string getFileName( void ) const;
 
     /*!
      *  This method returns the library name associated with the executable.
      *
      *  @return Returns the executable's library name
      */
-    const std::string& getLibraryName( void ) const;
+    const std::string getLibraryName( void ) const;
 
     /*!
      *  This method returns the load address of the dynamic library
@@ -88,7 +92,7 @@ namespace Coverage {
      *
      *  @return Returns a pointer to the symbol table.
      */
-    SymbolTable* getSymbolTable( void ) const;
+    SymbolTable* getSymbolTable( void );
 
     /*!
      *  This method creates a coverage map for the specified symbol.
@@ -105,6 +109,15 @@ namespace Coverage {
       const std::string& symbolName,
       uint32_t           lowAddress,
       uint32_t           highAddress
+    );
+
+    /*!
+     *  This method gets the source location, the file and line number given an
+     *  address.
+     */
+    void getSourceAndLine(
+      const unsigned int address,
+      std::string&       location
     );
 
     /*!
@@ -132,15 +145,25 @@ namespace Coverage {
   private:
 
     /*!
-     *  This map associates a symbol with its coverage map.
+     *  The ELF executable.
      */
-    typedef std::map<std::string, CoverageMapBase *> coverageMaps_t;
-    coverageMaps_t coverageMaps;
+    rld::files::object executable;
 
     /*!
-     *  This member variable contains the name of the executable.
+     *  The DWARF data to the ELF executable.
      */
-    std::string executableName;
+    rld::dwarf::file debug;
+
+    /*!
+     *  The executable's symbol table.
+     */
+    rld::symbols::table symbols;
+
+    /*!
+     *  This map associates a symbol with its coverage map.
+     */
+    typedef std::map<std::string, CoverageMapBase *> CoverageMaps;
+    CoverageMaps coverageMaps;
 
     /*!
      *  This member variable contains the name of a dynamic library
@@ -158,7 +181,7 @@ namespace Coverage {
      *  This member variable contains a pointer to the symbol table
      *  of the executable or library.
      */
-    SymbolTable* theSymbolTable;
+    SymbolTable theSymbolTable;
 
   };
 }

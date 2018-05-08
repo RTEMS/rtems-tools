@@ -186,7 +186,7 @@ int main(
   Coverage::ExecutableInfo*     executableInfo = NULL;
   std::string                   executableExtension = "exe";
   std::string                   coverageExtension = "cov";
-  Coverage::CoverageFormats_t   coverageFormat;
+  Coverage::CoverageFormats_t   coverageFormat = Coverage::COVERAGE_FORMAT_QEMU;
   Coverage::CoverageReaderBase* coverageReader = NULL;
   char*                         executable = NULL;
   const char*                   explanations = NULL;

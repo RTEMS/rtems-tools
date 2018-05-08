@@ -2,11 +2,10 @@
 /*! @file CoverageMapBase.cc
  *  @brief CoverageMapBase Implementation
  *
- *  This file contains the implementation of the functions 
+ *  This file contains the implementation of the functions
  *  which provide a base level of functionality of a CoverageMap.
  */
 
-#include <libgen.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -51,7 +50,7 @@ namespace Coverage {
     if (Info)
       delete Info;
   }
- 
+
   void  CoverageMapBase::Add( uint32_t low, uint32_t high )
   {
     AddressRange_t range;
@@ -60,9 +59,9 @@ namespace Coverage {
     range.highAddress = high;
     RangeList.push_back( range );
   }
- 
-  bool CoverageMapBase::determineOffset( 
-    uint32_t  address, 
+
+  bool CoverageMapBase::determineOffset(
+    uint32_t  address,
     uint32_t *offset
   )const
   {
@@ -174,7 +173,7 @@ namespace Coverage {
   )
   {
     uint32_t offset;
- 
+
     if (determineOffset( address, &offset ) != true)
       return;
 
@@ -184,7 +183,7 @@ namespace Coverage {
   bool CoverageMapBase::isStartOfInstruction( uint32_t address ) const
   {
     uint32_t offset;
- 
+
     if (determineOffset( address, &offset ) != true)
       return false;
 
@@ -194,7 +193,7 @@ namespace Coverage {
   void CoverageMapBase::setWasExecuted( uint32_t address )
   {
     uint32_t offset;
- 
+
     if (determineOffset( address, &offset ) != true)
       return;
 
@@ -204,7 +203,7 @@ namespace Coverage {
   void CoverageMapBase::sumWasExecuted( uint32_t address, uint32_t addition)
   {
     uint32_t offset;
- 
+
     if (determineOffset( address, &offset ) != true)
       return;
 
@@ -215,7 +214,7 @@ namespace Coverage {
   {
     uint32_t offset;
     bool     result;
- 
+
     result = true;
 
     if (determineOffset( address, &offset ) != true)
@@ -234,7 +233,7 @@ namespace Coverage {
     if (determineOffset( address, &offset ) != true)
       return 0;
 
-    return Info[ offset ].wasExecuted;	
+    return Info[ offset ].wasExecuted;
   }
 
   void CoverageMapBase::setIsBranch(
@@ -242,7 +241,7 @@ namespace Coverage {
   )
   {
     uint32_t offset;
- 
+
     if (determineOffset( address, &offset ) != true)
       return;
 
@@ -252,7 +251,7 @@ namespace Coverage {
   bool CoverageMapBase::isNop( uint32_t address ) const
   {
     uint32_t offset;
- 
+
     if (determineOffset( address, &offset ) != true)
       return false;
 
@@ -264,7 +263,7 @@ namespace Coverage {
   )
   {
     uint32_t offset;
- 
+
     if (determineOffset( address, &offset ) != true)
       return;
 
@@ -274,7 +273,7 @@ namespace Coverage {
   bool CoverageMapBase::isBranch( uint32_t address ) const
   {
     uint32_t offset;
- 
+
     if (determineOffset( address, &offset ) != true)
       return false;
 
@@ -286,7 +285,7 @@ namespace Coverage {
   )
   {
     uint32_t offset;
- 
+
     if (determineOffset( address, &offset ) != true)
       return;
 
@@ -298,7 +297,7 @@ namespace Coverage {
   )
   {
     uint32_t offset;
- 
+
     if (determineOffset( address, &offset ) != true)
       return;
 
@@ -308,7 +307,7 @@ namespace Coverage {
   bool CoverageMapBase::wasAlwaysTaken( uint32_t address ) const
   {
     uint32_t offset;
- 
+
     if (determineOffset( address, &offset ) != true)
       return false;
 
@@ -319,7 +318,7 @@ namespace Coverage {
   bool CoverageMapBase::wasNeverTaken( uint32_t address ) const
   {
     uint32_t offset;
- 
+
     if (determineOffset( address, &offset ) != true)
       return false;
 
@@ -369,7 +368,7 @@ namespace Coverage {
     bool     result;
 
     result = true;
- 
+
     if (determineOffset( address, &offset ) != true)
       result = false;
 

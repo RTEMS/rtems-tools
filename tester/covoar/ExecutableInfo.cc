@@ -7,6 +7,8 @@
 
 #include <stdio.h>
 
+#include <rld.h>
+
 #include "ExecutableInfo.h"
 #include "app_common.h"
 #include "CoverageMap.h"
@@ -18,24 +20,36 @@ namespace Coverage {
   ExecutableInfo::ExecutableInfo(
     const char* const theExecutableName,
     const char* const theLibraryName
-  )
+    ) : executable(theExecutableName),
+        loadAddress(0)
   {
-    executableName = theExecutableName;
-    loadAddress = 0;
-    libraryName = "";
     if (theLibraryName)
       libraryName = theLibraryName;
-    theSymbolTable = new SymbolTable();
+    try {
+      executable.open();
+      executable.begin();
+      executable.load_symbols(symbols);
+      debug.begin(executable.elf());
+      debug.load_debug();
+    } catch (rld::error re) {
+      std::cerr << "error: "
+                << re.where << ": " << re.what
+                << std::endl;
+      exit(2);
+    } catch (...) {
+      exit(2);
+    }
   }
 
   ExecutableInfo::~ExecutableInfo()
   {
-    if (theSymbolTable)
-      delete theSymbolTable;
+    debug.end();
+    executable.end();
+    executable.close();
   }
 
   void ExecutableInfo::dumpCoverageMaps( void ) {
-    ExecutableInfo::coverageMaps_t::iterator  itr;
+    ExecutableInfo::CoverageMaps::iterator  itr;
 
     for (itr = coverageMaps.begin(); itr != coverageMaps.end(); itr++) {
       fprintf( stderr, "Coverage Map for %s\n", ((*itr).first).c_str() );;
@@ -44,21 +58,22 @@ namespace Coverage {
   }
 
   void ExecutableInfo::dumpExecutableInfo( void ){
-    fprintf( stdout, "\n== Executable info ==\n");
-    fprintf( stdout, "executableName = %s\n", executableName.c_str());
-    fprintf( stdout, "libraryName = %s\n", libraryName.c_str());
-    fprintf( stdout, "loadAddress = %u\n", loadAddress);
-    theSymbolTable->dumpSymbolTable();
+    std::cout << std::endl
+              << "== Executable info ==" << std::endl
+              << "executable = " << getFileName () << std::endl
+              << "library = " << libraryName << std::endl
+              << "loadAddress = " << loadAddress << std::endl;
+    theSymbolTable.dumpSymbolTable();
   }
 
   CoverageMapBase* ExecutableInfo::getCoverageMap ( uint32_t address )
   {
-    CoverageMapBase*         aCoverageMap = NULL;
-    coverageMaps_t::iterator it;
-    std::string              itsSymbol;
+    CoverageMapBase*       aCoverageMap = NULL;
+    CoverageMaps::iterator it;
+    std::string            itsSymbol;
 
     // Obtain the coverage map containing the specified address.
-    itsSymbol = theSymbolTable->getSymbol( address );
+    itsSymbol = theSymbolTable.getSymbol( address );
     if (itsSymbol != "") {
       it = coverageMaps.find( itsSymbol );
       aCoverageMap = (*it).second;
@@ -67,12 +82,12 @@ namespace Coverage {
     return aCoverageMap;
   }
 
-  const std::string& ExecutableInfo::getFileName ( void ) const
+  const std::string ExecutableInfo::getFileName ( void ) const
   {
-    return executableName;
+    return executable.name().full();
   }
 
-  const std::string& ExecutableInfo::getLibraryName( void ) const
+  const std::string ExecutableInfo::getLibraryName( void ) const
   {
     return libraryName;
   }
@@ -83,9 +98,9 @@ namespace Coverage {
   }
 
 
-  SymbolTable* ExecutableInfo::getSymbolTable ( void ) const
+  SymbolTable* ExecutableInfo::getSymbolTable ( void )
   {
-    return theSymbolTable;
+    return &theSymbolTable;
   }
 
   CoverageMapBase* ExecutableInfo::createCoverageMap (
@@ -95,8 +110,8 @@ namespace Coverage {
     uint32_t           highAddress
   )
   {
-    CoverageMapBase                          *theMap;
-    ExecutableInfo::coverageMaps_t::iterator  itr;
+    CoverageMapBase                        *theMap;
+    ExecutableInfo::CoverageMaps::iterator  itr;
 
     itr = coverageMaps.find( symbolName );
     if ( itr == coverageMaps.end() ) {
@@ -109,13 +124,26 @@ namespace Coverage {
     return theMap;
   }
 
+  void ExecutableInfo::getSourceAndLine(
+    const unsigned int address,
+    std::string&       line
+  )
+  {
+    std::string file;
+    int         lno;
+    debug.get_source (address, file, lno);
+    std::ostringstream ss;
+    ss << file << ':' << lno;
+    line = ss.str ();
+  }
+
   bool ExecutableInfo::hasDynamicLibrary( void )
   {
-     return (libraryName != "");
+    return !libraryName.empty();
   }
 
   void ExecutableInfo::mergeCoverage( void ) {
-    ExecutableInfo::coverageMaps_t::iterator  itr;
+    ExecutableInfo::CoverageMaps::iterator  itr;
 
     for (itr = coverageMaps.begin(); itr != coverageMaps.end(); itr++) {
       SymbolsToAnalyze->mergeCoverageMap( (*itr).first, (*itr).second );

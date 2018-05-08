@@ -9,7 +9,6 @@
 #undef __STRICT_ANSI__
 #endif
 
-#include <libgen.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -445,123 +444,13 @@ namespace Coverage {
 
   )
   {
-    char*                              base;
-    char*                              cStatus;
-    char                               command[512];
-    std::string                        fileName;
-    CoverageRanges::ranges_t::iterator ritr;
-    char                               rpath[PATH_MAX];
-    FILE*                              tmpfile;
-
-    // Open a temporary file for the uncovered ranges.
-    tmpfile = fopen( "ranges1.tmp", "w" );
-    if ( !tmpfile ) {
-      fprintf(
-        stderr,
-        "ERROR: DesiredSymbols::determineSourceLines - "
-        "unable to open %s\n",
-        "ranges1.tmp"
-      );
-      exit(-1);
+    for (auto& r : theRanges->set) {
+      std::string location;
+      theExecutable->getSourceAndLine(r.lowAddress, location);
+      r.lowSourceLine = rld::path::basename (location);
+      theExecutable->getSourceAndLine(r.highAddress, location);
+      r.highSourceLine = rld::path::basename (location);
     }
-
-    // Write the range addresses to the temporary file.
-    for (ritr =  theRanges->set.begin();
-         ritr != theRanges->set.end();
-         ritr++ ) {
-      fprintf(
-        tmpfile,
-        "0x%08x\n0x%08x\n",
-        ritr->lowAddress - theExecutable->getLoadAddress(),
-        ritr->highAddress - theExecutable->getLoadAddress()
-      );
-    }
-
-    fclose( tmpfile );
-
-    // Invoke addr2line to generate the source lines for each address.
-    if (theExecutable->hasDynamicLibrary())
-      fileName = theExecutable->getLibraryName();
-    else
-      fileName = theExecutable->getFileName();
-
-    sprintf(
-      command,
-      "%s -Ce %s <%s | dos2unix >%s",
-      TargetInfo->getAddr2line(),
-      fileName.c_str(),
-      "ranges1.tmp",
-      "ranges2.tmp"
-    );
-
-    if (system( command )) {
-      fprintf(
-        stderr,
-        "ERROR: DesiredSymbols::determineSourceLines - "
-        "command (%s) failed\n",
-        command
-      );
-      exit( -1 );
-    }
-
-    // Open the addr2line output file.
-    tmpfile = fopen( "ranges2.tmp", "r" );
-    if ( !tmpfile ) {
-      fprintf(
-        stderr,
-        "ERROR: DesiredSymbols::determineSourceLines - "
-        "unable to open %s\n",
-        "ranges2.tmp"
-      );
-      exit(-1);
-    }
-
-    // Process the addr2line output.
-    for (ritr =  theRanges->set.begin();
-         ritr != theRanges->set.end();
-         ritr++ ) {
-
-      cStatus = fgets( inputBuffer, MAX_LINE_LENGTH, tmpfile );
-      if ( cStatus == NULL ) {
-        fprintf(
-          stderr,
-          "ERROR: DesiredSymbols::determineSourceLines - "
-          "Out of sync in addr2line output\n"
-        );
-        exit( -1 );
-      }
-      inputBuffer[ strlen(inputBuffer) - 1] = '\0';
-
-      // Use only the base filename without directory path.
-#ifdef _WIN32
-      #define realpath(N,R) _fullpath((R),(N),_MAX_PATH)
-#endif
-      realpath( inputBuffer, rpath );
-      base = basename( rpath );
-
-      ritr->lowSourceLine = std::string( base );
-
-      cStatus = fgets( inputBuffer, MAX_LINE_LENGTH, tmpfile );
-      if ( cStatus == NULL ) {
-        fprintf(
-          stderr,
-          "ERROR: DesiredSymbols::determineSourceLines - "
-          "Out of sync in addr2line output\n"
-        );
-        exit( -1 );
-      }
-      inputBuffer[ strlen(inputBuffer) - 1] = '\0';
-
-      // Use only the base filename without directory path.
-      realpath( inputBuffer, rpath );
-      base = basename( rpath );
-
-      ritr->highSourceLine = std::string( base );
-    }
-
-    fclose( tmpfile );
-    unlink( "ranges1.tmp" );
-    unlink( "ranges2.tmp" );
   }
 
   SymbolInformation* DesiredSymbols::find(
