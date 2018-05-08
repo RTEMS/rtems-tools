@@ -421,6 +421,7 @@ namespace rld
 
     file::file ()
       : fd_ (-1),
+        refs (0),
         archive (false),
         writable (false),
         elf_ (0),
@@ -435,6 +436,18 @@ namespace rld
     file::~file ()
     {
       end ();
+    }
+
+    void
+    file::reference_obtain ()
+    {
+      ++refs;
+    }
+
+    void
+    file::reference_release ()
+    {
+      --refs;
     }
 
     void
@@ -551,6 +564,9 @@ namespace rld
     void
     file::end ()
     {
+      if (refs > 0)
+        throw rld::error ("References still held", "elf:file:end: " + name_);
+
       if (elf_)
       {
         if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)

@@ -70,8 +70,8 @@ def build(bld):
     #
     conf['warningflags'] = ['-Wall', '-Wextra', '-pedantic']
     conf['optflags'] = bld.env.C_OPTS
-    conf['cflags'] = ['-pipe', '-g'] + conf['optflags']
-    conf['cxxflags'] = ['-pipe', '-g'] + conf['optflags']
+    conf['cflags'] = list(set(['-pipe', '-g'] + conf['optflags']))
+    conf['cxxflags'] = list(set(['-pipe', '-g', '-std=c++11'] + conf['optflags']))
     conf['linkflags'] = ['-g']
 
     #
@@ -90,6 +90,7 @@ def build(bld):
                   'rld-cc.cpp',
                   'rld-compression.cpp',
                   'rld-config.cpp',
+                  'rld-dwarf.cpp',
                   'rld-elf.cpp',
                   'rld-files.cpp',
                   'rld-outputter.cpp',

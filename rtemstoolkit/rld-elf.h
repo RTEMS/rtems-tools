@@ -644,6 +644,17 @@ namespace rld
        */
       bool is_writable () const;
 
+      /**
+       * Obtain a reference to this object. End fails while references are
+       * held.
+       */
+      void reference_obtain ();
+
+      /**
+       * Release the reference to this object.
+       */
+      void reference_release ();
+
     private:
 
       /**
@@ -697,6 +708,7 @@ namespace rld
       void error (const char* where) const;
 
       int                  fd_;        //< The file handle.
+      int                  refs;       //< The reference count.
       std::string          name_;      //< The name of the file.
       bool                 archive;    //< The ELF file is part of an archive.
       bool                 writable;   //< The file is writeable.
