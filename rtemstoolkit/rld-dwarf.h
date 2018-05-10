@@ -114,6 +114,105 @@ namespace rld
     typedef std::vector < address > addresses;
 
     /**
+     * Range, one entry in an address range container.
+     */
+    class range
+    {
+    public:
+      range (const dwarf_ranges* range);
+      range (const range& orig);
+      ~range ();
+
+      /**
+       * Address 1 in the range.
+       */
+      dwarf_unsigned addr1 () const;
+      dwarf_unsigned addr2 () const;
+
+      /**
+       * Get the type of range.
+       */
+      dwarf_ranges_type type () const;
+
+      /**
+       * Is the range the end?
+       */
+      bool end () const;
+
+      /**
+       * Is the range empty? See DWARF 2.17.3.
+       */
+      bool empty () const;
+
+      /**
+       * Assigment operator.
+       */
+      range& operator = (const range& rhs);
+
+      /**
+       * Dump the range.
+       */
+      void dump ();
+
+    private:
+
+      const dwarf_ranges* range_;
+    };
+
+    typedef std::vector < range > ranges;
+
+    /**
+     * Address ranges, is a range of addresses.
+     */
+    class address_ranges
+    {
+    public:
+      address_ranges (file& debug);
+      address_ranges (debug_info_entry& die);
+      address_ranges (file& debug, dwarf_offset offset);
+      address_ranges (const address_ranges& orig);
+      ~address_ranges ();
+
+      /**
+       * Load the ranges from the DIE.
+       */
+      bool load (debug_info_entry& die, bool error = true);
+
+      /**
+       * Load the ranges from the debug info.
+       */
+      bool load (dwarf_offset offset, bool error = true);
+
+      /**
+       * Get the container.
+       */
+      const ranges& get () const;
+
+      /**
+       * Address range empty?
+       */
+      bool empty () const;
+
+      /**
+       * Assigment operator.
+       */
+      address_ranges& operator = (const address_ranges& rhs);
+
+      /**
+       * Dump the address ranges.
+       */
+      void dump ();
+
+    private:
+
+      file&         debug;
+      dwarf_offset  offset;
+      dwarf_ranges* dranges;
+      dwarf_signed  dranges_count;
+      ranges        ranges_;
+    };
+
+    /**
      * Line addresses.
      */
     class line_addresses
@@ -150,7 +249,6 @@ namespace rld
     public:
       sources (file& debug, dwarf_offset die_offset);
       sources (const sources& orig);
-      //sources (sources&& orig);
       ~sources ();
 
       /**
@@ -177,6 +275,88 @@ namespace rld
     };
 
     /**
+     * Function.
+     */
+    class function
+    {
+    public:
+      function (file& debug, debug_info_entry& die);
+      ~function ();
+
+      /**
+       * Get the name of the function.
+       */
+      std::string name () const;
+
+      /**
+       * Get the linkage name of the function.
+       */
+      std::string linkage_name () const;
+
+      /**
+       * Get the ranges for the funcion, if empty the PC low and PC high values
+       * will be valid.
+       */
+      const address_ranges& get_ranges () const;
+
+      /**
+       * Get the PC low address, valid if ranges is empty.
+       */
+      dwarf_unsigned pc_low () const;
+
+      /**
+       * Get the PC high address, valid if ranges is empty.
+       */
+      dwarf_unsigned pc_high () const;
+
+      /**
+       * Does the function have machine code in the image?
+       */
+      bool has_machine_code () const;
+
+      /**
+       * Is the function external?
+       */
+      bool is_external () const;
+
+      /**
+       * Is this just a declaration?
+       */
+      bool is_declaration () const;
+
+      /**
+       * Is the function inlined?
+       */
+      bool is_inlined () const;
+
+      /**
+       * Get the call file of the inlined function.
+       */
+      std::string call_file () const;
+
+      /**
+       * Is the address inside the function.
+       */
+      bool inside (dwarf_address addr) const;
+
+    private:
+
+      file&          debug;
+      bool           machine_code_;
+      bool           external_;
+      bool           declaration_;
+      dwarf_unsigned inline_;
+      dwarf_unsigned pc_low_;
+      dwarf_unsigned pc_high_;
+      address_ranges ranges_;
+      std::string    name_;
+      std::string    linkage_name_;
+      std::string    call_file_;
+    };
+
+    typedef std::vector < function > functions;
+
+    /**
      * Debug Information Element (DIE).
      *
      * This class clean up and deallocations a DIE when it desctructs.
@@ -190,6 +370,7 @@ namespace rld
       debug_info_entry (file& debug);
       debug_info_entry (file& debug, dwarf_die& die);
       debug_info_entry (file& debug, dwarf_offset offset);
+      debug_info_entry (const debug_info_entry& orig);
 
       /**
        * Destruct and clean up.
@@ -211,6 +392,7 @@ namespace rld
        * Assignment operators.
        */
       debug_info_entry& operator = (debug_info_entry& rhs);
+      debug_info_entry& operator = (dwarf_offset offset);
 
       /**
        * Compare operators.
@@ -227,6 +409,32 @@ namespace rld
        * Get the offset.
        */
       dwarf_offset offset ();
+
+      /**
+       * Get the low PC.
+       */
+      bool get_lowpc (dwarf_address& addr, bool error = false) const;
+
+      /**
+       * Get the high PC.
+       */
+      bool get_highpc (dwarf_address& addr,
+                       bool&          is_address,
+                       bool           error = false) const;
+
+      /**
+       * Get an attribute.
+       */
+      bool attribute (dwarf_attr       attr,
+                      dwarf_attribute& value,
+                      bool             error = true) const;
+
+      /**
+       * Get a flag.
+       */
+      bool attribute (dwarf_attr  attr,
+                      dwarf_bool& value,
+                      bool        error = true) const;
 
       /**
        * Get an unsigned attribute.
@@ -257,9 +465,34 @@ namespace rld
                          dwarf_signed& sourcecount) const;
 
       /**
+       * Get the ranges.
+       */
+      bool ranges (dwarf_ranges*& ranges, dwarf_signed& rangescount) const;
+
+      /**
+       * Get the child.
+       */
+      bool get_child (debug_info_entry& child_die);
+
+      /**
+       * Get the silbing
+       */
+      bool get_sibling (debug_info_entry& sibling_die);
+
+      /**
+       * Get the debug info for this DIE.
+       */
+      file& get_debug ();
+
+      /**
        * deallocate the DIE.
        */
       void dealloc ();
+
+      /**
+       * Dump this DIE.
+       */
+      void dump (std::string prefix, bool newline = true);
 
     private:
 
@@ -269,6 +502,22 @@ namespace rld
       dwarf_offset offset_;
 
     };
+
+    /**
+     * Dump the DIE and all it's children and siblings.
+     */
+    void die_dump_children (debug_info_entry die,
+                            std::string      prefix,
+                            int              nesting = 0,
+                            int              depth = -1);
+
+    /**
+     * Dump the DIE and all it's children and siblings.
+     */
+    void die_dump (debug_info_entry die,
+                   std::string      prefix,
+                   int              nesting = 0,
+                   int              depth = -1);
 
     /**
      * Compilation Unit.
@@ -281,6 +530,16 @@ namespace rld
                         dwarf_offset      offset);
       compilation_unit (const compilation_unit& orig);
       ~compilation_unit ();
+
+      /**
+       * Load the types.
+       */
+      void load_types ();
+
+      /**
+       * Load the functions.
+       */
+      void load_functions ();
 
       /**
        * Name of the CU.
@@ -311,6 +570,11 @@ namespace rld
                        address&            addr_line);
 
       /**
+       * Get the functions.
+       */
+      functions& get_functions ();
+
+      /**
        * Is the address inside the CU? If the PC low and high attributes are
        * valid they are used or the lines are checked.
        */
@@ -321,7 +585,14 @@ namespace rld
        */
       compilation_unit& operator = (const compilation_unit& rhs);
 
+      /**
+       * Output the DIE tree.
+       */
+      void dump_die ();
+
     private:
+
+      void load_functions (debug_info_entry& die);
 
       file&          debug;       ///< The DWARF debug handle.
       dwarf_unsigned offset_;     ///< The CU offset in .debug_info
@@ -329,11 +600,14 @@ namespace rld
       std::string    producer_;   ///< The producer of the CU.
       dwarf_unsigned pc_low_;     ///< The PC low address
       dwarf_unsigned pc_high_;    ///< The PC high address.
+      address_ranges ranges_;     ///< Non-continous address range.
 
       dwarf_offset   die_offset;  ///< The offset of the DIE in the image.
 
       sources        source_;     ///< Sources table for this CU.
       addresses      addr_lines_; ///< Address table.
+
+      functions      functions_;  ///< The functions in the CU.
     };
 
     typedef std::list < compilation_unit > compilation_units;
@@ -412,11 +686,27 @@ namespace rld
       void load_debug ();
 
       /**
+       * Load the DWARF type information.
+       */
+      void load_types ();
+
+      /**
+       * Load the DWARF functions information.
+       */
+      void load_functions ();
+
+      /**
        * Get the source location given an address.
        */
       bool get_source (const unsigned int address,
                        std::string&       source_file,
                        int&               source_line);
+
+      /**
+       * Get the function given an address.
+       */
+      bool get_function (const unsigned int address,
+                         std::string&       name);
 
       /**
        * Get the producer sources from the compilation units.

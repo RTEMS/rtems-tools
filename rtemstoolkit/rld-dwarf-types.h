@@ -35,22 +35,27 @@ namespace rld
     /**
      * Hide the types from libdwarf we use.
      */
-    typedef ::Dwarf_Debug    dwarf;
-    typedef ::Dwarf_Handler  dwarf_handler;
-    typedef ::Dwarf_Error    dwarf_error;
-    typedef ::Dwarf_Die      dwarf_die;
-    typedef ::Dwarf_Line     dwarf_line;
-    typedef ::Dwarf_Ptr      dwarf_pointer;
-    typedef ::Dwarf_Addr     dwarf_address;
-    typedef ::Dwarf_Off      dwarf_offset;
-    typedef ::Dwarf_Half     dwarf_half;
-    typedef ::Dwarf_Signed   dwarf_signed;
-    typedef ::Dwarf_Unsigned dwarf_unsigned;
-    typedef ::Dwarf_Bool     dwarf_bool;
-    typedef ::Dwarf_Sig8     dwarf_sig8;
-    typedef ::Dwarf_Line     dwarf_line;
-    typedef ::Dwarf_Half     dwarf_tag;
-    typedef ::Dwarf_Half     dwarf_attr;
+    typedef ::Dwarf_Debug                  dwarf;
+    typedef ::Dwarf_Handler                dwarf_handler;
+    typedef ::Dwarf_Error                  dwarf_error;
+    typedef ::Dwarf_Die                    dwarf_die;
+    typedef ::Dwarf_Line                   dwarf_line;
+    typedef ::Dwarf_Ptr                    dwarf_pointer;
+    typedef ::Dwarf_Addr                   dwarf_address;
+    typedef ::Dwarf_Off                    dwarf_offset;
+    typedef ::Dwarf_Half                   dwarf_half;
+    typedef ::Dwarf_Signed                 dwarf_signed;
+    typedef ::Dwarf_Unsigned               dwarf_unsigned;
+    typedef ::Dwarf_Bool                   dwarf_bool;
+    typedef ::Dwarf_Sig8                   dwarf_sig8;
+    typedef ::Dwarf_Line                   dwarf_line;
+    typedef ::Dwarf_Half                   dwarf_tag;
+    typedef ::Dwarf_Attribute              dwarf_attribute;
+    typedef ::Dwarf_Half                   dwarf_attr;
+    typedef ::Dwarf_Ranges                 dwarf_ranges;
+    typedef enum ::Dwarf_Ranges_Entry_Type dwarf_ranges_type;
+    typedef enum ::Dwarf_Form_Class        dwarf_form_class;
+    typedef ::Dwarf_Type                   dwarf_type;
   }
 }
 

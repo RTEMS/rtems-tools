@@ -293,6 +293,7 @@ namespace rld
        */
       exe.load_symbols (symbols, true);
       debug.load_debug ();
+      debug.load_types ();
       symbols.globals (addresses);
       symbols.weaks (addresses);
       symbols.locals (addresses);
@@ -321,6 +322,7 @@ namespace rld
                                        "-fno-stack-protector",
                                        "-fbuilding-libgcc",
                                        "-fno-implicit-templates",
+                                       "-fimplicit-templates",
                                        "-ffunction-sections",
                                        "-fdata-sections",
                                        "-frandom-seed=",

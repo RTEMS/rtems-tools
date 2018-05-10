@@ -54,6 +54,7 @@ static struct option rld_opts[] = {
   { "version",      no_argument,            NULL,           'V' },
   { "verbose",      no_argument,            NULL,           'v' },
   { "executable",   required_argument,      NULL,           'e' },
+  { "functions" ,   no_argument,            NULL,           'f' },
   { "addresses",    no_argument,            NULL,           'a' },
   { "pretty-print", no_argument,            NULL,           'p' },
   { "basenames",    no_argument,            NULL,           's' },
@@ -69,7 +70,8 @@ usage (int exit_code)
             << " -V        : print version number and exit (also --version)" << std::endl
             << " -v        : verbose (trace import parts), can supply multiple times" << std::endl
             << "             to increase verbosity (also --verbose)" << std::endl
-            << " -e        : executable (also --executablewarn)" << std::endl
+            << " -e        : executable (also --executable)" << std::endl
+            << " -f        : show function names (also --functions)" << std::endl
             << " -a        : show addresses (also --addresses)" << std::endl
             << " -p        : human readable format (also --pretty-print)" << std::endl
             << " -s        : Strip directory paths (also --basenames)" << std::endl;
@@ -127,6 +129,7 @@ main (int argc, char* argv[])
   try
   {
     std::string exe_name = "a.out";
+    bool        show_functions = false;
     bool        show_addresses = false;
     bool        pretty_print = false;
     bool        show_basenames = false;
@@ -135,7 +138,7 @@ main (int argc, char* argv[])
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvVe:aps", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvVe:faps", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -154,6 +157,10 @@ main (int argc, char* argv[])
 
         case 'e':
           exe_name = optarg;
+          break;
+
+        case 'f':
+          show_functions = true;
           break;
 
         case 'a':
@@ -213,6 +220,8 @@ main (int argc, char* argv[])
       exe.begin ();
       debug.begin (exe.elf ());
       debug.load_debug ();
+      debug.load_types ();
+      debug.load_functions ();
 
       for (int arg = 0; arg < argc; ++arg)
       {
@@ -242,6 +251,13 @@ main (int argc, char* argv[])
             std::cout << ": ";
           else
             std::cout << std::endl;
+        }
+
+        if (show_functions)
+        {
+          std::string function;
+          debug.get_function (location, function);
+          std::cout << function << " at ";
         }
 
         if (show_basenames)
