@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <rld.h>
+
 #include "ReportsHtml.h"
 #include "app_common.h"
 #include "CoverageRanges.h"
@@ -24,7 +26,7 @@
    "</tfoot>\n"
 #else
 #define TABLE_HEADER_CLASS
-#define TABLE_FOOTER 
+#define TABLE_FOOTER
 #endif
 
 namespace Coverage {
@@ -56,7 +58,7 @@ namespace Coverage {
         _t, _n );
 
     FILE*  aFile;
-    
+
     // Open the file
     aFile = OpenFile( fileName );
 
@@ -77,7 +79,7 @@ namespace Coverage {
       aFile,
       "Coverage Analysis Reports</div>\n"
       "<div class =\"datetime\">%s</div>\n",
-      asctime( localtime(&timestamp_m) ) 
+      asctime( localtime(&timestamp_m) )
     );
 
     fprintf( aFile, "<ul>\n" );
@@ -109,7 +111,7 @@ namespace Coverage {
   )
   {
     FILE*  aFile;
-    
+
     // Open the file
     aFile = ReportsBase::OpenFile( fileName );
 
@@ -154,7 +156,7 @@ namespace Coverage {
       "<div class =\"datetime\">%s</div>\n"
       "<body>\n"
       "<pre class=\"code\">\n",
-      asctime( localtime(&timestamp_m) ) 
+      asctime( localtime(&timestamp_m) )
     );
 
     return aFile;
@@ -206,10 +208,10 @@ namespace Coverage {
         "</tr>\n"
         "</thead>\n"
         "<tbody>\n",
-        asctime( localtime(&timestamp_m) ) 
+        asctime( localtime(&timestamp_m) )
       );
     }
-   
+
     return aFile;
   }
 
@@ -255,7 +257,7 @@ namespace Coverage {
       "</tr>\n"
       "</thead>\n"
       "<tbody>\n",
-        asctime( localtime(&timestamp_m) ) 
+        asctime( localtime(&timestamp_m) )
 
      );
 
@@ -298,7 +300,7 @@ namespace Coverage {
       "</tr>\n"
       "</thead>\n"
       "<tbody>\n",
-        asctime( localtime(&timestamp_m) ) 
+        asctime( localtime(&timestamp_m) )
 
      );
 
@@ -346,7 +348,7 @@ namespace Coverage {
       "</tr>\n"
       "</thead>\n"
       "<tbody>\n",
-        asctime( localtime(&timestamp_m) ) 
+        asctime( localtime(&timestamp_m) )
 
     );
     return aFile;
@@ -398,7 +400,7 @@ namespace Coverage {
       "</tr>\n"
       "</thead>\n"
       "<tbody>\n",
-        asctime( localtime(&timestamp_m) ) 
+        asctime( localtime(&timestamp_m) )
 
     );
     return aFile;
@@ -408,29 +410,29 @@ namespace Coverage {
     FILE*                aFile
   )
   {
-    fprintf( 
+    fprintf(
       aFile,
-      "<hr>\n" 
+      "<hr>\n"
     );
   }
- 
+
   void ReportsHtml::AnnotatedEnd(
     FILE*                aFile
   )
   {
   }
 
-  void ReportsHtml::PutAnnotatedLine( 
-    FILE*                aFile, 
-    AnnotatedLineState_t state, 
-    std::string          line, 
-    uint32_t             id 
+  void ReportsHtml::PutAnnotatedLine(
+    FILE*                aFile,
+    AnnotatedLineState_t state,
+    std::string          line,
+    uint32_t             id
   )
   {
     std::string stateText;
     char        number[10];
 
-    
+
     sprintf(number,"%d", id);
 
     // Set the stateText based upon the current state.
@@ -460,8 +462,7 @@ namespace Coverage {
         stateText += "\"></a><pre class=\"codeNeverTaken\">\n";
         break;
       default:
-        fprintf(stderr, "ERROR:  ReportsHtml::PutAnnotatedLine Unknown state\n");
-        exit( -1 );
+        throw rld::error( "Unknown state", "ReportsHtml::PutAnnotatedLine");
         break;
     }
 
@@ -517,16 +518,16 @@ namespace Coverage {
       fprintf( report, "<tr>\n");
 
     // symbol
-    fprintf( 
-      report, 
-      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",     
+    fprintf(
+      report,
+      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
       symbolPtr->first.c_str()
     );
 
     // line
-    fprintf( 
-      report, 
-      "<td class=\"covoar-td\" align=\"center\"><a href =\"annotated.html#range%d\">%s</td>\n",     
+    fprintf(
+      report,
+      "<td class=\"covoar-td\" align=\"center\"><a href =\"annotated.html#range%d\">%s</td>\n",
       rangePtr->id,
       rangePtr->lowSourceLine.c_str()
     );
@@ -534,15 +535,15 @@ namespace Coverage {
     // File
     i = rangePtr->lowSourceLine.find(":");
     temp =  rangePtr->lowSourceLine.substr (0, i);
-    fprintf( 
-      report, 
-      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",     
+    fprintf(
+      report,
+      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
       temp.c_str()
     );
-  
+
     // Size in bytes
-    fprintf( 
-      report, 
+    fprintf(
+      report,
       "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
       rangePtr->highAddress - rangePtr->lowAddress + 1
     );
@@ -550,14 +551,14 @@ namespace Coverage {
     // Reason Branch was uncovered
     if (rangePtr->reason ==
       Coverage::CoverageRanges::UNCOVERED_REASON_BRANCH_ALWAYS_TAKEN)
-      fprintf( 
+      fprintf(
         report,
         "<td class=\"covoar-td\" align=\"center\">Always Taken</td>\n"
       );
     else if (rangePtr->reason ==
       Coverage::CoverageRanges::UNCOVERED_REASON_BRANCH_NEVER_TAKEN)
-      fprintf( 
-        report, 
+      fprintf(
+        report,
         "<td class=\"covoar-td\" align=\"center\">Never Taken</td>\n"
       );
 
@@ -581,16 +582,16 @@ namespace Coverage {
     explanation = AllExplanations->lookupExplanation( rangePtr->lowSourceLine );
     if ( !explanation ) {
       // Write Classificationditr->second.baseAddress
-      fprintf( 
-        report, 
+      fprintf(
+        report,
         "<td class=\"covoar-td\" align=\"center\">NONE</td>\n"
         "<td class=\"covoar-td\" align=\"center\">No Explanation</td>\n"
       );
     } else {
       char explanationFile[48];
       sprintf( explanationFile, "explanation%d.html", rangePtr->id );
-      fprintf( 
-        report, 
+      fprintf(
+        report,
         "<td class=\"covoar-td\" align=\"center\">%s</td>\n"
         "<td class=\"covoar-td\" align=\"center\">"
         "<a href=\"%s\">Explanation</a></td>\n",
@@ -653,44 +654,44 @@ namespace Coverage {
     }
 
     // symbol
-    fprintf( 
-      report, 
-      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",     
+    fprintf(
+      report,
+      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
       symbol.c_str()
     );
-    fprintf( 
-      noRangeFile, 
-      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",     
+    fprintf(
+      noRangeFile,
+      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
       symbol.c_str()
     );
 
     // starting line
-    fprintf( 
-      report, 
+    fprintf(
+      report,
       "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
      );
-     
+
     // file
-    fprintf( 
-      report, 
+    fprintf(
+      report,
       "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
      );
-     
+
      // Size in bytes
-    fprintf( 
-      report, 
+    fprintf(
+      report,
       "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
     );
 
     // Size in instructions
-    fprintf( 
-      report, 
+    fprintf(
+      report,
       "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
-    ); 
+    );
 
     // See if an explanation is available
-    fprintf( 
-      report, 
+    fprintf(
+      report,
       "<td class=\"covoar-td\" align=\"center\">Unknown</td>\n"
       "<td class=\"covoar-td\" align=\"center\">"
       "<a href=\"NotReferenced.html\">No data</a></td>\n"
@@ -719,17 +720,17 @@ namespace Coverage {
       fprintf( report, "<tr>\n");
 
     // symbol
-    fprintf( 
-      report, 
-      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",     
+    fprintf(
+      report,
+      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
       symbolPtr->first.c_str()
     );
 
     // Range
-    fprintf( 
-      report, 
+    fprintf(
+      report,
       "<td class=\"covoar-td\" align=\"center\"><a href =\"annotated.html#range%d\">%s <br>%s</td>\n",
-      rangePtr->id,    
+      rangePtr->id,
       rangePtr->lowSourceLine.c_str(),
       rangePtr->highSourceLine.c_str()
      );
@@ -737,43 +738,43 @@ namespace Coverage {
     // File
     i = rangePtr->lowSourceLine.find(":");
     temp =  rangePtr->lowSourceLine.substr (0, i);
-    fprintf( 
-      report, 
-      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",     
+    fprintf(
+      report,
+      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
       temp.c_str()
     );
-       
+
     // Size in bytes
-    fprintf( 
-      report, 
+    fprintf(
+      report,
       "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
       rangePtr->highAddress - rangePtr->lowAddress + 1
     );
 
     // Size in instructions
-    fprintf( 
-      report, 
+    fprintf(
+      report,
       "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
       rangePtr->instructionCount
-    ); 
+    );
 
     // See if an explanation is available
     explanation = AllExplanations->lookupExplanation( rangePtr->lowSourceLine );
     if ( !explanation ) {
-      fprintf( 
-        report, 
+      fprintf(
+        report,
         "<td class=\"covoar-td\" align=\"center\">NONE</td>\n"
       );
-      fprintf( 
-        report, 
+      fprintf(
+        report,
         "<td class=\"covoar-td\" align=\"center\">No Explanation</td>\n"
       );
     } else {
       char explanationFile[48];
 
       sprintf( explanationFile, "explanation%d.html", rangePtr->id );
-      fprintf( 
-        report, 
+      fprintf(
+        report,
         "<td class=\"covoar-td\" align=\"center\">%s</td>\n"
         "<td class=\"covoar-td\" align=\"center\">"
         "<a href=\"%s\">Explanation</a></td>\n",
@@ -805,23 +806,23 @@ namespace Coverage {
       fprintf( report, "<tr>\n");
 
     // size
-    fprintf( 
-      report, 
+    fprintf(
+      report,
       "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
       range->highAddress - range->lowAddress + 1
     );
 
     // symbol
-    fprintf( 
-      report, 
-      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",     
+    fprintf(
+      report,
+      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
       symbol->first.c_str()
     );
 
     // line
-    fprintf( 
-      report, 
-      "<td class=\"covoar-td\" align=\"center\"><a href =\"annotated.html#range%d\">%s</td>\n",     
+    fprintf(
+      report,
+      "<td class=\"covoar-td\" align=\"center\"><a href =\"annotated.html#range%d\">%s</td>\n",
       range->id,
       range->lowSourceLine.c_str()
     );
@@ -829,12 +830,12 @@ namespace Coverage {
     // File
     i = range->lowSourceLine.find(":");
     temp =  range->lowSourceLine.substr (0, i);
-    fprintf( 
-      report, 
-      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",     
+    fprintf(
+      report,
+      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
       temp.c_str()
     );
-    
+
     fprintf( report, "</tr>\n");
 
     return true;
@@ -846,7 +847,7 @@ namespace Coverage {
     Coverage::DesiredSymbols::symbolSet_t::iterator symbol
   )
   {
- 
+
     // Mark the background color different for odd and even lines.
     if ( ( count%2 ) != 0 )
       fprintf( report, "<tr class=\"covoar-tr-odd\">\n");
@@ -854,77 +855,77 @@ namespace Coverage {
       fprintf( report, "<tr>\n");
 
     // symbol
-    fprintf( 
-      report, 
-      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",     
+    fprintf(
+      report,
+      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
       symbol->first.c_str()
     );
 
     // Total Size in Bytes
-    fprintf( 
-      report, 
+    fprintf(
+      report,
       "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
       symbol->second.stats.sizeInBytes
     );
 
-    // Total Size in Instructions 
-    fprintf( 
-      report, 
+    // Total Size in Instructions
+    fprintf(
+      report,
       "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
       symbol->second.stats.sizeInInstructions
     );
 
     // Total Uncovered Ranges
-    fprintf( 
-      report, 
-      "<td class=\"covoar-td\" align=\"center\">%d</td>\n",     
+    fprintf(
+      report,
+      "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
       symbol->second.stats.uncoveredRanges
     );
 
     // Uncovered Size in Bytes
-    fprintf( 
-      report, 
+    fprintf(
+      report,
       "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
       symbol->second.stats.uncoveredBytes
     );
 
-    // Uncovered Size in Instructions 
-    fprintf( 
-      report, 
+    // Uncovered Size in Instructions
+    fprintf(
+      report,
       "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
        symbol->second.stats.uncoveredInstructions
     );
 
     // Total number of branches
-    fprintf( 
-      report, 
-      "<td class=\"covoar-td\" align=\"center\">%d</td>\n",     
+    fprintf(
+      report,
+      "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
       symbol->second.stats.branchesNotExecuted +  symbol->second.stats.branchesExecuted
     );
 
     // Total Always Taken
-    fprintf( 
-      report, 
+    fprintf(
+      report,
       "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
       symbol->second.stats.branchesAlwaysTaken
     );
 
     // Total Never Taken
-    fprintf( 
-      report, 
+    fprintf(
+      report,
       "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
       symbol->second.stats.branchesNeverTaken
      );
 
     // % Uncovered Instructions
     if ( symbol->second.stats.sizeInInstructions == 0 )
-      fprintf( 
-        report, 
+      fprintf(
+        report,
         "<td class=\"covoar-td\" align=\"center\">100.00</td>\n"
       );
-    else     
-      fprintf( 
-        report, 
+    else
+      fprintf(
+        report,
         "<td class=\"covoar-td\" align=\"center\">%.2f</td>\n",
         (symbol->second.stats.uncoveredInstructions*100.0)/
          symbol->second.stats.sizeInInstructions
@@ -932,13 +933,13 @@ namespace Coverage {
 
     // % Uncovered Bytes
     if ( symbol->second.stats.sizeInBytes == 0 )
-      fprintf( 
-        report, 
+      fprintf(
+        report,
         "<td class=\"covoar-td\" align=\"center\">100.00</td>\n"
       );
-    else     
-      fprintf( 
-        report, 
+    else
+      fprintf(
+        report,
         "<td class=\"covoar-td\" align=\"center\">%.2f</td>\n",
         (symbol->second.stats.uncoveredBytes*100.0)/
          symbol->second.stats.sizeInBytes
@@ -972,12 +973,12 @@ namespace Coverage {
         aFile,
         TABLE_FOOTER
         "</tbody>\n"
-        "</table>\n" 
+        "</table>\n"
       );
     }
     fprintf(
       aFile,
-      "</pre>\n" 
+      "</pre>\n"
       "</body>\n"
       "</html>"
     );
@@ -993,8 +994,8 @@ namespace Coverage {
       aFile,
       TABLE_FOOTER
       "</tbody>\n"
-      "</table>\n" 
-      "</pre>\n" 
+      "</table>\n"
+      "</pre>\n"
       "</body>\n"
       "</html>"
     );
@@ -1010,8 +1011,8 @@ namespace Coverage {
       aFile,
       TABLE_FOOTER
       "</tbody>\n"
-      "</table>\n" 
-      "</pre>\n" 
+      "</table>\n"
+      "</pre>\n"
       "</body>\n"
       "</html>"
     );
@@ -1028,8 +1029,8 @@ namespace Coverage {
       aFile,
       TABLE_FOOTER
       "</tbody>\n"
-      "</table>\n" 
-      "</pre>\n" 
+      "</table>\n"
+      "</pre>\n"
       "</body>\n"
       "</html>"
     );
@@ -1045,8 +1046,8 @@ namespace Coverage {
       aFile,
       TABLE_FOOTER
        "</tbody>\n"
-      "</table>\n" 
-      "</pre>\n" 
+      "</table>\n"
+      "</pre>\n"
       "</body>\n"
       "</html>"
     );

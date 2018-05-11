@@ -9,7 +9,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <sys/stat.h>
+
+#include <rld.h>
 
 #include "app_common.h"
 #include "CoverageReaderQEMU.h"
@@ -48,57 +51,33 @@ namespace Coverage {
     uint8_t             notTaken;
     uint8_t             branchInfo;
 
-    taken    = TargetInfo->qemuTakenBit();
-    notTaken = TargetInfo->qemuNotTakenBit();
+    taken      = TargetInfo->qemuTakenBit();
+    notTaken   = TargetInfo->qemuNotTakenBit();
     branchInfo = taken | notTaken;
 
     //
     // Open the coverage file and read the header.
     //
-    traceFile = OPEN( file, "r" );
+    traceFile = ::OPEN( file, "r" );
     if (!traceFile) {
-      fprintf(
-        stderr,
-        "ERROR: CoverageReaderQEMU::processFile - Unable to open %s\n",
-        file
-      );
-      exit( -1 );
+      std::ostringstream what;
+      what << "Unable to open " << file;
+      throw rld::error( what, "CoverageReaderQEMU::processFile" );
     }
 
-    status = fread( &header, sizeof(trace_header), 1, traceFile );
+    status = ::fread( &header, sizeof(trace_header), 1, traceFile );
     if (status != 1) {
-      fprintf(
-        stderr,
-        "ERROR: CoverageReaderQEMU::processFile - "
-        "Unable to read header from %s\n",
-        file
-      );
-      exit( -1 );
+      ::fclose( traceFile );
+      std::ostringstream what;
+      what << "Unable to read header from " << file;
+      throw rld::error( what, "CoverageReaderQEMU::processFile" );
     }
-
-    #if 0
-      fprintf(
-        stderr,
-        "magic = %s\n"
-        "version = %d\n"
-        "kind = %d\n"
-        "sizeof_target_pc = %d\n"
-        "big_endian = %d\n"
-        "machine = %02x:%02x\n",
-        header.magic,
-        header.version,
-        header.kind,
-        header.sizeof_target_pc,
-        header.big_endian,
-        header.machine[0], header.machine[1]
-       );
-    #endif
 
     //
     // Read ENTRIES number of trace entries.
     //
 #define ENTRIES 1024
-    while (1) {
+    while (true) {
       CoverageMapBase     *aCoverageMap = NULL;
       struct trace_entry  entries[ENTRIES];
       struct trace_entry  *entry;
@@ -106,7 +85,7 @@ namespace Coverage {
 
 
       // Read and process each line of the coverage file.
-      num_entries = fread(
+      num_entries = ::fread(
         entries,
         sizeof(struct trace_entry),
         ENTRIES,
@@ -149,6 +128,6 @@ namespace Coverage {
         }
       }
     }
-    fclose( traceFile );
+    ::fclose( traceFile );
   }
 }

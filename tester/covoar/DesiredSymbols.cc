@@ -37,7 +37,7 @@ namespace Coverage {
   {
   }
 
-  bool DesiredSymbols::load(
+  void DesiredSymbols::load(
     const std::string& symbolsSet,
     const std::string& buildTarget,
     const std::string& buildBSP,
@@ -45,7 +45,6 @@ namespace Coverage {
   )
   {
     rld::files::cache cache;
-    bool              r = true;
 
     //
     // Load the INI file looking for a top level:
@@ -103,20 +102,12 @@ namespace Coverage {
         const rld::symbols::symbol& sym = *(kv.second);
         set[sym.name()] = *(new SymbolInformation);
       }
-
-    } catch (rld::error re) {
-      std::cerr << "error: "
-                << re.where << ": " << re.what
-                << std::endl;
-      r = false;
     } catch (...) {
       cache.close();
       throw;
     }
 
     cache.close();
-
-    return r;
   }
 
   void DesiredSymbols::preprocess( void )
@@ -332,12 +323,11 @@ namespace Coverage {
     symbolSet_t::iterator itr = set.find( symbolName );
 
     if (itr == set.end()) {
-      std::cerr << "ERROR: DesiredSymbols::createCoverageMap - Unable to create "
-                << "unified coverage map for "
-                << symbolName
-                << " because it is NOT a desired symbol"
-                << std::endl;
-      exit( -1 );
+      std::ostringstream what;
+      what << "Unable to create unified coverage map for "
+           << symbolName
+           << " because it is NOT a desired symbol";
+      throw rld::error( what, "DesiredSymbols::createCoverageMap" );
     }
 
     // If we have already created a coverage map, ...
@@ -373,17 +363,6 @@ namespace Coverage {
       highAddress = size - 1;
 
       aCoverageMap = new CoverageMap( exefileName, 0, highAddress );
-      if (!aCoverageMap) {
-
-        fprintf(
-          stderr,
-          "ERROR: DesiredSymbols::createCoverageMap - Unable to allocate "
-          "coverage map for %s:%s\n",
-          exefileName.c_str(),
-          symbolName.c_str()
-        );
-        exit( -1 );
-      }
 
       if ( Verbose )
         fprintf(
@@ -490,11 +469,11 @@ namespace Coverage {
     symbolSet_t::iterator itr = set.find( symbolName );
 
     if (itr == set.end()) {
-      std::cerr << "ERROR: DesiredSymbols::mergeCoverageMap - Unable to merge "
-                << "coverage map for %s because it is NOT a desired symbol"
-                << symbolName
-                << std::endl;
-      exit( -1 );
+      std::ostringstream what;
+      what << "Unable to merge coverage map for "
+           << symbolName
+           << " because it is NOT a desired symbol";
+      throw rld::error( what, "DesiredSymbols::mergeCoverageMap" );
     }
 
     // Ensure that the source and destination coverage maps

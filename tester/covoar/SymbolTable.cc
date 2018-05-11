@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <rld.h>
+
 #include "SymbolTable.h"
 #include "app_common.h"
 
@@ -43,16 +45,16 @@ namespace Coverage {
     // Add an entry to the symbol information map.
     symbolData.startingAddress = start;
     symbolData.length = length;
-     
+
     if ( info[ symbol ].empty() == false ) {
       if ( info[ symbol ].front().length != length ) {
-        fprintf(stderr,
-          "ERROR==> Different lengths for the symbol %s (%d and %d)\n",
-          symbol.c_str(), 
-          info[ symbol ].front().length,
-          length
-        );
-        exit( 0 );
+        std::ostringstream what;
+        what << "Different lengths for the symbol "
+             << symbol
+             << " (" << info[ symbol ].front().length
+             << " and " << length
+             << ")";
+        throw rld::error( what, "SymbolTable::addSymbol" );
       }
     }
 

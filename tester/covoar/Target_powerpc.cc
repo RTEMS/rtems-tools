@@ -1,14 +1,17 @@
 /*! @file Target_powerpc.cc
  *  @brief Target_powerpc Implementation
  *
- *  This file contains the implementation of the base class for 
+ *  This file contains the implementation of the base class for
  *  functions supporting target unique functionallity.
  */
-#include "Target_powerpc.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#include <rld.h>
+
+#include "Target_powerpc.h"
 
 namespace Target {
 
@@ -46,8 +49,8 @@ namespace Target {
     branchInstructions.push_back("bclr");
     branchInstructions.push_back("bclrl");
 
-  
-    branchInstructions.sort();    
+
+    branchInstructions.sort();
   }
 
   Target_powerpc::~Target_powerpc()
@@ -60,7 +63,7 @@ namespace Target {
   )
   {
     if (!strcmp( &line[strlen(line)-3], "nop")) {
-      size = 4; 
+      size = 4;
       return true;
     }
 
@@ -71,8 +74,10 @@ namespace Target {
       const char* const instruction
   )
   {
-    fprintf( stderr, "DETERMINE BRANCH INSTRUCTIONS FOR THIS ARCHITECTURE! -- fix me\n" );
-    exit( -1 );    
+    throw rld::error(
+      "DETERMINE BRANCH INSTRUCTIONS FOR THIS ARCHITECTURE! -- fix me",
+      "Target_powerpc::isBranch"
+    );
   }
 
   TargetBase *Target_powerpc_Constructor(

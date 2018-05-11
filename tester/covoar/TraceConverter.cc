@@ -13,6 +13,9 @@
 #include <signal.h>
 #include <unistd.h>
 
+#include <rld.h>
+#include <rld-process.h>
+
 #include "qemu-log.h"
 #include "TraceReaderLogQEMU.h"
 #include "TraceWriterQEMU.h"
@@ -20,9 +23,6 @@
 #include "ObjdumpProcessor.h"
 #include "app_common.h"
 #include "TargetFactory.h"
-
-#include "rld.h"
-#include "rld-process.h"
 
 #ifdef _WIN32
   #define kill(p,s) raise(s)

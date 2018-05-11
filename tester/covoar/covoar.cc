@@ -1,3 +1,7 @@
+#include <iostream>
+#include <iomanip>
+
+#include <cxxabi.h>
 #include <ctype.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -12,6 +16,9 @@
 
 #include <list>
 
+#include <rld.h>
+#include <rld-process.h>
+
 #include "app_common.h"
 #include "CoverageFactory.h"
 #include "CoverageMap.h"
@@ -23,14 +30,13 @@
 #include "TargetFactory.h"
 #include "GcovData.h"
 
-#include "rld-process.h"
-
 #ifdef _WIN32
   #define kill(p,s) raise(s)
 #endif
 
 typedef std::list<std::string> CoverageNames;
 typedef std::list<Coverage::ExecutableInfo*> Executables;
+typedef std::string option_error;
 
 /*
  * Create a build path from the executable paths. Also extract the build prefix
@@ -105,8 +111,7 @@ static void createBuildPath(Executables& executablesToAnalyze,
       }
     }
     if (!fail.empty()) {
-      std::cerr << "ERROR: " << fail << std::endl;
-      exit(EXIT_FAILURE);
+      throw rld::error( fail, "createBuildPath" );
     }
   }
 }
@@ -138,44 +143,7 @@ void usage(const std::string& progname)
             << std::endl;
 }
 
-#define PrintableString(_s) \
-((!(_s)) ? "NOT SET" : (_s))
-
-static void
-fatal_signal( int signum )
-{
-  signal( signum, SIG_DFL );
-
-  rld::process::temporaries_clean_up();
-
-  /*
-   * Get the same signal again, this time not handled, so its normal effect
-   * occurs.
-   */
-  kill( getpid(), signum );
-}
-
-static void
-setup_signals( void )
-{
-  if ( signal( SIGINT, SIG_IGN ) != SIG_IGN )
-    signal( SIGINT, fatal_signal );
-#ifdef SIGHUP
-  if ( signal( SIGHUP, SIG_IGN ) != SIG_IGN )
-    signal( SIGHUP, fatal_signal );
-#endif
-  if ( signal( SIGTERM, SIG_IGN ) != SIG_IGN )
-    signal( SIGTERM, fatal_signal );
-#ifdef SIGPIPE
-  if ( signal( SIGPIPE, SIG_IGN ) != SIG_IGN )
-    signal( SIGPIPE, fatal_signal );
-#endif
-#ifdef SIGCHLD
-  signal( SIGCHLD, SIG_DFL );
-#endif
-}
-
-int main(
+int covoar(
   int    argc,
   char** argv
 )
@@ -204,16 +172,12 @@ int main(
   rld::process::tempfile        syms( ".syms" );
   bool                          debug = false;
   std::string                   symbolSet;
-  std::string                   progname;
   std::string                   option;
   int                           opt;
-
-  setup_signals();
 
   //
   // Process command line options.
   //
-  progname = rld::path::basename(argv[0]);
 
   while ((opt = getopt(argc, argv, "1:L:e:c:g:E:f:s:S:T:O:p:vd")) != -1) {
     switch (opt) {
@@ -232,46 +196,31 @@ int main(
       case 'p': projectName         = optarg; break;
       case 'd': debug               = true;   break;
       default: /* '?' */
-        usage(progname);
-        exit(EXIT_FAILURE);
+        throw option_error( "unknown option" );
     }
   }
-  try
-  {
-    /*
-     * Validate inputs.
-     */
 
-    /*
-     * Validate that we have a symbols of interest file.
-     */
-    if ( symbolSet.empty() ) {
-      option = "symbol set file -S";
-      throw option;
-    }
+  /*
+   * Validate inputs.
+   */
 
-    /*
-     * Has path to explanations.txt been specified.
-     */
-    if ( !explanations ) {
-      option = "explanations -E";
-      throw option;
-    }
+  /*
+   * Validate that we have a symbols of interest file.
+   */
+  if ( symbolSet.empty() )
+    throw option_error( "symbol set file -S" );
 
-    /*
-     * Check for project name.
-     */
-    if ( !projectName ) {
-      option = "project name -p";
-      throw option;
-    }
-  }
-  catch( std::string option )
-  {
-    std::cerr << "error missing option: " + option << std::endl;
-    usage(progname);
-    exit(EXIT_FAILURE);
-  }
+  /*
+   * Has path to explanations.txt been specified.
+   */
+  if ( !explanations )
+    throw option_error( "explanations -E" );
+
+  /*
+   * Check for project name.
+   */
+  if ( !projectName )
+    throw option_error( "project name -p" );
 
   // If a single executable was specified, process the remaining
   // arguments as coverage file names.
@@ -332,18 +281,14 @@ int main(
   }
 
   // Ensure that there is at least one executable to process.
-  if (executablesToAnalyze.empty()) {
-    std::cerr << "error: No information to analyze" << std::endl;
-    exit(EXIT_FAILURE);
-  }
+  if (executablesToAnalyze.empty())
+    throw rld::error( "No information to analyze", "covoar" );
 
   // The executablesToAnalyze and coverageFileNames containers need
   // to be the name size of some of the code below breaks. Lets
   // check and make sure.
-  if (executablesToAnalyze.size() != coverageFileNames.size()) {
-    std::cerr << "ERROR: executables and coverage name size mismatch" << std::endl;
-    exit(EXIT_FAILURE);
-  }
+  if (executablesToAnalyze.size() != coverageFileNames.size())
+    throw rld::error( "executables and coverage name size mismatch", "covoar" );
 
   //
   // Find the top of the BSP's build tree and if we have found the top
@@ -398,9 +343,7 @@ int main(
   //
   // Read symbol configuration file and load needed symbols.
   //
-  if (!SymbolsToAnalyze->load( symbolSet, buildTarget, buildBSP, Verbose )) {
-      exit(EXIT_FAILURE);
-  }
+  SymbolsToAnalyze->load( symbolSet, buildTarget, buildBSP, Verbose );
 
   if ( Verbose )
     std::cerr << "Analyzing " << SymbolsToAnalyze->set.size()
@@ -413,10 +356,8 @@ int main(
 
   // Create coverage map reader.
   coverageReader = Coverage::CreateCoverageReader(coverageFormat);
-  if (!coverageReader) {
-    std::cerr << "error: Unable to create coverage file reader" << std::endl;
-    exit(EXIT_FAILURE);
-  }
+  if (!coverageReader)
+    throw rld::error( "Unable to create coverage file reader", "covoar" );
 
   // Create the objdump processor.
   objdumpProcessor = new Coverage::ObjdumpProcessor();
@@ -554,4 +495,103 @@ int main(
   }
 
   return 0;
+}
+
+#define PrintableString(_s) \
+((!(_s)) ? "NOT SET" : (_s))
+
+static void
+fatal_signal( int signum )
+{
+  signal( signum, SIG_DFL );
+
+  rld::process::temporaries_clean_up();
+
+  /*
+   * Get the same signal again, this time not handled, so its normal effect
+   * occurs.
+   */
+  kill( getpid(), signum );
+}
+
+static void
+setup_signals( void )
+{
+  if ( signal( SIGINT, SIG_IGN ) != SIG_IGN )
+    signal( SIGINT, fatal_signal );
+#ifdef SIGHUP
+  if ( signal( SIGHUP, SIG_IGN ) != SIG_IGN )
+    signal( SIGHUP, fatal_signal );
+#endif
+  if ( signal( SIGTERM, SIG_IGN ) != SIG_IGN )
+    signal( SIGTERM, fatal_signal );
+#ifdef SIGPIPE
+  if ( signal( SIGPIPE, SIG_IGN ) != SIG_IGN )
+    signal( SIGPIPE, fatal_signal );
+#endif
+#ifdef SIGCHLD
+  signal( SIGCHLD, SIG_DFL );
+#endif
+}
+
+void
+unhandled_exception (void)
+{
+  std::cerr << "error: exception handling error, please report" << std::endl;
+  exit (1);
+}
+
+int main(
+  int    argc,
+  char** argv
+)
+{
+  std::string progname( argv[0] );
+  int         ec = 0;
+
+  setup_signals();
+
+  std::set_terminate(unhandled_exception);
+
+  try
+  {
+    progname = rld::path::basename(argv[0]);
+    covoar( argc, argv );
+  }
+  catch ( option_error oe )
+  {
+    std::cerr << "error: missing option: " + oe << std::endl;
+    usage(progname);
+    ec = EXIT_FAILURE;
+  }
+  catch (rld::error re)
+  {
+    std::cerr << "error: "
+              << re.where << ": " << re.what
+              << std::endl;
+    ec = 10;
+  }
+  catch (std::exception e)
+  {
+    int   status;
+    char* realname;
+    realname = abi::__cxa_demangle (e.what(), 0, 0, &status);
+    std::cerr << "error: exception: " << realname << " [";
+    ::free (realname);
+    const std::type_info &ti = typeid (e);
+    realname = abi::__cxa_demangle (ti.name(), 0, 0, &status);
+    std::cerr << realname << "] " << e.what () << std::endl << std::flush;
+    ::free (realname);
+    ec = 11;
+  }
+  catch (...)
+  {
+    /*
+     * Helps to know if this happens.
+     */
+    std::cerr << "error: unhandled exception" << std::endl;
+    ec = 12;
+  }
+
+  return ec;
 }

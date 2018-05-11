@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <rld.h>
+
 #include "CoverageFactory.h"
 #include "CoverageReaderQEMU.h"
 #include "CoverageReaderRTEMS.h"
@@ -35,13 +37,10 @@ Coverage::CoverageFormats_t Coverage::CoverageFormatToEnum(
   if (!strcmp( format, "TSIM" ))
     return COVERAGE_FORMAT_TSIM;
 
-  fprintf(
-    stderr,
-    "ERROR: %s is an unknown coverage format "
-    "(supported formats - QEMU, RTEMS, Skyeye and TSIM)\n",
-    format
-  );
-  exit( 1 );
+  std::ostringstream what;
+  what << format << " is an unknown coverage format "
+       << "(supported formats - QEMU, RTEMS, Skyeye and TSIM)";
+  throw rld::error( what, "Coverage" );
 }
 
 Coverage::CoverageReaderBase* Coverage::CreateCoverageReader(

@@ -9,6 +9,11 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+#include <iostream>
+#include <iomanip>
+
+#include <rld.h>
+
 #include "CoverageReaderRTEMS.h"
 #include "CoverageMap.h"
 #include "ExecutableInfo.h"
@@ -41,54 +46,36 @@ namespace Coverage {
     //
     // Open the coverage file and read the header.
     //
-    coverageFile = fopen( file, "r" );
+    coverageFile = ::fopen( file, "r" );
     if (!coverageFile) {
-      fprintf(
-        stderr,
-        "ERROR: CoverageReaderRTEMS::processFile - Unable to open %s\n",
-        file
-      );
-      exit( -1 );
+      std::ostringstream what;
+      what << "Unable to open " << file;
+      throw rld::error( what, "CoverageReaderRTEMS::processFile" );
     }
 
-    status = fread( &header, sizeof(header), 1, coverageFile );
+    status = ::fread( &header, sizeof(header), 1, coverageFile );
     if (status != 1) {
-      fprintf(
-        stderr,
-        "ERROR: CoverageReaderRTEMS::processFile - "
-        "Unable to read header from %s\n",
-        file
-      );
-      exit( -1 );
+      ::fclose( coverageFile );
+      std::ostringstream what;
+      what << "Unable to read header from " << file;
+      throw rld::error( what, "CoverageReaderRTEMS::processFile" );
     }
 
     baseAddress = header.start;
     length      = header.end - header.start;
-    
-    #if 0
-    fprintf( 
-      stderr,
-      "%s: 0x%08x 0x%08x 0x%08lx/%ld\n", 
-      file,
-      header.start,
-      header.end,
-      (unsigned long) length,
-      (unsigned long) length
-    );
-    #endif
 
     //
     // Read and process each line of the coverage file.
     //
-    for (i=0; i<length; i++) {
-      status = fread( &cover, sizeof(uint8_t), 1, coverageFile );
+    for (i = 0; i < length; i++) {
+      status = ::fread( &cover, sizeof(uint8_t), 1, coverageFile );
       if (status != 1) {
-        fprintf(
-          stderr,
-          "CoverageReaderRTEMS::ProcessFile - breaking after 0x%08x in %s\n",
-          (unsigned int) i,
-          file
-        );
+        std::cerr << "breaking after 0x"
+                  << std::hex << std::setfill('0')
+                  << std::setw(8) << i
+                  << std::setfill(' ') << std::dec
+                  << " in " << file
+                  << std::endl;
         break;
       }
 
@@ -103,6 +90,6 @@ namespace Coverage {
       }
     }
 
-    fclose( coverageFile );
+    ::fclose( coverageFile );
   }
 }

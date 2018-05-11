@@ -1,7 +1,7 @@
 /*! @file Explanations.cc
  *  @brief Explanations Implementation
  *
- *  This file contains the implementation of the functions 
+ *  This file contains the implementation of the functions
  *  which provide a base level of functionality of a Explanations.
  */
 
@@ -9,6 +9,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#include <rld.h>
 
 #include "Explanations.h"
 #include "app_common.h"
@@ -36,14 +38,11 @@ namespace Coverage {
     if (!explanations)
       return;
 
-    explain = fopen( explanations, "r" );
+    explain = ::fopen( explanations, "r" );
     if (!explain) {
-      fprintf(
-        stderr,
-        "ERROR: Explanations::load - unable to open explanations file %s\n",
-        explanations
-      );
-      exit(-1);
+      std::ostringstream what;
+      what << "Unable to open " << explanations;
+      throw rld::error( what, "Explanations::load" );
     }
 
     while ( 1 ) {
@@ -62,47 +61,38 @@ namespace Coverage {
 
       // Have we already seen this one?
       if (set.find( inputBuffer ) != set.end()) {
-        fprintf(
-          stderr,
-          "ERROR: Explanations::load - line %d "
-          "contains a duplicate explanation (%s)\n",
-          line,
-          inputBuffer
-        );
-        exit( -1 );
+        std::ostringstream what;
+        what << "line " << line
+             << "contains a duplicate explanation ("
+             << inputBuffer << ")";
+        throw rld::error( what, "Explanations::load" );
       }
 
       // Add the starting line and file
       e->startingPoint = std::string(inputBuffer);
       e->found = false;
 
-      // Get the classification 
+      // Get the classification
       cStatus = fgets( inputBuffer, MAX_LINE_LENGTH, explain );
       if (cStatus == NULL) {
-        fprintf(
-          stderr,
-          "ERROR: Explanations::load - line %d "
-          "out of sync at the classification\n",
-          line
-        );
-        exit( -1 );
+        std::ostringstream what;
+        what << "line " << line
+             << "out of sync at the classification";
+        throw rld::error( what, "Explanations::load" );
       }
       inputBuffer[ strlen(inputBuffer) - 1] = '\0';
       e->classification = inputBuffer;
       line++;
 
-      // Get the explanation 
+      // Get the explanation
       while (1) {
         cStatus = fgets( inputBuffer, MAX_LINE_LENGTH, explain );
         // fprintf( stderr, "%d - %s\n", line, inputBuffer );
         if (cStatus == NULL) {
-          fprintf(
-            stderr,
-            "ERROR: Explanations::load - line %d "
-            "out of sync at the explanation\n",
-            line
-          );
-          exit( -1 );
+          std::ostringstream what;
+          what << "line " << line
+               << "out of sync at the explanation";
+          throw rld::error( what, "Explanations::load" );
         }
         inputBuffer[ strlen(inputBuffer) - 1] = '\0';
         line++;
@@ -130,10 +120,8 @@ done:
   {
     if (set.find( start ) == set.end()) {
       #if 0
-        fprintf( stderr, 
-          "Warning: Unable to find explanation for %s\n", 
-          start.c_str() 
-        );
+        std::cerr << "Warning: Unable to find explanation for "
+                  << start << std::endl;
       #endif
       return NULL;
     }
@@ -150,23 +138,21 @@ done:
 
     if (!fileName)
       return;
-   
+
     notFoundFile = fopen( fileName, "w" );
     if (!fileName) {
-      fprintf(
-        stderr,
-        "ERROR: Explanations::writeNotFound - unable to open file %s\n",
-        fileName
-      );
-      exit( -1 );
+      std::ostringstream what;
+      what << "Unable to open " << fileName
+           << "out of sync at the explanation";
+      throw rld::error( what, "Explanations::writeNotFound" );
     }
-    
+
     for (std::map<std::string, Explanation>::iterator itr = set.begin();
          itr != set.end();
          itr++) {
       Explanation e = (*itr).second;
       std::string key = (*itr).first;
- 
+
       if (!e.found) {
         notFoundOccurred = true;
         fprintf(
@@ -174,18 +160,17 @@ done:
           "%s\n",
           e.startingPoint.c_str()
         );
-      } 
+      }
     }
     fclose( notFoundFile );
 
     if (!notFoundOccurred) {
       if (!unlink( fileName )) {
-        fprintf( stderr, 
-          "Warning: Unable to unlink %s\n\n", 
-          fileName 
-        );
+        std::cerr << "Warning: Unable to unlink " << fileName
+                  << std::endl
+                  << std::endl;
       }
-    } 
+    }
   }
 
 }

@@ -8,13 +8,19 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdio.h>
 #include <string.h>
+
+#include <iostream>
+#include <iomanip>
+
+#include <rld.h>
 
 #include "CoverageWriterSkyeye.h"
 #include "skyeye_header.h"
 
 namespace Coverage {
-  
+
   CoverageWriterSkyeye::CoverageWriterSkyeye()
   {
   }
@@ -39,14 +45,11 @@ namespace Coverage {
     /*
      *  read the file and update the coverage map passed in
      */
-    coverageFile = fopen( file, "w" );
+    coverageFile = ::fopen( file, "w" );
     if ( !coverageFile ) {
-      fprintf(
-        stderr,
-        "ERROR: CoverageWriterSkyeye::writeFile - unable to open %s\n",
-        file
-      );
-      exit(-1);
+      std::ostringstream what;
+      what << "Unable to open " << file;
+      throw rld::error( what, "CoverageWriterSkyeye::writeFile" );
     }
 
     /* clear out the header and fill it in */
@@ -57,34 +60,31 @@ namespace Coverage {
     header.prof_end      = highAddress;
     strcpy( header.desc, "Skyeye Coverage Data" );
 
-    status = fwrite(&header, 1, sizeof(header), coverageFile);
+    status = ::fwrite(&header, 1, sizeof(header), coverageFile);
     if (status != sizeof(header)) {
-      fprintf(
-        stderr,
-        "ERROR: CoverageWriterSkyeye::writeFile - unable to write header "
-        "to %s\n",
-        file
-      );
-      exit(-1);
+      ::fclose( coverageFile );
+      std::ostringstream what;
+      what << "Unable to write header to " << file;
+      throw rld::error( what, "CoverageWriterSkyeye::writeFile" );
     }
 
-    for ( a=lowAddress ; a < highAddress ; a+= 8 ) {
+    for ( a = lowAddress; a < highAddress; a += 8 ) {
       cover  = ((coverage->wasExecuted( a ))     ? 0x01 : 0);
       cover |= ((coverage->wasExecuted( a + 4 )) ? 0x10 : 0);
       status = fwrite(&cover, 1, sizeof(cover), coverageFile);
       if (status != sizeof(cover)) {
-	fprintf(
-          stderr,
-          "ERROR: CoverageWriterSkyeye::writeFile - write to %s "
-          "at address 0x%08x failed\n",
-          file,
-          a
-        );
-	exit( -1 );
+        ::fclose( coverageFile );
+        std::ostringstream what;
+        what << "write to " << file
+             << " at address 0x"
+             << std::hex << std::setfill('0')
+             << std::setw(8) << a
+             << std::setfill(' ') << std::dec
+             << "failed";
+        throw rld::error( what, "CoverageWriterSkyeye::writeFile" );
       }
-      // fprintf( stderr, "0x%x %d\n", a, cover );
     }
 
-    fclose( coverageFile );
+    ::fclose( coverageFile );
   }
 }

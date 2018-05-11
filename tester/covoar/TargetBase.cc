@@ -1,20 +1,22 @@
 /*! @file TargetBase.cc
  *  @brief TargetBase Implementation
  *
- *  This file contains the implementation of the base class for 
+ *  This file contains the implementation of the base class for
  *  functions supporting target unique functionallity.
  */
-
-#include "TargetBase.h"
-#include "qemu-traces.h"
 
 #include <algorithm>
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <rld.h>
+
+#include "TargetBase.h"
+#include "qemu-traces.h"
+
 namespace Target {
 
-  TargetBase::TargetBase( 
+  TargetBase::TargetBase(
     std::string targetName
   ):
     targetName_m( targetName )
@@ -65,13 +67,12 @@ namespace Target {
     std::list <std::string>::iterator i;
 
     if (branchInstructions.empty()) {
-      fprintf( 
-        stderr,
-        "DETERMINE BRANCH INSTRUCTIONS FOR THIS ARCHITECTURE! -- fix me\n" 
-       );
-       exit( -1 );    
+      throw rld::error(
+        "DETERMINE BRANCH INSTRUCTIONS FOR THIS ARCHITECTURE! -- fix me",
+        "TargetBase::isBranch"
+      );
     }
-    
+
     i = find(branchInstructions.begin(), branchInstructions.end(), instruction);
     if ( i  == branchInstructions.end() )
       return false;
@@ -90,11 +91,11 @@ namespace Target {
     char instruction[120];
     int  result;
 
-    
+
     ch = &(line[0]);
 
     // Increment to the first tab in the line
-    while ((*ch != '\t') && (*ch != '\0')) { 
+    while ((*ch != '\t') && (*ch != '\0')) {
       ch++;
     }
     if (*ch != '\t') {
@@ -104,7 +105,7 @@ namespace Target {
     ch++;
 
     // Increment to the second tab in the line
-    while ((*ch != '\t') && (*ch != '\0')) 
+    while ((*ch != '\t') && (*ch != '\0'))
       ch++;
     if (*ch != '\t') {
       fprintf( stderr, WARNING, 2, line) ;

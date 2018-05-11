@@ -1,15 +1,18 @@
 /*! @file Target_m68k.cc
  *  @brief Target_m68k Implementation
  *
- *  This file contains the implementation of the base class for 
+ *  This file contains the implementation of the base class for
  *  functions supporting target unique functionallity.
  */
-#include "Target_m68k.h"
-#include "qemu-traces.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+
+#include <rld.h>
+
+#include "Target_m68k.h"
+#include "qemu-traces.h"
 
 namespace Target {
 
@@ -64,7 +67,7 @@ namespace Target {
     branchInstructions.push_back("bvs");
     branchInstructions.push_back("bvss");
     branchInstructions.push_back("bvsl");
-  
+
     branchInstructions.sort();
 
   }
@@ -79,7 +82,7 @@ namespace Target {
   )
   {
     if (!strcmp( &line[strlen(line)-3], "nop")) {
-      size = 2; 
+      size = 2;
       return true;
     }
 
@@ -87,9 +90,9 @@ namespace Target {
     #if defined(GNU_LD_FILLS_ALIGNMENT_WITH_RTS)
       // Until binutils 2.20, binutils would fill with rts not nop
       if (!strcmp( &line[strlen(line)-3], "rts")) {
-        size = 4; 
+        size = 4;
         return true;
-      } 
+      }
     #endif
 
     return false;
@@ -99,11 +102,10 @@ namespace Target {
       const char* const instruction
   )
   {
-    fprintf(
-      stderr,
-      "DETERMINE BRANCH INSTRUCTIONS FOR THIS ARCHITECTURE! -- fix me\n"
+    throw rld::error(
+      "DETERMINE BRANCH INSTRUCTIONS FOR THIS ARCHITECTURE! -- fix me",
+      "Target_m68k::isBranch"
     );
-    exit( -1 );    
   }
 
   uint8_t Target_m68k::qemuTakenBit(void)

@@ -9,6 +9,9 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+#include <iostream>
+#include <iomanip>
+
 #include "CoverageReaderSkyeye.h"
 #include "CoverageMap.h"
 #include "ExecutableInfo.h"
@@ -41,54 +44,36 @@ namespace Coverage {
     //
     // Open the coverage file and read the header.
     //
-    coverageFile = fopen( file, "r" );
+    coverageFile = ::fopen( file, "r" );
     if (!coverageFile) {
-      fprintf(
-        stderr,
-        "ERROR: CoverageReaderSkyeye::processFile - Unable to open %s\n",
-        file
-      );
-      exit( -1 );
+      std::ostringstream what;
+      what << "Unable to open " << file;
+      throw rld::error( what, "CoverageReaderSkyeye::processFile" );
     }
 
-    status = fread( &header, sizeof(header), 1, coverageFile );
+    status = ::fread( &header, sizeof(header), 1, coverageFile );
     if (status != 1) {
-      fprintf(
-        stderr,
-        "ERROR: CoverageReaderSkyeye::processFile - "
-        "Unable to read header from %s\n",
-        file
-      );
-      exit( -1 );
+      ::fclose( coverageFile );
+      std::ostringstream what;
+      what << "Unable to read header from " << file;
+      throw rld::error( what, "CoverageReaderSkyeye::processFile" );
     }
 
     baseAddress = header.prof_start;
     length      = header.prof_end - header.prof_start;
-    
-    #if 0
-    fprintf( 
-      stderr,
-      "%s: 0x%08x 0x%08x 0x%08lx/%ld\n", 
-      file,
-      header.prof_start,
-      header.prof_end,
-      (unsigned long) length,
-      (unsigned long) length
-    );
-    #endif
 
     //
     // Read and process each line of the coverage file.
     //
-    for (i=0; i<length; i+=8) {
-      status = fread( &cover, sizeof(uint8_t), 1, coverageFile );
+    for (i = 0; i < length; i += 8) {
+      status = ::fread( &cover, sizeof(uint8_t), 1, coverageFile );
       if (status != 1) {
-        fprintf(
-	  stderr,
-	  "CoverageReaderSkyeye::ProcessFile - breaking after 0x%08x in %s\n",
-	  (unsigned int) i,
-          file
-        );
+        std::cerr << "CoverageReaderSkyeye::ProcessFile - breaking after 0x"
+                  << std::hex << std::setfill('0')
+                  << std::setw(8) << i
+                  << std::setfill(' ') << std::dec
+                  << " in " << file
+                  << std::endl;
         break;
       }
 
@@ -121,6 +106,6 @@ namespace Coverage {
       }
     }
 
-    fclose( coverageFile );
+    ::fclose( coverageFile );
   }
 }

@@ -297,9 +297,8 @@ namespace Coverage {
      *  @param[in] symbolsSet An INI format file of the symbols to be loaded.
      *  @param[in] buildTarget The build target
      *  @param[in] buildBSP The BSP
-     *  @return Returns false if the load fails.
      */
-    bool load(
+    void load(
       const std::string& symbolsSet,
       const std::string& buildTarget,
       const std::string& buildBSP,

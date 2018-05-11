@@ -8,6 +8,13 @@
 //! instances of a family of classes derived from TargetBase.
 //!
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+
+#include <rld.h>
+
 #include "TargetFactory.h"
 
 #include "Target_arm.h"
@@ -16,10 +23,6 @@
 #include "Target_powerpc.h"
 #include "Target_lm32.h"
 #include "Target_sparc.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
 
 namespace Target {
 
@@ -34,7 +37,7 @@ namespace Target {
      //! This is the string found in configuration to match.
      const char    *theTarget;
      //! This is the static wrapper for the constructor.
-     TargetBase *(*theCtor)( 
+     TargetBase *(*theCtor)(
        std::string
      );
   } FactoryEntry_t;
@@ -76,13 +79,9 @@ namespace Target {
         return FactoryTable[i].theCtor( targetName );
     }
 
-    fprintf(
-      stderr,
-      "ERROR!!! %s is not a known architecture!!!\n",
-      cpu.c_str()
-    );
-    fprintf( stderr, "-- fix me\n" );
-    exit( 1 );
+    std::ostringstream what;
+    what << cpu << "is not a known architecture!!! - fix me" << std::endl;
+    throw rld::error( what, "TargetFactory" );
 
     return NULL;
   }

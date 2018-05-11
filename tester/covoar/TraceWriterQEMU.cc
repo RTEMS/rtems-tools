@@ -38,13 +38,16 @@
 #include <stdlib.h>
 #include <sys/stat.h>
 
+#include <iostream>
+#include <iomanip>
+
+#include <rld-process.h>
+
 #include "app_common.h"
 #include "TraceWriterQEMU.h"
 #include "ExecutableInfo.h"
 #include "CoverageMap.h"
 #include "qemu-traces.h"
-
-#include "rld-process.h"
 
 #if HAVE_STAT64
 #define STAT stat64
@@ -94,9 +97,10 @@ namespace Trace {
     //
     // Open the trace file.
     //
-    traceFile = OPEN( file, "w" );
+    traceFile = ::OPEN( file, "w" );
     if (!traceFile) {
-      fprintf( stderr, "Unable to open %s\n", file );
+      std::ostringstream what;
+      std::cerr << "Unable to open " << file << std::endl;
       return false;
     }
 
@@ -110,28 +114,23 @@ namespace Trace {
     header.big_endian = false;
     header.machine[0] = 0; // XXX ??
     header.machine[1] = 0; // XXX ??
-    status = fwrite( &header, sizeof(trace_header), 1, traceFile );
+    status = ::fwrite( &header, sizeof(trace_header), 1, traceFile );
     if (status != 1) {
-      fprintf( stderr, "Unable to write header to %s\n", file );
+      std::cerr << "Unable to write header to " << file << std::endl;
       return false;
     }
 
     if (Verbose)
-      fprintf(
-        stderr,
-        "magic = %s\n"
-        "version = %d\n"
-        "kind = %d\n"
-        "sizeof_target_pc = %d\n"
-        "big_endian = %d\n"
-        "machine = %02x:%02x\n",
-        header.magic,
-        header.version,
-        header.kind,
-        header.sizeof_target_pc,
-        header.big_endian,
-        header.machine[0], header.machine[1]
-       );
+      std::cerr << "magic = " << header.magic << std::endl
+                << "version = " << header.version << std::endl
+                << "kind = " << header.kind << std::endl
+                << "sizeof_target_pc = " << header.sizeof_target_pc << std::endl
+                << "big_endian = " << header.big_endian << std::endl
+                << std::hex << std::setfill('0')
+                << "machine = " << std::setw(2) << header.machine[0]
+                << ':' << header.machine[1]
+                << std::dec << std::setfill(' ')
+                << std::endl;
 
     //
     // Loop through log and write each entry.
@@ -153,22 +152,24 @@ namespace Trace {
         case TraceList::EXIT_REASON_OTHER:
           break;
         default:
-          fprintf(stderr, "Unknown exit Reason\n");
-          exit(1);
+          throw rld::error( "Unknown exit Reason", "TraceWriterQEMU::writeFile" );
           break;
        }
 
       if ( Verbose )
-        fprintf(stderr, "%x %x %x\n", entry.pc, entry.size, entry.op);
+        std::cerr << std::hex << std::setfill('0')
+                  << entry.pc << ' ' << entry.size << ' ' << entry.op
+                  << std::dec << std::setfill(' ')
+                  << std::endl;
 
-      status = fwrite( &entry, sizeof(entry), 1, traceFile );
+      status = ::fwrite( &entry, sizeof(entry), 1, traceFile );
       if (status != 1) {
-        fprintf( stderr, "Unable to write entry to %s\n", file );
+        std::cerr << "Unable to write entry to " << file << std::endl;
         return false;
       }
     }
 
-    fclose( traceFile );
+    ::fclose( traceFile );
     return true;
   }
 }

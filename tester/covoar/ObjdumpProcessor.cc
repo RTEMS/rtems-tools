@@ -149,26 +149,23 @@ namespace Coverage {
 
     dlinfoName += ".dlinfo";
     // Read load address.
-    loadAddressFile = fopen( dlinfoName.c_str(), "r" );
+    loadAddressFile = ::fopen( dlinfoName.c_str(), "r" );
     if (!loadAddressFile) {
-      fprintf( stderr, METHOD "unable to open %s\n", dlinfoName.c_str() );
-      exit( -1 );
+      std::ostringstream what;
+      what << "Unable to open " << dlinfoName;
+      throw rld::error( what, METHOD );
     }
 
     // Process the dlinfo file.
     while ( 1 ) {
 
       // Get a line.
-      cStatus = fgets( inputBuffer, MAX_LINE_LENGTH, loadAddressFile );
+      cStatus = ::fgets( inputBuffer, MAX_LINE_LENGTH, loadAddressFile );
       if (cStatus == NULL) {
-        fprintf(
-          stderr,
-          METHOD "library %s not found in %s\n",
-          Library.c_str(),
-          dlinfoName.c_str()
-        );
-        fclose( loadAddressFile );
-        exit( -1 );
+        ::fclose( loadAddressFile );
+        std::ostringstream what;
+        what << "library " << Library << " not found in " << dlinfoName;
+        throw rld::error( what, METHOD );
       }
       sscanf( inputBuffer, "%s %x", inLibName, &offset );
       std::string tmp = inLibName;
@@ -179,7 +176,7 @@ namespace Coverage {
       }
     }
 
-    fclose( loadAddressFile );
+    ::fclose( loadAddressFile );
     return address;
 
     #undef METHOD

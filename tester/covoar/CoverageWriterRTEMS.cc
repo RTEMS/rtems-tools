@@ -9,11 +9,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <iostream>
+#include <iomanip>
+
+#include <rld.h>
+
 #include "CoverageWriterRTEMS.h"
 #include "rtemscov_header.h"
 
 namespace Coverage {
-  
+
   CoverageWriterRTEMS::CoverageWriterRTEMS()
   {
   }
@@ -38,14 +43,11 @@ namespace Coverage {
     /*
      *  read the file and update the coverage map passed in
      */
-    coverageFile = fopen( file, "w" );
+    coverageFile = ::fopen( file, "w" );
     if ( !coverageFile ) {
-      fprintf(
-        stderr,
-        "ERROR: CoverageWriterRTEMS::writeFile - unable to open %s\n",
-        file
-      );
-      exit(-1);
+      std::ostringstream what;
+      what << "Unable to open " << file;
+      throw rld::error( what, "CoverageWriterRTEMS::writeFile" );
     }
 
     /* clear out the header and fill it in */
@@ -56,33 +58,29 @@ namespace Coverage {
     header.end           = highAddress;
     strcpy( header.desc, "RTEMS Coverage Data" );
 
-    status = fwrite(&header, 1, sizeof(header), coverageFile);
+    status = ::fwrite(&header, 1, sizeof(header), coverageFile);
     if (status != sizeof(header)) {
-      fprintf(
-        stderr,
-        "ERROR: CoverageWriterRTEMS::writeFile - unable to write header "
-        "to %s\n",
-        file
-      );
-      exit(-1);
+      ::fclose( coverageFile );
+      std::ostringstream what;
+      what << "Unable to write header to " << file;
+      throw rld::error( what, "CoverageWriterRTEMS::writeFile" );
     }
 
     for ( a=lowAddress ; a < highAddress ; a++ ) {
       cover  = ((coverage->wasExecuted( a ))     ? 0x01 : 0);
       status = fwrite(&cover, 1, sizeof(cover), coverageFile);
       if (status != sizeof(cover)) {
-        fprintf(
-          stderr,
-          "ERROR: CoverageWriterRTEMS::writeFile - write to %s "
-          "at address 0x%08x failed\n",
-          file,
-          a
-        );
-        exit( -1 );
+        std::cerr << "CoverageWriterRTEMS::writeFile - write to "
+                  << file
+                  << " at address 0x%"
+                  << std::hex << std::setfill('0')
+                  << std::setw(8) << a
+                  << std::setfill(' ') << std::dec
+                  << " failed"
+                  << std::endl;
       }
-      // fprintf( stderr, "0x%x %d\n", a, cover );
     }
 
-    fclose( coverageFile );
+    ::fclose( coverageFile );
   }
 }

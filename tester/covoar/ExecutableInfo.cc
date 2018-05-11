@@ -25,20 +25,12 @@ namespace Coverage {
   {
     if (theLibraryName)
       libraryName = theLibraryName;
-    try {
-      executable.open();
-      executable.begin();
-      executable.load_symbols(symbols);
-      debug.begin(executable.elf());
-      debug.load_debug();
-    } catch (rld::error re) {
-      std::cerr << "error: "
-                << re.where << ": " << re.what
-                << std::endl;
-      exit(2);
-    } catch (...) {
-      exit(2);
-    }
+
+    executable.open();
+    executable.begin();
+    executable.load_symbols(symbols);
+    debug.begin(executable.elf());
+    debug.load_debug();
   }
 
   ExecutableInfo::~ExecutableInfo()
