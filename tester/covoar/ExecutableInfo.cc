@@ -43,9 +43,9 @@ namespace Coverage {
   void ExecutableInfo::dumpCoverageMaps( void ) {
     ExecutableInfo::CoverageMaps::iterator  itr;
 
-    for (itr = coverageMaps.begin(); itr != coverageMaps.end(); itr++) {
-      fprintf( stderr, "Coverage Map for %s\n", ((*itr).first).c_str() );;
-      ((*itr).second)->dump();
+    for (auto& cm : coverageMaps) {
+      std::cerr << "Coverage Map for " << cm.first << std::endl;
+      cm.second->dump();
     }
   }
 
