@@ -63,24 +63,26 @@ namespace rld
         block (false),
         end_sequence (false)
     {
-        dwarf_error de;
-        int         dr;
-        dr = ::dwarf_lineaddr(line, &addr, &de);
-        libdwarf_error_check ("address::address", dr, de);
-        dr = ::dwarf_line_srcfileno(line, &source_index, &de);
-        libdwarf_error_check ("address::address", dr, de);
-        dr = ::dwarf_lineno(line, &source_line, &de);
-        libdwarf_error_check ("address::address", dr, de);
-        dwarf_bool b;
-        dr = ::dwarf_linebeginstatement(line, &b, &de);
-        libdwarf_error_check ("address::address", dr, de);
-        begin_statement = b ? true : false;
-        dr = ::dwarf_lineblock(line, &b, &de);
-        libdwarf_error_check ("address::address", dr, de);
-        block = b ? true : false;
-        dr = ::dwarf_lineendsequence(line, &b, &de);
-        libdwarf_error_check ("address::address", dr, de);
-        end_sequence = b ? true : false;
+      dwarf_error de;
+      int         dr;
+      dr = ::dwarf_lineaddr(line, &addr, &de);
+      libdwarf_error_check ("address::address", dr, de);
+      dr = ::dwarf_line_srcfileno(line, &source_index, &de);
+      libdwarf_error_check ("address::address", dr, de);
+      dwarf_unsigned src_line;
+      dr = ::dwarf_lineno(line, &src_line, &de);
+      libdwarf_error_check ("address::address", dr, de);
+      source_line = src_line;
+      dwarf_bool b;
+      dr = ::dwarf_linebeginstatement(line, &b, &de);
+      libdwarf_error_check ("address::address", dr, de);
+      begin_statement = b ? true : false;
+      dr = ::dwarf_lineblock(line, &b, &de);
+      libdwarf_error_check ("address::address", dr, de);
+      block = b ? true : false;
+      dr = ::dwarf_lineendsequence(line, &b, &de);
+      libdwarf_error_check ("address::address", dr, de);
+      end_sequence = b ? true : false;
     }
 
     address::address (const address& orig)
@@ -108,12 +110,13 @@ namespace rld
     address::~address ()
     {
       source = nullptr;
+      source_line = -1;
     }
 
     bool
     address::valid () const
     {
-      return source_line > 0;
+      return source != nullptr && source_line > 0;
     }
 
     dwarf_address
@@ -155,7 +158,7 @@ namespace rld
     }
 
     address&
-    address::operator = (address& rhs)
+    address::operator = (const address& rhs)
     {
       if (this != &rhs)
       {
@@ -612,7 +615,7 @@ namespace rld
                                   address&            addr_line)
     {
       if (addr_lines_.find (addr) == addr_lines_.end ())
-        return false;
+          return false;
       addr_line = addr_lines_[addr];
       return true;
     }

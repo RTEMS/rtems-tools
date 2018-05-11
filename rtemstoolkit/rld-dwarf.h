@@ -88,14 +88,14 @@ namespace rld
       /**
        * Assigment operator.
        */
-      address& operator = (address& rhs);
+      address& operator = (const address& rhs);
 
     private:
 
       dwarf_address  addr;
       sources const* source;
       dwarf_unsigned source_index;
-      dwarf_unsigned source_line;
+      dwarf_signed   source_line;
       bool           begin_statement;
       bool           block;
       bool           end_sequence;
