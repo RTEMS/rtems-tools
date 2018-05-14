@@ -75,7 +75,7 @@ static void createBuildPath(Executables& executablesToAnalyze,
         if (buildPrefix.empty()) {
           buildPrefix = *pri;
         } else {
-          if (buildBSP != *pri) {
+          if (buildPrefix != *pri) {
             fail = "executable build prefix does not match: " + buildPrefix;
             break;
           }
@@ -97,7 +97,7 @@ static void createBuildPath(Executables& executablesToAnalyze,
         if (buildPath.empty()) {
           buildPath = thisBuildPath;
         } else {
-          if (buildBSP != *pri) {
+          if (buildPath != thisBuildPath) {
             fail = "executable build path does not match: " + buildPath;
           }
         }
@@ -316,11 +316,7 @@ int main(
         std::cerr << "warning: Unable to read executable: " << argv[i] << std::endl;
       } else {
         coverageFileName = argv[i];
-        coverageFileName.replace(
-          coverageFileName.length() - executableExtension.size(),
-          executableExtension.size(),
-          coverageExtension
-        );
+        coverageFileName.append( "." + coverageExtension );
 
         if (!FileIsReadable( coverageFileName.c_str() )) {
           std::cerr << "warning: Unable to read coverage file: " << coverageFileName
