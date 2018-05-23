@@ -170,6 +170,7 @@ def conf_elftoolchain(conf):
 
 def bld_elftoolchain(bld, conf):
     libelf = 'elftoolchain/libelf/'
+    libelftc = 'elftoolchain/libelftc/'
     libdwarf = 'elftoolchain/libdwarf/'
     libelf_m4_rule = '${M4} -D SRCDIR=../rtemstoolkit/' + libelf[:-1] + ' ${SRC} > ${TGT}'
     libdwarf_m4_rule = '${M4} -D SRCDIR=../rtemstoolkit/' + libdwarf[:-1] + ' ${SRC} > ${TGT}'
@@ -333,6 +334,29 @@ def bld_elftoolchain(bld, conf):
                        libdwarf + 'libdwarf_rw.c',
                        libdwarf + 'libdwarf_sections.c',
                        libdwarf + 'libdwarf_str.c'] + libdwarf_m4_source)
+
+    bld.stlib(target = 'elftc',
+              features = 'c',
+              install_path = None,
+              includes = [bld.bldnode.abspath(),
+                          'elftoolchain/libelf',
+                          'elftoolchain/libelftc',
+                          'elftoolchain/common'] + includes,
+              cflags = conf['cflags'],
+              source =[libelftc + 'elftc_bfdtarget.c',
+                       libelftc + 'elftc_copyfile.c',
+                       libelftc + 'elftc_demangle.c',
+                       libelftc + 'elftc_reloc_type_str.c',
+                       libelftc + 'elftc_set_timestamps.c',
+                       libelftc + 'elftc_string_table.c',
+                       libelftc + 'elftc_timestamp.c',
+                       libelftc + 'elftc_version.c',
+                       libelftc + 'libelftc_bfdtarget.c',
+                       libelftc + 'libelftc_dem_arm.c',
+                       libelftc + 'libelftc_dem_gnu2.c',
+                       libelftc + 'libelftc_dem_gnu3.c',
+                       libelftc + 'libelftc_hash.c',
+                       libelftc + 'libelftc_vstr.c'])
 
 #
 # Libiberty module.
