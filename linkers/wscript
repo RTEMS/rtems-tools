@@ -58,6 +58,7 @@ def build(bld):
                         rtemstoolkit + '/elftoolchain/libelf',
                         rtemstoolkit + '/elftoolchain/libdwarf',
                         rtemstoolkit + '/elftoolchain/common',
+                        rtemstoolkit + '/elftoolchain/libelftc',
                         rtemstoolkit + '/libiberty']
     if bld.env.DEST_OS == 'win32':
         conf['includes'] += [rtemstoolkit + '/win32']
@@ -70,7 +71,7 @@ def build(bld):
     #
     # The list of modules.
     #
-    modules = ['rld', 'dwarf', 'elf', 'iberty']
+    modules = ['rld', 'elftc', 'dwarf', 'elf', 'iberty']
 
     #
     # The list of defines
@@ -158,6 +159,18 @@ def build(bld):
     #
     bld.program(target = 'rtems-exeinfo',
                 source = ['rtems-exeinfo.cpp'],
+                defines = defines,
+                includes = ['.'] + conf['includes'],
+                cflags = conf['cflags'] + conf['warningflags'],
+                cxxflags = conf['cxxflags'] + conf['warningflags'],
+                linkflags = conf['linkflags'],
+                use = modules)
+
+    #
+    # Build the address to line tool.
+    #
+    bld.program(target = 'rtems-addr2line',
+                source = ['rtems-addr2line.cpp'],
                 defines = defines,
                 includes = ['.'] + conf['includes'],
                 cflags = conf['cflags'] + conf['warningflags'],
