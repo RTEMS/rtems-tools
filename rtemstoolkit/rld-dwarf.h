@@ -46,6 +46,8 @@ namespace rld
     {
     public:
       address (const sources& source, dwarf_line& line);
+      address (const address& orig, const sources& source);
+      address (const address& orig, dwarf_address addr);
       address (const address& orig);
       address ();
       ~address ();
@@ -90,6 +92,11 @@ namespace rld
        */
       address& operator = (const address& rhs);
 
+      /**
+       * Less than operator to allow sorting.
+       */
+      bool operator < (const address& rhs) const;
+
     private:
 
       dwarf_address  addr;
@@ -102,11 +109,9 @@ namespace rld
     };
 
     /**
-     * The addresses table is a map of the addresses in a CU to their line
-     * number.
+     * The addresses table is a vector sorted from low to high addresses..
      */
-    typedef std::map < const dwarf_address, address > addresses;
-
+    typedef std::vector < address > addresses;
 
     /**
      * Line addresses.
@@ -115,7 +120,6 @@ namespace rld
     {
     public:
       line_addresses (file& debug, debug_info_entry& die);
-      line_addresses (line_addresses&& orig);
       ~line_addresses ();
 
       /**
@@ -144,9 +148,9 @@ namespace rld
     class sources
     {
     public:
-      sources (file& debug, debug_info_entry& die);
+      sources (file& debug, dwarf_offset die_offset);
       sources (const sources& orig);
-      sources (sources&& orig);
+      //sources (sources&& orig);
       ~sources ();
 
       /**
@@ -186,7 +190,6 @@ namespace rld
       debug_info_entry (file& debug);
       debug_info_entry (file& debug, dwarf_die& die);
       debug_info_entry (file& debug, dwarf_offset offset);
-      debug_info_entry (debug_info_entry&& orig);
 
       /**
        * Destruct and clean up.
@@ -277,7 +280,6 @@ namespace rld
                         debug_info_entry& die,
                         dwarf_offset      offset);
       compilation_unit (const compilation_unit& orig);
-      compilation_unit (compilation_unit&& orig);
       ~compilation_unit ();
 
       /**
@@ -309,16 +311,10 @@ namespace rld
                        address&            addr_line);
 
       /**
-       * Is the address inside the CU? Becareful using this because not all CUs
-       * have these attributes set and the address range will be the entire
-       * address space.
+       * Is the address inside the CU? If the PC low and high attributes are
+       * valid they are used or the lines are checked.
        */
       bool inside (dwarf_unsigned addr) const;
-
-      /**
-       * Move assignment operator.
-       */
-      compilation_unit& operator = (compilation_unit&& rhs);
 
       /**
        * Copy assignment operator.
@@ -334,10 +330,10 @@ namespace rld
       dwarf_unsigned pc_low_;     ///< The PC low address
       dwarf_unsigned pc_high_;    ///< The PC high address.
 
+      dwarf_offset   die_offset;  ///< The offset of the DIE in the image.
+
       sources        source_;     ///< Sources table for this CU.
       addresses      addr_lines_; ///< Address table.
-
-      dwarf_offset   die_offset;  ///< The offset of the DIE in the image.
     };
 
     typedef std::list < compilation_unit > compilation_units;

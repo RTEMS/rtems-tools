@@ -85,6 +85,28 @@ namespace rld
       end_sequence = b ? true : false;
     }
 
+    address::address (const address& orig, const sources& source)
+      : addr (orig.addr),
+        source (&source),
+        source_index (orig.source_index),
+        source_line (orig.source_line),
+        begin_statement (orig.begin_statement),
+        block (orig.block),
+        end_sequence (orig.end_sequence)
+    {
+    }
+
+    address::address (const address& orig, dwarf_address addr)
+      : addr (addr),
+        source (orig.source),
+        source_index (orig.source_index),
+        source_line (orig.source_line),
+        begin_statement (orig.begin_statement),
+        block (orig.block),
+        end_sequence (orig.end_sequence)
+    {
+    }
+
     address::address (const address& orig)
       : addr (orig.addr),
         source (orig.source),
@@ -173,6 +195,12 @@ namespace rld
       return *this;
     }
 
+    bool
+    address::operator < (const address& rhs) const
+    {
+      return addr < rhs.addr;
+    }
+
     line_addresses::line_addresses (file&             debug,
                                     debug_info_entry& die)
       : debug (debug),
@@ -184,15 +212,6 @@ namespace rld
         lines = nullptr;
         count_ = 0;
       }
-    }
-
-    line_addresses::line_addresses (line_addresses&& orig)
-      : debug (orig.debug),
-        lines (orig.lines),
-        count_ (orig.count_)
-    {
-      orig.lines = nullptr;
-      orig.count_ = 0;
     }
 
     line_addresses::~line_addresses ()
@@ -220,12 +239,13 @@ namespace rld
       return lines[index];
     }
 
-    sources::sources (file& debug, debug_info_entry& die)
+    sources::sources (file& debug, dwarf_offset die_offset)
       : debug (debug),
         source (nullptr),
         count (0),
-        die_offset (die.offset ())
+        die_offset (die_offset)
     {
+      debug_info_entry die (debug, die_offset);
       die.source_files (source, count);
     }
 
@@ -243,16 +263,6 @@ namespace rld
       die.source_files (source, count);
     }
 
-    sources::sources (sources&& orig)
-      : debug (orig.debug),
-        source (orig.source),
-        count (orig.count),
-        die_offset (orig.die_offset)
-    {
-      orig.source = nullptr;
-      orig.count = 0;
-    }
-
     sources::~sources ()
     {
       dealloc ();
@@ -263,7 +273,7 @@ namespace rld
     {
       if (index <= 0 || index > count)
         return "unknown";
-      return source[index - 1];
+      return std::string (source[index - 1]);
     }
 
     void
@@ -274,7 +284,7 @@ namespace rld
         /*
          * The elftoolchain cleans the memory up and there is no compatible
          * call we can put here so adding the required code causes is a double
-         * free results in a crash.
+         * free resulting in a crash.
          */
         if (false)
         {
@@ -330,21 +340,8 @@ namespace rld
         libdwarf_error_check ("debug_info_entry:debug_info_entry", dr, de);
     }
 
-    debug_info_entry::debug_info_entry (debug_info_entry&& orig)
-      : debug (orig.debug),
-        die (orig.die),
-        tag_ (orig.tag_),
-        offset_ (orig.offset_)
-    {
-      orig.die = nullptr;
-      orig.tag_ = 0;
-      orig.offset_ = 0;
-    }
-
     debug_info_entry::~debug_info_entry ()
     {
-      if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
-        std::cout << "dwarf::debug_info_entry::~debug_info_entry" << std::endl;
       dealloc ();
     }
 
@@ -492,8 +489,8 @@ namespace rld
         offset_ (offset),
         pc_low_ (0),
         pc_high_ (0),
-        source_ (debug, die),
-        die_offset (die.offset ())
+        die_offset (die.offset ()),
+        source_ (debug, die_offset)
     {
       die.attribute (DW_AT_name, name_);
       name_ = name_;
@@ -504,6 +501,9 @@ namespace rld
 
       if (!die.attribute (DW_AT_high_pc, pc_high_, false))
         pc_high_ = ~0U;
+
+      if (pc_high_ < pc_low_)
+        pc_high_ += pc_low_;
 
       if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
       {
@@ -522,49 +522,85 @@ namespace rld
 
       line_addresses lines (debug, die);
       dwarf_address  pc = 0;
+      bool           seq_check = true;
+      dwarf_address  seq_base = 0;
 
       for (size_t l = 0; l < lines.count (); ++l)
       {
-        address       addr (source_, lines[l]);
-        dwarf_address loc = addr.location ();
-        if (inside (loc) && loc >= pc)
+        address       daddr (source_, lines[l]);
+        dwarf_address loc = daddr.location ();
+        /*
+         * A CU's line program can have some sequences at the start where the
+         * address is incorrectly set to 0. Ignore these entries.
+         */
+        if (pc == 0)
         {
-          pc = loc;
-          addr_lines_[addr.location ()] = addr;
-          if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+          if (!seq_check)
           {
-            std::cout << "dwarf::compilation_unit: "
-                      << std::hex << std::setw (8) << addr.location () << std::dec
-                      << " - "
-                      << (char) (addr.is_a_begin_statement () ? 'B' : '.')
-                      << (char) (addr.is_in_a_block () ? 'I' : '.')
-                      << (char) (addr.is_an_end_sequence () ? 'E' : '.')
-                      << " - "
-                      << rld::path::basename (addr.path ())
-                      << ':' << addr.line ()
-                      << std::endl;
+            seq_check = daddr.is_an_end_sequence ();
+            continue;
+          }
+          if (loc == 0)
+          {
+            seq_check = false;
+            continue;
           }
         }
+        /*
+         * A sequence of line program instruction may set the address to 0. Use
+         * the last location from the previous sequence as the sequence's base
+         * address. All locations will be offset from the that base until the
+         * end of this sequence.
+         */
+        if (loc == 0 && seq_base == 0)
+          seq_base = pc;
+        if (seq_base != 0)
+          loc += seq_base;
+        if (daddr.is_an_end_sequence ())
+          seq_base = 0;
+        address addr (daddr, loc);
+        if (loc >= pc_low_ && loc < pc_high_)
+        {
+          pc = loc;
+          addr_lines_.push_back (addr);
+        }
       }
-    }
 
-    compilation_unit::compilation_unit (compilation_unit&& orig)
-      : debug (orig.debug),
-        offset_ (orig.offset_),
-        name_ (orig.name_),
-        producer_ (orig.producer_),
-        pc_low_ (orig.pc_low_),
-        pc_high_ (orig.pc_high_),
-        source_ (std::move (orig.source_)),
-        addr_lines_ (orig.addr_lines_),
-        die_offset (orig.die_offset)
-    {
-      orig.name_.clear ();
-      orig.producer_.clear ();
-      orig.offset_ = 0;
-      orig.die_offset = 0;
-      orig.pc_low_ = 0;
-      orig.pc_high_ = 0;
+      if (!addr_lines_.empty ())
+      {
+        std::stable_sort (addr_lines_.begin (), addr_lines_.end ());
+        if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+        {
+          auto first = addr_lines_.begin ();
+          auto last = addr_lines_.end () - 1;
+          std::cout << "dwarf::compilation_unit: line_low=0x"
+                    << std::hex
+                    << std::setw (8) << first->location ()
+                    << ", line_high=0x"
+                    << std::setw (8) << last->location ()
+                    << std::dec
+                    << std::endl;
+        }
+      }
+
+      if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+      {
+        int lc = 0;
+        for (auto& l : addr_lines_)
+        {
+          std::cout << "dwarf::compilation_unit: " << std::setw (3) << ++lc
+                    << ": 0x"
+                    << std::hex << std::setw (8) << l.location () << std::dec
+                    << " - "
+                    << (char) (l.is_a_begin_statement () ? 'B' : '.')
+                    << (char) (l.is_in_a_block () ? 'I' : '.')
+                    << (char) (l.is_an_end_sequence () ? 'E' : '.')
+                    << " - "
+                    << rld::path::basename (l.path ())
+                    << ':' <<l.line ()
+                    << std::endl;
+        }
+      }
     }
 
     compilation_unit::compilation_unit (const compilation_unit& orig)
@@ -574,16 +610,16 @@ namespace rld
         producer_ (orig.producer_),
         pc_low_ (orig.pc_low_),
         pc_high_ (orig.pc_high_),
-        source_ (orig.source_),
-        addr_lines_ (orig.addr_lines_),
-        die_offset (orig.die_offset)
+        die_offset (orig.die_offset),
+        source_ (debug, die_offset)
     {
+      for (auto& line : orig.addr_lines_)
+        addr_lines_.push_back (address (line, source_));
+      std::stable_sort (addr_lines_.begin (), addr_lines_.end ());
     }
 
     compilation_unit::~compilation_unit ()
     {
-      if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
-        std::cout << "dwarf::compilation_unit::~compilation_unit: " << name_ << std::endl;
     }
 
     std::string
@@ -614,39 +650,35 @@ namespace rld
     compilation_unit::get_source (const dwarf_address addr,
                                   address&            addr_line)
     {
-      if (addr_lines_.find (addr) == addr_lines_.end ())
-          return false;
-      addr_line = addr_lines_[addr];
-      return true;
+      if (!addr_lines_.empty () && inside (addr))
+      {
+        address last_loc;
+        for (auto& loc : addr_lines_)
+        {
+          if (addr <= loc.location ())
+          {
+            if (addr == loc.location ())
+              addr_line = loc;
+            else
+              addr_line = last_loc;
+            return addr_line.valid ();
+          }
+          last_loc = loc;
+        }
+      }
+      return false;
     }
 
     bool
     compilation_unit::inside (dwarf_unsigned addr) const
     {
-      return addr >= pc_low_ && addr < pc_high_;
-    }
-
-    compilation_unit&
-    compilation_unit::operator = (compilation_unit&& rhs)
-    {
-      if (this != &rhs)
+      if (!addr_lines_.empty ())
       {
-        debug = rhs.debug;
-        offset_ = rhs.offset_;
-        name_ = rhs.name_;
-        producer_ = rhs.producer_;
-        source_ = std::move (rhs.source_);
-        addr_lines_ = std::move (rhs.addr_lines_),
-        pc_low_ = rhs.pc_low_;
-        pc_high_ = rhs.pc_high_;
-        die_offset = rhs.die_offset;
-        rhs.offset_ = 0;
-        rhs.name_.clear ();
-        rhs.pc_low_ = -1;
-        rhs.pc_high_ = -1;
-        rhs.die_offset = 0;
+        auto first = addr_lines_.begin ();
+        auto last = addr_lines_.end () - 1;
+        return first->location () <= addr && addr <= last->location ();
       }
-      return *this;
+      return addr >= pc_low_ && addr < pc_high_;
     }
 
     compilation_unit&
@@ -663,9 +695,9 @@ namespace rld
         offset_ = rhs.offset_;
         name_ = rhs.name_;
         producer_ = rhs.producer_;
-        debug_info_entry die (debug, rhs.offset_);
-        source_ = sources (debug, die);
-        addr_lines_ = addresses (rhs.addr_lines_);
+        source_ = sources (debug, die_offset);
+        for (auto& line : rhs.addr_lines_)
+          addr_lines_.push_back (address (line, source_));
         pc_low_ = rhs.pc_low_;
         pc_high_ = rhs.pc_high_;
         die_offset = rhs.die_offset;
@@ -844,16 +876,14 @@ namespace rld
         r = cu.get_source (addr, line);
         if (r)
         {
-          if (match.valid ())
+          if (match.valid () &&
+              (match.is_an_end_sequence () || !!line.is_an_end_sequence ()))
           {
-            if (match.is_an_end_sequence ())
-            {
-              match = line;
-            }
-            else if (!line.is_an_end_sequence ())
-            {
-              match = line;
-            }
+            match = line;
+          }
+          else
+          {
+            match = line;
           }
         }
       }
