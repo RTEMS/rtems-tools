@@ -104,10 +104,6 @@ namespace Coverage {
         const rld::symbols::symbol& sym = *(kv.second);
         set[sym.name()] = *(new SymbolInformation);
       }
-      for (auto& kv : symbols.locals()) {
-        const rld::symbols::symbol& sym = *(kv.second);
-        set[sym.name()] = *(new SymbolInformation);
-      }
 
     } catch (rld::error re) {
       std::cerr << "error: "
