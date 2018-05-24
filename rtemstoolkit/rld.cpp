@@ -28,6 +28,7 @@
 
 #include <iostream>
 
+#include <cxxabi.h>
 #include <sys/stat.h>
 
 #include <rld.h>
@@ -80,6 +81,20 @@ namespace rld
    * The version revision number.
    */
   static uint64_t _version_revision;
+
+  void
+  output_std_exception (std::exception e, std::ostream& out)
+  {
+    int   status;
+    char* realname;
+    realname = abi::__cxa_demangle (e.what(), 0, 0, &status);
+    out << "error: exception: " << realname << " [";
+    ::free (realname);
+    const std::type_info &ti = typeid (e);
+    realname = abi::__cxa_demangle (ti.name(), 0, 0, &status);
+    out << realname << "] " << e.what () << std::endl;
+    ::free (realname);
+  }
 
   bool
   starts_with(const std::string& s1, const std::string& s2)

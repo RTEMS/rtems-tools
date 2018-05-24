@@ -105,6 +105,11 @@ namespace rld
   };
 
   /**
+   * Handle a standard exception.
+   */
+  void output_std_exception (std::exception e, std::ostream& out);
+
+  /**
    * A convenience macro to make where a file and line number.
    */
   #define rld_error_at(_what) \
