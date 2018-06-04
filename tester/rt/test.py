@@ -48,12 +48,14 @@ from rtemstoolkit import mailer
 from rtemstoolkit import reraise
 from rtemstoolkit import stacktraces
 from rtemstoolkit import version
+from rtemstoolkit import check
 
 from . import bsps
 from . import config
 from . import console
 from . import options
 from . import report
+from . import coverage
 
 class log_capture(object):
     def __init__(self):
@@ -147,7 +149,7 @@ class test_run(object):
 
     def run(self):
         self.thread = threading.Thread(target = self.runner,
-                                       name = 'test[%s]' % path.basename(self.executable))
+                            name = 'test[%s]' % path.basename(self.executable))
         self.thread.start()
 
     def is_alive(self):
@@ -221,15 +223,16 @@ def run(command_path = None):
     opts = None
     default_exefilter = '*.exe'
     try:
-        optargs = { '--rtems-tools': 'The path to the RTEMS tools',
-                    '--rtems-bsp':   'The RTEMS BSP to run the test on',
-                    '--user-config': 'Path to your local user configuration INI file',
-                    '--report-mode': 'Reporting modes, failures (default),all,none',
-                    '--list-bsps':   'List the supported BSPs',
-                    '--debug-trace': 'Debug trace based on specific flags',
-                    '--filter':      'Glob that executables must match to run (default: ' +
+        optargs = { '--rtems-tools':    'The path to the RTEMS tools',
+                    '--rtems-bsp':      'The RTEMS BSP to run the test on',
+                    '--user-config':    'Path to your local user configuration INI file',
+                    '--report-mode':    'Reporting modes, failures (default),all,none',
+                    '--list-bsps':      'List the supported BSPs',
+                    '--debug-trace':    'Debug trace based on specific flags',
+                    '--filter':         'Glob that executables must match to run (default: ' +
                               default_exefilter + ')',
-                    '--stacktrace':  'Dump a stack trace on a user termination (^C)' }
+                    '--stacktrace':     'Dump a stack trace on a user termination (^C)',
+                    '--coverage':       'Perform coverage analysis of test executables.'}
         mailer.append_options(optargs)
         opts = options.load(sys.argv,
                             optargs = optargs,
@@ -257,6 +260,7 @@ def run(command_path = None):
             exe_filter = default_exefilter
         opts.log_info()
         log.output('Host: ' + host.label(mode = 'all'))
+        executables = find_executables(opts.params(), exe_filter)
         debug_trace = opts.find_arg('--debug-trace')
         if debug_trace:
             if len(debug_trace) != 1:
@@ -279,6 +283,15 @@ def run(command_path = None):
             raise error.general('RTEMS BSP not provided or an invalid option')
         bsp = config.load(bsp[1], opts)
         bsp_config = opts.defaults.expand(opts.defaults['tester'])
+        coverage_enabled = opts.find_arg('--coverage')
+        if coverage_enabled:
+            if len(coverage_enabled) == 2:
+                coverage_runner = coverage.coverage_run(opts.defaults,
+                                                coverage_enabled[1],
+                                                executables)
+            else:
+                coverage_runner = coverage.coverage_run(opts.defaults, 0,
+                                                        executables)
         report_mode = opts.find_arg('--report-mode')
         if report_mode:
             if report_mode[1] != 'failures' and \
@@ -288,7 +301,6 @@ def run(command_path = None):
             report_mode = report_mode[1]
         else:
             report_mode = 'failures'
-        executables = find_executables(opts.params(), exe_filter)
         if len(executables) == 0:
             raise error.general('no executables supplied')
         start_time = datetime.datetime.now()
@@ -365,6 +377,8 @@ def run(command_path = None):
                     reports.failures(),
                     'Log', '===', ''] + output.get()
             mail.send(to_addr, subject, os.linesep.join(body))
+        if coverage_enabled:
+            coverage_runner.run()
 
     except error.general as gerr:
         print(gerr)

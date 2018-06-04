@@ -9,3 +9,4 @@ waf3-*
 .lock-waf*
 build
 VERSION*
+*symbols.ini
