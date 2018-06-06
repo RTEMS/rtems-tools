@@ -59,7 +59,6 @@ void process(const char *ifname, const char *ofname, const char *forced_name)
   char obasename[PATH_MAX+1];
   char ocname[PATH_MAX+1];
   char ohname[PATH_MAX+1];
-  const char *cp;
   size_t len;
 
   ocfile = NULL;
