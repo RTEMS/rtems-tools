@@ -34,6 +34,7 @@ import wafwindows
 
 subdirs = ['rtemstoolkit',
            'linkers',
+           'misc',
            'tester',
            'tools/gdb/python']
 
