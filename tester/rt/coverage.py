@@ -28,16 +28,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from rtemstoolkit import error
-from rtemstoolkit import path
-from rtemstoolkit import log
-from rtemstoolkit import execute
-from rtemstoolkit import macros
+from __future__ import print_function
 
-from datetime import datetime
-
-from . import options
-
+import datetime
 import shutil
 import os
 
@@ -45,6 +38,15 @@ try:
     import configparser
 except:
     import ConfigParser as configparser
+
+from rtemstoolkit import error
+from rtemstoolkit import path
+from rtemstoolkit import log
+from rtemstoolkit import execute
+from rtemstoolkit import macros
+
+
+from . import options
 
 class summary:
     def __init__(self, p_summary_dir):
@@ -63,12 +65,11 @@ class summary:
         self.is_failure = False
 
     def parse(self):
-        if(not path.exists(self.summary_file_path)):
-            log.notice('summary file %s does not exist!' % (self.summary_file_path))
+        if not path.exists(self.summary_file_path):
+            log.output('coverage: summary file %s does not exist!' % (self.summary_file_path))
             self.is_failure = True
-            return
 
-        with open(self.summary_file_path,'r') as summary_file:
+        with open(self.summary_file_path, 'r') as summary_file:
            self.bytes_analyzed = self._get_next_with_colon(summary_file)
            self.bytes_not_executed = self._get_next_with_colon(summary_file)
            self.percentage_executed = self._get_next_with_colon(summary_file)
@@ -80,7 +81,7 @@ class summary:
            self.branches_never_taken = self._get_next_without_colon(summary_file)
         if len(self.branches_uncovered) > 0 and len(self.branches_total) > 0:
             self.percentage_branches_covered = \
-            1 - (float(self.branches_uncovered) / float(self.branches_total))
+                1.0 - (float(self.branches_uncovered) / float(self.branches_total))
         else:
             self.percentage_branches_covered = 0.0
         return
@@ -139,7 +140,7 @@ class report_gen_html:
         for symbol_set in partial_reports:
             table += self._row(symbol_set, partial_reports[symbol_set])
         table += "</table> </br>"
-        timestamp = "Analysis performed on " + datetime.now().ctime()
+        timestamp = "Analysis performed on " + datetime.datetime.now().ctime()
         return "<body>\n" + header + table + timestamp + "\n</body>"
 
     def _row(self, symbol_set, summary):
@@ -163,7 +164,8 @@ class report_gen_html:
             row += " <td>" + summary.branches_uncovered + "</td>"
             row += " <td>" + summary.branches_total + "</td>"
             row += " <td> {:.3%} </td>".format(summary.percentage_branches_covered)
-            row += ' <td><progress value="{:.3}" max="100"></progress></td>'.format(100*summary.percentage_branches_covered)
+            spbc = 100 * summary.percentage_branches_covered
+            row += ' <td><progress value="{:.3}" max="100"></progress></td>'.format(spbc)
             row += "</tr>\n"
         return row
 
@@ -190,8 +192,8 @@ class report_gen_html:
         return '<a href="' + address + '">' + text + '</a>'
 
     def _create_index_file(self, head_section, content):
-        with open(path.join(self.build_dir,
-                            self.bsp + "-report.html"),'w') as f:
+        name = path.join(self.build_dir, self.bsp + "-report.html")
+        with open(name, 'w') as f:
             f.write(head_section)
             f.write(content)
 
@@ -228,20 +230,23 @@ class build_path_generator(object):
         self.target = target
     def run(self):
         build_path = '/'
-        Path = self.executables[0].split('/')
-        for P in Path:
-            if P == self.target:
-                break;
+        path_ = self.executables[0].split('/')
+        for p in path_:
+            if p == self.target:
+                break
             else:
-                build_path = path.join(build_path, P)
+                build_path = path.join(build_path, p)
         return build_path
 
 class symbol_parser(object):
     '''
     Parse the symbol sets ini and create custom ini file for covoar
     '''
-    def __init__(self, symbol_config_path,
-                 symbol_select_path, coverage_arg, build_dir):
+    def __init__(self,
+                 symbol_config_path,
+                 symbol_select_path,
+                 coverage_arg,
+                 build_dir):
         self.symbol_select_file = symbol_select_path
         self.symbol_file = symbol_config_path
         self.build_dir = build_dir
@@ -257,10 +262,9 @@ class symbol_parser(object):
                 self.ssets = self.cov_arg.split(',')
             else:
                 self.ssets = config.get('symbol-sets', 'sets').split(',')
-                self.ssets = [ sset.encode('utf-8') for sset in self.ssets]
+                self.ssets = [sset.encode('utf-8') for sset in self.ssets]
             for sset in self.ssets:
-                lib = path.join(self.build_dir,
-                                config.get('libraries', sset))
+                lib = path.join(self.build_dir, config.get('libraries', sset))
                 self.symbol_sets[sset] = lib.encode('utf-8')
         except:
             raise error.general('Symbol set parsing failed')
@@ -277,7 +281,7 @@ class symbol_parser(object):
             with open(self.symbol_select_file, 'w') as conf:
                 config.write(conf)
         except:
-            raise error.general('write failed')
+            raise error.general('symbol parser write failed')
 
     def run(self):
         self.parse()
@@ -299,22 +303,23 @@ class covoar(object):
         if (not path.exists(covoar_result_dir)):
             path.mkdir(covoar_result_dir)
         if (not path.exists(symbol_file)):
-            raise error.general('symbol set file: coverage %s was not created for covoar, skipping %s'% (symbol_file, set_name))
-        command = ('covoar -S ' + symbol_file
-                  + ' -O ' + covoar_result_dir
-                  + ' -E ' + self.explanations_txt
-                  + ' -p ' + self.project_name + ' ' + self.executables)
-        log.notice('Running covoar for %s' % (set_name))
-        print( 'covoar results directory:\n' + covoar_result_dir )
+            raise error.general('symbol set file: coverage %s not created, skipping %s'% (symbol_file, set_name))
+        command = 'covoar -S ' + symbol_file + \
+                  ' -O ' + covoar_result_dir + \
+                  ' -E ' + self.explanations_txt + \
+                  ' -p ' + self.project_name + ' ' + self.executables
+        log.notice()
+        log.notice('Running coverage analysis: %s (%s)' % (set_name, covoar_result_dir))
+        start_time = datetime.datetime.now()
         executor = execute.execute(verbose = True, output = self.output_handler)
         exit_code = executor.shell(command, cwd=os.getcwd())
-        if (exit_code[0] != 0):
-            raise error.general('covoar failure exit code: %d' % (exit_code[0]))
-        log.notice('Coverage run for %s finished successfully.' % (set_name))
-        log.notice('-----------------------------------------------')
+        if exit_code[0] != 0:
+            raise error.general('coverage: covoar failure:: %d' % (exit_code[0]))
+        end_time = datetime.datetime.now()
+        log.notice('Coverage time: %s' % (str(end_time - start_time)))
 
     def output_handler(self, text):
-        log.notice('%s' % (text))
+        log.output('%s' % (text))
 
 class coverage_run(object):
     '''
@@ -328,7 +333,7 @@ class coverage_run(object):
         self.build_dir = self.macros['_cwd']
         self.explanations_txt = self.macros.expand(self.macros['cov_explanations'])
         self.test_dir = path.join(self.build_dir, self.macros['bsp'] + '-coverage')
-        if (not path.exists(self.test_dir)):
+        if not path.exists(self.test_dir):
             path.mkdir(self.test_dir)
         self.rtdir = path.abspath(self.macros['_rtdir'])
         self.rtscripts = self.macros.expand(self.macros['_rtscripts'])
@@ -363,7 +368,7 @@ class coverage_run(object):
             self._cleanup();
 
     def _generate_reports(self):
-        log.notice('Generating reports')
+        log.notice('Coverage generating reports')
         if self.report_format == 'html':
             report = report_gen_html(self.symbol_sets,
                                      self.build_dir,
@@ -374,7 +379,7 @@ class coverage_run(object):
 
     def _cleanup(self):
         if not self.no_clean:
-            log.notice('***Cleaning tempfiles***')
+            log.output('Coverage cleaning tempfiles')
             for exe in self.executables:
                 trace_file = exe + '.cov'
                 if path.exists(trace_file):
@@ -382,4 +387,4 @@ class coverage_run(object):
             os.remove(self.symbol_select_path)
 
     def _summarize(self):
-        log.notice('Coverage analysis finished. You can find results in %s' % (self.build_dir))
+        log.notice('Coverage analysis finished: %s' % (self.build_dir))
