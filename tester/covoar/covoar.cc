@@ -131,7 +131,7 @@ void usage(const std::string& progname)
             << "  -T TARGET                 - target name" << std::endl
             << "  -f FORMAT                 - coverage file format (RTEMS, QEMU, TSIM or Skyeye)" << std::endl
             << "  -E EXPLANATIONS           - name of file with explanations" << std::endl
-            << "  -s SYMBOL_SET_FILE        - path to the INI format symbol sets" << std::endl
+            << "  -S SYMBOL_SET_FILE        - path to the INI format symbol sets" << std::endl
             << "  -1 EXECUTABLE             - name of executable to get symbols from" << std::endl
             << "  -e EXE_EXTENSION          - extension of the executables to analyze" << std::endl
             << "  -c COVERAGEFILE_EXTENSION - extension of the coverage files to analyze" << std::endl
