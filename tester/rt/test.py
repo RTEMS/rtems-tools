@@ -228,7 +228,7 @@ def run(command_path = None):
                     '--user-config':    'Path to your local user configuration INI file',
                     '--report-mode':    'Reporting modes, failures (default),all,none',
                     '--list-bsps':      'List the supported BSPs',
-                    '--debug-trace':    'Debug trace based on specific flags',
+                    '--debug-trace':    'Debug trace based on specific flags (console,gdb,output,cov)',
                     '--filter':         'Glob that executables must match to run (default: ' +
                               default_exefilter + ')',
                     '--stacktrace':     'Dump a stack trace on a user termination (^C)',
@@ -266,7 +266,7 @@ def run(command_path = None):
             if len(debug_trace) != 1:
                 debug_trace = debug_trace[1]
             else:
-                raise error.general('no debug flags, can be: console,gdb,output')
+                raise error.general('no debug flags, can be: console,gdb,output,cov')
         else:
             debug_trace = ''
         opts.defaults['exe_trace'] = debug_trace
@@ -285,13 +285,16 @@ def run(command_path = None):
         bsp_config = opts.defaults.expand(opts.defaults['tester'])
         coverage_enabled = opts.find_arg('--coverage')
         if coverage_enabled:
+            cov_trace = 'cov' in debug_trace.split(',')
             if len(coverage_enabled) == 2:
                 coverage_runner = coverage.coverage_run(opts.defaults,
-                                                coverage_enabled[1],
-                                                executables)
+                                                        executables,
+                                                        symbol_set = coverage_enabled[1],
+                                                        trace = cov_trace)
             else:
-                coverage_runner = coverage.coverage_run(opts.defaults, 0,
-                                                        executables)
+                coverage_runner = coverage.coverage_run(opts.defaults,
+                                                        executables,
+                                                        trace = cov_trace)
         report_mode = opts.find_arg('--report-mode')
         if report_mode:
             if report_mode[1] != 'failures' and \

@@ -33,6 +33,7 @@ from __future__ import print_function
 import datetime
 import shutil
 import os
+import sys
 
 try:
     import configparser
@@ -245,21 +246,21 @@ class symbol_parser(object):
     def __init__(self,
                  symbol_config_path,
                  symbol_select_path,
-                 coverage_arg,
+                 symbol_set,
                  build_dir):
         self.symbol_select_file = symbol_select_path
         self.symbol_file = symbol_config_path
         self.build_dir = build_dir
         self.symbol_sets = {}
-        self.cov_arg = coverage_arg
+        self.symbol_set = symbol_set
         self.ssets = []
 
     def parse(self):
         config = configparser.ConfigParser()
         try:
             config.read(self.symbol_file)
-            if self.cov_arg:
-                self.ssets = self.cov_arg.split(',')
+            if self.symbol_set is not None:
+                self.ssets = self.symbol_set.split(',')
             else:
                 self.ssets = config.get('symbol-sets', 'sets').split(',')
                 self.ssets = [sset.encode('utf-8') for sset in self.ssets]
@@ -291,27 +292,41 @@ class covoar(object):
     '''
     Covoar runner
     '''
-    def __init__(self, base_result_dir, config_dir, executables, explanations_txt):
+    def __init__(self, base_result_dir, config_dir, executables, explanations_txt, trace):
         self.base_result_dir = base_result_dir
         self.config_dir = config_dir
         self.executables = ' '.join(executables)
         self.explanations_txt = explanations_txt
         self.project_name = 'RTEMS-5'
+        self.trace = trace
+
+    def _find_covoar(self):
+        covoar_exe = 'covoar'
+        tester_dir = path.dirname(path.abspath(sys.argv[0]))
+        base = path.dirname(tester_dir)
+        exe = path.join(base, 'bin', covoar_exe)
+        if path.isfile(exe):
+            return exe
+        exe = path.join(base, 'build', 'tester', 'covoar', covoar_exe)
+        if path.isfile(exe):
+            return exe
+        raise error.general('coverage: %s not found'% (covoar_exe))
 
     def run(self, set_name, symbol_file):
         covoar_result_dir = path.join(self.base_result_dir, set_name)
-        if (not path.exists(covoar_result_dir)):
+        if not path.exists(covoar_result_dir):
             path.mkdir(covoar_result_dir)
-        if (not path.exists(symbol_file)):
-            raise error.general('symbol set file: coverage %s not created, skipping %s'% (symbol_file, set_name))
-        command = 'covoar -S ' + symbol_file + \
+        if not path.exists(symbol_file):
+            raise error.general('coverage: no symbol set file: %s'% (symbol_file))
+        exe = self._find_covoar()
+        command = exe + ' -S ' + symbol_file + \
                   ' -O ' + covoar_result_dir + \
                   ' -E ' + self.explanations_txt + \
                   ' -p ' + self.project_name + ' ' + self.executables
         log.notice()
         log.notice('Running coverage analysis: %s (%s)' % (set_name, covoar_result_dir))
         start_time = datetime.datetime.now()
-        executor = execute.execute(verbose = True, output = self.output_handler)
+        executor = execute.execute(verbose = self.trace, output = self.output_handler)
         exit_code = executor.shell(command, cwd=os.getcwd())
         if exit_code[0] != 0:
             raise error.general('coverage: covoar failure:: %d' % (exit_code[0]))
@@ -325,11 +340,12 @@ class coverage_run(object):
     '''
     Coverage analysis support for rtems-test
     '''
-    def __init__(self, p_macros, coverage_arg, executables):
+    def __init__(self, macros_, executables, symbol_set = None, trace = False):
         '''
         Constructor
         '''
-        self.macros = p_macros
+        self.trace = trace
+        self.macros = macros_
         self.build_dir = self.macros['_cwd']
         self.explanations_txt = self.macros.expand(self.macros['cov_explanations'])
         self.test_dir = path.join(self.build_dir, self.macros['bsp'] + '-coverage')
@@ -346,7 +362,7 @@ class coverage_run(object):
         self.symbol_sets = []
         self.no_clean = int(self.macros['_no_clean'])
         self.report_format = self.macros['cov_report_format']
-        self.coverage_arg = coverage_arg
+        self.symbol_set = symbol_set
         self.target = self.macros['target']
 
     def run(self):
@@ -356,11 +372,12 @@ class coverage_run(object):
             build_dir = build_path_generator(self.executables, self.target).run()
             parser = symbol_parser(self.symbol_config_path,
                                    self.symbol_select_path,
-                                   self.coverage_arg,
+                                   self.symbol_set,
                                    build_dir)
             parser.run()
             covoar_runner = covoar(self.test_dir, self.symbol_select_path,
-                                   self.executables, self.explanations_txt)
+                                   self.executables, self.explanations_txt,
+                                   self.trace)
             covoar_runner.run('score', self.symbol_select_path)
             self._generate_reports();
             self._summarize();
@@ -379,7 +396,8 @@ class coverage_run(object):
 
     def _cleanup(self):
         if not self.no_clean:
-            log.output('Coverage cleaning tempfiles')
+            if self.trace:
+                log.output('Coverage cleaning tempfiles')
             for exe in self.executables:
                 trace_file = exe + '.cov'
                 if path.exists(trace_file):
