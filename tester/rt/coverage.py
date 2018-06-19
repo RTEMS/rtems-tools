@@ -102,7 +102,7 @@ class report_gen_html:
     def __init__(self, p_symbol_sets_list, build_dir, rtdir, bsp):
         self.symbol_sets_list = ['score']
         self.build_dir = build_dir
-        self.partial_reports_files = list(["index.html", "summary.txt"])
+        self.partial_reports_files = list(['index.html', 'summary.txt'])
         self.number_of_columns = 1
         self.covoar_src_path = path.join(rtdir, 'covoar')
         self.bsp = bsp
@@ -110,33 +110,30 @@ class report_gen_html:
     def _find_partial_reports(self):
         partial_reports = {}
         for symbol_set in self.symbol_sets_list:
-            set_summary = summary(path.join(self.build_dir,
-                                  self.bsp + "-coverage",
-                                  symbol_set))
+            set_summary = summary(path.join(self.bsp + "-coverage",
+                                            symbol_set))
             set_summary.parse()
             partial_reports[symbol_set] = set_summary
         return partial_reports
 
     def _prepare_head_section(self):
-        head_section = '''
-        <head>
-        <title>RTEMS coverage report</title>
-        <style type="text/css">
-            progress[value] {
-              -webkit-appearance: none;
-               appearance: none;
-
-              width: 150px;
-              height: 15px;
-            }
-        </style>
-        </head>'''
+        head_section = '<head>' + os.linesep
+        head_section += ' <title>RTEMS coverage report</title>' + os.linesep
+        head_section += ' <style type="text/css">' + os.linesep
+        head_section += '  progress[value] {' + os.linesep
+        head_section += '    -webkit-appearance: none;' + os.linesep
+        head_section += '    appearance: none;' + os.linesep
+        head_section += '    width: 150px;' + os.linesep
+        head_section += '    height: 15px;' + os.linesep
+        head_section += '  }' + os.linesep
+        head_section += ' </style>' + os.linesep
+        head_section += '</head>' + os.linesep
         return head_section
 
     def _prepare_index_content(self, partial_reports):
-        header = "<h1> RTEMS coverage analysis report </h1>"
-        header += "<h3>Coverage reports by symbols sets:</h3>"
-        table = "<table>"
+        header = "<h1> RTEMS coverage analysis report </h1>" + os.linesep
+        header += "<h3>Coverage reports by symbols sets:</h3>" + os.linesep
+        table = "<table>" + os.linesep
         table += self._header_row()
         for symbol_set in partial_reports:
             table += self._row(symbol_set, partial_reports[symbol_set])
@@ -145,47 +142,47 @@ class report_gen_html:
         return "<body>\n" + header + table + timestamp + "\n</body>"
 
     def _row(self, symbol_set, summary):
-        row = "<tr>"
-        row += "<td>" + symbol_set + "</td>"
+        row = "<tr>" + os.linesep
+        row += "<td>" + symbol_set + "</td>" + os.linesep
         if summary.is_failure:
             row += ' <td colspan="' + str(self.number_of_columns-1) \
-            + '" style="background-color:red">FAILURE</td>'
+                        + '" style="background-color:red">FAILURE</td>' + os.linesep
         else:
-            row += " <td>" + self._link(summary.index_file_path,"Index") \
-            + "</td>"
-            row += " <td>" + self._link(summary.summary_file_path,"Summary") \
-            + "</td>"
-            row += " <td>" + summary.bytes_analyzed + "</td>"
-            row += " <td>" + summary.bytes_not_executed + "</td>"
-            row += " <td>" + summary.ranges_uncovered + "</td>"
-            row += " <td>" + summary.percentage_executed + "%</td>"
-            row += " <td>" + summary.percentage_not_executed + "%</td>"
+            row += ' <td>' + self._link(summary.index_file_path, 'Index') \
+                   + '</td>' + os.linesep
+            row += ' <td>' + self._link(summary.summary_file_path, 'Summary') \
+                   + '</td>' + os.linesep
+            row += ' <td>' + summary.bytes_analyzed + '</td>' + os.linesep
+            row += ' <td>' + summary.bytes_not_executed + '</td>' + os.linesep
+            row += ' <td>' + summary.ranges_uncovered + '</td>' + os.linesep
+            row += ' <td>' + summary.percentage_executed + '%</td>' + os.linesep
+            row += ' <td>' + summary.percentage_not_executed + '%</td>' + os.linesep
             row += ' <td><progress value="' + summary.percentage_executed \
-            + '" max="100"></progress></td>'
-            row += " <td>" + summary.branches_uncovered + "</td>"
-            row += " <td>" + summary.branches_total + "</td>"
-            row += " <td> {:.3%} </td>".format(summary.percentage_branches_covered)
+                    + '" max="100"></progress></td>' + os.linesep
+            row += ' <td>' + summary.branches_uncovered + '</td>' + os.linesep
+            row += ' <td>' + summary.branches_total + '</td>' + os.linesep
+            row += ' <td> {:.3%} </td>'.format(summary.percentage_branches_covered)
             spbc = 100 * summary.percentage_branches_covered
             row += ' <td><progress value="{:.3}" max="100"></progress></td>'.format(spbc)
-            row += "</tr>\n"
+            row += '</tr>' + os.linesep
         return row
 
     def _header_row(self):
-        row = "<tr>"
-        row += "<th> Symbols set name </th>"
-        row += "<th> Index file </th>"
-        row += "<th> Summary file </th>"
-        row += "<th> Bytes analyzed </th>"
-        row += "<th> Bytes not executed </th>"
-        row += "<th> Uncovered ranges </th>"
-        row += "<th> Percentage covered </th>"
-        row += "<th> Percentage uncovered </th>"
-        row += "<th> Instruction coverage </th>"
-        row += "<th> Branches uncovered </th>"
-        row += "<th> Branches total </th>"
-        row += "<th> Branches covered percentage </th>"
-        row += "<th> Branches coverage </th>"
-        row += "</tr>\n"
+        row = "<tr>" + os.linesep
+        row += " <th> Symbols set name </th>" + os.linesep
+        row += " <th> Index file </th>" + os.linesep
+        row += " <th> Summary file </th>" + os.linesep
+        row += " <th> Bytes analyzed </th>" + os.linesep
+        row += " <th> Bytes not executed </th>" + os.linesep
+        row += " <th> Uncovered ranges </th>" + os.linesep
+        row += " <th> Percentage covered </th>" + os.linesep
+        row += " <th> Percentage uncovered </th>" + os.linesep
+        row += " <th> Instruction coverage </th>" + os.linesep
+        row += " <th> Branches uncovered </th>" + os.linesep
+        row += " <th> Branches total </th>" + os.linesep
+        row += " <th> Branches covered percentage </th>" + os.linesep
+        row += " <th> Branches coverage </th>" + os.linesep
+        row += "</tr>"
         self.number_of_columns = row.count('<th>')
         return row
 
