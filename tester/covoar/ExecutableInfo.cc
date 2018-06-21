@@ -31,6 +31,7 @@ namespace Coverage {
     executable.load_symbols(symbols);
     debug.begin(executable.elf());
     debug.load_debug();
+    debug.load_functions();
   }
 
   ExecutableInfo::~ExecutableInfo()
@@ -89,7 +90,6 @@ namespace Coverage {
     return loadAddress;
   }
 
-
   SymbolTable* ExecutableInfo::getSymbolTable ( void )
   {
     return &theSymbolTable;
@@ -102,8 +102,8 @@ namespace Coverage {
     uint32_t           highAddress
   )
   {
-    CoverageMapBase                        *theMap;
-    ExecutableInfo::CoverageMaps::iterator  itr;
+    CoverageMapBase        *theMap;
+    CoverageMaps::iterator  itr;
 
     itr = coverageMaps.find( symbolName );
     if ( itr == coverageMaps.end() ) {

@@ -7,8 +7,9 @@
  */
 
 #include <limits.h>
-#include <stdio.h>
-#include <stdlib.h>
+
+#include <iostream>
+#include <iomanip>
 
 #include "CoverageMapBase.h"
 
@@ -20,21 +21,21 @@ namespace Coverage {
     uint32_t           high
   )
   {
-    uint32_t       a;
-    AddressRange_t range;
+    uint32_t     a;
+    AddressRange range;
 
     range.fileName    = exefileName;
     range.lowAddress  = low;
     range.highAddress = high;
-    RangeList.push_back( range );
+    Ranges.push_back( range );
 
     Size = high - low + 1;
 
-    Info = new perAddressInfo_t[ Size ];
+    Info = new perAddressInfo[ Size ];
 
-    for (a=0; a<Size; a++) {
+    for (a = 0; a < Size; a++) {
 
-      perAddressInfo_t *i = &Info[ a ];
+      perAddressInfo *i = &Info[ a ];
 
       i->isStartOfInstruction = false;
       i->wasExecuted          = 0;
@@ -53,11 +54,11 @@ namespace Coverage {
 
   void  CoverageMapBase::Add( uint32_t low, uint32_t high )
   {
-    AddressRange_t range;
+    AddressRange range;
 
     range.lowAddress  = low;
     range.highAddress = high;
-    RangeList.push_back( range );
+    Ranges.push_back( range );
   }
 
   bool CoverageMapBase::determineOffset(
@@ -65,11 +66,11 @@ namespace Coverage {
     uint32_t *offset
   )const
   {
-    AddressRange::const_iterator  itr;
+    AddressRanges::const_iterator  itr;
 
-    for ( itr = RangeList.begin(); itr != RangeList.end(); itr++ ) {
-      if ((address >= itr->lowAddress) && (address <= itr->highAddress)){
-        *offset = address - itr->lowAddress;
+    for ( auto& r : Ranges ) {
+      if ((address >= r.lowAddress) && (address <= r.highAddress)){
+        *offset = address - r.lowAddress;
         return true;
       }
     }
@@ -78,35 +79,29 @@ namespace Coverage {
   }
 
 
-  void CoverageMapBase::dump( void ) const {
-
-    uint32_t          a;
-    perAddressInfo_t* entry;
-
+  void CoverageMapBase::dump( void ) const
+  {
     fprintf( stderr, "Coverage Map Contents:\n" );
-
     /*
      * XXX - Dump is only marking the first Address Range.
      */
-
-    for (a = 0; a < Size; a++) {
-
-      entry = &Info[ a ];
-
-      fprintf(
-        stderr,
-        "0x%x - isStartOfInstruction = %s, wasExecuted = %s\n",
-        a + RangeList.front().lowAddress,
-        entry->isStartOfInstruction ? "TRUE" : "FALSE",
-        entry->wasExecuted ? "TRUE" : "FALSE"
-      );
-      fprintf(
-        stderr,
-        "           isBranch = %s, wasTaken = %s, wasNotTaken = %s\n",
-        entry->isBranch ? "TRUE" : "FALSE",
-        entry->wasTaken ? "TRUE" : "FALSE",
-        entry->wasNotTaken ? "TRUE" : "FALSE"
-      );
+    for (uint32_t a = 0; a < Size; a++) {
+      perAddressInfo* entry = &Info[ a ];
+      std::cerr << std::hex << std::setfill('0')
+                << "0x" << a + Ranges.front().lowAddress
+                << "- isStartOfInstruction:"
+                << (char*) (entry->isStartOfInstruction ? "yes" : "no")
+                << " wasExecuted:"
+                << (char*) (entry->wasExecuted ? "yes" : "no")
+                << std::endl
+                << "           isBranch:"
+                << (char*) (entry->isBranch ? "yes" : "no")
+                << " wasTaken:"
+                << (char*) (entry->wasTaken ? "yes" : "no")
+                << " wasNotTaken:"
+                << (char*) (entry->wasNotTaken ? "yes" : "no")
+                << std::dec << std::setfill(' ')
+                << std::endl;
     }
   }
 
@@ -115,9 +110,9 @@ namespace Coverage {
     uint32_t* beginning
   ) const
   {
-    bool           status = false;
-    uint32_t       start;
-    AddressRange_t range;
+    bool         status = false;
+    uint32_t     start;
+    AddressRange range;
 
 
     status = getRange( address, &range );
@@ -141,17 +136,15 @@ namespace Coverage {
 
   int32_t CoverageMapBase::getFirstLowAddress() const
   {
-    return RangeList.front().lowAddress;
+    return Ranges.front().lowAddress;
   }
 
-  bool CoverageMapBase::getRange( uint32_t address, AddressRange_t *range ) const
+  bool CoverageMapBase::getRange( uint32_t address, AddressRange *range ) const
   {
-    AddressRange::const_iterator  itr;
-
-    for ( itr = RangeList.begin(); itr != RangeList.end(); itr++ ) {
-      if ((address >= itr->lowAddress) && (address <= itr->highAddress)){
-        range->lowAddress = itr->lowAddress;
-        range->highAddress = itr->highAddress;
+    for ( auto r : Ranges ) {
+      if ((address >= r.lowAddress) && (address <= r.highAddress)){
+        range->lowAddress = r.lowAddress;
+        range->highAddress = r.highAddress;
         return true;
       }
     }

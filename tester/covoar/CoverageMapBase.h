@@ -23,10 +23,10 @@ namespace Coverage {
 
     /*!
      *  This structure identifies the low and high addresses
-     *  of one range.  Note:: There may be more than one address 
+     *  of one range.  Note:: There may be more than one address
      *  range per symbol.
      */
-    typedef struct {
+    struct AddressRange {
       /*!
        *  This is the file from which this originated.
        */
@@ -42,15 +42,14 @@ namespace Coverage {
        */
       uint32_t highAddress;
 
-    } AddressRange_t;
+    };
 
     /*
      *  This type identifies a list of ranges.
      */
-    typedef std::list< AddressRange_t > 	  AddressRange;
-    typedef std::list< AddressRange_t >::iterator AddressRangeIterator_t;
+    typedef std::list< AddressRange >  AddressRanges;
 
-    /*! 
+    /*!
      *  This method constructs a CoverageMapBase instance.
      *
      *  @param[in] exefileName specifies the executable this originated in
@@ -63,7 +62,7 @@ namespace Coverage {
       uint32_t           high
     );
 
-    /*! 
+    /*!
      *  This method destructs a CoverageMapBase instance.
      */
     virtual ~CoverageMapBase();
@@ -73,19 +72,19 @@ namespace Coverage {
      *
      *  @param[in]  Low specifies the lowAddress
      *  @param[in]  High specifies the highAddress
-     *  
+     *
      */
     void Add( uint32_t low, uint32_t high );
- 
+
     /*!
      *  This method returns true and sets the offset if
-     *  the address falls with the bounds of an address range 
+     *  the address falls with the bounds of an address range
      *  in the RangeList.
      *
      *  @param[in]  address specifies the address to find
      *  @param[out] offset contains the offset from the low
      *              address of the address range.
-     *  
+     *
      *  @return Returns TRUE if the address range can be found
      *   and FALSE if it was not.
       */
@@ -107,21 +106,21 @@ namespace Coverage {
 
     /*!
      *  This method returns true and sets the address range if
-     *  the address falls with the bounds of an address range 
+     *  the address falls with the bounds of an address range
      *  in the RangeList.
      *
      *  @param[in]  address specifies the address to find
      *  @param[out] range contains the high and low addresse for
      *              the range
-     *  
+     *
      *  @return Returns TRUE if the address range can be found
      *   and FALSE if it was not.
      */
-    bool getRange( uint32_t address, AddressRange_t *range ) const;
+    bool getRange( uint32_t address, AddressRange *range ) const;
 
     /*!
      *  This method returns the size of the address range.
-     * 
+     *
      *  @return Returns Size of the address range.
      */
     uint32_t getSize() const;
@@ -134,7 +133,7 @@ namespace Coverage {
      *  @param[in] address specifies the address to search from
      *  @param[out] beginning contains the address of the beginning of
      *              the instruction.
-     *  
+     *
      *  @return Returns TRUE if the beginning of the instruction was
      *   found and FALSE if it was not.
      */
@@ -191,7 +190,7 @@ namespace Coverage {
      *  at the specified address was executed.
      *
      *  @param[in] address specifies the address to check
-     *  
+     *
      *  @return Returns TRUE if the instruction at the specified
      *   address was executed and FALSE otherwise.
      */
@@ -213,7 +212,7 @@ namespace Coverage {
      *  the instruction at the specified address was executed.
      *
      *  @param[in] address specifies the address to check
-     *  
+     *
      *  @return Returns number of executins
      */
     uint32_t getWasExecuted( uint32_t address ) const;
@@ -365,7 +364,7 @@ namespace Coverage {
      *  This structure defines the information that is gathered and
      *  tracked per address.
      */
-    typedef struct {
+    struct perAddressInfo {
       /*!
        *  This member indicates that the address is the start of
        *  an instruction.
@@ -393,16 +392,16 @@ namespace Coverage {
        *  instruction at the address was NOT taken.
        */
       uint32_t wasNotTaken;
-    } perAddressInfo_t;
+    };
 
     /*!
-     * 
+     *
      *  This is a list of address ranges for this symbolic address.
      */
-    AddressRange RangeList;
+    AddressRanges Ranges;
 
     /*!
-     *  
+     *
      *  This variable contains the size of the code block.
      */
     uint32_t Size;
@@ -411,7 +410,7 @@ namespace Coverage {
      *  This is a dynamically allocated array of data that is
      *  kept for each address.
      */
-    perAddressInfo_t* Info;
+    perAddressInfo* Info;
   };
 
 }
