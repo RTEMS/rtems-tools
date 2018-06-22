@@ -30,7 +30,7 @@
 #include "TargetFactory.h"
 #include "GcovData.h"
 
-#ifdef _WIN32
+#if defined(_WIN32) || defined(__CYGWIN__)
   #define kill(p,s) raise(s)
 #endif
 
