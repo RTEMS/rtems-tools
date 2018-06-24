@@ -670,7 +670,7 @@ namespace rld
               dwarf_offset spec_die_offset;
               dwarf_error  de;
               int          dr;
-              dr = ::dwarf_global_formref (abst_at, &spec_die_offset, &de);
+              dr = ::dwarf_global_formref (spec, &spec_die_offset, &de);
               if (dr == DW_DLV_OK)
               {
                 debug_info_entry spec_die (debug, spec_die_offset);
