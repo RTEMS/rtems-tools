@@ -25,6 +25,8 @@
 #if !defined (_RLD_DWARF_H_)
 #define _RLD_DWARF_H_
 
+#include <iostream>
+
 #include <rld.h>
 #include <rld-dwarf-types.h>
 
@@ -152,7 +154,7 @@ namespace rld
       /**
        * Dump the range.
        */
-      void dump ();
+      void dump (std::ostream& out) const;
 
     private:
 
@@ -201,7 +203,7 @@ namespace rld
       /**
        * Dump the address ranges.
        */
-      void dump ();
+      void dump (std::ostream& out) const;
 
     private:
 
@@ -281,6 +283,7 @@ namespace rld
     {
     public:
       function (file& debug, debug_info_entry& die);
+      function (const function& orig);
       ~function ();
 
       /**
@@ -339,22 +342,62 @@ namespace rld
        */
       bool inside (dwarf_address addr) const;
 
+      /**
+       * Size of the function.
+       */
+      size_t size () const;
+
+      /**
+       * Assigment operator.
+       */
+      function& operator = (const function& rhs);
+
+      /**
+       * Dump the function.
+       */
+      void dump (std::ostream& out) const;
+
     private:
 
       file&          debug;
       bool           machine_code_;
       bool           external_;
       bool           declaration_;
+      bool           prototyped_;
       dwarf_unsigned inline_;
+      dwarf_unsigned entry_pc_;
+      bool           has_entry_pc_;
       dwarf_unsigned pc_low_;
       dwarf_unsigned pc_high_;
       address_ranges ranges_;
       std::string    name_;
       std::string    linkage_name_;
+      std::string    decl_file_;
+      dwarf_unsigned decl_line_;
       std::string    call_file_;
+      dwarf_unsigned call_line_;
     };
 
     typedef std::vector < function > functions;
+
+    /**
+     * Worker to sort the functions.
+     */
+    struct function_compare
+    {
+      enum sort_by
+      {
+        fc_by_name,
+        fc_by_size,
+        fc_by_address
+      };
+
+      const sort_by by;
+
+      bool operator () (const function& a, const function& b) const;
+
+      function_compare (sort_by by = fc_by_name);
+    };
 
     /**
      * Debug Information Element (DIE).
@@ -376,6 +419,11 @@ namespace rld
        * Destruct and clean up.
        */
       ~debug_info_entry ();
+
+      /**
+       * Is the DIE valid?
+       */
+      bool valid (bool fatal = true) const;
 
       /**
        * Get the DIE.
@@ -475,14 +523,24 @@ namespace rld
       bool get_child (debug_info_entry& child_die);
 
       /**
+       * Has a child?
+       */
+      bool has_child () const;
+
+      /**
        * Get the silbing
        */
       bool get_sibling (debug_info_entry& sibling_die);
 
       /**
+       * Has a silbing?
+       */
+      bool has_sibling () const;
+
+      /**
        * Get the debug info for this DIE.
        */
-      file& get_debug ();
+      file& get_debug () const;
 
       /**
        * deallocate the DIE.
@@ -492,9 +550,16 @@ namespace rld
       /**
        * Dump this DIE.
        */
-      void dump (std::string prefix, bool newline = true);
+      void dump (std::ostream& out,
+                 std::string   prefix,
+                 bool          newline = true);
 
     private:
+
+      /**
+       * Update the internal DIE and offset values.
+       */
+      void update ();
 
       file&        debug;
       dwarf_die    die;
@@ -506,18 +571,20 @@ namespace rld
     /**
      * Dump the DIE and all it's children and siblings.
      */
-    void die_dump_children (debug_info_entry die,
-                            std::string      prefix,
-                            int              nesting = 0,
-                            int              depth = -1);
+    void die_dump_children (debug_info_entry& die,
+                            std::ostream&     out,
+                            std::string       prefix,
+                            int               depth = -1,
+                            int               nesting = 0);
 
     /**
      * Dump the DIE and all it's children and siblings.
      */
-    void die_dump (debug_info_entry die,
-                   std::string      prefix,
-                   int              nesting = 0,
-                   int              depth = -1);
+    void die_dump (debug_info_entry& die,
+                   std::ostream&     out,
+                   std::string       prefix,
+                   int               depth = -1,
+                   int               nesting = 0);
 
     /**
      * Compilation Unit.
@@ -588,7 +655,9 @@ namespace rld
       /**
        * Output the DIE tree.
        */
-      void dump_die ();
+      void dump_die (std::ostream&     out,
+                     const std::string prefix = " ",
+                     int               depth = -1);
 
     private:
 
@@ -703,15 +772,25 @@ namespace rld
                        int&               source_line);
 
       /**
+       * Get the producer sources from the compilation units.
+       */
+      void get_producer_sources (producer_sources& producers);
+
+      /**
+       * Does the function exist.
+       */
+      bool function_valid (std::string&name);
+
+      /**
+       * Get the function given a name. Raises an exception if not found.
+       */
+      function& get_function (std::string& name);
+
+      /**
        * Get the function given an address.
        */
       bool get_function (const unsigned int address,
                          std::string&       name);
-
-      /**
-       * Get the producer sources from the compilation units.
-       */
-      void get_producer_sources (producer_sources& producers);
 
       /**
        * Get the DWARF debug information reference.
@@ -732,6 +811,13 @@ namespace rld
        * Get the name of the file.
        */
       const std::string& name () const;
+
+      /**
+       * Dump the DWARF data.
+       */
+      void dump (std::ostream&     out,
+                 const std::string prefix = " ",
+                 int               depth = -1);
 
     private:
 

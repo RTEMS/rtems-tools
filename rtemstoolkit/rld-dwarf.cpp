@@ -82,7 +82,7 @@ namespace rld
         std::ostringstream exe_where;
         std::string        what;
         exe_where << "dwarf:" << where;
-        what = dwarf_errmsg (error);
+        what = ::dwarf_errmsg (error);
         throw rld::error (what, exe_where.str ());
       }
     }
@@ -299,7 +299,7 @@ namespace rld
     }
 
     void
-    range::dump ()
+    range::dump (std::ostream& out) const
     {
       dwarf_ranges_type type_ = type ();
       const char*       type_s = "invalid";
@@ -310,10 +310,11 @@ namespace rld
       };
       if (type_ <= DW_RANGES_END)
         type_s = type_labels[type_];
-      std::cout << type_s << '-'
-                << std::hex << std::setfill ('0')
-                << "0x" << std::setw (8) << addr1 ()
-                << ":0x" << std::setw (8) << addr2 ();
+      out << type_s << '-'
+          << std::hex << std::setfill ('0')
+          << "0x" << std::setw (8) << addr1 ()
+          << ":0x" << std::setw (8) << addr2 ()
+          << std::dec << std::setfill (' ');
     }
 
     address_ranges::address_ranges (file& debug)
@@ -344,7 +345,9 @@ namespace rld
 
     address_ranges::address_ranges (const address_ranges& orig)
       : debug (orig.debug),
-        offset (orig.offset)
+        offset (orig.offset),
+        dranges (nullptr),
+        dranges_count (0)
     {
       load (orig.offset);
     }
@@ -391,6 +394,8 @@ namespace rld
       {
         if (dranges != nullptr)
           ::dwarf_ranges_dealloc (debug, dranges, dranges_count);
+
+        ranges_.clear ();
 
         dranges = nullptr;
         dranges_count = 0;
@@ -444,18 +449,18 @@ namespace rld
     }
 
     void
-    address_ranges::dump ()
+    address_ranges::dump (std::ostream& out) const
     {
       bool first = true;
-      std::cout << '[';
+      out << '[';
       for (auto& r : ranges_)
       {
         if (!first)
-          std::cout << ',';
-        r.dump ();
+          out << ',';
+        r.dump (out);
         first = false;
       }
-      std::cout << ']';
+      out << ']';
     }
 
     line_addresses::line_addresses (file&             debug,
@@ -576,9 +581,12 @@ namespace rld
         external_ (false),
         declaration_ (false),
         inline_ (DW_INL_not_inlined),
+        entry_pc_ (0),
+        has_entry_pc_ (false),
         pc_low_ (0),
         pc_high_ (0),
-        ranges_ (debug)
+        ranges_ (debug),
+        call_line_ (0)
     {
       dwarf_bool db;
 
@@ -588,15 +596,17 @@ namespace rld
       if (die.attribute (DW_AT_declaration, db, false))
         declaration_ = db ? true : false;
 
+      if (die.attribute (DW_AT_entry_pc, entry_pc_, false))
+        has_entry_pc_ = true;
+
       die.attribute (DW_AT_linkage_name, linkage_name_, false);
+      die.attribute (DW_AT_call_file, decl_file_, false);
+      die.attribute (DW_AT_call_line, decl_line_, false);
+      die.attribute (DW_AT_call_file, call_file_, false);
+      die.attribute (DW_AT_call_line, call_line_, false);
 
       if (!die.attribute (DW_AT_inline, inline_, false))
         inline_ = DW_INL_not_inlined;
-
-      if (inline_ == DW_INL_declared_inlined)
-      {
-        die_dump_children (die, " +");
-      }
 
       /*
        * If ranges are not found see if the PC low and PC high attributes
@@ -653,7 +663,17 @@ namespace rld
             {
               debug_info_entry abst_at_die (debug, abst_at_die_offset);
               if (abst_at_die.attribute (DW_AT_name, name_, false))
+              {
                 found = true;
+                abst_at_die.attribute (DW_AT_inline, inline_, false);
+                if (abst_at_die.attribute (DW_AT_external, db, false))
+                  external_ = db ? true : false;
+                if (abst_at_die.attribute (DW_AT_declaration, db, false))
+                  declaration_ = db ? true : false;
+                abst_at_die.attribute (DW_AT_linkage_name, linkage_name_, false);
+                abst_at_die.attribute (DW_AT_decl_file, decl_file_, false);
+                abst_at_die.attribute (DW_AT_decl_line, decl_line_, false);
+              }
             }
           }
 
@@ -675,34 +695,46 @@ namespace rld
               {
                 debug_info_entry spec_die (debug, spec_die_offset);
                 if (spec_die.attribute (DW_AT_name, name_, false))
+                {
                   found = true;
+                  if (spec_die.attribute (DW_AT_external, db, false))
+                    external_ = db ? true : false;
+                  if (spec_die.attribute (DW_AT_declaration, db, false))
+                    declaration_ = db ? true : false;
+                  spec_die.attribute (DW_AT_linkage_name, linkage_name_, false);
+                  spec_die.attribute (DW_AT_decl_file, decl_file_, false);
+                  spec_die.attribute (DW_AT_decl_line, decl_line_, false);
+                }
               }
             }
           }
-        }
-
-        if (die.tag () == DW_TAG_inlined_subroutine)
-        {
-          die.attribute (DW_AT_call_file, call_file_, false);
         }
       }
 
       if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
       {
         std::cout << "dwarf::function: ";
-        if (name_.empty ())
-          std::cout << "NO NAME";
-        else
-          std::cout << name_;
-        if (!has_machine_code ())
-          std::cout << " NO MACHINE CODE";
-        else
-          std::cout << std::hex << std::setfill ('0')
-                    << " pc_low = 0x" << std::setw (8) << pc_low ()
-                    << " pc_high = 0x" << std::setw (8) << pc_high ()
-                    << std::dec << std::setfill (' ');
+        dump (std::cout);
         std::cout << std::endl;
       }
+    }
+
+    function::function (const function& orig)
+      : debug (orig.debug),
+        machine_code_ (orig.machine_code_),
+        external_ (orig.external_),
+        declaration_ (orig.declaration_),
+        inline_ (orig.inline_),
+        entry_pc_ (orig.entry_pc_),
+        has_entry_pc_ (orig.has_entry_pc_),
+        pc_low_ (orig.pc_low_),
+        pc_high_ (orig.pc_high_),
+        ranges_ (orig.ranges_),
+        name_ (orig.name_),
+        linkage_name_ (orig.linkage_name_),
+        call_file_ (orig.call_file_),
+        call_line_ (orig.call_line_)
+    {
     }
 
     function::~function ()
@@ -724,28 +756,36 @@ namespace rld
     dwarf_unsigned
     function::pc_low () const
     {
-      if (ranges_.empty ())
-        return pc_low_;
-      dwarf_address addr = ~0;
-      for (auto& r : ranges_.get ())
+      dwarf_address addr = pc_low_;
+      if (!ranges_.empty ())
       {
-        if (!r.end () && !r.empty () && r.addr1 () < addr)
-          addr = r.addr1 ();
+        addr = ~0;
+        for (auto& r : ranges_.get ())
+        {
+          if (!r.end () && !r.empty () && r.addr1 () < addr)
+            addr = r.addr1 ();
+        }
       }
+      if (has_entry_pc_ && addr < entry_pc_)
+        addr += entry_pc_;
       return addr;
     }
 
     dwarf_unsigned
     function::pc_high () const
     {
-      if (ranges_.empty ())
-        return pc_high_;
-      dwarf_address addr = 0;
-      for (auto& r : ranges_.get ())
+      dwarf_address addr = pc_high_;
+      if (!ranges_.empty ())
       {
-        if (!r.end () && !r.empty () && r.addr2 () > addr)
-          addr = r.addr1 ();
+        addr = 0;
+        for (auto& r : ranges_.get ())
+        {
+          if (!r.end () && !r.empty () && r.addr2 () > addr)
+            addr = r.addr2 ();
+        }
       }
+      if (has_entry_pc_ && addr < entry_pc_)
+        addr += entry_pc_;
       return addr;
     }
 
@@ -770,7 +810,7 @@ namespace rld
     bool
     function::is_inlined () const
     {
-      return inline_ == DW_INL_declared_inlined;
+      return inline_ == DW_INL_inlined || inline_ == DW_INL_declared_inlined;
     }
 
     std::string
@@ -784,6 +824,97 @@ namespace rld
     {
       return !name_.empty () && has_machine_code () &&
         addr >= pc_low () && addr <= pc_high ();
+    }
+
+    size_t
+    function::size () const
+    {
+      size_t s = 0;
+      if (!name_.empty () && has_machine_code ())
+        s = pc_high () - pc_low ();
+      return s;
+    }
+
+    function&
+    function::operator = (const function& rhs)
+    {
+      if (this != &rhs)
+      {
+        debug = rhs.debug;
+        machine_code_ = rhs.machine_code_;
+        external_ = rhs.external_;
+        declaration_ = rhs.declaration_;
+        inline_ = rhs.inline_;
+        entry_pc_ = rhs.entry_pc_;
+        has_entry_pc_ = rhs.has_entry_pc_;
+        pc_low_ = rhs.pc_low_;
+        pc_high_ = rhs.pc_high_;
+        ranges_ = rhs.ranges_;
+        name_ = rhs.name_;
+        linkage_name_ = rhs.linkage_name_;
+        call_file_ = rhs.call_file_;
+      }
+      return *this;
+    }
+
+    void
+    function::dump (std::ostream& out) const
+    {
+      if (name_.empty ())
+        out << "NO-NAME";
+      else
+        out << name_;
+      out << " ["
+          << (char) (machine_code_ ? 'M' : '-')
+          << (char) (external_ ? 'E' : '-')
+          << (char) (declaration_ ? 'D' : '-')
+          << (char) (is_inlined () ? 'I' : '-')
+          << (char) (has_entry_pc_ ? 'P' : '-')
+          << "] size=" << size ()
+          << std::hex << std::setfill ('0')
+          << " (0x" << size () << ')';
+      if (has_entry_pc_)
+        out << " epc=0x" << entry_pc_;
+      out << " pc_low=0x" << pc_low_
+          << " pc_high=0x" << pc_high_;
+      if (!linkage_name_.empty ())
+        out << " ln=" << linkage_name_;
+      out << std::dec << std::setfill (' ');
+      if (!call_file_.empty ())
+        out << " cf=" << call_file_ << ':' << call_line_;
+      if (!ranges_.empty ())
+      {
+        out << " ranges=";
+        ranges_.dump (out);
+      }
+    }
+
+    bool
+    function_compare::operator () (const function& a,
+                                   const function& b) const
+    {
+      bool r = true;
+
+      switch (by)
+      {
+        case fc_by_name:
+        default:
+          r =  a.name () < b.name ();
+          break;
+        case fc_by_size:
+          r = a.size () < b.size ();
+          break;
+        case fc_by_address:
+          r = a.pc_low () < b.pc_low ();
+          break;
+      }
+
+      return r;
+    }
+
+    function_compare:: function_compare (const function_compare::sort_by by)
+      : by (by)
+    {
     }
 
     debug_info_entry::debug_info_entry (file& debug)
@@ -800,6 +931,7 @@ namespace rld
         tag_ (0),
         offset_ (0)
     {
+      update ();
     }
 
     debug_info_entry::debug_info_entry (file& debug, dwarf_offset offset__)
@@ -808,12 +940,7 @@ namespace rld
         tag_ (0),
         offset_ (offset__)
     {
-      dwarf_die   ddie;
-      dwarf_error de;
-      int         dr;
-      dr = ::dwarf_offdie (debug, offset_, &ddie, &de);
-      libdwarf_error_check ("debug_info_entry:debug_info_entry", dr, de);
-      die = ddie;
+      update ();
     }
 
     debug_info_entry::debug_info_entry (const debug_info_entry& orig)
@@ -822,20 +949,48 @@ namespace rld
         tag_ (orig.tag_),
         offset_ (orig.offset_)
     {
-      if (offset_ != 0)
-      {
-        dwarf_die   ddie;
-        dwarf_error de;
-        int         dr;
-        dr = ::dwarf_offdie (debug, offset_, &ddie, &de);
-        libdwarf_error_check ("debug_info_entry:debug_info_entry", dr, de);
-        die = ddie;
-      }
+      update ();
     }
 
     debug_info_entry::~debug_info_entry ()
     {
       dealloc ();
+    }
+
+    void
+    debug_info_entry::update ()
+    {
+      dwarf_error de;
+      int         dr;
+      if (offset_ == 0 && die != nullptr)
+      {
+        dr = ::dwarf_dieoffset (die, &offset_, &de);
+        libdwarf_error_check ("debug_info_entry:update", dr, de);
+      }
+      if (offset_ != 0 && die == nullptr)
+      {
+        dwarf_die ddie;
+        dr = ::dwarf_offdie (debug, offset_, &ddie, &de);
+        libdwarf_error_check ("debug_info_entry:update", dr, de);
+        die = ddie;
+      }
+      valid ();
+    }
+
+    bool
+    debug_info_entry::valid (bool fatal) const
+    {
+      bool r = die == nullptr || offset_ == 0;
+      if (r && fatal)
+      {
+        std::string what = "no DIE and offset";
+        if (offset_ != 0)
+          what = "no DIE";
+        else if (die != nullptr)
+          what = "no offset";
+        throw rld::error (what, "debug_info_entry:valid");
+      }
+      return r;
     }
 
     dwarf_die
@@ -867,6 +1022,8 @@ namespace rld
         tag_ = rhs.tag_;
         offset_ = rhs.offset_;
         rhs.die = nullptr;
+        if (offset_ != 0 || die != nullptr)
+          update ();
       }
       return *this;
     }
@@ -877,14 +1034,9 @@ namespace rld
       dealloc ();
       if (offset__ != 0)
       {
-        dwarf_die   ddie;
-        dwarf_error de;
-        int         dr;
         offset_ = offset__;
         tag_ = 0;
-        dr = ::dwarf_offdie (debug, offset_, &ddie, &de);
-        libdwarf_error_check ("debug_info_entry:operator=", dr, de);
-        die = ddie;
+        update ();
       }
       return *this;
     }
@@ -910,7 +1062,7 @@ namespace rld
         dwarf_error de;
         int         dr;
         dr = ::dwarf_tag (die, &tag_, &de);
-        libdwarf_error_check ("debug_info_entry:debug_info_entry", dr, de);
+        libdwarf_error_check ("debug_info_entry:tag", dr, de);
       }
       return tag_;
     }
@@ -923,7 +1075,7 @@ namespace rld
         dwarf_error de;
         int         dr;
         dr = ::dwarf_dieoffset (die, &offset_, &de);
-        libdwarf_error_check ("debug_info_entry:debug_info_entry", dr, de);
+        libdwarf_error_check ("debug_info_entry:offset", dr, de);
       }
       return offset_;
     }
@@ -1057,26 +1209,55 @@ namespace rld
     bool
     debug_info_entry::get_child (debug_info_entry& child_die)
     {
+      debug_info_entry ret_die (get_debug ());
       dwarf_error      de;
       int              dr;
-      dr = ::dwarf_child (die, child_die, &de);
+      dr = ::dwarf_child (die, ret_die, &de);
+      if (dr == DW_DLV_OK)
+      {
+        ret_die.update ();
+        child_die = ret_die;
+        child_die.valid ();
+      }
+      return dr == DW_DLV_OK;
+    }
+
+    bool
+    debug_info_entry::has_child () const
+    {
+      debug_info_entry ret_die (get_debug ());
+      dwarf_error      de;
+      int              dr;
+      dr = ::dwarf_child (die, ret_die, &de);
       return dr == DW_DLV_OK;
     }
 
     bool
     debug_info_entry::get_sibling (debug_info_entry& sibling_die)
     {
+      debug_info_entry ret_die (get_debug ());
       dwarf_error      de;
       int              dr;
-      dr = ::dwarf_siblingof (debug, die, sibling_die, &de);
+      dr = ::dwarf_siblingof (debug, die, ret_die, &de);
       if (dr == DW_DLV_NO_ENTRY)
         return false;
       libdwarf_error_check ("compilation_unit::sibling", dr, de);
+      sibling_die = ret_die;
       return true;
     }
 
+    bool
+    debug_info_entry::has_sibling () const
+    {
+      debug_info_entry ret_die (get_debug ());
+      dwarf_error      de;
+      int              dr;
+      dr = ::dwarf_siblingof (debug, die, ret_die, &de);
+      return dr == DW_DLV_OK;
+    }
+
     file&
-    debug_info_entry::get_debug ()
+    debug_info_entry::get_debug () const
     {
       return debug;
     }
@@ -1091,11 +1272,32 @@ namespace rld
     }
 
     void
-    debug_info_entry::dump (std::string prefix, bool newline)
+    debug_info_entry::dump (std::ostream& out,
+                            std::string   prefix,
+                            bool          newline)
     {
+      std::string level_prefix;
+
+      for (auto c : prefix)
+      {
+        switch (c)
+        {
+          case '+':
+            c = '|';
+            break;
+          case '-':
+            c = ' ';
+            break;
+          default:
+            break;
+        }
+        level_prefix += c;
+      }
+
       const char* s;
       ::dwarf_get_TAG_name (tag (), &s);
-      std::cout << prefix << s << std::endl;
+      out << level_prefix.substr (0, level_prefix.length () - 1)
+          << "+- " << s << std::endl;
 
       dwarf_attribute* attributes;
       dwarf_signed     attr_count;
@@ -1117,8 +1319,9 @@ namespace rld
           dwarf_get_FORM_name (form, &f);
           dwarf_get_AT_name (attr, &s);
           if (a > 0)
-            std::cout << std::endl;
-          std::cout << prefix << " - " << s << " (" << attr << ") [" << f << ']';
+            out << std::endl;
+          out << level_prefix << " +- "
+              << s << " (" << attr << ") [" << f << ']';
           debug_info_entry v_die (debug);
           address_ranges   v_ranges (debug);
           dwarf_unsigned   v_unsigned;
@@ -1139,11 +1342,20 @@ namespace rld
             case DW_FORM_udata:
               dr = ::dwarf_attrval_unsigned (die, attr, &v_unsigned, &de);
               libdwarf_error_check ("debug_info_entry::dump", dr, de);
-              std::cout << " : "
-                        << std::hex << std::setfill ('0')
-                        << std::setw (8) << v_unsigned
-                        << std::dec << std::setfill (' ')
-                        << " (" << v_unsigned << ')';
+              s = "";
+              switch (attr)
+              {
+                case DW_AT_inline:
+                  dwarf_get_INL_name(v_unsigned, &s);
+                  break;
+                default:
+                  break;
+              }
+              out << " : "
+                  << std::hex << std::setfill ('0')
+                  << std::setw (8) << v_unsigned
+                  << std::dec << std::setfill (' ')
+                  << " (" << v_unsigned << ") " << s;
               break;
             case DW_FORM_ref1:
             case DW_FORM_ref2:
@@ -1152,18 +1364,18 @@ namespace rld
             case DW_FORM_ref_udata:
               dr = ::dwarf_global_formref (attributes[a], &v_offset, &de);
               libdwarf_error_check ("debug_info_entry::dump", dr, de);
-              std::cout << " : "
-                        << std::hex << std::setfill ('0')
-                        << std::setw (8) << v_offset
-                        << std::dec << std::setfill (' ')
-                        << " (" << v_offset << ')';
+              out << " : "
+                  << std::hex << std::setfill ('0')
+                  << std::setw (8) << v_offset
+                  << std::dec << std::setfill (' ')
+                  << " (" << v_offset << ')';
               switch (attr)
               {
                 case DW_AT_abstract_origin:
                 case DW_AT_specification:
                   v_die = v_offset;
-                  std::cout << std::endl;
-                  v_die.dump (' ' + prefix, false);
+                  out << std::endl;
+                  v_die.dump (out, prefix + " |  ", false);
                   break;
                 default:
                   break;
@@ -1175,14 +1387,14 @@ namespace rld
             case DW_FORM_flag_present:
               dr = ::dwarf_attrval_flag (die, attr, &v_bool, &de);
               libdwarf_error_check ("debug_info_entry::dump", dr, de);
-              std::cout << " : " << v_bool;
+              out << " : " << v_bool;
               break;
               break;
             case DW_FORM_string:
             case DW_FORM_strp:
               dr = ::dwarf_attrval_string (die, attr, &s, &de);
               libdwarf_error_check ("debug_info_entry::dump", dr, de);
-              std::cout << " : " << s;
+              out << " : " << s;
               break;
             case DW_FORM_sec_offset:
               switch (attr)
@@ -1190,9 +1402,9 @@ namespace rld
                 case DW_AT_ranges:
                   dr = ::dwarf_global_formref (attributes[a], &v_offset, &de);
                   libdwarf_error_check ("debug_info_entry::dump", dr, de);
-                  std::cout << ' ';
+                  out << ' ';
                   v_ranges.load (v_offset);
-                  v_ranges.dump ();
+                  v_ranges.dump (out);
                   break;
                 default:
                   break;
@@ -1206,38 +1418,39 @@ namespace rld
           }
         }
         if (newline)
-          std::cout << std::endl;
+          out <<  std::endl;
       }
     }
 
     void
-    die_dump_children (debug_info_entry die,
-                       std::string      prefix,
-                       int              nesting,
-                       int              depth)
+    die_dump_children (debug_info_entry& die,
+                       std::ostream&     out,
+                       std::string       prefix,
+                       int               depth,
+                       int               nesting)
     {
       debug_info_entry child (die.get_debug ());
       if (die.get_child (child))
-        die_dump (child, prefix, nesting, depth);
+        die_dump (child, out, prefix, depth, nesting);
     }
 
     void
-    die_dump (debug_info_entry die,
-              std::string      prefix,
-              int              nesting,
-              int              depth)
+    die_dump (debug_info_entry& die,
+              std::ostream&     out,
+              std::string       prefix,
+              int               depth,
+              int               nesting)
     {
       ++nesting;
 
-      for (int n = 0; n < nesting; ++n)
-        prefix += ' ';
-
       while (true)
       {
-        die.dump (prefix);
+        char v = die.has_sibling () || die.has_child () ? '+' : ' ';
+
+        die.dump (out, prefix + v);
 
         if (depth < 0 || nesting < depth)
-          die_dump_children (die, prefix);
+          die_dump_children (die, out, prefix + "+   ", depth, nesting);
 
         debug_info_entry next (die.get_debug ());
 
@@ -1422,12 +1635,9 @@ namespace rld
     compilation_unit::load_functions ()
     {
       debug_info_entry die (debug, die_offset);
-      debug_info_entry ret_die (debug);
-      dwarf_error      de;
-      int              dr;
-      dr = ::dwarf_child(die, ret_die, &de);
-      if (dr == DW_DLV_OK)
-        load_functions (ret_die);
+      debug_info_entry child (debug);
+      if (die.get_child (child))
+        load_functions (child);
     }
 
     void
@@ -1440,27 +1650,18 @@ namespace rld
             die.tag () == DW_TAG_inlined_subroutine)
         {
           function func (debug, die);
-          if (func.has_machine_code () &&
-              func.pc_low () >= pc_low_ && func.pc_high () <= pc_high_)
-          {
-            functions_.push_back (func);
-          }
+          functions_.push_back (func);
         }
 
-        debug_info_entry ret_die (debug);
-        dwarf_error      de;
-        int              dr;
+        debug_info_entry next (die.get_debug ());
 
-        dr = ::dwarf_child(die, ret_die, &de);
-        if (dr == DW_DLV_OK)
-          load_functions (ret_die);
+        if (die.get_child (next))
+          load_functions (next);
 
-        dr = ::dwarf_siblingof (debug, die, ret_die, &de);
-        if (dr == DW_DLV_NO_ENTRY)
+        if (!die.get_sibling (next))
           break;
-        libdwarf_error_check ("compilation_unit:load_functions", dr, de);
 
-        die = ret_die;
+        die = next;
       }
     }
 
@@ -1549,11 +1750,13 @@ namespace rld
     }
 
     void
-    compilation_unit::dump_die ()
+    compilation_unit::dump_die (std::ostream&     out,
+                                const std::string prefix,
+                                int               depth)
     {
       debug_info_entry die (debug, die_offset);
-      std::cout << "CU @ 0x" << std::hex << offset_ << std::dec << std::endl;
-      die_dump_children (die, "");
+      out << "CU @ 0x" << std::hex << offset_ << std::dec << std::endl;
+      die_dump (die, out, prefix, depth);
     }
 
     source_flags::source_flags (const std::string& source)
@@ -1570,7 +1773,7 @@ namespace rld
       return a.source < b.source;
     }
 
-    source_flags_compare:: source_flags_compare (bool by_basename)
+    source_flags_compare::source_flags_compare (bool by_basename)
       : by_basename (by_basename)
     {
     }
@@ -1659,6 +1862,45 @@ namespace rld
           elf_->reference_release ();
         elf_ = nullptr;
         debug = nullptr;
+      }
+    }
+
+    void
+    file::dump (std::ostream&     out,
+                const std::string prefix,
+                int               depth)
+    {
+      dwarf_unsigned cu_offset = 0;
+
+      while (true)
+      {
+        dwarf_unsigned cu_next_offset = 0;
+        dwarf_error    de;
+        int            dr;
+
+        dr = ::dwarf_next_cu_header_c(debug, 1,
+                                      nullptr, nullptr, nullptr,  nullptr,
+                                      nullptr, nullptr, nullptr,  nullptr,
+                                      &cu_next_offset, &de);
+        if (dr != DW_DLV_OK)
+          break;
+
+        /*
+         * Find the CU DIE by asking the CU for it's first DIE.
+         */
+        debug_info_entry die (*this);
+
+        while (true)
+        {
+          debug_info_entry sibling (*this);
+          if (!die.get_sibling (sibling))
+            break;
+          if (sibling.tag () == DW_TAG_compile_unit)
+            die_dump (sibling, out, prefix, depth);
+          die = sibling;
+        }
+
+        cu_offset = cu_next_offset;
       }
     }
 
