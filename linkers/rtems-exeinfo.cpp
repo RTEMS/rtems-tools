@@ -174,6 +174,16 @@ namespace rld
        * Output init/fini worker.
        */
       void output_init_fini (const char* label, const char** names);
+
+      /*
+       * Output the inlined functions.
+       */
+      void output_inlined ();
+
+      /*
+       * Output the DWARF data.
+       */
+      void output_dwarf ();
     };
 
     section::section (const files::section& sec, files::byteorder byteorder)
@@ -294,6 +304,7 @@ namespace rld
       exe.load_symbols (symbols, true);
       debug.load_debug ();
       debug.load_types ();
+      debug.load_functions ();
       symbols.globals (addresses);
       symbols.weaks (addresses);
       symbols.locals (addresses);
@@ -600,6 +611,103 @@ namespace rld
 
       std::cout << std::endl;
     }
+
+    struct func_count
+    {
+      std::string name;
+      int         count;
+      size_t      size;
+
+      func_count (std::string name, size_t size)
+        : name (name),
+          count (1),
+          size (size) {
+      }
+    };
+    typedef std::vector < func_count > func_counts;
+
+    void image::output_inlined ()
+    {
+      size_t           total = 0;
+      size_t           total_size = 0;
+      size_t           inlined_size = 0;
+      dwarf::functions funcs;
+      func_counts      counts;
+
+      for (auto& cu : debug.get_cus ())
+      {
+        for (auto& f : cu.get_functions ())
+        {
+          if (f.size () > 0 && f.has_machine_code ())
+          {
+            ++total;
+            total_size += f.size ();
+            if (f.is_inlined ())
+            {
+              inlined_size += f.size ();
+              bool counted = false;
+              for (auto& c : counts)
+              {
+                if (c.name == f.name ())
+                {
+                  ++c.count;
+                  c.size += f.size ();
+                  counted = true;
+                  break;
+                }
+              }
+              if (!counted)
+                counts.push_back (func_count (f.name (), f.size ()));
+              funcs.push_back (f);
+            }
+          }
+        }
+      }
+
+      std::cout << "inlined funcs   : " << funcs.size () << std::endl
+                << "    total funcs : " << total << std::endl
+                << " % inline funcs : " << (funcs.size () * 100) / total << '%'
+                << std::endl
+                << "     total size : " << total_size << std::endl
+                << "    inline size : " << inlined_size << std::endl
+                << "  % inline size : " << (inlined_size * 100) / total_size << '%'
+                << std::endl;
+
+      auto count_compare = [](func_count const & a, func_count const & b) {
+        return a.size != b.size?  a.size < b.size : a.count > b.count;
+      };
+      std::sort (counts.begin (), counts.end (), count_compare);
+      std::reverse (counts.begin (), counts.end ());
+
+      std::cout  << std::endl << "inlined repeats : " << std::endl;
+      for (auto& c : counts)
+        if (c.count > 1)
+          std::cout << std::setw (6) << c.size << ' '
+                    << std::setw (4) << c.count << ' '
+                    << c.name << std::endl;
+
+      std::cout << std::endl << "inline funcs : " << std::endl;
+      dwarf::function_compare compare (dwarf::function_compare::fc_by_size);
+      std::sort (funcs.begin (), funcs.end (), compare);
+      std::reverse (funcs.begin (), funcs.end ());
+
+      for (auto& f : funcs)
+      {
+        std::cout << std::setw (6) << f.size () << ' '
+                  << (char) (f.is_external () ? 'E' : ' ')
+                  << std::hex << std::setfill ('0')
+                  << " 0x" << std::setw (8) << f.pc_low ()
+                  << std::dec << std::setfill (' ')
+                  << ' ' << f.name ()
+                  << std::endl;
+      }
+    }
+
+    void image::output_dwarf ()
+    {
+      std::cout << "DWARF Data:" << std::endl;
+      debug.dump (std::cout);
+    }
   }
 }
 
@@ -616,6 +724,8 @@ static struct option rld_opts[] = {
   { "sections",    no_argument,            NULL,           'S' },
   { "init",        no_argument,            NULL,           'I' },
   { "fini",        no_argument,            NULL,           'F' },
+  { "inlined",     no_argument,            NULL,           'i' },
+  { "dwarf",       no_argument,            NULL,           'D' },
   { NULL,          0,                      NULL,            0 }
 };
 
@@ -629,11 +739,13 @@ usage (int exit_code)
             << " -v        : verbose (trace import parts), can supply multiple times" << std::endl
             << "             to increase verbosity (also --verbose)" << std::endl
             << " -M        : generate map output (also --map)" << std::endl
-            << " -a        : all output excluding the map (also --all)" << std::endl
+            << " -a        : all output excluding the map and DAWRF (also --all)" << std::endl
             << " -S        : show all section (also --sections)" << std::endl
             << " -I        : show init section tables (also --init)" << std::endl
             << " -F        : show fini section tables (also --fini)" << std::endl
-            << " -O        : show object files (also --objects)" << std::endl;
+            << " -O        : show object files (also --objects)" << std::endl
+            << " -i        : show inlined code (also --inlined)" << std::endl
+            << " -D        : dump the DWARF data (also --dwarf)" << std::endl;
   ::exit (exit_code);
 }
 
@@ -696,12 +808,14 @@ main (int argc, char* argv[])
     bool        init = false;
     bool        fini = false;
     bool        objects = false;
+    bool        inlined = false;
+    bool        dwarf_data = false;
 
     rld::set_cmdline (argc, argv);
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvVMaSIF", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvVMaSIFiD", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -742,6 +856,14 @@ main (int argc, char* argv[])
           objects = true;
           break;
 
+        case 'i':
+          inlined = true;
+          break;
+
+        case 'D':
+          dwarf_data = true;
+          break;
+
         case '?':
           usage (3);
           break;
@@ -772,6 +894,7 @@ main (int argc, char* argv[])
       init = true;
       fini = true;
       objects = true;
+      inlined = true;
     }
 
     /*
@@ -808,6 +931,10 @@ main (int argc, char* argv[])
       exe.output_init ();
     if (fini)
       exe.output_fini ();
+    if (inlined)
+      exe.output_inlined ();
+    if (dwarf_data)
+      exe.output_dwarf ();
 
     /*
      * Map ?
