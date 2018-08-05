@@ -62,6 +62,27 @@ namespace rld
     {
     public:
       /**
+       * Types of symbols.
+       */
+      enum type {
+        st_notype = STT_NOTYPE,            /* unspecified type */
+        st_object = STT_OBJECT,            /* data object */
+        st_func = STT_FUNC,                /* executable code */
+        st_section = STT_SECTION,          /* section */
+        st_file = STT_FILE,                /* source file */
+        st_common = STT_COMMON,            /* uninitialized common block */
+        st_tls = STT_TLS,                  /* thread local storage */
+        st_loos = STT_LOOS,                /* start of OS-specific types */
+        st_gnu_ifunc = STT_GNU_IFUNC,      /* indirect function */
+        st_hios = STT_HIOS,                /* end of OS-specific types */
+        st_loproc = STT_LOPROC,            /* start of processor-specific types */
+        st_arm_tfunc = STT_ARM_TFUNC,      /* Thumb function (GNU) */
+        st_arm_16bit = STT_ARM_16BIT,      /* Thumb label (GNU) */
+        st_sparc_reg = STT_SPARC_REGISTER, /* SPARC register information */
+        st_hiproc = STT_HIPROC,            /* end of processor-specific types */
+      };
+
+      /**
        * Default constructor. No symbol has been defined.
        */
       symbol ();
