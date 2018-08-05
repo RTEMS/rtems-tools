@@ -83,7 +83,13 @@ namespace rld
 
     temporary_files::~temporary_files ()
     {
-      clean_up ();
+      try
+      {
+        clean_up ();
+      }
+      catch (...)
+      {
+      }
     }
 
     const std::string
@@ -99,6 +105,9 @@ namespace rld
                                                   RLD_PATH_SEPARATOR_STR);
       tempfile_ref ref (name, keep);
       tempfiles.push_back (ref);
+
+      ::free (temp);
+
       return name;
     }
 
@@ -162,8 +171,14 @@ namespace rld
 
     tempfile::~tempfile ()
     {
-      close ();
-      temporaries.erase (_name);
+      try
+      {
+        close ();
+        temporaries.erase (_name);
+      }
+      catch (...)
+      {
+      }
     }
 
     void

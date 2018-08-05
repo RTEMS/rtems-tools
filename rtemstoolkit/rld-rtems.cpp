@@ -210,7 +210,6 @@ namespace rld
       if (slash == std::string::npos)
         throw rld::error ("Invalid BSP name", _arch_bsp);
       return _arch_bsp.substr (0, slash);
-      std::string bsp  = _arch_bsp.substr (slash + 1);
     }
 
     const std::string

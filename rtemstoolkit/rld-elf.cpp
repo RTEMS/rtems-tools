@@ -425,6 +425,7 @@ namespace rld
         archive (false),
         writable (false),
         elf_ (0),
+        mtype (0),
         oclass (0),
         ident_str (0),
         ident_size (0),
