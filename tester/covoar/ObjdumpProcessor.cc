@@ -29,63 +29,17 @@ namespace Coverage {
   void finalizeSymbol(
     ExecutableInfo* const            executableInfo,
     std::string&                     symbolName,
-    uint32_t                         lowAddress,
-    uint32_t                         highAddress,
     ObjdumpProcessor::objdumpLines_t instructions
   ) {
+    // Find the symbol's coverage map.
+    CoverageMapBase& coverageMap = executableInfo->findCoverageMap( symbolName );
 
-    CoverageMapBase*                                   aCoverageMap = NULL;
-    uint32_t                                           endAddress = highAddress;
-    ObjdumpProcessor::objdumpLines_t::iterator         itr, fnop, lnop;
-    ObjdumpProcessor::objdumpLines_t::reverse_iterator ritr;
-    SymbolInformation*                                 symbolInfo = NULL;
-    SymbolTable*                                       theSymbolTable;
-
-    //
-    // Remove trailing nop instructions.
-    //
-
-    // First find the last instruction.
-    for (ritr = instructions.rbegin();
-         ritr != instructions.rend();
-         ritr++) {
-      if (ritr->isInstruction)
-        break;
-    }
-
-    // If an instruction was found and it is a nop, ...
-    if ((ritr != instructions.rend()) && (ritr->isNop)) {
-
-      // save it as the last nop.  Note that we must account for
-      // the difference between a forward and a reverse iterator.
-      lnop = ritr.base();
-      lnop--;
-      endAddress -= lnop->nopSize;
-
-      // Now look for the first nop in the sequence of trailing nops.
-      fnop = lnop;
-      ritr++;
-      for (; ritr != instructions.rend(); ritr++) {
-        if (ritr->isNop) {
-          fnop = ritr.base();
-          fnop--;
-          endAddress -= fnop->nopSize;
-        }
-        else
-          break;
-      }
-
-      // Erase trailing nops.  The erase operation wants the first
-      // parameter to point to the first item to erase and the second
-      // parameter to point to the item beyond the last item to erase.
-      if ( fnop == lnop )
-        instructions.erase( fnop );
-      else
-        instructions.erase( fnop, ++lnop );
-    }
+    uint32_t lowAddress = coverageMap.getFirstLowAddress();
+    uint32_t size = coverageMap.getSize();
+    uint32_t highAddress = lowAddress + size;
 
     // If there are NOT already saved instructions, save them.
-    symbolInfo = SymbolsToAnalyze->find( symbolName );
+    SymbolInformation* symbolInfo = SymbolsToAnalyze->find( symbolName );
     if (symbolInfo->instructions.empty()) {
       symbolInfo->sourceFile = executableInfo;
       symbolInfo->baseAddress = lowAddress;
@@ -93,32 +47,20 @@ namespace Coverage {
     }
 
     // Add the symbol to this executable's symbol table.
-    theSymbolTable = executableInfo->getSymbolTable();
+    SymbolTable* theSymbolTable = executableInfo->getSymbolTable();
     theSymbolTable->addSymbol(
-      symbolName, lowAddress, endAddress - lowAddress + 1
+      symbolName, lowAddress, highAddress - lowAddress + 1
     );
 
-    // Create a coverage map for the symbol.
-    aCoverageMap = executableInfo->createCoverageMap(
-      executableInfo->getFileName().c_str(), symbolName, lowAddress, endAddress
-    );
-
-    if (aCoverageMap) {
-
-      // Mark the start of each instruction in the coverage map.
-      for (itr = instructions.begin();
-           itr != instructions.end();
-           itr++ ) {
-
-        aCoverageMap->setIsStartOfInstruction( itr->address );
-      }
-
-      // Create a unified coverage map for the symbol.
-      SymbolsToAnalyze->createCoverageMap(
-        executableInfo->getFileName().c_str(), symbolName,
-        endAddress - lowAddress + 1
-      );
+    // Mark the start of each instruction in the coverage map.
+    for (auto& instruction : instructions) {
+      coverageMap.setIsStartOfInstruction( instruction.address );
     }
+
+    // Create a unified coverage map for the symbol.
+    SymbolsToAnalyze->createCoverageMap(
+      executableInfo->getFileName().c_str(), symbolName, size
+    );
   }
 
   ObjdumpProcessor::ObjdumpProcessor()
@@ -353,18 +295,14 @@ namespace Coverage {
       getFile( executableInformation->getLibraryName(), objdumpFile, err );
 
     while ( true ) {
-
       // Get the line.
       objdumpFile.read_line( line );
       if ( line.empty() ) {
-
         // If we are currently processing a symbol, finalize it.
         if (processSymbol) {
           finalizeSymbol(
             executableInformation,
             currentSymbol,
-            startAddress,
-            executableInformation->getLoadAddress() + offset,
             theInstructions
           );
           fprintf(
@@ -388,6 +326,9 @@ namespace Coverage {
       lineInfo.nopSize       = 0;
       lineInfo.isBranch      = false;
 
+      instruction[0] = '\0';
+      ID[0] = '\0';
+
       // Look for the start of a symbol's objdump and extract
       // offset and symbol (i.e. offset <symbolname>:).
       items = sscanf(
@@ -407,7 +348,6 @@ namespace Coverage {
 
       // If all items found, we are at the beginning of a symbol's objdump.
       if ((items == 3) && (terminator1 == ':')) {
-
         endAddress = executableInformation->getLoadAddress() + offset - 1;
 
         // If we are currently processing a symbol, finalize it.
@@ -415,8 +355,6 @@ namespace Coverage {
           finalizeSymbol(
             executableInformation,
             currentSymbol,
-            startAddress,
-            endAddress,
             theInstructions
           );
         }
@@ -441,20 +379,17 @@ namespace Coverage {
                && (jumpTableID.find( "+0x" ) != std::string::npos)
                && processSymbol )
       {
+        endAddress = executableInformation->getLoadAddress() + offset - 1;
 
-          endAddress = executableInformation->getLoadAddress() + offset - 1;
-
-          // If we are currently processing a symbol, finalize it.
-          if ( processSymbol ) {
-            finalizeSymbol(
-              executableInformation,
-              currentSymbol,
-              startAddress,
-              endAddress,
-              theInstructions
+        // If we are currently processing a symbol, finalize it.
+        if ( processSymbol ) {
+          finalizeSymbol(
+            executableInformation,
+            currentSymbol,
+            theInstructions
             );
-          }
-          processSymbol = false;
+        }
+        processSymbol = false;
       }
       else if (processSymbol) {
 
@@ -467,7 +402,6 @@ namespace Coverage {
 
         // If it looks like an instruction ...
         if ((items == 3) && (terminator1 == ':') && (terminator2 == '\t')) {
-
           // update the line's information, save it and ...
           lineInfo.address =
            executableInformation->getLoadAddress() + instructionOffset;

@@ -19,12 +19,20 @@ namespace Coverage {
 
   ExecutableInfo::ExecutableInfo(
     const char* const theExecutableName,
-    const char* const theLibraryName
+    const char* const theLibraryName,
+    bool              verbose
     ) : executable(theExecutableName),
         loadAddress(0)
   {
-    if (theLibraryName)
+    if (theLibraryName != nullptr)
       libraryName = theLibraryName;
+
+    if (verbose) {
+      std::cerr << "Loading executable " << theExecutableName;
+      if (theLibraryName != nullptr)
+        std::cerr << " (" << theLibraryName << ')';
+      std::cerr << std::endl;
+    }
 
     executable.open();
     executable.begin();
@@ -32,6 +40,15 @@ namespace Coverage {
     debug.begin(executable.elf());
     debug.load_debug();
     debug.load_functions();
+
+    for (auto& cu : debug.get_cus()) {
+      for (auto& func : cu.get_functions()) {
+        if (func.has_machine_code() && (!func.is_inlined() || func.is_external())) {
+          createCoverageMap (cu.name(), func.name(),
+                             func.pc_low(), func.pc_high());
+        }
+      }
+    }
   }
 
   ExecutableInfo::~ExecutableInfo()
@@ -95,7 +112,17 @@ namespace Coverage {
     return &theSymbolTable;
   }
 
-  CoverageMapBase* ExecutableInfo::createCoverageMap (
+  CoverageMapBase& ExecutableInfo::findCoverageMap(
+    const std::string& symbolName
+  )
+  {
+    CoverageMaps::iterator cmi = coverageMaps.find( symbolName );
+    if ( cmi == coverageMaps.end() )
+      throw rld::error (symbolName, "ExecutableInfo::findCoverageMap");
+    return *(cmi->second);
+  }
+
+  void ExecutableInfo::createCoverageMap (
     const std::string& fileName,
     const std::string& symbolName,
     uint32_t           lowAddress,
@@ -113,7 +140,6 @@ namespace Coverage {
       theMap = itr->second;
       theMap->Add( lowAddress, highAddress );
     }
-    return theMap;
   }
 
   void ExecutableInfo::getSourceAndLine(
@@ -135,10 +161,9 @@ namespace Coverage {
   }
 
   void ExecutableInfo::mergeCoverage( void ) {
-    ExecutableInfo::CoverageMaps::iterator  itr;
-
-    for (itr = coverageMaps.begin(); itr != coverageMaps.end(); itr++) {
-      SymbolsToAnalyze->mergeCoverageMap( (*itr).first, (*itr).second );
+    for (auto& cm : coverageMaps) {
+      if (SymbolsToAnalyze->isDesired( cm.first ))
+        SymbolsToAnalyze->mergeCoverageMap( cm.first, cm.second );
     }
   }
 

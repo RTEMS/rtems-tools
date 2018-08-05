@@ -106,8 +106,8 @@ def build(bld):
                         'Target_m68k.cc',
                         'Target_powerpc.cc',
                         'Target_sparc.cc'],
-              cflags = ['-O2', '-g'],
-              cxxflags = ['-std=c++11', '-O2', '-g'],
+              cflags = ['-O2', '-g', '-Wall'],
+              cxxflags = ['-std=c++11', '-O2', '-g', '-Wall'],
               includes = ['.'] + rtl_includes)
 
     bld.program(target = 'trace-converter',

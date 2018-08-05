@@ -247,10 +247,12 @@ int covoar(
       if (!coverageFileNames.empty()) {
         if (dynamicLibrary) {
           executableInfo = new Coverage::ExecutableInfo(
-            singleExecutable, dynamicLibrary
+            singleExecutable, dynamicLibrary, Verbose
           );
         } else {
-          executableInfo = new Coverage::ExecutableInfo( singleExecutable );
+          executableInfo = new Coverage::ExecutableInfo(
+            singleExecutable, nullptr, Verbose
+          );
         }
 
         executablesToAnalyze.push_back( executableInfo );
@@ -272,7 +274,9 @@ int covoar(
           std::cerr << "warning: Unable to read coverage file: " << coverageFileName
                     << std::endl;
         } else {
-          executableInfo = new Coverage::ExecutableInfo( argv[i] );
+          executableInfo = new Coverage::ExecutableInfo(
+            argv[i], nullptr, Verbose
+          );
           executablesToAnalyze.push_back( executableInfo );
           coverageFileNames.push_back( coverageFileName );
         }
@@ -573,15 +577,7 @@ int main(
   }
   catch (std::exception e)
   {
-    int   status;
-    char* realname;
-    realname = abi::__cxa_demangle (e.what(), 0, 0, &status);
-    std::cerr << "error: exception: " << realname << " [";
-    ::free (realname);
-    const std::type_info &ti = typeid (e);
-    realname = abi::__cxa_demangle (ti.name(), 0, 0, &status);
-    std::cerr << realname << "] " << e.what () << std::endl << std::flush;
-    ::free (realname);
+    rld::output_std_exception(e, std::cerr);
     ec = 11;
   }
   catch (...)

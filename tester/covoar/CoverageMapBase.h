@@ -9,9 +9,98 @@
 
 #include <stdint.h>
 #include <string>
+#include <vector>
 #include <list>
 
 namespace Coverage {
+
+  /*!
+   *  This structure defines the information that is gathered and
+   *  tracked per address.
+   */
+  struct AddressInfo {
+
+    AddressInfo ();
+
+    /*!
+     *  This member indicates that the address is the start of
+     *  an instruction.
+     */
+    bool isStartOfInstruction;
+    /*!
+     *  This member indicates how many times the address was executed.
+     */
+    uint32_t wasExecuted;
+    /*!
+     *  This member indicates that the address is a branch instruction.
+     */
+    bool isBranch;
+    /*!
+     *  This member indicates that the address is a NOP instruction.
+     */
+    bool isNop;
+    /*!
+     *  When isBranch is TRUE, this member indicates that the branch
+     *  instruction at the address was taken.
+     */
+    uint32_t wasTaken;
+    /*!
+     *  When isBranch is TRUE, this member indicates that the branch
+     *  instruction at the address was NOT taken.
+     */
+    uint32_t wasNotTaken;
+
+  };
+
+  typedef std::vector < AddressInfo > AddressInfos;
+
+  /*!
+   *  This structure identifies the low and high addresses
+   *  of one range.  Note:: There may be more than one address
+   *  range per symbol.
+   */
+  struct AddressRange {
+
+    AddressRange ();
+    AddressRange (const std::string& name,
+                  uint32_t           lowAddress,
+                  uint32_t           highAddress);
+
+    size_t size () const;
+
+    bool inside (uint32_t address) const;
+
+    AddressInfo& get (uint32_t address);
+    const AddressInfo& get (uint32_t address) const;
+
+    void dump (std::ostream& out, bool show_slots = false) const;
+
+    /*!
+     *  This is the file from which this originated.
+     */
+    std::string fileName;
+
+    /*!
+     *  This is the low address of the address map range.
+     */
+    uint32_t lowAddress;
+
+    /*!
+     *  This is the high address of the address map range.
+     */
+    uint32_t highAddress;
+
+    /*!
+     *  The address info for this range.
+     */
+    AddressInfos info;
+
+  };
+
+  /*
+   *  This type identifies a list of ranges.
+   */
+  typedef std::vector< AddressRange >  AddressRanges;
 
   /*! @class CoverageMapBase
    *
@@ -20,34 +109,6 @@ namespace Coverage {
   class CoverageMapBase {
 
   public:
-
-    /*!
-     *  This structure identifies the low and high addresses
-     *  of one range.  Note:: There may be more than one address
-     *  range per symbol.
-     */
-    struct AddressRange {
-      /*!
-       *  This is the file from which this originated.
-       */
-      std::string fileName;
-
-      /*!
-       *  This is the low address of the address map range.
-       */
-      uint32_t lowAddress;
-
-      /*!
-       *  This is the high address of the address map range.
-       */
-      uint32_t highAddress;
-
-    };
-
-    /*
-     *  This type identifies a list of ranges.
-     */
-    typedef std::list< AddressRange >  AddressRanges;
 
     /*!
      *  This method constructs a CoverageMapBase instance.
@@ -77,23 +138,14 @@ namespace Coverage {
     void Add( uint32_t low, uint32_t high );
 
     /*!
-     *  This method returns true and sets the offset if
-     *  the address falls with the bounds of an address range
-     *  in the RangeList.
-     *
-     *  @param[in]  address specifies the address to find
-     *  @param[out] offset contains the offset from the low
-     *              address of the address range.
-     *
-     *  @return Returns TRUE if the address range can be found
-     *   and FALSE if it was not.
-      */
-    bool determineOffset( uint32_t address, uint32_t *offset ) const;
-
-    /*!
      *  This method prints the contents of the coverage map to stdout.
      */
     void dump( void ) const;
+
+    /*!
+     *  Address valid?
+     */
+    bool validAddress( const uint32_t address ) const;
 
     /*!
      *  This method will return the low address of the first range in
@@ -116,7 +168,7 @@ namespace Coverage {
      *  @return Returns TRUE if the address range can be found
      *   and FALSE if it was not.
      */
-    bool getRange( uint32_t address, AddressRange *range ) const;
+    bool getRange( uint32_t address, AddressRange& range ) const;
 
     /*!
      *  This method returns the size of the address range.
@@ -124,7 +176,6 @@ namespace Coverage {
      *  @return Returns Size of the address range.
      */
     uint32_t getSize() const;
-
 
     /*!
      *  This method returns the address of the beginning of the
@@ -358,41 +409,12 @@ namespace Coverage {
      */
     bool wasTaken( uint32_t address ) const;
 
-  protected:
+  private:
 
     /*!
-     *  This structure defines the information that is gathered and
-     *  tracked per address.
+     * The executable file name.
      */
-    struct perAddressInfo {
-      /*!
-       *  This member indicates that the address is the start of
-       *  an instruction.
-       */
-      bool isStartOfInstruction;
-      /*!
-       *  This member indicates how many times the address was executed.
-       */
-      uint32_t wasExecuted;
-      /*!
-       *  This member indicates that the address is a branch instruction.
-       */
-      bool isBranch;
-      /*!
-       *  This member indicates that the address is a NOP instruction.
-       */
-      bool isNop;
-      /*!
-       *  When isBranch is TRUE, this member indicates that the branch
-       *  instruction at the address was taken.
-       */
-      uint32_t wasTaken;
-      /*!
-       *  When isBranch is TRUE, this member indicates that the branch
-       *  instruction at the address was NOT taken.
-       */
-      uint32_t wasNotTaken;
-    };
+    std::string exefileName;
 
     /*!
      *
@@ -401,16 +423,15 @@ namespace Coverage {
     AddressRanges Ranges;
 
     /*!
-     *
-     *  This variable contains the size of the code block.
+     * Range checked access to the info.
      */
-    uint32_t Size;
+    AddressInfo& getInfo(uint32_t offset);
 
     /*!
-     *  This is a dynamically allocated array of data that is
-     *  kept for each address.
+     * Constant range checked access to the info.
      */
-    perAddressInfo* Info;
+    const AddressInfo& getInfo(uint32_t offset) const;
+
   };
 
 }

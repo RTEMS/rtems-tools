@@ -96,11 +96,13 @@ namespace Coverage {
 
       for (auto& kv : symbols.globals()) {
         const rld::symbols::symbol& sym = *(kv.second);
-        set[sym.name()] = *(new SymbolInformation);
+        if (sym.type() == sym.st_func)
+          set[sym.name()] = *(new SymbolInformation);
       }
       for (auto& kv : symbols.weaks()) {
         const rld::symbols::symbol& sym = *(kv.second);
-        set[sym.name()] = *(new SymbolInformation);
+        if (sym.type() == sym.st_func)
+          set[sym.name()] = *(new SymbolInformation);
       }
     } catch (...) {
       cache.close();
@@ -345,9 +347,10 @@ namespace Coverage {
                   << "unified coverage maps for "
                   << symbolName
                   << " with different sizes ("
-                  << exefileName << '/' << itr->second.stats.sizeInBytes
-                  << "!= "
-                  << itr->second.sourceFile->getFileName() << '/' << size << ')'
+                  << rld::path::basename(exefileName) << '/' << itr->second.stats.sizeInBytes
+                  << " != "
+                  << rld::path::basename(itr->second.sourceFile->getFileName())
+                  << '/' << size << ')'
                   << std::endl;
 
         if ( itr->second.stats.sizeInBytes < size )
@@ -450,14 +453,7 @@ namespace Coverage {
     const std::string& symbolName
   ) const
   {
-    if (set.find( symbolName ) == set.end()) {
-      #if 0
-        std::cerr << "Warning: Unable to find symbol " << symbolName
-                  << std::endl;
-      #endif
-      return false;
-    }
-    return true;
+    return set.find( symbolName ) == set.end() ? false : true;
   }
 
   void DesiredSymbols::mergeCoverageMap(
@@ -476,23 +472,26 @@ namespace Coverage {
       throw rld::error( what, "DesiredSymbols::mergeCoverageMap" );
     }
 
+    SymbolInformation& sinfo = itr->second;
+
     // Ensure that the source and destination coverage maps
     // are the same size.
     // Changed from ERROR msg to INFO, because size mismatch is not
     // treated as error anymore. 2015-07-20
-    uint32_t dMapSize = itr->second.stats.sizeInBytes;
+    uint32_t dMapSize = sinfo.stats.sizeInBytes;
     uint32_t sBaseAddress = sourceCoverageMap->getFirstLowAddress();
     uint32_t sMapSize = sourceCoverageMap->getSize();
-    if (dMapSize != sMapSize) {
+    if (dMapSize != 0 && dMapSize != sMapSize) {
       std::cerr << "INFO: DesiredSymbols::mergeCoverageMap - Unable to merge "
                 << "coverage map for " << symbolName
-                << " because the sizes are different"
+                << " because the sizes are different ("
+                << "size: " << dMapSize << ", source: " << sMapSize << ')'
                 << std::endl;
       return;
     }
 
     // Merge the data for each address.
-    CoverageMapBase* destinationCoverageMap = itr->second.unifiedCoverageMap;
+    CoverageMapBase* destinationCoverageMap = sinfo.unifiedCoverageMap;
 
     for (uint32_t dAddress = 0; dAddress < dMapSize; dAddress++) {
 

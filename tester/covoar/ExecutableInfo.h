@@ -37,7 +37,8 @@ namespace Coverage {
      */
     ExecutableInfo(
       const char* const theExecutableName,
-      const char* const theLibraryName = NULL
+      const char* const theLibraryName = NULL,
+      bool              verbose = false
     );
 
     /*!
@@ -95,21 +96,13 @@ namespace Coverage {
     SymbolTable* getSymbolTable( void );
 
     /*!
-     *  This method creates a coverage map for the specified symbol.
+     *  This method finds a coverage map for the specified symbol.
      *
-     *  @param[in] exefileName specifies the source of the information
      *  @param[in] symbolName specifies the name of the symbol
-     *  @param[in] lowAddress specifies the low address of the coverage map
-     *  @param[in] highAddress specifies the high address of the coverage map
      *
-     *  @return Returns a pointer to the coverage map
+     *  @return Returns a reference to the coverage map
      */
-    CoverageMapBase* createCoverageMap (
-      const std::string& exefileName,
-      const std::string& symbolName,
-      uint32_t           lowAddress,
-      uint32_t           highAddress
-    );
+    CoverageMapBase& findCoverageMap( const std::string& symbolName );
 
     /*!
      *  This method gets the source location, the file and line number given an
@@ -143,6 +136,21 @@ namespace Coverage {
     void setLoadAddress( uint32_t address );
 
   private:
+
+    /*!
+     *  This method creates a coverage map for the specified symbol.
+     *
+     *  @param[in] exefileName specifies the source of the information
+     *  @param[in] symbolName specifies the name of the symbol
+     *  @param[in] lowAddress specifies the low address of the coverage map
+     *  @param[in] highAddress specifies the high address of the coverage map
+     */
+    void createCoverageMap (
+      const std::string& exefileName,
+      const std::string& symbolName,
+      uint32_t           lowAddress,
+      uint32_t           highAddress
+    );
 
     /*!
      *  The ELF executable.
