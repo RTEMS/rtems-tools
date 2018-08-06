@@ -813,6 +813,28 @@ namespace rld
       return inline_ == DW_INL_inlined || inline_ == DW_INL_declared_inlined;
     }
 
+    function::inlined
+    function::get_inlined () const
+    {
+      inlined i = inl_not_inlined;
+      switch (inline_)
+      {
+        default:
+        case DW_INL_not_inlined:
+          break;
+        case DW_INL_inlined:
+          i = inl_inline;
+          break;
+        case DW_INL_declared_not_inlined:
+          i = inl_declared_not_inlined;
+          break;
+        case DW_INL_declared_inlined:
+          i = inl_declared_inlined;
+          break;
+      }
+      return i;
+    }
+
     std::string
     function::call_file () const
     {
@@ -831,7 +853,18 @@ namespace rld
     {
       size_t s = 0;
       if (!name_.empty () && has_machine_code ())
-        s = pc_high () - pc_low ();
+      {
+        if (ranges_.empty ())
+          s = pc_high () - pc_low ();
+        else
+        {
+          for (auto& r : ranges_.get ())
+          {
+            if (!r.end () && !r.empty ())
+              s += r.addr2 () - r.addr1 ();
+          }
+        }
+      }
       return s;
     }
 

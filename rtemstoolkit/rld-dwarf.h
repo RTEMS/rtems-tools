@@ -282,6 +282,17 @@ namespace rld
     class function
     {
     public:
+
+      /**
+       * The various inline states. See Table 3.4 DWARF 5 standard.
+       */
+      enum inlined {
+        inl_not_inlined = 0,          /**< Not declared inline nore inlined. */
+        inl_inline = 1,               /**< Not declared inline but inlined. */
+        inl_declared_not_inlined = 2, /**< Declared inline but not inlined. */
+        inl_declared_inlined = 3      /**< Declared inline and inlined */
+      };
+
       function (file& debug, debug_info_entry& die);
       function (const function& orig);
       ~function ();
@@ -331,6 +342,11 @@ namespace rld
        * Is the function inlined?
        */
       bool is_inlined () const;
+
+      /**
+       * Get the inlined state.
+       */
+      inlined get_inlined () const;
 
       /**
        * Get the call file of the inlined function.
