@@ -631,7 +631,8 @@ namespace rld
       size_t           total = 0;
       size_t           total_size = 0;
       size_t           inlined_size = 0;
-      dwarf::functions funcs;
+      dwarf::functions funcs_inlined;
+      dwarf::functions funcs_not_inlined;
       func_counts      counts;
 
       for (auto& cu : debug.get_cus ())
@@ -640,33 +641,42 @@ namespace rld
         {
           if (f.size () > 0 && f.has_machine_code ())
           {
+            bool counted;
             ++total;
             total_size += f.size ();
-            if (f.is_inlined ())
+            switch (f.get_inlined ())
             {
-              inlined_size += f.size ();
-              bool counted = false;
-              for (auto& c : counts)
-              {
-                if (c.name == f.name ())
+              case dwarf::function::inl_inline:
+              case dwarf::function::inl_declared_inlined:
+                inlined_size += f.size ();
+                counted = false;
+                for (auto& c : counts)
                 {
-                  ++c.count;
-                  c.size += f.size ();
-                  counted = true;
-                  break;
+                  if (c.name == f.name ())
+                  {
+                    ++c.count;
+                    c.size += f.size ();
+                    counted = true;
+                    break;
+                  }
                 }
-              }
-              if (!counted)
-                counts.push_back (func_count (f.name (), f.size ()));
-              funcs.push_back (f);
+                if (!counted)
+                  counts.push_back (func_count (f.name (), f.size ()));
+                funcs_inlined.push_back (f);
+                break;
+              case dwarf::function::inl_declared_not_inlined:
+                funcs_not_inlined.push_back (f);
+                break;
+              default:
+                break;
             }
           }
         }
       }
 
-      std::cout << "inlined funcs   : " << funcs.size () << std::endl
+      std::cout << "inlined funcs   : " << funcs_inlined.size () << std::endl
                 << "    total funcs : " << total << std::endl
-                << " % inline funcs : " << (funcs.size () * 100) / total << '%'
+                << " % inline funcs : " << (funcs_inlined.size () * 100) / total << '%'
                 << std::endl
                 << "     total size : " << total_size << std::endl
                 << "    inline size : " << inlined_size << std::endl
@@ -686,20 +696,43 @@ namespace rld
                     << std::setw (4) << c.count << ' '
                     << c.name << std::endl;
 
-      std::cout << std::endl << "inline funcs : " << std::endl;
       dwarf::function_compare compare (dwarf::function_compare::fc_by_size);
-      std::sort (funcs.begin (), funcs.end (), compare);
-      std::reverse (funcs.begin (), funcs.end ());
 
-      for (auto& f : funcs)
+      std::sort (funcs_inlined.begin (), funcs_inlined.end (), compare);
+      std::reverse (funcs_inlined.begin (), funcs_inlined.end ());
+
+      std::cout << std::endl << "inline funcs : " << std::endl;
+      for (auto& f : funcs_inlined)
       {
+        std::string flags;
+
         std::cout << std::setw (6) << f.size () << ' '
                   << (char) (f.is_external () ? 'E' : ' ')
+                  << (char) (f.get_inlined () == dwarf::function::inl_inline ? 'C' : ' ')
                   << std::hex << std::setfill ('0')
                   << " 0x" << std::setw (8) << f.pc_low ()
                   << std::dec << std::setfill (' ')
                   << ' ' << f.name ()
                   << std::endl;
+      }
+
+      if (funcs_not_inlined.size () > 0)
+      {
+        std::sort (funcs_not_inlined.begin (), funcs_not_inlined.end (), compare);
+        std::reverse (funcs_not_inlined.begin (), funcs_not_inlined.end ());
+
+        std::cout << std::endl << "inline funcs not inlined: " << std::endl;
+        for (auto& f : funcs_not_inlined)
+        {
+          std::cout << std::setw (6) << f.size () << ' '
+                    << (char) (f.is_external () ? 'E' : ' ')
+                    << (char) (f.get_inlined () == dwarf::function::inl_inline ? 'C' : ' ')
+                    << std::hex << std::setfill ('0')
+                    << " 0x" << std::setw (8) << f.pc_low ()
+                    << std::dec << std::setfill (' ')
+                    << ' ' << f.name ()
+                    << std::endl;
+        }
       }
     }
 
