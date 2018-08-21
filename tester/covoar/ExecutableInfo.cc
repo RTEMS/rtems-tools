@@ -37,25 +37,34 @@ namespace Coverage {
     executable.open();
     executable.begin();
     executable.load_symbols(symbols);
+
     debug.begin(executable.elf());
     debug.load_debug();
     debug.load_functions();
 
-    for (auto& cu : debug.get_cus()) {
-      for (auto& func : cu.get_functions()) {
-        if (func.has_machine_code() && (!func.is_inlined() || func.is_external())) {
-          createCoverageMap (cu.name(), func.name(),
-                             func.pc_low(), func.pc_high());
+    try {
+      for (auto& cu : debug.get_cus()) {
+        for (auto& func : cu.get_functions()) {
+          if (func.has_machine_code() && (!func.is_inlined() || func.is_external())) {
+            createCoverageMap (cu.name(), func.name(),
+                               func.pc_low(), func.pc_high());
+          }
         }
       }
+    } catch (...) {
+      debug.end();
+      executable.end();
+      executable.close();
+      throw;
     }
+
+    debug.end();
+    executable.end();
+    executable.close();
   }
 
   ExecutableInfo::~ExecutableInfo()
   {
-    debug.end();
-    executable.end();
-    executable.close();
   }
 
   void ExecutableInfo::dumpCoverageMaps( void ) {
