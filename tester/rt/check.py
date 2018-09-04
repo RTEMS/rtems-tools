@@ -1195,13 +1195,15 @@ class build_jobs:
         self.builds = config.builds()
         if self.builds is None:
             raise error.general('build not found: %s' % (config.build()))
-        excludes = set(config.excludes(self.arch) +
-                       config.bsp_excludes(self.arch, self.bsp))
+        excludes = list(set(config.excludes(self.arch) +
+                            config.bsp_excludes(self.arch, self.bsp)))
+        #
+        # The build can be in the buld string delimited by '-'.
+        #
         remove = []
         for e in excludes:
             remove += [b for b in self.builds if e in b]
-        for b in remove:
-            self.builds.remove(b)
+        self.builds = [b for b in self.builds if b not in remove]
         self.build_set = { }
         for build in self.builds:
             self.build_set[build] = config.build_options(build)
