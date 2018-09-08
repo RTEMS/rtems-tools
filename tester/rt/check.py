@@ -985,6 +985,14 @@ class configuration_:
             builds['builds'][build] = build_builds
         self.builds_ = builds
 
+    def configs(self):
+        return sorted(list(self.builds_['config'].keys()))
+
+    def config_flags(self, config):
+        if config not in self.builds_['config']:
+            raise error.general('config entry not found: %s' % (config))
+        return self.builds_['config'][config]
+
     def build(self):
         return self.builds_['build']
 
@@ -999,18 +1007,24 @@ class configuration_:
     def build_options(self, build):
         return ' '.join(self._build_options(build))
 
-    def excludes(self, arch):
-        excludes = self.archs[arch]['excludes'].keys()
-        for exclude in self.archs[arch]['excludes']:
-            if 'all' not in self.archs[arch]['excludes'][exclude]:
-                excludes.remove(exclude)
-        return sorted(excludes)
+    def excludes(self, arch, bsp):
+        return list(set(self.arch_excludes(arch) + self.bsp_excludes(arch, bsp)))
+
+    def exclude_options(self, arch, bsp):
+        return ' '.join([self.config_flags('no-' + e) for e in self.excludes(arch, bsp)])
 
     def archs(self):
         return sorted(self.archs.keys())
 
     def arch_present(self, arch):
         return arch in self.archs
+
+    def arch_excludes(self, arch):
+        excludes = self.archs[arch]['excludes'].keys()
+        for exclude in self.archs[arch]['excludes']:
+            if 'all' not in self.archs[arch]['excludes'][exclude]:
+                excludes.remove(exclude)
+        return sorted(excludes)
 
     def arch_bsps(self, arch):
         return sorted(self.archs[arch]['bsps'])
@@ -1195,18 +1209,24 @@ class build_jobs:
         self.builds = config.builds()
         if self.builds is None:
             raise error.general('build not found: %s' % (config.build()))
-        excludes = list(set(config.excludes(self.arch) +
-                            config.bsp_excludes(self.arch, self.bsp)))
+        valid_configs = config.configs()
+        excludes = config.excludes(self.arch, self.bsp)
+        for e in excludes:
+            if e.startswith('no-'):
+                raise error.general('excludes cannot start with "no-": %s' % (e))
+            if e not in valid_configs:
+                raise error.general('invalid exclude: %s' % (e))
         #
-        # The build can be in the buld string delimited by '-'.
+        # The build can be in the build string delimited by '-'.
         #
         remove = []
         for e in excludes:
-            remove += [b for b in self.builds if e in b]
+            remove += [b for b in self.builds if e in b.split('-')]
         self.builds = [b for b in self.builds if b not in remove]
         self.build_set = { }
+        exclude_options = ' ' + config.exclude_options(self.arch, self.bsp)
         for build in self.builds:
-            self.build_set[build] = config.build_options(build)
+            self.build_set[build] = config.build_options(build) + exclude_options
 
     def jobs(self):
         return [arch_bsp_build(self.arch, self.bsp, b, self.build_set[b]) \
@@ -1353,7 +1373,8 @@ class builder:
                     job.clean()
                     active_jobs.remove(job)
                     self.jobs_completed += 1
-                time.sleep(0.250)
+                if not self.options['dry-run']:
+                    time.sleep(0.100)
         except:
             for job in active_jobs:
                 try:
