@@ -1373,7 +1373,9 @@ class builder:
                     job.clean()
                     active_jobs.remove(job)
                     self.jobs_completed += 1
-                if not self.options['dry-run']:
+                if self.options['dry-run']:
+                    time.sleep(0)
+                else:
                     time.sleep(0.100)
         except:
             for job in active_jobs:
