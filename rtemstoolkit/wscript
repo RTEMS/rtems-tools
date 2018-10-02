@@ -148,6 +148,7 @@ def build(bld):
                   'options.py',
                   'path.py',
                   'reraise.py',
+                  'rtems.py',
                   'stacktraces.py',
                   'textbox.py',
                   'version.py',

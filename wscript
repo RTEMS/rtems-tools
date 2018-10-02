@@ -33,6 +33,7 @@ import os.path
 import wafwindows
 
 subdirs = ['rtemstoolkit',
+           'config',
            'linkers',
            'misc',
            'tester',
