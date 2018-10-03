@@ -114,7 +114,7 @@ def run(command_path = None):
         opts = options.load(sys.argv,
                             optargs = optargs,
                             command_path = command_path)
-        log.notice('RTEMS Testing - Run, %s' % (version.str()))
+        log.notice('RTEMS Testing - Run, %s' % (version.string()))
         if opts.find_arg('--list-bsps'):
             bsps.list(opts)
         opts.log_info()

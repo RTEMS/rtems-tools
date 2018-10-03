@@ -168,7 +168,7 @@ def run():
     try:
         _opts = options.command_line(argv = sys.argv)
         options.load(_opts)
-        log.notice('RTEMS Source Builder - Check, v%s' % (version.str()))
+        log.notice('RTEMS Source Builder - Check, v%s' % (version.string()))
         if host_setup(_opts):
             print('Environment is ok')
         else:

@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 20162018 Chris Johns (chrisj@rtems.org)
+# Copyright 2016-2018 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -33,25 +33,68 @@ from __future__ import print_function
 import copy
 import os
 import re
+import sys
 import textwrap
 
 from rtemstoolkit import configuration as configuration_
 from rtemstoolkit import error
+from rtemstoolkit import path
 from rtemstoolkit import textbox
-from rtemstoolkit import version
 
+#
+# The default path we install RTEMS under
+#
+_prefix_path = '/opt/rtems'
+
+def default_prefix():
+    from rtemstoolkit import version
+    return path.join(_prefix_path, version.version())
 
 def clean_windows_path():
-    #
-    # On Windows MSYS2 prepends a path to itself to the environment
-    # path. This means the RTEMS specific automake is not found and which
-    # breaks the bootstrap. We need to remove the prepended path. Also
-    # remove any ACLOCAL paths from the environment.
-    #
+    '''On Windows MSYS2 prepends a path to itself to the environment path. This
+    means the RTEMS specific automake is not found and which breaks the
+    bootstrap. We need to remove the prepended path. Also remove any ACLOCAL
+    paths from the environment.
+
+    '''
     if os.name == 'nt':
         cspath = os.environ['PATH'].split(os.pathsep)
         if 'msys' in cspath[0] and cspath[0].endswith('bin'):
             os.environ['PATH'] = os.pathsep.join(cspath[1:])
+
+def configuration_path():
+    '''Return the path the configuration data path for RTEMS. The path is relative
+    to the installed executable. Mangage the installed package and the in source
+    tree when running from within the rtems-tools repo.
+
+    '''
+    exec_name = os.path.abspath(sys.argv[0])
+    for top in [os.path.dirname(exec_name),
+                os.path.dirname(os.path.dirname(exec_name))]:
+        config_path = path.join(top, 'share', 'rtems', 'config')
+        if path.exists(config_path):
+            break
+        config_path = path.join(top, 'config')
+        if path.exists(config_path):
+            break
+        config_path = None
+    return config_path
+
+def configuration_file(config):
+    '''Return the path to a configuration file for RTEMS. The path is relative to
+    the installed executable or we are testing and running from within the
+    rtems-tools repo.
+
+    '''
+    return path.join(configuration_path(), config)
+
+def bsp_configuration_file():
+    '''Return the path to the BSP configuration file for RTEMS. The path is
+    relative to the installed executable or we are testing and running from
+    within the rtems-tools repo.
+
+    '''
+    return configuration_file('rtems-bsps.ini')
 
 class configuration:
 

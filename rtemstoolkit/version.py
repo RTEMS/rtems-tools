@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2016 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2018 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -29,68 +29,208 @@
 #
 
 #
-# To release RTEMS Tools create a git archive and then add a suitable VERSION
-# file to the top directory.
+# Releasing RTEMS Tools
+# ---------------------
+#
+# Format:
+#
+#  The format is INI. The file requires a `[version`] section and a `revision`
+#  option:
+#
+#   [version]
+#   revision = <version-string>
+#
+#  The `<version-string>` has the `version` and `revision` delimited by a
+#  single `.`. An example file is:
+#
+#   [version]
+#   revision = 5.0.not_released
+#
+#  where the `version` is `5` and the revision is `0` and the package is not
+#  released. The label `not_released` is reversed to mean the package is not
+#  released. A revision string can contain extra characters after the
+#  `revision` number for example `5.0-rc1` or is deploying a package
+#  `5.0-nasa-cfs`
+#
+#  Packages can optionally add specialised sections to a version configuration
+#  files. These can be accessed via the:
+#
+#   load_release_settings: Return the items in a section
+#   load_release_setting: Return an item from a section
+#
+# User deployment:
+#
+#  Create a git archive and then add a suitable VERSION file to the top
+#  directory of the package. The package assumes your python executable is
+#  location in `bin` directory which is one below the top of the package's
+#  install prefix.
+#
+# RTEMS Release:
+#
+#  Set the values in the `rtems-version.ini` file. This is a shared file so
+#  packages and encouraged to add specific settings to other configuration
+#  files.
+#
+# Notes:
+#
+#  This module uses os.apth for paths and assumes all paths are in the host
+#  format.
 #
 
 from __future__ import print_function
 
+import itertools
+import os
 import sys
 
+try:
+    import configparser
+except ImportError:
+    import ConfigParser as configparser
+
 #
-# Support to handle use in a package and as a unit test.
+# Support to handle importing when installed in a package and as a unit test.
 # If there is a better way to let us know.
 #
 try:
     from . import error
     from . import git
-    from . import path
+    from . import rtems
 except (ValueError, SystemError):
     import error
     import git
     import path
+    import rtems
 
 #
 # Default to an internal string.
 #
-_version = '5'
+_version = 'undefined'
 _revision = 'not_released'
 _version_str = '%s.%s' % (_version, _revision)
 _released = False
 _git = False
+_is_loaded = False
 
-def _at():
-    return path.dirname(__file__)
+def _top():
+    top = os.path.dirname(sys.argv[0])
+    if len(top) == 0:
+        top = '.'
+    return top
+
+def _load_released_version_config():
+    '''Local worker to load a configuration file.'''
+    top = _top()
+    for ver in [os.path.join(top, 'VERSION'),
+                os.path.join('..', 'VERSION'),
+                rtems.configuration_file('rtems-version.ini')]:
+        if os.path.exists(os.path.join(ver)):
+            v = configparser.SafeConfigParser()
+            try:
+                v.read(ver)
+            except Exception as e:
+                raise error.general('Invalid version config format: %s: %s' % (ver,
+                                                                               e))
+            return ver, v
+    return None, None
 
 def _load_released_version():
+    '''Load the release data if present. If not found the package is not released.
+
+    A release can be made by adding a file called `VERSION` to the top level
+    directory of a package. This is useful for user deploying a package and
+    making custom releases.
+
+    The RTEMS project reserves the `rtems-version.ini` file for it's
+    releases. This is the base release and should not be touched by users
+    deploying a package.
+
+    '''
+    global _version
+    global _revision
     global _released
     global _version_str
-    at = _at()
-    for ver in [at, path.join(at, '..')]:
-        if path.exists(path.join(ver, 'VERSION')):
+    global _is_loaded
+
+    if not _is_loaded:
+        vc, v = _load_released_version_config()
+        if v is not None:
             try:
-                import configparser
-            except ImportError:
-                import ConfigParser as configparser
-            v = configparser.SafeConfigParser()
-            v.read(path.join(ver, 'VERSION'))
-            _version_str = v.get('version', 'release')
-            _released = True
+                ver_str = v.get('version', 'revision')
+            except Exception as e:
+                raise error.general('Invalid version file: %s: %s' % (vc, e))
+            ver_split = ver_str.split('.')
+            if len(ver_split) < 2:
+                raise error.general('Invalid version release value: %s: %s' % (vc,
+                                                                               ver_str))
+            ver = ver_split[0]
+            rev = '.'.join(ver_split[1:])
+            try:
+                _version = int(ver)
+            except:
+                raise error.general('Invalid version config value: %s: %s' % (vc,
+                                                                              ver))
+            try:
+                _revision = int(''.join(itertools.takewhile(str.isdigit, rev)))
+            except Exception as e:
+                raise error.general('Invalid revision config value: %s: %s: %s' % (vc,
+                                                                                   rev,
+                                                                                   e))
+            if not 'not_released' in ver:
+                _released = True
+            _version_str = ver_str
+            _is_loaded = True
     return _released
 
 def _load_git_version():
+    global _version
+    global _revision
     global _git
     global _version_str
-    repo = git.repo(_at())
+    repo = git.repo(_top())
     if repo.valid():
         head = repo.head()
         if repo.dirty():
-            modified = ' modified'
+            modified = 'modified'
+            sep = ' '
         else:
             modified = ''
-        _version_str = '%s (%s%s)' % (_version, head[0:12], modified)
+            sep = ''
+        _revision = '%s-%s' % (head[0:12], modified)
+        _version_str = '%s (%s%s%s)' % (_version, head[0:12], sep, modified)
         _git = True
     return _git
+
+def load_release_settings(section, error = False):
+    vc, v = _load_released_version_config()
+    items = []
+    if v is not None:
+        try:
+            items = v.items(section)
+        except Exception as e:
+            if not isinstance(error, bool):
+                error(e)
+            elif error:
+                raise error.general('Invalid config section: %s: %s: %s' % (vc,
+                                                                            section,
+                                                                            e))
+    return items
+
+def load_release_setting(section, option, raw = False, error = False):
+    vc, v = _load_released_version_config()
+    value = None
+    if v is not None:
+        try:
+            value = v.get(section, option, raw = raw)
+        except Exception as e:
+            if not isinstance(error, bool):
+                error(e)
+            elif error:
+                raise error.general('Invalid config section: %s: %s: %s.%s' % (vc,
+                                                                               section,
+                                                                               option,
+                                                                               e))
+    return value
 
 def released():
     return _load_released_version()
@@ -98,14 +238,20 @@ def released():
 def version_control():
     return _load_git_version()
 
-def str():
-    if not _released and not _git:
-        if not _load_released_version():
-            _load_git_version()
+def string():
+    _load_released_version()
+    _load_git_version()
     return _version_str
 
 def version():
+    _load_released_version()
+    _load_git_version()
     return _version
+
+def revision():
+    _load_released_version()
+    _load_git_version()
+    return _revision
 
 if __name__ == '__main__':
     print('Version: %s' % (str()))

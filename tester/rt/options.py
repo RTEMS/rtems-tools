@@ -109,7 +109,7 @@ def load(args, optargs = None,
 def run(args):
     try:
         _opts = load(args = args, defaults = defaults_mc)
-        log.notice('RTEMS Test - Defaults, v%s' % (version.str()))
+        log.notice('RTEMS Test - Defaults, v%s' % (version.string()))
         _opts.log_info()
         log.notice('Options:')
         log.notice(str(_opts))

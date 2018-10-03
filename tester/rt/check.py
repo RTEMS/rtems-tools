@@ -64,6 +64,9 @@ log_lock = threading.Lock()
 #
 max_build_label = 0
 
+def _now():
+    return datetime.datetime.now()
+
 def rtems_version():
     return version.version()
 
@@ -99,7 +102,7 @@ def comma_split(options):
     return [o.strip() for o in options.split(',')]
 
 def title():
-    return 'RTEMS Tools Project - RTEMS Kernel BSP Builder, %s' % (version.str())
+    return 'RTEMS Tools Project - RTEMS Kernel BSP Builder, %s' % (version.string())
 
 def command_line():
     return wrap(('command: ', ' '.join(sys.argv)), lineend = '\\')
@@ -156,10 +159,10 @@ class arch_bsp_build:
         return self.arch, self.bsp
 
     def start(self):
-        self.start_time = datetime.datetime.now()
+        self.start_time = _now()
 
     def stop(self):
-        self.stop_time = datetime.datetime.now()
+        self.stop_time = _now()
 
     def duration(self):
         return self.stop_time - self.start_time
@@ -988,8 +991,7 @@ class builder:
             with open(self.options['warnings-report'], 'w') as f:
                 f.write(title() + os.linesep)
                 f.write(os.linesep)
-                f.write('Date: %s%s' % (datetime.datetime.now().strftime('%c'),
-                                        os.linesep))
+                f.write('Date: %s%s' % (_now().strftime('%c'), os.linesep))
                 f.write(os.linesep)
                 f.write(command_line() + os.linesep)
                 f.write(self.results.warnings_errors.warnings_report())
@@ -999,8 +1001,7 @@ class builder:
             with open(self.options['failures-report'], 'w') as f:
                 f.write(title() + os.linesep)
                 f.write(os.linesep)
-                f.write('Date: %s%s' % (datetime.datetime.now().strftime('%c'),
-                                        os.linesep))
+                f.write('Date: %s%s' % (_now().strftime('%c'), os.linesep))
                 f.write(os.linesep)
                 f.write(command_line() + os.linesep)
                 f.write(self.results.failures_report())
@@ -1022,8 +1023,8 @@ class builder:
         if path.exists(self.build_dir):
             log.notice('Cleaning: %s' % (self.build_dir))
             path.removeall(self.build_dir)
-        self.start = datetime.datetime.now()
-        self.end = datetime.datetime.now()
+        self.start = _now()
+        self.end = _now()
         self.duration = self.end - self.start
         self.average = self.duration
         env_path = os.environ['PATH']
@@ -1063,7 +1064,7 @@ class builder:
                 except:
                     pass
             raise
-        self.end = datetime.datetime.now()
+        self.end = _now()
         os.environ['PATH'] = env_path
         self.duration = self.end - self.start
         if self.jobs_completed == 0:
@@ -1123,16 +1124,12 @@ def run_args(args):
     try:
         rtems.clean_windows_path()
 
-        start = datetime.datetime.now()
-        top = os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))
+        start = _now()
         prefix = '/opt/rtems/%s' % (rtems_version())
         tools = prefix
         build_dir = 'bsp-builds'
-        logf = 'bsp-build-%s.txt' % \
-               (datetime.datetime.now().strftime('%Y%m%d-%H%M%S'))
-        config_file = path.join(top, 'config', 'rtems-bsps.ini')
-        if not path.exists(config_file):
-            config_file = path.join(top, 'share', 'rtems', 'config', 'rtems-bsps.ini')
+        logf = 'bsp-build-%s.txt' % (_now().strftime('%Y%m%d-%H%M%S'))
+        config_file = rtems.bsp_configuration_file()
 
         argsp = argparse.ArgumentParser()
         argsp.add_argument('--prefix', help = 'Prefix to build the BSP.',
@@ -1249,7 +1246,7 @@ def run_args(args):
         else:
             what = 'Profile(s): %s' % (' '.join(profiles))
             b.build_profiles(profiles)
-        end = datetime.datetime.now()
+        end = _now()
 
         #
         # Email the results of the build.

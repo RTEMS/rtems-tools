@@ -289,7 +289,7 @@ class command_line(object):
 
     def help(self):
         print('%s: [options] [args]' % (self.command_name))
-        print('RTEMS Tools Project (c) 2012-2015 Chris Johns')
+        print('RTEMS Tools Project, %s' % (version.string()))
         print('Options and arguments:')
         opts = list(self.long_opts_help.keys())
         if self.optargs:
@@ -559,7 +559,7 @@ def run(args):
                             long_opts = long_opts,
                             command_path = '.')
         load(opts)
-        log.notice('RTEMS Tools Project - Defaults, v%s' % (version.str()))
+        log.notice('RTEMS Tools Project - Defaults, v%s' % (version.string()))
         opts.log_info()
         log.notice('Options:')
         log.notice(str(opts))

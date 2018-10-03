@@ -40,43 +40,14 @@ subdirs = ['rtemstoolkit',
            'tools/gdb/python']
 
 def get_version(ctx):
-    version = '5'
-    revision = 'not_released'
+    from rtemstoolkit import version as rtemsversion
+    try:
+        version = rtemsversion.version()
+        revision = rtemsversion.revision()
+    except Exception as e:
+        ctx.fatal('invalid version file: %s' % (e))
     release = '%s.%s' % (version, revision)
-    if os.path.exists('VERSION'):
-        try:
-            import configparser
-        except ImportError:
-            import ConfigParser as configparser
-        v = configparser.SafeConfigParser()
-        v.read('VERSION')
-        release = v.get('version', 'release')
-    else:
-        #
-        # waf after 1.9.9 does not place the current directory in Python's
-        # system path which means importing the RTEMS toolkit
-        # fails. Temporarily add it so we can import the git module.
-        #
-        import sys
-        current_sys_path = sys.path
-        try:
-            sys.path = [os.getcwd()] + sys.path
-            from rtemstoolkit import git
-        finally:
-            sys.path = current_sys_path
-        repo = git.repo('.')
-        if repo.valid():
-            head = repo.head()
-            if repo.dirty():
-                modified = '_modified'
-            else:
-                modified = ''
-            release = '%s.%s%s' % (version, head[0:12], modified)
-    last_dot = release.rfind('.')
-    if last_dot == -1:
-        ctx.fatal('invalid VERSION file')
-    revision = release[0:last_dot]
-    return revision, release
+    return version, release
 
 def recurse(ctx):
     for sd in subdirs:

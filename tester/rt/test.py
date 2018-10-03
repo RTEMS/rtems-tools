@@ -250,7 +250,7 @@ def run(command_path = None):
             else:
                 to_addr = 'build@rtems.org'
             output = log_capture()
-        log.notice('RTEMS Testing - Tester, %s' % (version.str()))
+        log.notice('RTEMS Testing - Tester, %s' % (version.string()))
         if opts.find_arg('--list-bsps'):
             bsps.list(opts)
         exe_filter = opts.find_arg('--filter')
