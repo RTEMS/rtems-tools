@@ -113,6 +113,8 @@ namespace rld
           { fg_machine, "-O",       1, false, 0 },
           { fg_machine, "-m",       1, false, 0 },
           { fg_machine, "-f",       1, false, 0 },
+          { fg_machine, "-G",       1, false, 0 },
+          { fg_machine, "-E",       1, false, 0 },
           { fg_specs,   "-q",       1, false, 0 },
           { fg_specs,   "-B",       2, true,  0 },
           { fg_specs,   "--specs",  2, false, 0 }
