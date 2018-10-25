@@ -244,13 +244,17 @@ class symbol_parser(object):
                  symbol_config_path,
                  symbol_select_path,
                  symbol_set,
-                 build_dir):
+                 build_dir,
+                 bsp_name,
+                 target):
         self.symbol_select_file = symbol_select_path
         self.symbol_file = symbol_config_path
         self.build_dir = build_dir
         self.symbol_sets = {}
         self.symbol_set = symbol_set
         self.ssets = []
+        self.bsp_name = bsp_name
+        self.target = target
 
     def parse(self):
         config = configparser.ConfigParser()
@@ -264,9 +268,13 @@ class symbol_parser(object):
             for sset in self.ssets:
                 lib = path.join(self.build_dir, config.get('libraries', sset))
                 self.symbol_sets[sset] = lib.encode('utf-8')
+                ss = self.symbol_sets[sset]
+                ss = ss.replace('@BSP@', self.bsp_name)
+                ss = ss.replace('@BUILD-TARGET@', self.target)
+                self.symbol_sets[sset] = ss
             return self.ssets
         except:
-            raise error.general('Symbol set parsing failed')
+            raise error.general('Symbol set parsing failed for %s' % (sset))
 
     def write_ini(self, symbol_set):
         config = configparser.ConfigParser()
@@ -275,11 +283,15 @@ class symbol_parser(object):
             config.add_section('symbol-sets')
             config.set('symbol-sets', 'sets', sset)
             config.add_section(sset)
-            config.set(sset, 'libraries', self.symbol_sets[sset])
+            object_files = [o for o in os.listdir(self.symbol_sets[sset]) if o[-1] == 'o']
+            object_paths = []
+            for o in object_files:
+                object_paths.append(path.join(self.symbol_sets[sset], o))
+            config.set(sset, 'libraries', ','.join(object_paths))
             with open(self.symbol_select_file, 'w') as conf:
-                config.write(conf)
+                    config.write(conf)
         except:
-            raise error.general('symbol parser write failed')
+            raise error.general('symbol parser write failed for %s' % (sset))
 
 class covoar(object):
     '''
@@ -357,6 +369,7 @@ class coverage_run(object):
         self.report_format = self.macros['cov_report_format']
         self.symbol_set = symbol_set
         self.target = self.macros['target']
+        self.bsp_name = self.macros['bsp'].split('-')[0]
 
     def run(self):
         try:
@@ -366,7 +379,9 @@ class coverage_run(object):
             parser = symbol_parser(self.symbol_config_path,
                                    self.symbol_select_path,
                                    self.symbol_set,
-                                   build_dir)
+                                   build_dir,
+                                   self.bsp_name,
+                                   self.target)
             symbol_sets = parser.parse()
             for sset in symbol_sets:
                 parser.write_ini(sset)
