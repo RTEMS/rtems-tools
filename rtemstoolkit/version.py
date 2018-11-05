@@ -171,7 +171,7 @@ def _load_released_version():
                 raise error.general('Invalid version config value: %s: %s' % (vc,
                                                                               ver))
             try:
-                _revision = int(''.join(itertools.takewhile(str.isdigit, rev)))
+                _revision = int(''.join(itertools.takewhile(str.isdigit, str(rev))))
             except Exception as e:
                 raise error.general('Invalid revision config value: %s: %s: %s' % (vc,
                                                                                    rev,
