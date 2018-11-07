@@ -1,10 +1,15 @@
+# vim: ts=4 sw=4 et ai:
+# -*- coding: utf8 -*-
 """This module implements the TftpPacketFactory class, which can take a binary
 buffer, and return the appropriate TftpPacket object to represent it, via the
 parse() method."""
 
-from __future__ import absolute_import, division, print_function, unicode_literals
+
 from .TftpShared import *
 from .TftpPacketTypes import *
+import logging
+
+log = logging.getLogger('tftpy.TftpPacketFactory')
 
 class TftpPacketFactory(object):
     """This class generates TftpPacket objects. It is responsible for parsing
@@ -25,7 +30,7 @@ class TftpPacketFactory(object):
         corresponding TftpPacket object. The buffer is the raw bytes off of
         the network."""
         log.debug("parsing a %d byte packet" % len(buffer))
-        (opcode,) = struct.unpack("!H", buffer[:2])
+        (opcode,) = struct.unpack(str("!H"), buffer[:2])
         log.debug("opcode is %d" % opcode)
         packet = self.__create(opcode)
         packet.buffer = buffer

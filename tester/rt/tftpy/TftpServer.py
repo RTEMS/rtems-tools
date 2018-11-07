@@ -1,17 +1,22 @@
+# vim: ts=4 sw=4 et ai:
+# -*- coding: utf8 -*-
 """This module implements the TFTP Server functionality. Instantiate an
 instance of the server, and then run the listen() method to listen for client
 requests. Logging is performed via a standard logging object set in
 TftpShared."""
 
-from __future__ import absolute_import, division, print_function, unicode_literals
+
 import socket, os, time
 import select
 import threading
+import logging
 from errno import EINTR
 from .TftpShared import *
 from .TftpPacketTypes import *
 from .TftpPacketFactory import TftpPacketFactory
 from .TftpContexts import TftpContextServer
+
+log = logging.getLogger('tftpy.TftpServer')
 
 class TftpServer(TftpSession):
     """This class implements a tftp server object. Run the listen() method to
@@ -53,8 +58,7 @@ class TftpServer(TftpSession):
         for name in 'dyn_file_func', 'upload_open':
             attr = getattr(self, name)
             if attr and not callable(attr):
-                raise TftpException, "%s supplied, but it is not callable." % (
-                    name,)
+                raise TftpException("{} supplied, but it is not callable.".format(name))
         if os.path.exists(self.root):
             log.debug("tftproot %s does exist", self.root)
             if not os.path.isdir(self.root):
@@ -99,7 +103,7 @@ class TftpServer(TftpSession):
             log.debug("shutdown_immediately is %s" % self.shutdown_immediately)
             log.debug("shutdown_gracefully is %s" % self.shutdown_gracefully)
             if self.shutdown_immediately:
-                log.warn("Shutting down now. Session count: %d" %
+                log.warning("Shutting down now. Session count: %d" %
                          len(self.sessions))
                 self.sock.close()
                 for key in self.sessions:
@@ -109,7 +113,7 @@ class TftpServer(TftpSession):
 
             elif self.shutdown_gracefully:
                 if not self.sessions:
-                    log.warn("In graceful shutdown mode and all "
+                    log.warning("In graceful shutdown mode and all "
                              "sessions complete.")
                     self.sock.close()
                     break
@@ -124,7 +128,7 @@ class TftpServer(TftpSession):
             log.debug("Performing select on this inputlist: %s", inputlist)
             try:
                 readyinput, readyoutput, readyspecial = \
-                        select.select(inputlist, [], [], timeout)
+                        select.select(inputlist, [], [], SOCK_TIMEOUT)
             except select.error as err:
                 if err[0] == EINTR:
                     # Interrupted system call
@@ -145,7 +149,7 @@ class TftpServer(TftpSession):
                     log.debug("Read %d bytes", len(buffer))
 
                     if self.shutdown_gracefully:
-                        log.warn("Discarding data on main port, "
+                        log.warning("Discarding data on main port, "
                                  "in graceful shutdown mode")
                         continue
 
@@ -169,10 +173,10 @@ class TftpServer(TftpSession):
                             log.error("Fatal exception thrown from "
                                       "session %s: %s" % (key, str(err)))
                     else:
-                        log.warn("received traffic on main socket for "
+                        log.warning("received traffic on main socket for "
                                  "existing session??")
                     log.info("Currently handling these sessions:")
-                    for session_key, session in self.sessions.items():
+                    for session_key, session in list(self.sessions.items()):
                         log.info("    %s" % session)
 
                 else:
@@ -234,7 +238,7 @@ class TftpServer(TftpSession):
                     del self.sessions[key]
                     log.debug("Session list is now %s" % self.sessions)
                 else:
-                    log.warn(
+                    log.warning(
                         "Strange, session %s is not on the deletion list" % key)
 
         self.is_running.clear()

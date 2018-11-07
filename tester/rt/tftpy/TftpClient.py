@@ -1,12 +1,17 @@
+# vim: ts=4 sw=4 et ai:
+# -*- coding: utf8 -*-
 """This module implements the TFTP Client functionality. Instantiate an
 instance of the client, and then use its upload or download method. Logging is
 performed via a standard logging object set in TftpShared."""
 
-from __future__ import absolute_import, division, print_function, unicode_literals
+
 import types
+import logging
 from .TftpShared import *
 from .TftpPacketTypes import *
 from .TftpContexts import TftpContextClientDownload, TftpContextClientUpload
+
+log = logging.getLogger('tftpy.TftpClient')
 
 class TftpClient(TftpSession):
     """This class is an implementation of a tftp client. Once instantiated, a
@@ -23,7 +28,7 @@ class TftpClient(TftpSession):
         self.localip = localip
         if 'blksize' in self.options:
             size = self.options['blksize']
-            tftpassert(types.IntType == type(size), "blksize must be an int")
+            tftpassert(int == type(size), "blksize must be an int")
             if size < MIN_BLKSIZE or size > MAX_BLKSIZE:
                 raise TftpException("Invalid blksize: %d" % size)
 

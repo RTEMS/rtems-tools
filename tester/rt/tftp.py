@@ -119,7 +119,8 @@ class tftp(object):
         return None
 
     def _listener(self):
-        tftpy.log.setLevel(100)
+        tftpy_log = logging.getLogger('tftpy')
+        tftpy_log.setLevel(100)
         try:
             self.server = tftpy.TftpServer(tftproot = '.',
                                            dyn_file_func = self._exe_handle)
