@@ -191,10 +191,11 @@ def copy_tree(src, dst):
     hsrc = host(src)
     hdst = host(dst)
 
-    if os.path.exists(src):
+    if os.path.exists(src) and os.path.isdir(src):
         names = os.listdir(src)
     else:
-        name = []
+        names = [basename(src)]
+        src = dirname(src)
 
     if not os.path.isdir(dst):
         os.makedirs(dst)
