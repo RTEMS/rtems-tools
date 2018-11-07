@@ -971,7 +971,7 @@ class builder:
         cmd = [path.join(self.rtems, 'configure')]
         for c in cmds:
             c = c.replace('@PREFIX@', self.prefix)
-            c = c.replace('@RTEMS_VERSION@', self.rtems_version)
+            c = c.replace('@RTEMS_VERSION@', str(self.rtems_version))
             c = c.replace('@ARCH@', build.arch)
             c = c.replace('@BSP@', build.bsp)
             cmd += [c]
@@ -1118,7 +1118,7 @@ class builder:
         log.notice('Profile(s): %s' % (', '.join(profiles)))
         self.run_jobs(self.profile_jobs(profiles))
 
-def run_args(args):
+def run(args):
     b = None
     ec = 0
     try:
@@ -1129,9 +1129,15 @@ def run_args(args):
         tools = prefix
         build_dir = 'bsp-builds'
         logf = 'bsp-build-%s.txt' % (_now().strftime('%Y%m%d-%H%M%S'))
-        config_file = rtems.bsp_configuration_file()
+        config_file = rtems.bsp_configuration_file(prog = args[0])
 
-        argsp = argparse.ArgumentParser()
+        description  = 'RTEMS BSP Builder is a BSP build tester. It builds BSPs '
+        description += 'in various ways to test build regressions in the kernel. You '
+        description += 'can build based on tier, architecture, or BSP. You can control '
+        description += 'the profile of build with various build configuration settings.'
+
+        argsp = argparse.ArgumentParser(prog = 'rtems-bsp-builder',
+                                        description = description)
         argsp.add_argument('--prefix', help = 'Prefix to build the BSP.',
                            type = str)
         argsp.add_argument('--rtems-tools', help = 'The RTEMS tools directory.',
@@ -1297,8 +1303,5 @@ def run_args(args):
         b.results.report()
     sys.exit(ec)
 
-def run():
-    run_args(sys.argv)
-
 if __name__ == "__main__":
-    run()
+    run(sys.argv)

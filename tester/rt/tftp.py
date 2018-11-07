@@ -43,14 +43,7 @@ import sys
 from rtemstoolkit import error
 from rtemstoolkit import reraise
 
-#
-# Support to handle use in a package and as a unit test.
-# If there is a better way to let us know.
-#
-try:
-    from . import tftpy
-except (ValueError, SystemError):
-    import tftpy
+import tftpy
 
 class tftp(object):
     '''RTEMS Testing TFTP base.'''

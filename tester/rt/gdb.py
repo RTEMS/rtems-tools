@@ -48,16 +48,8 @@ from rtemstoolkit import execute
 from rtemstoolkit import options
 from rtemstoolkit import path
 
-#
-# Support to handle use in a package and as a unit test.
-# If there is a better way to let us know.
-#
-try:
-    from . import console
-    from . import pygdb
-except (ValueError, SystemError):
-    import console
-    import pygdb
+import console
+import pygdb
 
 #
 # The MI parser needs a global lock. It has global objects.

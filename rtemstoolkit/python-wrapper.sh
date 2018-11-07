@@ -1,4 +1,3 @@
-#! /bin/sh
 #
 # RTEMS Tools Project (http://www.rtems.org/)
 # Copyright 2018 Chris Johns (chrisj@rtems.org)
@@ -28,15 +27,28 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
+
+#
+# This script wraps python finding a suitable version to use.
+#
 set -e
-base=$(dirname $(dirname $0))
-cmd=tester/rt/cmd-test.py
-PYTHON_WRAPPER=rtemstoolkit/python-wrapper.sh
-if test -f ${base}/${PYTHON_WRAPPER}; then
-  PYTHON_CMD=${base}/${cmd}
-  . ${base}/${PYTHON_WRAPPER}
-elif test -f ${base}/share/rtems/${PYTHON_WRAPPER}; then
-  PYTHON_CMD=${base}/share/rtems/${cmd}
-  . ${base}/share/rtems/${PYTHON_WRAPPER}
+if test ! -f $PYTHON_CMD; then
+  echo "error: RTEMS Toolkit python command not found: $PYTHON_CMD"
+  exit 5
 fi
-echo "error: RTEMS Toolkit python wrapper not found, plrease report"
+for py in python3 python2 python
+do
+  set +e
+  py_cmd=$(command -v $py)
+  set -e
+  if test -n "$RTEMS_PYTHON_OVERRIDE"; then
+    if test "$RTEMS_PYTHON_OVERRIDE" != "$py"; then
+      py_cmd=""
+    fi
+  fi
+  if test -n "$py_cmd"; then
+    exec $py_cmd $PYTHON_CMD $0 $*
+  fi
+done
+echo "error: RTEMS Toolkit no valid python found"
+exit 5

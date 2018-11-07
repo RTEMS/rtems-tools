@@ -1,7 +1,7 @@
-#! /usr/bin/env python
+#! /bin/sh
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2017 Chris Johns (chrisj@rtems.org)
+# Copyright 2018 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -28,16 +28,15 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-
-import sys, os
-base = os.path.dirname(os.path.abspath(sys.argv[0]))
-parent = os.path.dirname(base)
-rtems = os.path.join(parent, 'share', 'rtems')
-sys.path = [parent, rtems, os.path.join(rtems, 'tester')] + sys.path
-
-try:
-    import rt.run
-    rt.run.run()
-except ImportError:
-    print >> sys.stderr, "Incorrect RTEMS Tools installation"
-    sys.exit(1)
+set -e
+base=$(dirname $(dirname $0))
+cmd=tester/rt/cmd-run.py
+PYTHON_WRAPPER=rtemstoolkit/python-wrapper.sh
+if test -f ${base}/${PYTHON_WRAPPER}; then
+  PYTHON_CMD=${base}/${cmd}
+  . ${base}/${PYTHON_WRAPPER}
+elif test -f ${base}/share/rtems/${PYTHON_WRAPPER}; then
+  PYTHON_CMD=${base}/share/rtems/${cmd}
+  . ${base}/share/rtems/${PYTHON_WRAPPER}
+fi
+echo "error: RTEMS Toolkit python wrapper not found, plrease report"

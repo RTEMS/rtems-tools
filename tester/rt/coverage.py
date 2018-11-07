@@ -47,7 +47,7 @@ from rtemstoolkit import execute
 from rtemstoolkit import macros
 
 
-from . import options
+import options
 
 class summary:
     def __init__(self, p_summary_dir):

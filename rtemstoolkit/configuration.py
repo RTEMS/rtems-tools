@@ -37,18 +37,20 @@ from __future__ import print_function
 import os
 import re
 
-try:
-    import configparser
-except:
-    import ConfigParser as configparser
-
 from rtemstoolkit import error
 from rtemstoolkit import path
 
 class configuration:
 
-    def __init__(self):
-        self.config = configparser.ConfigParser()
+    def __init__(self, raw = True):
+        self.raw = True
+        try:
+            import configparser
+            self.config = configparser.ConfigParser(strict = False)
+        except:
+            # python2
+            import ConfigParser as configparser
+            self.config = configparser.ConfigParser()
         self.ini = None
         self.macro_filter = re.compile('\$\{.+\}')
 
@@ -66,12 +68,15 @@ class configuration:
         for section in self.config.sections():
             s += [' [%s]' % (section)]
             for option in self.config.options(section):
-                s += ['  %s = %s' % (option, self.config.get(section, option))]
+                s += ['  %s = %s' % (option,
+                                     self.config.get(section,
+                                                     option,
+                                                     raw = self.raw))]
         return os.linesep.join(s)
 
     def get_item(self, section, label, err = True):
         try:
-            rec = self.config.get(section, label).replace(os.linesep, ' ')
+            rec = self.config.get(section, label, raw = self.raw).replace(os.linesep, ' ')
         except:
             if err:
                 raise error.general('config: no "%s" found in "%s"' % (label, section))
@@ -89,7 +94,8 @@ class configuration:
                 raise error.general('config: interpolation is ${section:value}: %s' % (m))
             try:
                 ref = self.config.get(section_value[0],
-                                      section_value[1]).replace(os.linesep, ' ')
+                                      section_value[1],
+                                      raw = self.raw).replace(os.linesep, ' ')
                 rec = rec.replace(m, ref)
             except:
                 pass
@@ -98,7 +104,7 @@ class configuration:
     def get_items(self, section, err = True, flatten = True):
         try:
             items = []
-            for name, key in self.config.items(section):
+            for name, key in self.config.items(section, raw = self.raw):
                 if flatten:
                     items += [(name, key.replace(os.linesep, ' '))]
                 else:
@@ -117,7 +123,7 @@ class configuration:
 
     def get_item_names(self, section, err = True):
         try:
-            return [item[0] for item in self.config.items(section)]
+            return [item[0] for item in self.config.items(section, raw = self.raw)]
         except:
             if err:
                 raise error.general('config: section "%s" not found' % (section))

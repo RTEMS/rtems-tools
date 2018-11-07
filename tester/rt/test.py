@@ -50,12 +50,12 @@ from rtemstoolkit import stacktraces
 from rtemstoolkit import version
 from rtemstoolkit import check
 
-from . import bsps
-from . import config
-from . import console
-from . import options
-from . import report
-from . import coverage
+import bsps
+import config
+import console
+import options
+import report
+import coverage
 
 class log_capture(object):
     def __init__(self):
@@ -216,7 +216,7 @@ def killall(tests):
     for test in tests:
         test.kill()
 
-def run(command_path = None):
+def run(args, command_path = None):
     import sys
     tests = []
     stdtty = console.save()
@@ -234,7 +234,7 @@ def run(command_path = None):
                     '--stacktrace':     'Dump a stack trace on a user termination (^C)',
                     '--coverage':       'Perform coverage analysis of test executables.'}
         mailer.append_options(optargs)
-        opts = options.load(sys.argv,
+        opts = options.load(args,
                             optargs = optargs,
                             command_path = command_path)
         mail = None

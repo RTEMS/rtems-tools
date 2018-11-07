@@ -58,7 +58,7 @@ def restore(attributes):
         termios.tcsetattr(sys.stdout, termios.TCSANOW, attributes[1])
         termios.tcsetattr(sys.stderr, termios.TCSANOW, attributes[2])
 
-class tty:
+class tty(object):
 
     raw = 'B115200,~BRKINT,IGNBRK,IGNCR,~ICANON,~ISIG,~IEXTEN,~ECHO,CLOCAL,~CRTSCTS'
 

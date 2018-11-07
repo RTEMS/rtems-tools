@@ -41,13 +41,13 @@ import time
 
 from rtemstoolkit import path
 
-from . import telnet
+import telnet
 
 #
 # Not available on Windows. Not sure what this means.
 #
 if os.name != 'nt':
-    from . import stty
+    import stty
 else:
     stty = None
 
@@ -107,6 +107,9 @@ class tty(console):
                 time.sleep(0.05)
                 try:
                     data = me.tty.read()
+                    if isinstance(data, bytes):
+                        data = data.decode('utf-8', 'ignore')
+                    data = [c for c in data if ord(c) < 128]
                 except IOError as ioe:
                     if ioe.errno == errno.EAGAIN:
                         continue

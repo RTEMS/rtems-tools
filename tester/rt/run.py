@@ -32,12 +32,8 @@ from __future__ import print_function
 
 import copy
 import datetime
-import fnmatch
-import os
-import re
 import sys
 import threading
-import time
 
 from rtemstoolkit import error
 from rtemstoolkit import host
@@ -46,11 +42,11 @@ from rtemstoolkit import path
 from rtemstoolkit import stacktraces
 from rtemstoolkit import version
 
-from . import bsps
-from . import config
-from . import console
-from . import options
-from . import report
+import bsps
+import config
+import console
+import options
+import report
 
 class test(object):
     def __init__(self, index, total, report, executable, rtems_tools, bsp, bsp_config, opts):
@@ -98,8 +94,7 @@ def list_bsps(opts):
         log.notice('  %s' % (path.basename(bsp[:-3])))
     raise error.exit()
 
-def run(command_path = None):
-    import sys
+def run(args, command_path = None):
     tests = []
     stdtty = console.save()
     opts = None
@@ -111,7 +106,7 @@ def run(command_path = None):
                     '--list-bsps':   'List the supported BSPs',
                     '--debug-trace': 'Debug trace based on specific flags',
                     '--stacktrace':  'Dump a stack trace on a user termination (^C)' }
-        opts = options.load(sys.argv,
+        opts = options.load(args,
                             optargs = optargs,
                             command_path = command_path)
         log.notice('RTEMS Testing - Run, %s' % (version.string()))

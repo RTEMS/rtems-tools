@@ -46,9 +46,9 @@ from rtemstoolkit import execute
 from rtemstoolkit import log
 from rtemstoolkit import path
 
-from . import console
-from . import gdb
-from . import tftp
+import console
+import gdb
+import tftp
 
 timeout = 15
 

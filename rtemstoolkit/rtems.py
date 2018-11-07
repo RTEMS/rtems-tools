@@ -62,15 +62,21 @@ def clean_windows_path():
         if 'msys' in cspath[0] and cspath[0].endswith('bin'):
             os.environ['PATH'] = os.pathsep.join(cspath[1:])
 
-def configuration_path():
+def configuration_path(prog = None):
     '''Return the path the configuration data path for RTEMS. The path is relative
     to the installed executable. Mangage the installed package and the in source
     tree when running from within the rtems-tools repo.
-
+    Note:
+     1. This code assumes the executable is wrapped and not using 'env'.
+     2. Ok to directly call os.path.
     '''
-    exec_name = os.path.abspath(sys.argv[0])
-    for top in [os.path.dirname(exec_name),
-                os.path.dirname(os.path.dirname(exec_name))]:
+    if prog is None:
+        exec_name = sys.argv[1]
+    else:
+        exec_name = prog
+    exec_name = os.path.abspath(exec_name)
+    for top in [os.path.dirname(os.path.dirname(exec_name)),
+                os.path.dirname(exec_name)]:
         config_path = path.join(top, 'share', 'rtems', 'config')
         if path.exists(config_path):
             break
@@ -80,21 +86,21 @@ def configuration_path():
         config_path = None
     return config_path
 
-def configuration_file(config):
+def configuration_file(config, prog = None):
     '''Return the path to a configuration file for RTEMS. The path is relative to
     the installed executable or we are testing and running from within the
     rtems-tools repo.
 
     '''
-    return path.join(configuration_path(), config)
+    return path.join(configuration_path(prog = prog), config)
 
-def bsp_configuration_file():
+def bsp_configuration_file(prog = None):
     '''Return the path to the BSP configuration file for RTEMS. The path is
     relative to the installed executable or we are testing and running from
     within the rtems-tools repo.
 
     '''
-    return configuration_file('rtems-bsps.ini')
+    return configuration_file('rtems-bsps.ini', prog = prog)
 
 class configuration:
 
@@ -227,13 +233,13 @@ class configuration:
         return ' '.join([self.config_flags('no-' + e) for e in self.excludes(arch, bsp)])
 
     def archs(self):
-        return sorted(self.archs.keys())
+        return sorted(list(self.archs.keys()))
 
     def arch_present(self, arch):
         return arch in self.archs
 
     def arch_excludes(self, arch):
-        excludes = self.archs[arch]['excludes'].keys()
+        excludes = list(self.archs[arch]['excludes'].keys())
         for exclude in self.archs[arch]['excludes']:
             if 'all' not in self.archs[arch]['excludes'][exclude]:
                 excludes.remove(exclude)
@@ -246,7 +252,7 @@ class configuration:
         return bsp in self.archs[arch]['bsps']
 
     def bsp_excludes(self, arch, bsp):
-        excludes = self.archs[arch]['excludes'].keys()
+        excludes = list(self.archs[arch]['excludes'].keys())
         for exclude in self.archs[arch]['excludes']:
             if 'all' not in self.archs[arch]['excludes'][exclude] and \
                bsp not in self.archs[arch]['excludes'][exclude]:
@@ -362,7 +368,7 @@ class configuration:
             s += os.linesep
         if architectures:
             s += textbox.line(cols_1, line = '=', marker = '+', indent = 1)
-            archs = sorted(self.archs.keys())
+            archs = sorted(list(self.archs.keys()))
             bsps = 0
             asize = 0
             for arch in archs:

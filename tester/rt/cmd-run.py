@@ -1,7 +1,6 @@
-#! /bin/sh
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2018 Chris Johns (chrisj@rtems.org)
+# Copyright 2017 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -28,15 +27,18 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 #
-set -e
-base=$(dirname $(dirname $0))
-cmd=tester/rt/cmd-test.py
-PYTHON_WRAPPER=rtemstoolkit/python-wrapper.sh
-if test -f ${base}/${PYTHON_WRAPPER}; then
-  PYTHON_CMD=${base}/${cmd}
-  . ${base}/${PYTHON_WRAPPER}
-elif test -f ${base}/share/rtems/${PYTHON_WRAPPER}; then
-  PYTHON_CMD=${base}/share/rtems/${cmd}
-  . ${base}/share/rtems/${PYTHON_WRAPPER}
-fi
-echo "error: RTEMS Toolkit python wrapper not found, plrease report"
+
+from __future__ import print_function
+
+import sys, os
+
+base = os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))
+rtems = os.path.dirname(base)
+sys.path = [rtems] + sys.path
+
+try:
+    import run
+    run.run(sys.argv[1:], command_path = base)
+except ImportError:
+    print("Incorrect RTEMS Tools installation", file = sys.stderr)
+    sys.exit(1)

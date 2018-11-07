@@ -78,6 +78,8 @@ def _output(text = os.linesep, log = None):
         text = os.linesep
     if type(text) is list:
         text = os.linesep.join(text) + os.linesep
+    if isinstance(text, bytes):
+        text = text.decode('utf-8', 'ignore')
     if log:
         log.output(text)
     elif default is not None:
@@ -175,6 +177,8 @@ class log:
         text = text.replace(chr(13), '').splitlines()
         self._tail(text)
         out = os.linesep.join(text) + os.linesep
+        if isinstance(out, bytes):
+            out = out.decode('utf-8', 'ignore')
         self.lock.acquire()
         try:
             for f in range(0, len(self.fhs)):
