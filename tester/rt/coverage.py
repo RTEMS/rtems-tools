@@ -201,23 +201,14 @@ class report_gen_html:
         index_content = self._prepare_index_content(partial_reports)
         self._create_index_file(head_section,index_content)
 
-    def add_covoar_src_path(self):
+    def add_covoar_css(self):
         table_js_path = path.join(self.covoar_src_path, 'table.js')
         covoar_css_path = path.join(self.covoar_src_path, 'covoar.css')
         for symbol_set in self.symbol_sets:
             symbol_set_dir = path.join(self.build_dir,
                                        self.bsp + '-coverage', symbol_set)
-            html_files = os.listdir(symbol_set_dir)
-            for html_file in html_files:
-                html_file = path.join(symbol_set_dir, html_file)
-                if path.exists(html_file) and 'html' in html_file:
-                    with open(html_file, 'r') as f:
-                        file_data = f.read()
-                    file_data = file_data.replace('table.js', table_js_path)
-                    file_data = file_data.replace('covoar.css',
-                                                  covoar_css_path)
-                    with open(html_file, 'w') as f:
-                        f.write(file_data)
+            path.copy_tree(covoar_css_path, symbol_set_dir)
+            path.copy_tree(table_js_path, symbol_set_dir)
 
 class build_path_generator(object):
     '''
@@ -402,7 +393,7 @@ class coverage_run(object):
                                      self.rtdir,
                                      self.macros['bsp'])
             report.generate()
-            report.add_covoar_src_path()
+            report.add_covoar_css()
 
     def _cleanup(self):
         if not self.no_clean:
