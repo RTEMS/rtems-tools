@@ -31,7 +31,11 @@ $1 ~ "Data:"  {
 	}
     }
 $1 ~ "Machine:" {
-        if (match($0, "Intel.*386")) {
+        if (match($0, "ARM")) {
+            elfarch = "EM_ARM";
+        } else if (match($0, "AArch64")) {
+            elfarch = "EM_AARCH64";
+        } else if (match($0, "Intel.*386")) {
             elfarch = "EM_386";
         } else if (match($0, "MIPS")) {
             elfarch = "EM_MIPS";
