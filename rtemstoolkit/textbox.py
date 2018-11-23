@@ -39,19 +39,12 @@ from __future__ import print_function
 import copy
 import os
 
-#
-# Support to handle use in a package and as a unit test.
-# If there is a better way to let us know.
-#
-try:
-    from . import error
-except (ValueError, SystemError):
-    import error
+from rtemstoolkit import error
 
 def line(cols, line = '-', marker = '|', indent = 0, linesep = os.linesep):
     s = ' ' * indent + marker
     for c in cols:
-        s += line[0] * (c - 1) + marker
+        s += line[0] * int((c - 1)) + marker
     return s + linesep
 
 def row(cols, data, indent = 0, marker = '|', linesep = os.linesep):
@@ -64,13 +57,13 @@ def row(cols, data, indent = 0, marker = '|', linesep = os.linesep):
             m = marker
         else:
             m = '|'
-        s += '%-*s%s' % (cols[c] - 1, str(data[c]), m)
+        s += '%-*s%s' % (int(cols[c] - 1), str(data[c]), m)
     return s + linesep
 
 def even_columns(cols, width = 80):
     per_col = width / cols
     columns = [per_col for c in range(0, cols)]
-    for remainder in range(0, width - (per_col * cols)):
+    for remainder in range(0, int(width - (per_col * cols))):
         if remainder % 2 == 0:
             columns[remainder] += 1
         else:

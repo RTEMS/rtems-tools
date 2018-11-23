@@ -28,8 +28,28 @@ Building
 
 To build and install:
 
- $ ./waf configure --prefix=$HOME/development/rtems/4.11
+ $ ./waf configure --prefix=$HOME/development/rtems/5
  $ ./waf build install
+
+Testing
+-------
+
+To the run the tests build then enter:
+
+ $ ./waf test
+
+Python
+------
+
+The RTEMS Tools supports python3 and python2. The commands look for python3,
+then python2 and finally python and use the first it finds.
+
+You can forced a specific version for testing by setting the environment
+variable 'RTEMS_PYTHON_OVERRIDE' to the python you want to use. For example:
+
+ $ export RTEMS_PYTHON_OVERRIDE=python2
+
+will use python2.
 
 Waf
 ---
@@ -37,8 +57,3 @@ Waf
 The Waf project can be found here:
 
  http://code.google.com/p/waf/
-
-Simple instructions on How to set up Waf is here:
-
- http://www.rtems.org/ftp/pub/rtems/people/chrisj/rtl/rtems-linker/waf.html
-

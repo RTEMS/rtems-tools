@@ -38,18 +38,9 @@ import os
 import smtplib
 import socket
 
-#
-# Support to handle use in a package and as a unit test.
-# If there is a better way to let us know.
-#
-try:
-    from . import error
-    from . import options
-    from . import path
-except (ValueError, SystemError):
-    import error
-    import options
-    import path
+from rtemstoolkit import error
+from rtemstoolkit import options
+from rtemstoolkit import path
 
 _options = {
     '--mail'     : 'Send email report or results.',
@@ -161,10 +152,19 @@ class mail:
 
 if __name__ == '__main__':
     import sys
+    from rtemstoolkit import macros
     optargs = {}
+    rtdir = 'rtemstoolkit'
+    defaults = '%s/defaults.mc' % (rtdir)
     append_options(optargs)
-    opts = options.load(sys.argv, optargs = optargs, defaults = 'defaults.mc')
+    opts = options.command_line(base_path = '.',
+                                argv = sys.argv,
+                                optargs = optargs,
+                                defaults = macros.macros(name = defaults, rtdir = rtdir),
+                                command_path = '.')
+    options.load(opts)
     m = mail(opts)
     print('From: %s' % (m.from_address()))
     print('SMTP Host: %s' % (m.smtp_host()))
-    m.send(m.from_address(), 'Test mailer.py', 'This is a test')
+    if '--mail' in sys.argv:
+        m.send(m.from_address(), 'Test mailer.py', 'This is a test')

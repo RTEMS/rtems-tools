@@ -41,16 +41,8 @@ import os
 import shutil
 import string
 
-#
-# Support to handle use in a package and as a unit test.
-# If there is a better way to let us know.
-#
-try:
-    from . import error
-    from . import log
-except (ValueError, SystemError):
-    import error
-    import log
+from rtemstoolkit import error
+from rtemstoolkit import log
 
 windows = os.name == 'nt'
 

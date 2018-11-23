@@ -88,19 +88,10 @@ try:
 except ImportError:
     import ConfigParser as configparser
 
-#
-# Support to handle importing when installed in a package and as a unit test.
-# If there is a better way to let us know.
-#
-try:
-    from . import error
-    from . import git
-    from . import rtems
-except (ValueError, SystemError):
-    import error
-    import git
-    import path
-    import rtems
+from rtemstoolkit import error
+from rtemstoolkit import git
+from rtemstoolkit import path
+from rtemstoolkit import rtems
 
 #
 # Default to an internal string.

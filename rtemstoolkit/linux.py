@@ -36,16 +36,8 @@
 import os
 import platform
 
-#
-# Support to handle use in a package and as a unit test.
-# If there is a better way to let us know.
-#
-try:
-    from . import execute
-    from . import path
-except (ValueError, SystemError):
-    import execute
-    import path
+from rtemstoolkit import execute
+from rtemstoolkit import path
 
 def cpus():
     processors = '/bin/grep processor /proc/cpuinfo'

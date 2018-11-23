@@ -35,16 +35,8 @@
 
 import os
 
-#
-# Support to handle use in a package and as a unit test.
-# If there is a better way to let us know.
-#
-try:
-    from . import check
-    from . import execute
-except (ValueError, SystemError):
-    import check
-    import execute
+from rtemstoolkit import check
+from rtemstoolkit import execute
 
 def cpus():
     sysctl = '/sbin/sysctl '

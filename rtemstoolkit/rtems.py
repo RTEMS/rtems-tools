@@ -71,7 +71,10 @@ def configuration_path(prog = None):
      2. Ok to directly call os.path.
     '''
     if prog is None:
-        exec_name = sys.argv[1]
+        if len(sys.argv) == 1:
+            exec_name = sys.argv[0]
+        else:
+            exec_name = sys.argv[1]
     else:
         exec_name = prog
     exec_name = os.path.abspath(exec_name)

@@ -38,14 +38,7 @@ import os
 import sys
 import threading
 
-#
-# Support to handle use in a package and as a unit test.
-# If there is a better way to let us know.
-#
-try:
-    from . import error
-except (ValueError, SystemError):
-    import error
+from rtemstoolkit import error
 
 #
 # A global log.

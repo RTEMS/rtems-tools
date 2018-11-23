@@ -31,20 +31,10 @@
 
 import os
 
-#
-# Support to handle use in a package and as a unit test.
-# If there is a better way to let us know.
-#
-try:
-    from . import error
-    from . import execute
-    from . import log
-    from . import path
-except (ValueError, SystemError):
-    import error
-    import execute
-    import log
-    import path
+from rtemstoolkit import error
+from rtemstoolkit import execute
+from rtemstoolkit import log
+from rtemstoolkit import path
 
 class repo:
     """An object to manage a git repo."""
@@ -220,7 +210,7 @@ class repo:
 
 if __name__ == '__main__':
     import sys
-    import options
+    from rtemstoolkit import options
     long_opts = {
        # key              macro        handler   param  defs   init
     }

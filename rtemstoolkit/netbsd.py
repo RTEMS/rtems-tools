@@ -26,12 +26,8 @@
 
 import os
 
-try:
-    from . import check
-    from . import execute
-except (ValueError, SystemError):
-    import check
-    import execute
+from rtemstoolkit import check
+from rtemstoolkit import execute
 
 def cpus():
     sysctl = '/sbin/sysctl '

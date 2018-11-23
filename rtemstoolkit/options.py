@@ -42,28 +42,14 @@ import os
 import string
 import sys
 
-#
-# Support to handle use in a package and as a unit test.
-# If there is a better way to let us know.
-#
-try:
-    from . import error
-    from . import execute
-    from . import git
-    from . import host
-    from . import log
-    from . import macros
-    from . import path
-    from . import version
-except (ValueError, SystemError):
-    import error
-    import execute
-    import git
-    import host
-    import log
-    import macros
-    import path
-    import version
+from rtemstoolkit import error
+from rtemstoolkit import execute
+from rtemstoolkit import git
+from rtemstoolkit import host
+from rtemstoolkit import log
+from rtemstoolkit import macros
+from rtemstoolkit import path
+from rtemstoolkit import version
 
 basepath = 'tb'
 

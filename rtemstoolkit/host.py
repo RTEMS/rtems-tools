@@ -36,14 +36,7 @@ from __future__ import print_function
 
 import os
 
-#
-# Support to handle use in a package and as a unit test.
-# If there is a better way to let us know.
-#
-try:
-    from . import error
-except (ValueError, SystemError):
-    import error
+from rtemstoolkit import error
 
 is_windows = False
 platform = None
@@ -113,7 +106,6 @@ def label(mode = 'all'):
 
 if __name__ == '__main__':
     import pprint
-    pprint.pprint(platform())
     _load()
     print('Name      : %s' % (name))
     if is_windows:

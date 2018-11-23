@@ -44,24 +44,12 @@ import os
 import re
 import sys
 
-#
-# Support to handle use in a package and as a unit test.
-# If there is a better way to let us know.
-#
-try:
-    from . import error
-    from . import execute
-    from . import host
-    from . import log
-    from . import options
-    from . import path
-except (ValueError, SystemError):
-    import error
-    import execute
-    import host
-    import log
-    import options
-    import path
+from rtemstoolkit import error
+from rtemstoolkit import execute
+from rtemstoolkit import host
+from rtemstoolkit import log
+from rtemstoolkit import options
+from rtemstoolkit import path
 
 def _check_bool(value):
     if value.isdigit():

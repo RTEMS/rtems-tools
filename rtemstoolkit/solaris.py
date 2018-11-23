@@ -24,14 +24,9 @@
 
 import os
 
-try:
-    from . import check
-    from . import error
-    from . import execute
-except (ValueError, SystemError):
-    import check
-    import error
-    import execute
+from rtemstoolkit import check
+from rtemstoolkit import error
+from rtemstoolkit import execute
 
 def cpus():
     psrinfo = '/sbin/psrinfo|wc -l'

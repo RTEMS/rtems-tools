@@ -34,16 +34,8 @@
 
 import os
 
-#
-# Support to handle use in a package and as a unit test.
-# If there is a better way to let us know.
-#
-try:
-    from . import error
-    from . import execute
-except (ValueError, SystemError):
-    import error
-    import execute
+from rtemstoolkit import error
+from rtemstoolkit import execute
 
 def cpus():
     if os.environ.has_key('NUMBER_OF_PROCESSORS'):

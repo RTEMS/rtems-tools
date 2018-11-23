@@ -36,24 +36,12 @@ from __future__ import print_function
 
 import os
 
-#
-# Support to handle use in a package and as a unit test.
-# If there is a better way to let us know.
-#
-try:
-    from . import error
-    from . import execute
-    from . import log
-    from . import options
-    from . import path
-    from . import version
-except (ValueError, SystemError):
-    import error
-    import execute
-    import log
-    import options
-    import path
-    import version
+from rtemstoolkit import error
+from rtemstoolkit import execute
+from rtemstoolkit import log
+from rtemstoolkit import options
+from rtemstoolkit import path
+from rtemstoolkit import version
 
 def _check_none(_opts, macro, value, constraint):
     return True
@@ -163,12 +151,12 @@ def check_dir(label, path):
     return _check_dir(None, label, path, 'required', True)
 
 
-def run():
+def run(args):
     import sys
     try:
-        _opts = options.command_line(argv = sys.argv)
+        _opts = options.command_line(argv = args)
         options.load(_opts)
-        log.notice('RTEMS Source Builder - Check, v%s' % (version.string()))
+        log.notice('RTEMS Toolkit - Check, v%s' % (version.string()))
         if host_setup(_opts):
             print('Environment is ok')
         else:
@@ -188,4 +176,4 @@ def run():
 
 
 if __name__ == '__main__':
-    run()
+    run(['tester'])

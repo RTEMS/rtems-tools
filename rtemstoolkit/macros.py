@@ -40,18 +40,9 @@ import re
 import os
 import string
 
-#
-# Support to handle use in a package and as a unit test.
-# If there is a better way to let us know.
-#
-try:
-    from . import error
-    from . import log
-    from . import path
-except (ValueError, SystemError):
-    import error
-    import log
-    import path
+from rtemstoolkit import error
+from rtemstoolkit import log
+from rtemstoolkit import path
 
 #
 # Macro tables

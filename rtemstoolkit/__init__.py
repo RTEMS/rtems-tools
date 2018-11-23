@@ -46,20 +46,12 @@ all = ['check',
        'textbox',
        'version']
 
-from . import check
-from . import config
-from . import configuration
-from . import error
-from . import execute
-from . import git
-from . import host
-from . import log
-from . import macros
-from . import mailer
-from . import options
-from . import path
-from . import reraise
-from . import rtems
-from . import stacktraces
-from . import textbox
-from . import version
+args = {
+    'config': ['--file', 'tester/rtems/version.cfg',
+               '--jobs', 'half',
+               '--no-clean'],
+    'mailer': ['--smtp-host', '1.2.3.4',
+               '--mail-to',   'foo@bar.none',
+               '--mail-from', 'me@here.there']
+
+}
