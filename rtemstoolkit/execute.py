@@ -46,16 +46,8 @@ import threading
 import time
 import traceback
 
-#
-# Support to handle use in a package and as a unit test.
-# If there is a better way to let us know.
-#
-try:
-    from . import error
-    from . import log
-except (ValueError, SystemError):
-    import error
-    import log
+from rtemstoolkit import error
+from rtemstoolkit import log
 
 # Trace exceptions
 trace_threads = False
@@ -196,22 +188,34 @@ class execute(object):
                 while True:
                     #
                     # The io module file handling return up to the size passed
-                    # in.
+                    # in to the read call. The io handle has the default
+                    # buffering size. On any error assume the handle has gone
+                    # and the process is shutting down.
                     #
-                    data = fh.read(4096)
+                    try:
+                        data = fh.read(4096)
+                    except:
+                        data = ''
                     if len(data) == 0:
+                        if len(line) > 0:
+                            _output_line(l + '\n', exe, prefix, out, count)
                         break
                     # str and bytes are the same type in Python2
                     if type(data) is not str and type(data) is bytes:
                         data = data.decode(sys.stdout.encoding)
-                    for c in data:
-                        line += c
-                        if c == '\n':
+                    last_ch = data[-1]
+                    sd = (line + data).split('\n')
+                    if last_ch != '\n':
+                        line = sd[-1]
+                    else:
+                        line = ''
+                    sd = sd[:-1]
+                    if len(sd) > 0:
+                        for l in sd:
+                            _output_line(l + '\n', exe, prefix, out, count)
                             count += 1
-                            _output_line(line, exe, prefix, out, count)
-                            if count > 10:
-                                count = 0
-                            line = ''
+                        if count > 10:
+                            count -= 10
             except:
                 raise
                 if trace_threads:
@@ -262,7 +266,6 @@ class execute(object):
                                              args = (self,
                                                      io.open(proc.stdout.fileno(),
                                                              mode = 'rb',
-                                                             buffering = 0,
                                                              closefd = False),
                                                      self.output,
                                                      ''))
@@ -274,7 +277,6 @@ class execute(object):
                                              args = (self,
                                                      io.open(proc.stderr.fileno(),
                                                              mode = 'rb',
-                                                             buffering = 0,
                                                              closefd = False),
                                                      self.output,
                                                      self.error_prefix))
@@ -374,7 +376,8 @@ class execute(object):
             proc = subprocess.Popen(command, shell = shell,
                                     cwd = cwd, env = env,
                                     stdin = stdin, stdout = stdout,
-                                    stderr = stderr)
+                                    stderr = stderr,
+                                    close_fds = False)
             if not capture:
                 return (0, proc)
             if self.output is None:
