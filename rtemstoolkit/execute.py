@@ -148,6 +148,7 @@ class execute(object):
                             if encoding:
                                 lines = bytes(lines, sys.stdin.encoding)
                             fh.write(lines)
+                            fh.flush()
                         except:
                             break
                     if lines == None or \
@@ -193,12 +194,12 @@ class execute(object):
                     # and the process is shutting down.
                     #
                     try:
-                        data = fh.read(4096)
+                        data = fh.read1(4096)
                     except:
                         data = ''
                     if len(data) == 0:
                         if len(line) > 0:
-                            _output_line(l + '\n', exe, prefix, out, count)
+                            _output_line(line + '\n', exe, prefix, out, count)
                         break
                     # str and bytes are the same type in Python2
                     if type(data) is not str and type(data) is bytes:
