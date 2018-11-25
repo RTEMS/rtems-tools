@@ -288,19 +288,20 @@ class covoar(object):
     '''
     Covoar runner
     '''
-    def __init__(self, base_result_dir, config_dir, executables, explanations_txt, trace):
+    def __init__(self, base_result_dir, config_dir, executables, explanations_txt, trace, prefix):
         self.base_result_dir = base_result_dir
         self.config_dir = config_dir
         self.executables = ' '.join(executables)
         self.explanations_txt = explanations_txt
         self.project_name = 'RTEMS-5'
         self.trace = trace
+        self.prefix = prefix
 
     def _find_covoar(self):
         covoar_exe = 'covoar'
         tester_dir = path.dirname(path.abspath(sys.argv[0]))
         base = path.dirname(tester_dir)
-        exe = path.join(base, 'bin', covoar_exe)
+        exe = path.join(self.prefix, 'share', 'rtems', 'tester', 'bin', covoar_exe)
         if path.isfile(exe):
             return exe
         exe = path.join(base, 'build', 'tester', 'covoar', covoar_exe)
@@ -336,7 +337,7 @@ class coverage_run(object):
     '''
     Coverage analysis support for rtems-test
     '''
-    def __init__(self, macros_, executables, symbol_set = None, trace = False):
+    def __init__(self, macros_, executables, prefix, symbol_set = None, trace = False):
         '''
         Constructor
         '''
@@ -361,6 +362,7 @@ class coverage_run(object):
         self.symbol_set = symbol_set
         self.target = self.macros['target']
         self.bsp_name = self.macros['bsp'].split('-')[0]
+        self.prefix = prefix
 
     def run(self):
         try:
@@ -377,8 +379,9 @@ class coverage_run(object):
             for sset in symbol_sets:
                 parser.write_ini(sset)
                 covoar_runner = covoar(self.test_dir, self.symbol_select_path,
-                                   self.executables, self.explanations_txt,
-                                   self.trace)
+                                       self.executables, self.explanations_txt,
+                                       self.trace,
+                                       self.prefix)
                 covoar_runner.run(sset, self.symbol_select_path)
             self._generate_reports(symbol_sets);
             self._summarize();

@@ -125,6 +125,7 @@ def build(bld):
     bld.program(target = 'covoar',
                 source = ['covoar.cc'],
                 use = ['ccovoar'] + modules,
+                install_path = '${PREFIX}/share/rtems/tester/bin',
                 cflags = ['-O2', '-g'],
                 cxxflags = ['-std=c++11', '-O2', '-g'],
                 includes = ['.'] + rtl_includes)

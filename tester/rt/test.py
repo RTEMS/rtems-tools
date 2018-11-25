@@ -290,11 +290,13 @@ def run(args, command_path = None):
             if len(coverage_enabled) == 2:
                 coverage_runner = coverage.coverage_run(opts.defaults,
                                                         executables,
+                                                        rtems_tools,
                                                         symbol_set = coverage_enabled[1],
                                                         trace = cov_trace)
             else:
                 coverage_runner = coverage.coverage_run(opts.defaults,
                                                         executables,
+                                                        rtems_tools,
                                                         trace = cov_trace)
         report_mode = opts.find_arg('--report-mode')
         if report_mode:
