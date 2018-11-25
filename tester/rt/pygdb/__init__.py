@@ -18,5 +18,4 @@
 
 all = ['mi_parser']
 from . import mi_parser
-scan = mi_parser.scan
-process = mi_parser.process
+session = mi_parser.session

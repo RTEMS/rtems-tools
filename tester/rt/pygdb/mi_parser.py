@@ -35,28 +35,48 @@ import pprint
 
 from . import spark
 
-def __private():
-	class Token:
+def _private():
+	class Token(object):
 		def __init__(self, type, value=None):
 			self.type = type
 			self.value = value
-		def __cmp__(self, o):
-			return cmp(self.type, o)
+		def __lt__(self, o):
+			return self.type < o
+		def __gt__(self, o):
+			return self.type > o
+		def __le__(self, o):
+			return self.type <= o
+		def __ge__(self, o):
+			return self.type >= o
+		def __eq__(self, o):
+			return self.type == o
+		def __ne__(self, o):
+			return self.type != o
 		def __repr__(self):
 			return self.value or self.type
 
-	class AST:
+	class AST(object):
 		def __init__(self, type):
 			self.type = type
 			self._kids = []
 		def __getitem__(self, i):
 			return self._kids[i]
+		def __setitem__(self, i, k):
+			self._kids[i] = k
 		def __len__(self):
 			return len(self._kids)
-		def __setslice__(self, low, high, seq):
-			self._kids[low:high] = seq
-		def __cmp__(self, o):
-			return cmp(self.type, o)
+		def __lt__(self, o):
+			return self.type < o
+		def __gt__(self, o):
+			return self.type > o
+		def __le__(self, o):
+			return self.type <= o
+		def __ge__(self, o):
+			return self.type >= o
+		def __eq__(self, o):
+			return self.type == o
+		def __ne__(self, o):
+			return self.type != o
 
 	class GdbMiScannerBase(spark.GenericScanner):
 		def tokenize(self, input):
@@ -300,7 +320,7 @@ def __private():
 		#def default(self, node):
 			#print 'default: ' + node.type
 
-	class GdbDynamicObject:
+	class GdbDynamicObject(object):
 		def __init__(self, dict_):
 			self.graft(dict_)
 
@@ -355,20 +375,29 @@ def __private():
 
 	return (GdbMiScanner(), GdbMiParser(), GdbMiInterpreter, GdbMiRecord)
 
-(__the_scanner, __the_parser, __the_interpreter, __the_output) = __private()
 
-def scan(input):
-	return __the_scanner.tokenize(input)
+class session(object):
+        def __init__(self):
+                (self.the_scanner,
+                 self.the_parser,
+                 self.the_interpreter,
+                 self.the_output) = _private()
 
-def parse(tokens):
-	return __the_parser.parse(tokens)
+        def scan(self, input):
+	        return self.the_scanner.tokenize(input)
 
-def process(input):
-	tokens = scan(input)
-	ast = parse(tokens)
-	__the_interpreter(ast)
-	return __the_output(ast.value)
+        def parse(self, tokens):
+	        return self.the_parser.parse(tokens)
 
+        def process(self, input):
+	        tokens = self.scan(input)
+	        ast = self.parse(tokens)
+	        self.the_interpreter(ast)
+	        return self.the_output(ast.value)
+
+#
+# Not updated with the session class
+#
 if __name__ == '__main__':
 	def main():
 		def print_tokens(tokens):

@@ -51,15 +51,11 @@ from rtemstoolkit import path
 import console
 import pygdb
 
-#
-# The MI parser needs a global lock. It has global objects.
-#
-mi_lock = threading.Lock()
-
 class gdb(object):
     '''RTEMS Testing GDB base.'''
 
     def __init__(self, bsp_arch, bsp, trace = False, mi_trace = False):
+        self.session = pygdb.mi_parser.session()
         self.trace = trace
         self.mi_trace = mi_trace
         self.lock_trace = False
@@ -89,12 +85,6 @@ class gdb(object):
         if self.lock_trace:
             print('|] UNLOCK:%s [|' % (msg))
         self.lock.release()
-
-    def _mi_lock(self):
-        mi_lock.acquire()
-
-    def _mi_unlock(self):
-        mi_lock.release()
 
     def _put(self, text):
         if self.trace:
@@ -208,15 +198,12 @@ class gdb(object):
                                            cleanup = self._cleanup)
         finally:
             self._unlock('_open')
-        try:
-            self.gdb_console('gdb: %s' % (' '.join(cmds)))
-            ec, proc = self.process.open(cmds, timeout = (timeout, self._timeout))
-            if self.trace:
-                print('gdb done', ec)
-            if ec > 0:
-                raise error.general('gdb exec: %s: %s' % (cmds[0], os.strerror(ec)))
-        except:
-            raise
+        self.gdb_console('gdb: %s' % (' '.join(cmds)))
+        ec, proc = self.process.open(cmds, timeout = (timeout, self._timeout))
+        if self.trace:
+            print('gdb done', ec)
+        if ec > 0:
+            raise error.general('gdb exec: %s: %s' % (cmds[0], os.strerror(ec)))
         self._lock('_open')
         try:
             self.process = None
@@ -248,13 +235,9 @@ class gdb(object):
 
     def gdb_parse(self, lines):
         try:
-            self._mi_lock()
-            try:
-                if self.mi_trace:
-                    print('mi-data:', lines)
-                rec = pygdb.mi_parser.process(lines)
-            finally:
-                self._mi_unlock()
+            if self.mi_trace:
+                print('mi-data:', lines)
+            rec = self.session.process(lines)
             if self.mi_trace:
                 print('mi-rec:', rec)
             if rec.record_type == 'result':
@@ -302,7 +285,7 @@ class gdb(object):
                         self.output_buffer = self.output_buffer[last_lf + 1:]
         except:
             if self.trace:
-                print('/// console output')
+                print('/// exception: console output')
             for line in lines.splitlines():
                 self.output(line)
 
