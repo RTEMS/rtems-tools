@@ -152,7 +152,10 @@ class repo:
 
     def dirty(self):
         _status = self.status()
-        return not (len(_status) == 1 and 'branch' in _status)
+        status_keys = list(_status.keys())
+        if 'untracked' in status_keys:
+            status_keys.remove('untracked')
+        return not (len(status_keys) == 1 and 'branch' in _status)
 
     def valid(self):
         if path.exists(self.path):
