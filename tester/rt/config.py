@@ -349,52 +349,56 @@ class file(config.file):
         self.load(self.name)
 
     def capture(self, text):
-        if not self.test_started:
-            s = text.find('*** BEGIN OF TEST ')
-            if s >= 0:
-                self.test_started = True
-                e = text[s + 3:].find('***')
-                if e >= 0:
-                    self.test_label = text[s + len('*** BEGIN OF TEST '):s + e + 3 - 1]
-                self.capture_console('test start: %s' % (self.test_label))
-        ok_to_kill = '*** TEST STATE: USER_INPUT' in text or \
-                     '*** TEST STATE: BENCHMARK' in text
-        if ok_to_kill:
-            reset_target = True
-        else:
-            reset_target = False
-        if self.test_started and self.target_start_regx is not None:
-            if self.target_start_regx.match(text):
-                self.capture_console('target start detected')
-                ok_to_kill = True
-        if not reset_target and self.target_reset_regx is not None:
-            if self.target_reset_regx.match(text):
-                self.capture_console('target reset condition detected')
-                self._target_command('reset')
-        if self.kill_on_end:
-            if not ok_to_kill and '*** END OF TEST ' in text:
-                self.capture_console('test end: %s' % (self.test_label))
-                if self.test_label is not None:
-                    ok_to_kill = '*** END OF TEST %s ***' % (self.test_label) in text
-        text = [(self.console_prefix, l) for l in text.replace(chr(13), '').splitlines()]
         self._lock()
-        if self.output is not None:
-            if self.realtime_trace:
-                self._realtime_trace(text)
-            self.output += text
-        if reset_target:
-            if self.index == self.total:
-                self._target_command('off')
+        try:
+            if not self.test_started:
+                s = text.find('*** BEGIN OF TEST ')
+                if s >= 0:
+                    self.test_started = True
+                    e = text[s + 3:].find('***')
+                    if e >= 0:
+                        self.test_label = text[s + len('*** BEGIN OF TEST '):s + e + 3 - 1]
+                    self._capture_console('test start: %s' % (self.test_label))
+            ok_to_kill = '*** TEST STATE: USER_INPUT' in text or \
+                         '*** TEST STATE: BENCHMARK' in text
+            if ok_to_kill:
+                reset_target = True
             else:
-                self._target_command('reset')
-        self._unlock()
+                reset_target = False
+            if self.test_started and self.target_start_regx is not None:
+                if self.target_start_regx.match(text):
+                    self._capture_console('target start detected')
+                    ok_to_kill = True
+            if not reset_target and self.target_reset_regx is not None:
+                if self.target_reset_regx.match(text):
+                    self._capture_console('target reset condition detected')
+                    self._target_command('reset')
+            if self.kill_on_end:
+                if not ok_to_kill and '*** END OF TEST ' in text:
+                    self._capture_console('test end: %s' % (self.test_label))
+                    if self.test_label is not None:
+                        ok_to_kill = '*** END OF TEST %s ***' % (self.test_label) in text
+            text = [(self.console_prefix, l) for l in text.replace(chr(13), '').splitlines()]
+            if self.output is not None:
+                if self.realtime_trace:
+                    self._realtime_trace(text)
+                self.output += text
+            if reset_target:
+                if self.index == self.total:
+                    self._target_command('off')
+                else:
+                    self._target_command('reset')
+        finally:
+            self._unlock()
         if ok_to_kill:
             self._ok_kill()
 
     def capture_console(self, text):
         self._lock()
-        self._capture_console(text)
-        self._unlock()
+        try:
+            self._capture_console(text)
+        finally:
+            self._unlock()
 
     def exe_trace(self, flag):
         dt = self.macros['exe_trace']

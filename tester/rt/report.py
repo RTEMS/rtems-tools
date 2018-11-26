@@ -32,6 +32,8 @@
 # RTEMS Testing Reports
 #
 
+from __future__ import print_function
+
 import datetime
 import os
 import threading
@@ -147,88 +149,92 @@ class report(object):
                         tools = banner[11:].strip()
             prefixed_output += [line[0] + ' ' + line[1]]
         self.lock.acquire()
-        if name not in self.results:
-            self.lock.release()
-            raise error.general('test report missing: %s' % (name))
-        if self.results[name]['end'] is not None:
-            self.lock.release()
-            raise error.general('test already finished: %s' % (name))
-        self.results[name]['end'] = datetime.datetime.now()
-        if version:
-            if 'version' not in self.config:
-                self.config['version'] = version
-            else:
-                if version != self.config['version']:
-                    state = 'WRONG-VERSION'
-        if build:
-            if 'build' not in self.config:
-                self.config['build'] = build
-            else:
-                if build != self.config['build']:
-                    state = 'WRONG-BUILD'
-        if tools:
-            if 'tools' not in self.config:
-                self.config['tools'] = tools
-            else:
-                if tools != self.config['tools']:
-                    state = 'WRONG-TOOLS'
-        if state is None or state == 'EXPECTED-PASS':
-            if start and end:
-                if state is None or state == 'EXPECTED-PASS':
-                    status = 'passed'
-                    self.passed += 1
-            elif timeout:
-                status = 'timeout'
-                self.timeouts += 1
-            elif start:
-                if not end:
-                    status = 'failed'
-                    self.failed += 1
-            else:
-                exe_name = path.basename(name).split('.')[0]
-                if exe_name in test_fail_excludes:
-                    status = 'passed'
-                    self.passed += 1
-                else:
-                    status = 'invalid'
-                    self.invalids += 1
-        else:
-            if state == 'EXPECTED_FAIL':
+        try:
+            if name not in self.results:
+                raise error.general('test report missing: %s' % (name))
+            if self.results[name]['end'] is not None:
+                raise error.general('test already finished: %s' % (name))
+            self.results[name]['end'] = datetime.datetime.now()
+            if state is not None and state not in ['BENCHMARK',
+                                                   'EXPECTED_FAIL',
+                                                   'INDETERMINATE',
+                                                   'USER_INPUT']:
+                if version:
+                    if 'version' not in self.config:
+                        self.config['version'] = version
+                    else:
+                        if version != self.config['version']:
+                            state = 'WRONG-VERSION'
+                if build:
+                    if 'build' not in self.config:
+                        self.config['build'] = build
+                    else:
+                        if build != self.config['build']:
+                            state = 'WRONG-BUILD'
+                if tools:
+                    if 'tools' not in self.config:
+                        self.config['tools'] = tools
+                    else:
+                        if tools != self.config['tools']:
+                            state = 'WRONG-TOOLS'
+            if state is None or state == 'EXPECTED-PASS':
                 if start and end:
-                    status = 'passed'
-                    self.passed += 1
+                    if state is None or state == 'EXPECTED-PASS':
+                        status = 'passed'
+                        self.passed += 1
+                elif timeout:
+                    status = 'timeout'
+                    self.timeouts += 1
+                elif start:
+                    if not end:
+                        status = 'failed'
+                        self.failed += 1
                 else:
-                    status = 'expected-fail'
-                    self.expected_fail += 1
-            elif state == 'USER_INPUT':
-                status = 'user-input'
-                self.user_input += 1
-            elif state == 'INDETERMINATE':
-                if start and end:
-                    status = 'passed'
-                    self.passed += 1
-                else:
-                    status = 'indeterminate'
-                    self.indeterminate += 1
-            elif state == 'BENCHMARK':
-                status = 'benchmark'
-                self.benchmark += 1
-            elif state == 'WRONG-VERSION':
-                status = 'wrong-version'
-                self.wrong_version += 1
-            elif state == 'WRONG-BUILD':
-                status = 'wrong-build'
-                self.wrong_build += 1
-            elif state == 'WRONG-TOOLS':
-                status = 'wrong-tools'
-                self.wrong_tools += 1
+                    exe_name = path.basename(name).split('.')[0]
+                    if exe_name in test_fail_excludes:
+                        status = 'passed'
+                        self.passed += 1
+                    else:
+                        status = 'invalid'
+                        self.invalids += 1
             else:
-                raise error.general('invalid test state: %s: %s' % (name, state))
-        self.results[name]['result'] = status
-        self.results[name]['output'] = prefixed_output
-        if self.name_max_len < len(path.basename(name)):
-            self.name_max_len = len(path.basename(name))
-        self.lock.release()
+                if state == 'EXPECTED_FAIL':
+                    if start and end:
+                        status = 'passed'
+                        self.passed += 1
+                    else:
+                        status = 'expected-fail'
+                        self.expected_fail += 1
+                elif state == 'USER_INPUT':
+                    status = 'user-input'
+                    self.user_input += 1
+                elif state == 'INDETERMINATE':
+                    if start and end:
+                        status = 'passed'
+                        self.passed += 1
+                    else:
+                        status = 'indeterminate'
+                        self.indeterminate += 1
+                elif state == 'BENCHMARK':
+                    status = 'benchmark'
+                    self.benchmark += 1
+                elif state == 'WRONG-VERSION':
+                    status = 'wrong-version'
+                    self.wrong_version += 1
+                elif state == 'WRONG-BUILD':
+                    status = 'wrong-build'
+                    self.wrong_build += 1
+                elif state == 'WRONG-TOOLS':
+                    status = 'wrong-tools'
+                    self.wrong_tools += 1
+                else:
+                    raise error.general('invalid test state: %s: %s' % (name, state))
+            self.results[name]['result'] = status
+            self.results[name]['output'] = prefixed_output
+            if self.name_max_len < len(path.basename(name)):
+                self.name_max_len = len(path.basename(name))
+        finally:
+            self.lock.release()
         return status
 
     def log(self, name, mode):
