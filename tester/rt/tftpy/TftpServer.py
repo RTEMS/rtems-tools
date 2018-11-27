@@ -76,6 +76,13 @@ class TftpServer(TftpSession):
         else:
             raise TftpException("The tftproot does not exist.")
 
+    def __del__(self):
+        if self.sock is not None:
+            try:
+                self.sock.close()
+            except:
+                pass
+
     def listen(self, listenip="", listenport=DEF_TFTP_PORT,
                timeout=SOCK_TIMEOUT):
         """Start a server listening on the supplied interface and port. This
@@ -90,6 +97,7 @@ class TftpServer(TftpSession):
         try:
             # FIXME - sockets should be non-blocking
             self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self.sock.bind((listenip, listenport))
             _, self.listenport = self.sock.getsockname()
         except socket.error as err:
