@@ -363,6 +363,7 @@ class coverage_run(object):
         self.target = self.macros['target']
         self.bsp_name = self.macros['bsp'].split('-')[0]
         self.prefix = prefix
+        self.macros.define('coverage')
 
     def run(self):
         try:
