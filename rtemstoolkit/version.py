@@ -183,11 +183,13 @@ def _load_git_version():
         head = repo.head()
         if repo.dirty():
             modified = 'modified'
+            revision_sep = '-'
             sep = ' '
         else:
             modified = ''
+            revision_sep = ''
             sep = ''
-        _revision = '%s-%s' % (head[0:12], modified)
+        _revision = '%s%s%s' % (head[0:12], revision_sep, modified)
         _version_str = '%s (%s%s%s)' % (_version, head[0:12], sep, modified)
         _git = True
     return _git
