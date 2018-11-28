@@ -63,7 +63,7 @@ class mail:
         self.opts = opts
 
     def _args_are_macros(self):
-        return type(self.opts) is 'command_line'
+        return isinstance(self.opts, options.command_line)
 
     def _get_arg(self, arg):
         if self._args_are_macros():

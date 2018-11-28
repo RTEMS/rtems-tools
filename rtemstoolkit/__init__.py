@@ -50,8 +50,8 @@ args = {
     'config': ['--file', 'tester/rtems/version.cfg',
                '--jobs', 'half',
                '--no-clean'],
-    'mailer': ['--smtp-host', '1.2.3.4',
-               '--mail-to',   'foo@bar.none',
-               '--mail-from', 'me@here.there']
+    'mailer': ['--smtp-host=1.2.3.4',
+               '--mail-to=foo@bar.none',
+               '--mail-from=me@here.there']
 
 }
