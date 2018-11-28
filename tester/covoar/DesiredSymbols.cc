@@ -415,7 +415,7 @@ namespace Coverage {
             std::cerr << "Looking up source lines for uncovered ranges in "
                       << d.first
                       << std::endl;
-            determineSourceLines( theRanges, d.second.sourceFile );
+          determineSourceLines( theRanges, d.second.sourceFile );
         }
 
         // then the uncovered branches.

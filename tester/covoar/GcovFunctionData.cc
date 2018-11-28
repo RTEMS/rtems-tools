@@ -5,10 +5,9 @@
  *  about single function.
  */
 
-#include <stdio.h>
-#include <string.h>
-//#include <stdlib.h>
-//#include <sys/stat.h>
+#include <cstdio>
+#include <cstring>
+#include <cinttypes>
 
 #include "app_common.h"
 #include "GcovFunctionData.h"
@@ -53,8 +52,8 @@ namespace Gcov {
 
     if ( strlen(fcnName) >= FUNCTION_NAME_LENGTH ) {
       fprintf(
-        stderr, 
-        "ERROR: Function name is too long to be correctly stored: %u\n", 
+        stderr,
+        "ERROR: Function name is too long to be correctly stored: %u\n",
         (unsigned int) strlen(fcnName)
       );
       return false;
@@ -89,9 +88,9 @@ namespace Gcov {
   bool GcovFunctionData::setFileName( const char* fileName ) {
     if ( strlen(fileName) >= FILE_NAME_LENGTH ){
       fprintf(
-        stderr, 
-        "ERROR: File name is too long to be correctly stored: %u\n", 
-        (unsigned int) strlen(fileName) 
+        stderr,
+        "ERROR: File name is too long to be correctly stored: %u\n",
+        (unsigned int) strlen(fileName)
       );
       return false;
     }
@@ -119,7 +118,7 @@ namespace Gcov {
     uint32_t &countersFound,
     uint64_t &countersSum,
     uint64_t &countersMax
-  ) 
+  )
   {
     arcs_iterator_t	currentArc;
     int			i;
@@ -186,7 +185,7 @@ namespace Gcov {
   }
 
   void GcovFunctionData::printFunctionInfo(
-    FILE * textFile, 
+    FILE * textFile,
     uint32_t function_number
   )
   {
@@ -230,7 +229,7 @@ namespace Gcov {
   }
 
   void GcovFunctionData::printCoverageInfo(
-    FILE     *textFile, 
+    FILE     *textFile,
     uint32_t  function_number
   )
   {
@@ -254,11 +253,11 @@ namespace Gcov {
       fprintf(
         textFile,
         "\nInstructions (Base address: 0x%08x, Size: %4u): \n\n",
-        baseAddress, 
-        baseSize 
+        baseAddress,
+        baseSize
       );
-      for ( instruction = symbolInfo->instructions.begin(); 
-            instruction != symbolInfo->instructions.end(); 
+      for ( instruction = symbolInfo->instructions.begin();
+            instruction != symbolInfo->instructions.end();
             instruction++
       )
       {
@@ -267,13 +266,13 @@ namespace Gcov {
           fprintf( textFile, "0x%-70s ", instruction->line.c_str() );
           fprintf( textFile, "| 0x%08x ",   currentAddress );
           fprintf( textFile, "*");
-          fprintf( textFile, 
-                    "| exec: %4u ", 
-                    coverageMap->getWasExecuted( currentAddress ) 
+          fprintf( textFile,
+                    "| exec: %4u ",
+                    coverageMap->getWasExecuted( currentAddress )
           );
           fprintf( textFile, "| taken/not: %4u/%4u ",
-                    coverageMap->getWasTaken( currentAddress ), 
-                    coverageMap->getWasNotTaken( currentAddress ) 
+                    coverageMap->getWasTaken( currentAddress ),
+                    coverageMap->getWasNotTaken( currentAddress )
           );
 
           if ( instruction->isBranch )
@@ -329,7 +328,7 @@ namespace Gcov {
     return blockIterator;
   }
 
-  void GcovFunctionData::printArcInfo( 
+  void GcovFunctionData::printArcInfo(
                 FILE * textFile, arcs_iterator_t arc
   )
   {
@@ -368,11 +367,11 @@ namespace Gcov {
         );
         break;
     }
-    fprintf( textFile, "\tTaken: %5llu\n", (unsigned long long) arc->counter );
+    fprintf( textFile, "\tTaken: %5" PRIu64 "\n", (uint64_t) arc->counter );
   }
 
-  void GcovFunctionData::printBlockInfo( 
-    FILE * textFile, 
+  void GcovFunctionData::printBlockInfo(
+    FILE * textFile,
     blocks_iterator_t block
   )
   {
@@ -381,12 +380,12 @@ namespace Gcov {
     fprintf(
       textFile,
       " > BLOCK %3u from %s\n"
-      "    -counter: %5llu\n"
-      "    -flags: 0x%x\n"
+      "    -counter: %5" PRIu64 "\n"
+      "    -flags: 0x%" PRIx32 "\n"
       "    -lines: ",
       block->id,
       block->sourceFileName,
-      (unsigned long long) block->counter,
+      (uint64_t) block->counter,
       block->flags
     );
     if ( !block->lines.empty( ) )
@@ -407,15 +406,15 @@ namespace Gcov {
     std::list<uint64_t>    taken;       // List of taken counts for branches
     std::list<uint64_t>    notTaken;    // List of not taken counts for branches
 
-    //fprintf( stderr, "DEBUG: Processing counters for file: %s\n", sourceFileName  ); 
+    //fprintf( stderr, "DEBUG: Processing counters for file: %s\n", sourceFileName  );
     if ( blocks.empty() || arcs.empty() || coverageMap == NULL || symbolInfo->instructions.empty())
     {
-      //fprintf( stderr, 
-      //          "DEBUG: sanity check returned false for function: %s from file: %s\n", 
-      //          functionName, 
-      //          sourceFileName 
+      //fprintf( stderr,
+      //          "DEBUG: sanity check returned false for function: %s from file: %s\n",
+      //          functionName,
+      //          sourceFileName
       //);
-      return false; 
+      return false;
     }
 
     // Reset iterators and variables
@@ -430,12 +429,12 @@ namespace Gcov {
     // Find taken/not taken values for branches
     if ( !processBranches( &taken , &notTaken ) )
     {
-      //fprintf( stderr, 
-      //          "ERROR: Failed to process branches for function: %s from file: %s\n", 
-      //          functionName, 
-      //          sourceFileName 
+      //fprintf( stderr,
+      //          "ERROR: Failed to process branches for function: %s from file: %s\n",
+      //          functionName,
+      //          sourceFileName
       //);
-      return false; 
+      return false;
     };
 
     // Process the branching arcs
@@ -455,17 +454,17 @@ namespace Gcov {
         break;
 
       // If this is a branch without FAKE arcs process it
-      if ( 
-        (arcIterator->sourceBlock == arcIterator2->sourceBlock ) && 
+      if (
+        (arcIterator->sourceBlock == arcIterator2->sourceBlock ) &&
         !( arcIterator->flags & FAKE_ARC_FLAG ) &&
-        !( arcIterator2->flags & FAKE_ARC_FLAG ) 
+        !( arcIterator2->flags & FAKE_ARC_FLAG )
       ) {
         if ( taken.empty() || notTaken.empty() ) {
           fprintf(
-            stderr, 
-            "ERROR: Branchess missing for function: %s from file: %s\n", 
-            functionName, 
-            sourceFileName 
+            stderr,
+            "ERROR: Branchess missing for function: %s from file: %s\n",
+            functionName,
+            sourceFileName
           );
           return false;
         }
@@ -479,21 +478,21 @@ namespace Gcov {
           arcIterator2->counter = notTaken.front();
           notTaken.pop_front();
           arcIterator->counter = taken.front();
-          taken.pop_front();                   
+          taken.pop_front();
         }
 
         blockIterator2 = blocks.begin();
         //TODO: ADD FAILSAFE
-        while ( arcIterator->destinationBlock != blockIterator2->id) 	
+        while ( arcIterator->destinationBlock != blockIterator2->id)
           blockIterator2++;
         blockIterator2->counter += arcIterator->counter;
-  
+
         blockIterator2 = blocks.begin();
         //TODO: ADD FAILSAFE
         while ( arcIterator2->destinationBlock != blockIterator2->id)
             blockIterator2++;
           blockIterator2->counter += arcIterator2->counter;
-      }	    
+      }
       blockIterator++;
     }
 
@@ -519,10 +518,10 @@ namespace Gcov {
 
       // If this is the last arc, propagate counter and exit
       if ( arcIterator2 == arcs.end() ) {
-        //fprintf( stderr, 
-        //        "DEBUG: Found last arc %3u -> %3u\n", 
-        //        arcIterator->sourceBlock, 
-        //        arcIterator->destinationBlock 
+        //fprintf( stderr,
+        //        "DEBUG: Found last arc %3u -> %3u\n",
+        //        arcIterator->sourceBlock,
+        //        arcIterator->destinationBlock
         //);
         arcIterator->counter = blockIterator->counter;
         blockIterator2 =  blocks.begin();
@@ -530,18 +529,18 @@ namespace Gcov {
           blockIterator2++;
         blockIterator2->counter += arcIterator->counter;
         return true;
-      } 
+      }
 
       // If this is not a branch, propagate counter and continue
       if ( arcIterator->sourceBlock != arcIterator2->sourceBlock ) {
         //fprintf( stderr, "DEBUG: Found simple arc %3u -> %3u\n", arcIterator->sourceBlock, arcIterator->destinationBlock );
         arcIterator->counter = blockIterator->counter;
         blockIterator2 =  blocks.begin();;
-        while ( arcIterator->destinationBlock != blockIterator2->id) 	//TODO: ADD FAILSAFE 
+        while ( arcIterator->destinationBlock != blockIterator2->id) 	//TODO: ADD FAILSAFE
           blockIterator2++;
         blockIterator2->counter += arcIterator->counter;
       }
-	    
+
       // If this is  a branch with FAKE arc
       else if ( (arcIterator->sourceBlock == arcIterator2->sourceBlock ) && ( arcIterator2->flags & FAKE_ARC_FLAG ))
       {
@@ -553,16 +552,16 @@ namespace Gcov {
         blockIterator2->counter += arcIterator->counter;
       }
 
-      // If this is a legitimate branch	    
+      // If this is a legitimate branch
       blockIterator++;
     }
 
     return true;
   }
-    
-  bool GcovFunctionData::processBranches( 
-            std::list<uint64_t> * taken , 
-            std::list<uint64_t> * notTaken 
+
+  bool GcovFunctionData::processBranches(
+            std::list<uint64_t> * taken ,
+            std::list<uint64_t> * notTaken
   )
   {
     uint32_t	    baseAddress = 0;
@@ -587,10 +586,10 @@ namespace Gcov {
         if ( instruction->isBranch ) {
           taken->push_back ( (uint64_t) coverageMap->getWasTaken( currentAddress  ) );
           notTaken->push_back ( (uint64_t) coverageMap->getWasNotTaken( currentAddress ) );
-          //fprintf( stderr, 
+          //fprintf( stderr,
           //          "Added branch to list taken/not: %4u/%4u\n",
-          //          coverageMap->getWasTaken( currentAddress ), 
-          //          coverageMap->getWasNotTaken( currentAddress ) 
+          //          coverageMap->getWasTaken( currentAddress ),
+          //          coverageMap->getWasNotTaken( currentAddress )
           //);
         }
       }
@@ -598,5 +597,3 @@ namespace Gcov {
     return true;
   }
 }
-
-

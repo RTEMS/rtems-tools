@@ -269,14 +269,12 @@ namespace Coverage {
   )
   {
     std::string     currentSymbol = "";
-    uint32_t        endAddress;
     uint32_t        instructionOffset;
     int             items;
     int             found;
     objdumpLine_t   lineInfo;
     uint32_t        offset;
     bool            processSymbol = false;
-    uint32_t        startAddress = 0;
     char            symbol[ MAX_LINE_LENGTH ];
     char            terminator1;
     char            terminatorOne;
@@ -348,8 +346,6 @@ namespace Coverage {
 
       // If all items found, we are at the beginning of a symbol's objdump.
       if ((items == 3) && (terminator1 == ':')) {
-        endAddress = executableInformation->getLoadAddress() + offset - 1;
-
         // If we are currently processing a symbol, finalize it.
         if (processSymbol) {
           finalizeSymbol(
@@ -360,14 +356,12 @@ namespace Coverage {
         }
 
         // Start processing of a new symbol.
-        startAddress = 0;
         currentSymbol = "";
         processSymbol = false;
         theInstructions.clear();
 
         // See if the new symbol is one that we care about.
         if (SymbolsToAnalyze->isDesired( symbol )) {
-          startAddress = executableInformation->getLoadAddress() + offset;
           currentSymbol = symbol;
           processSymbol = true;
           theInstructions.push_back( lineInfo );
@@ -379,8 +373,6 @@ namespace Coverage {
                && (jumpTableID.find( "+0x" ) != std::string::npos)
                && processSymbol )
       {
-        endAddress = executableInformation->getLoadAddress() + offset - 1;
-
         // If we are currently processing a symbol, finalize it.
         if ( processSymbol ) {
           finalizeSymbol(
