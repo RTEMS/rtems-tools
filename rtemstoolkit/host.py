@@ -56,11 +56,11 @@ def _load():
         if uname[0].startswith('MINGW64_NT') or uname[0].startswith('CYGWIN_NT'):
             name = 'windows'
         elif uname[0] == 'Darwin':
-            name = darwin
+            name = 'darwin'
         elif uname[0] == 'FreeBSD':
             name = 'freebsd'
         elif uname[0] == 'NetBSD':
-            name = netbsd
+            name = 'netbsd'
         elif uname[0] == 'Linux':
             name = 'linux'
         elif uname[0] == 'SunOS':

@@ -49,7 +49,7 @@ def cpus():
 
 def overrides():
     uname = os.uname()
-    ncpus = '%d' % (cores())
+    ncpus = '%d' % (cpus())
     defines = {
         '_ncpus':         ('none',    'none',     ncpus),
         '_os':            ('none',    'none',     'darwin'),
@@ -63,7 +63,6 @@ def overrides():
         '_usr':           ('dir',     'optional', '/usr/local'),
         '_var':           ('dir',     'optional', '/usr/local/var'),
         '__ldconfig':     ('exe',     'none',     ''),
-        '__cvs':          ('exe',     'required', 'cvs'),
         '__xz':           ('exe',     'required', '%{_usr}/bin/xz'),
         'with_zlib':      ('none',    'none',     '--with-zlib=no'),
         '_forced_static': ('none',    'none',     '')

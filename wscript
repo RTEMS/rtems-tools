@@ -100,6 +100,7 @@ def configure(ctx):
     #
     # Find which versions of python are installed for testing.
     #
+    ctx.find_program('python', mandatory = False)
     ctx.find_program('python2', mandatory = False)
     ctx.find_program('python3', mandatory = False)
     #
@@ -158,12 +159,12 @@ def rtemstoolkit_tests(ctx):
     log = ctx.path.find_or_declare('tests.log')
     ctx.logger = waflib.Logs.make_logger(log.abspath(), 'build')
     failures = False
-    for py in ['2', '3']:
-        PY = 'PYTHON%s' % (py)
-        if PY in ctx.env:
-            from rtemstoolkit import all as toolkit_tests
-            from rtemstoolkit import args as toolkit_test_args
-            for tt in toolkit_tests:
+    from rtemstoolkit import all as toolkit_tests
+    from rtemstoolkit import args as toolkit_test_args
+    for tt in toolkit_tests:
+        for py in ['', '2', '3']:
+            PY = 'PYTHON%s' % (py)
+            if PY in ctx.env:
                 test = 'rtemstoolkit.%s' % (tt)
                 ctx.start_msg('Test python%s %s' % (py, test))
                 cmd = '%s -m %s' % (ctx.env[PY][0], test)
