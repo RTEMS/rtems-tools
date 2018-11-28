@@ -40,6 +40,9 @@ subdirs = ['rtemstoolkit',
            'tools/gdb/python']
 
 def get_version(ctx):
+    #
+    # The file config/rtems-versin.ini contains the version.
+    #
     from rtemstoolkit import version as rtemsversion
     try:
         version = rtemsversion.version()

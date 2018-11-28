@@ -115,10 +115,10 @@ def _load_released_version_config():
     for ver in [os.path.join(top, 'VERSION'),
                 os.path.join('..', 'VERSION'),
                 rtems.configuration_file('rtems-version.ini')]:
-        if os.path.exists(os.path.join(ver)):
+        if path.exists(path.join(ver)):
             v = configparser.SafeConfigParser()
             try:
-                v.read(ver)
+                v.read(path.host(ver))
             except Exception as e:
                 raise error.general('Invalid version config format: %s: %s' % (ver,
                                                                                e))
@@ -245,4 +245,6 @@ def revision():
     return _revision
 
 if __name__ == '__main__':
-    print('Version: %s' % (str()))
+    print('Version: %s' % (str(version())))
+    if version() == 'undefined':
+        raise Exception('version is undefined')
