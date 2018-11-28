@@ -38,7 +38,7 @@ from rtemstoolkit import error
 from rtemstoolkit import execute
 
 def cpus():
-    if os.environ.has_key('NUMBER_OF_PROCESSORS'):
+    if 'NUMBER_OF_PROCESSORS' in os.environ:
         ncpus = int(os.environ['NUMBER_OF_PROCESSORS'])
     else:
         ncpus = 1
@@ -48,7 +48,7 @@ def overrides():
     # Default to the native Windows Python.
     uname = 'win32'
     system = 'mingw32'
-    if os.environ.has_key('HOSTTYPE'):
+    if 'HOSTTYPE' in os.environ:
         hosttype = os.environ['HOSTTYPE']
     else:
         hosttype = 'i686'
@@ -102,7 +102,6 @@ def overrides():
         '__chmod':        ('exe',     'required', 'chmod'),
         '__chown':        ('exe',     'required', 'chown'),
         '__cp':           ('exe',     'required', 'cp'),
-        '__cvs':          ('exe',     'required', 'cvs'),
         '__cxx':          ('exe',     'required', 'g++'),
         '__flex':         ('exe',     'required', 'flex'),
         '__git':          ('exe',     'required', 'git'),

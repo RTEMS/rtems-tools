@@ -53,7 +53,7 @@ def _load():
         is_windows = True
     elif os.name == 'posix':
         uname = os.uname()
-        if uname[0].startswith('CYGWIN_NT'):
+        if uname[0].startswith('MINGW64_NT') or uname[0].startswith('CYGWIN_NT'):
             name = 'windows'
         elif uname[0] == 'Darwin':
             name = darwin
@@ -106,6 +106,7 @@ def label(mode = 'all'):
 
 if __name__ == '__main__':
     import pprint
+    print('Python\'s OS name: %s' % (os.name))
     _load()
     print('Name      : %s' % (name))
     if is_windows:
