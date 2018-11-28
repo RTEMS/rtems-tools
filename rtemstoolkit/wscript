@@ -339,6 +339,9 @@ def bld_elftoolchain(bld, conf):
                        libdwarf + 'libdwarf_sections.c',
                        libdwarf + 'libdwarf_str.c'] + libdwarf_m4_source)
 
+    #
+    # The no warning on implicit function decls is for asprintf on Wing64.
+    #
     bld.stlib(target = 'elftc',
               features = 'c',
               install_path = None,
@@ -346,7 +349,7 @@ def bld_elftoolchain(bld, conf):
                           'elftoolchain/libelf',
                           'elftoolchain/libelftc',
                           'elftoolchain/common'] + includes,
-              cflags = conf['cflags'],
+              cflags = conf['cflags'] + ['-Wno-implicit-function-declaration'],
               source =[libelftc + 'elftc_bfdtarget.c',
                        libelftc + 'elftc_copyfile.c',
                        libelftc + 'elftc_demangle.c',
