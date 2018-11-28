@@ -1903,8 +1903,6 @@ namespace rld
                 const std::string prefix,
                 int               depth)
     {
-      dwarf_unsigned cu_offset = 0;
-
       while (true)
       {
         dwarf_unsigned cu_next_offset = 0;
@@ -1932,8 +1930,6 @@ namespace rld
             die_dump (sibling, out, prefix, depth);
           die = sibling;
         }
-
-        cu_offset = cu_next_offset;
       }
     }
 

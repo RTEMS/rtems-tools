@@ -593,7 +593,7 @@ main (int argc, char* argv[])
               << std::endl;
     ec = 10;
   }
-  catch (std::exception e)
+  catch (std::exception& e)
   {
     int   status;
     char* realname;

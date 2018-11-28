@@ -57,8 +57,8 @@ void process(const char *ifname, const char *ofname, const char *forced_name)
   FILE *ifile, *ocfile, *ohfile;
   char buf[PATH_MAX+1], *p;
   char obasename[PATH_MAX+1];
-  char ocname[PATH_MAX+1];
-  char ohname[PATH_MAX+1];
+  char ocname[PATH_MAX+5];
+  char ohname[PATH_MAX+5];
   size_t len;
 
   ocfile = NULL;

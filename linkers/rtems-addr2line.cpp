@@ -287,7 +287,7 @@ main (int argc, char* argv[])
               << std::endl;
     ec = 10;
   }
-  catch (std::exception e)
+  catch (std::exception& e)
   {
     rld::output_std_exception (e, std::cerr);
     ec = 11;
