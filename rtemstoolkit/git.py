@@ -66,7 +66,7 @@ class repo:
             self.macros = opts.defaults
         else:
             self.macros = macros
-        if self.macros is None:
+        if self.macros is None or not self.macros.has_key('__git'):
             self.git = 'git'
         else:
             self.git = self.macros.expand('%{__git}')
