@@ -129,7 +129,7 @@ def rebuild(ctx):
     waflib.Options.commands.extend(['clean', 'build'])
 
 def check_options(ctx, host):
-    if host in ['mingw32', 'x86_64-w64-mingw32']:
+    if host in ['mingw32', 'x86_64-w64-mingw32', 'i686-w64-mingw32']:
         ctx.env.HOST = host
         ctx.env.CC = '%s-gcc' % (host)
         ctx.env.CXX = '%s-g++' % (host)
