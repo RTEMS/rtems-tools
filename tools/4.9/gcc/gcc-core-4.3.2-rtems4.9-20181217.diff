@@ -1,0 +1,249 @@
+diff -ur gcc-4.3.2/configure gcc-4.3.2-mod/configure
+--- gcc-4.3.2/configure	2008-02-01 21:29:30.000000000 -0600
++++ gcc-4.3.2-mod/configure	2018-12-17 11:35:07.809447905 -0600
+@@ -2185,6 +2185,7 @@
+     noconfigdirs="$noconfigdirs target-newlib target-libiberty target-libgloss ${libgcj} target-libmudflap"
+     ;;
+   *-*-rtems*)
++    skipdirs="$skipdirs target-libiberty"
+     noconfigdirs="$noconfigdirs target-libgloss ${libgcj}"
+     ;;
+     # The tpf target doesn't support gdb yet.
+@@ -5829,7 +5830,7 @@
+        # to it.  This is right: we don't want to search that directory
+        # for binaries, but we want the header files in there, so add
+        # them explicitly.
+-       FLAGS_FOR_TARGET=$FLAGS_FOR_TARGET' -isystem $$r/$(HOST_SUBDIR)/gcc/include'
++       FLAGS_FOR_TARGET=$FLAGS_FOR_TARGET' -isystem $$r/$(HOST_SUBDIR)/gcc/include -isystem $$r/$(HOST_SUBDIR)/gcc/include-fixed'
+ 
+        # Someone might think of using the pre-installed headers on
+        # Canadian crosses, in case the installed compiler is not fully
+diff -ur gcc-4.3.2/configure.ac gcc-4.3.2-mod/configure.ac
+--- gcc-4.3.2/configure.ac	2008-02-01 21:29:30.000000000 -0600
++++ gcc-4.3.2-mod/configure.ac	2018-12-17 11:35:06.940434773 -0600
+@@ -462,6 +462,7 @@
+     noconfigdirs="$noconfigdirs target-newlib target-libiberty target-libgloss ${libgcj} target-libmudflap"
+     ;;
+   *-*-rtems*)
++    skipdirs="$skipdirs target-libiberty"
+     noconfigdirs="$noconfigdirs target-libgloss ${libgcj}"
+     ;;
+     # The tpf target doesn't support gdb yet.
+@@ -2340,7 +2341,7 @@
+        # to it.  This is right: we don't want to search that directory
+        # for binaries, but we want the header files in there, so add
+        # them explicitly.
+-       FLAGS_FOR_TARGET=$FLAGS_FOR_TARGET' -isystem $$r/$(HOST_SUBDIR)/gcc/include'
++       FLAGS_FOR_TARGET=$FLAGS_FOR_TARGET' -isystem $$r/$(HOST_SUBDIR)/gcc/include -isystem $$r/$(HOST_SUBDIR)/gcc/include-fixed'
+ 
+        # Someone might think of using the pre-installed headers on
+        # Canadian crosses, in case the installed compiler is not fully
+diff -ur gcc-4.3.2/gcc/config/arm/rtems-elf.h gcc-4.3.2-mod/gcc/config/arm/rtems-elf.h
+--- gcc-4.3.2/gcc/config/arm/rtems-elf.h	2008-02-06 01:33:26.000000000 -0600
++++ gcc-4.3.2-mod/gcc/config/arm/rtems-elf.h	2018-12-17 11:35:06.940434773 -0600
+@@ -43,4 +43,3 @@
+  *  with how this used to be defined.
+  */
+ #undef LINK_GCC_C_SEQUENCE_SPEC
+-#define LINK_GCC_C_SEQUENCE_SPEC "%G %L"
+diff -ur gcc-4.3.2/gcc/config/avr/t-rtems gcc-4.3.2-mod/gcc/config/avr/t-rtems
+--- gcc-4.3.2/gcc/config/avr/t-rtems	2004-11-22 21:44:03.000000000 -0600
++++ gcc-4.3.2-mod/gcc/config/avr/t-rtems	2018-12-17 11:35:06.940434773 -0600
+@@ -1,3 +1,4 @@
+ # Multilibs for avr RTEMS targets.
+ 
+-# ATM, this is just a stub
++# RTEMS uses _exit from newlib
++LIB1ASMFUNCS := $(filter-out _exit,$(LIB1ASMFUNCS))
+diff -ur gcc-4.3.2/gcc/config/m68k/t-rtems gcc-4.3.2-mod/gcc/config/m68k/t-rtems
+--- gcc-4.3.2/gcc/config/m68k/t-rtems	2008-02-15 23:52:54.000000000 -0600
++++ gcc-4.3.2-mod/gcc/config/m68k/t-rtems	2018-12-17 11:35:06.940434773 -0600
+@@ -4,5 +4,6 @@
+ 		     || MLIB == "5206" \
+ 		     || MLIB == "5208" \
+ 		     || MLIB == "5307" \
++		     || MLIB == "5329" \
+ 		     || MLIB == "5407" \
+ 		     || MLIB == "5475")
+diff -ur gcc-4.3.2/gcc/config/mips/elf.h gcc-4.3.2-mod/gcc/config/mips/elf.h
+--- gcc-4.3.2/gcc/config/mips/elf.h	2007-08-02 05:49:31.000000000 -0500
++++ gcc-4.3.2-mod/gcc/config/mips/elf.h	2018-12-17 11:35:06.940434773 -0600
+@@ -48,6 +48,4 @@
+ #undef  ENDFILE_SPEC
+ #define ENDFILE_SPEC "crtend%O%s crtn%O%s"
+ 
+-#define NO_IMPLICIT_EXTERN_C 1
+-
+ #define HANDLE_PRAGMA_PACK_PUSH_POP 1
+diff -ur gcc-4.3.2/gcc/config/rs6000/rtems.h gcc-4.3.2-mod/gcc/config/rs6000/rtems.h
+--- gcc-4.3.2/gcc/config/rs6000/rtems.h	2007-08-02 05:49:31.000000000 -0500
++++ gcc-4.3.2-mod/gcc/config/rs6000/rtems.h	2018-12-17 11:35:06.940434773 -0600
+@@ -49,8 +49,18 @@
+ %{mcpu=604:  %{!Dppc*: %{!Dmpc*: -Dmpc604}  } } \
+ %{mcpu=750:  %{!Dppc*: %{!Dmpc*: -Dmpc750}  } } \
+ %{mcpu=821:  %{!Dppc*: %{!Dmpc*: -Dmpc821}  } } \
+-%{mcpu=860:  %{!Dppc*: %{!Dmpc*: -Dmpc860}  } }" 
++%{mcpu=860:  %{!Dppc*: %{!Dmpc*: -Dmpc860}  } } \
++%{mcpu=8540: %{!Dppc*: %{!Dmpc*: -Dppc8540}  } }" 
+ 
+ #undef  SUBSUBTARGET_EXTRA_SPECS
+ #define SUBSUBTARGET_EXTRA_SPECS \
+   { "cpp_os_rtems",		CPP_OS_RTEMS_SPEC }
++
++#undef SUBSUBTARGET_OVERRIDE_OPTIONS
++#define SUBSUBTARGET_OVERRIDE_OPTIONS		\
++  do {						\
++    if (TARGET_E500)				\
++      {						\
++	rs6000_float_gprs = 1;			\
++      }						\
++  } while(0)
+diff -ur gcc-4.3.2/gcc/config/rs6000/t-rtems gcc-4.3.2-mod/gcc/config/rs6000/t-rtems
+--- gcc-4.3.2/gcc/config/rs6000/t-rtems	2005-05-27 02:54:06.000000000 -0500
++++ gcc-4.3.2-mod/gcc/config/rs6000/t-rtems	2018-12-17 11:35:06.941434788 -0600
+@@ -1,17 +1,15 @@
+ # Multilibs for powerpc RTEMS targets.
+ 
+ MULTILIB_OPTIONS	= \
+-mcpu=403/mcpu=505/mcpu=601/mcpu=603e/mcpu=604/mcpu=860/mcpu=7400 \
++mcpu=403/mcpu=505/mcpu=601/mcpu=603e/mcpu=604/mcpu=860/mcpu=7400/mcpu=8540 \
+ Dmpc8260 \
+ msoft-float
+ 
+ MULTILIB_DIRNAMES	= \
+-m403 m505 m601 m603e m604 m860 m7400 \
++m403 m505 m601 m603e m604 m860 m7400 m8540 \
+ mpc8260 \
+ nof
+ 
+-MULTILIB_EXTRA_OPTS	= mrelocatable-lib mno-eabi mstrict-align
+-
+ # MULTILIB_MATCHES	= ${MULTILIB_MATCHES_FLOAT}
+ MULTILIB_MATCHES	=
+ MULTILIB_MATCHES  	+= ${MULTILIB_MATCHES_ENDIAN}
+@@ -31,6 +29,10 @@
+ # Map 750 to .
+ MULTILIB_MATCHES	+= mcpu?750=
+ 
++# Map e500, 8548 to 8540
++MULTILIB_MATCHES	+= mcpu?8540=mcpu?e500
++MULTILIB_MATCHES	+= mcpu?8540=mcpu?8548
++
+ # Soft-float only, default implies msoft-float
+ # NOTE: Must match with MULTILIB_MATCHES_FLOAT and MULTILIB_MATCHES
+ MULTILIB_SOFTFLOAT_ONLY = \
+@@ -64,3 +66,4 @@
+ MULTILIB_EXCEPTIONS += *mcpu=750/Dmpc*
+ MULTILIB_EXCEPTIONS += *mcpu=860/Dmpc*
+ MULTILIB_EXCEPTIONS += *mcpu=7400/Dmpc*
++MULTILIB_EXCEPTIONS += *mcpu=8540/Dmpc*
+Only in gcc-4.3.2-mod/gcc: cp
+diff -ur gcc-4.3.2/gcc/DEV-PHASE gcc-4.3.2-mod/gcc/DEV-PHASE
+--- gcc-4.3.2/gcc/DEV-PHASE	2008-08-27 13:04:14.000000000 -0500
++++ gcc-4.3.2-mod/gcc/DEV-PHASE	2018-12-17 11:35:07.767447270 -0600
+@@ -0,0 +1 @@
++RTEMS 4.9, RSB cec2cf3dd0a98921676096a52a940d9baeb23acc, Newlib 1.16.0
+diff -ur gcc-4.3.2/gcc/doc/cppopts.texi gcc-4.3.2-mod/gcc/doc/cppopts.texi
+--- gcc-4.3.2/gcc/doc/cppopts.texi	2007-07-30 13:29:20.000000000 -0500
++++ gcc-4.3.2-mod/gcc/doc/cppopts.texi	2018-12-17 15:29:53.101439652 -0600
+@@ -754,7 +754,7 @@
+ Enable special code to work around file systems which only permit very
+ short file names, such as MS-DOS@.
+ 
+-@itemx --help
++@item --help
+ @itemx --target-help
+ @opindex help
+ @opindex target-help
+diff -ur gcc-4.3.2/gcc/doc/c-tree.texi gcc-4.3.2-mod/gcc/doc/c-tree.texi
+--- gcc-4.3.2/gcc/doc/c-tree.texi	2008-02-17 12:52:04.000000000 -0600
++++ gcc-4.3.2-mod/gcc/doc/c-tree.texi	2018-12-17 15:36:22.632398539 -0600
+@@ -2325,13 +2325,13 @@
+ not matter.  The type of the operands and that of the result are
+ always of @code{BOOLEAN_TYPE} or @code{INTEGER_TYPE}.
+ 
+-@itemx POINTER_PLUS_EXPR
++@item POINTER_PLUS_EXPR
+ This node represents pointer arithmetic.  The first operand is always
+ a pointer/reference type.  The second operand is always an unsigned
+ integer type compatible with sizetype.  This is the only binary
+ arithmetic operand that can operate on pointer types.
+ 
+-@itemx PLUS_EXPR
++@item PLUS_EXPR
+ @itemx MINUS_EXPR
+ @itemx MULT_EXPR
+ These nodes represent various binary arithmetic operations.
+diff -ur gcc-4.3.2/gcc/doc/extend.texi gcc-4.3.2-mod/gcc/doc/extend.texi
+--- gcc-4.3.2/gcc/doc/extend.texi	2008-07-15 10:52:35.000000000 -0500
++++ gcc-4.3.2-mod/gcc/doc/extend.texi	2018-12-17 15:35:26.163533859 -0600
+@@ -4231,6 +4231,8 @@
+ Otherwise the two shared objects will be unable to use the same
+ typeinfo node and exception handling will break.
+ 
++@end table
++
+ @subsection ARM Type Attributes
+ 
+ On those ARM targets that support @code{dllimport} (such as Symbian
+@@ -4260,6 +4262,7 @@
+ Two attributes are currently defined for i386 configurations:
+ @code{ms_struct} and @code{gcc_struct}
+ 
++@table @code
+ @item ms_struct
+ @itemx gcc_struct
+ @cindex @code{ms_struct}
+diff -ur gcc-4.3.2/gcc/doc/gcc.texi gcc-4.3.2-mod/gcc/doc/gcc.texi
+--- gcc-4.3.2/gcc/doc/gcc.texi	2008-04-01 13:49:36.000000000 -0500
++++ gcc-4.3.2-mod/gcc/doc/gcc.texi	2018-12-17 15:33:11.045464863 -0600
+@@ -86,9 +86,9 @@
+ @item GNU Press
+ @tab Website: www.gnupress.org
+ @item a division of the
+-@tab General: @tex press@@gnu.org @end tex
++@tab General: @email{press@@gnu.org}
+ @item Free Software Foundation
+-@tab Orders:  @tex sales@@gnu.org @end tex
++@tab Orders:  @email{sales@@gnu.org}
+ @item 51 Franklin Street, Fifth Floor
+ @tab Tel 617-542-5942
+ @item Boston, MA 02110-1301 USA
+diff -ur gcc-4.3.2/gcc/doc/invoke.texi gcc-4.3.2-mod/gcc/doc/invoke.texi
+--- gcc-4.3.2/gcc/doc/invoke.texi	2008-06-24 20:37:53.000000000 -0500
++++ gcc-4.3.2-mod/gcc/doc/invoke.texi	2018-12-17 15:32:37.665953740 -0600
+@@ -957,7 +957,7 @@
+ generic, or subprogram renaming declaration).  Such files are also
+ called @dfn{specs}.
+ 
+-@itemx @var{file}.adb
++@item @var{file}.adb
+ Ada source code file containing a library unit body (a subprogram or
+ package body).  Such files are also called @dfn{bodies}.
+ 
+@@ -8569,7 +8569,7 @@
+ @samp{cortex-a8}, @samp{cortex-r4}, @samp{cortex-m3},
+ @samp{xscale}, @samp{iwmmxt}, @samp{ep9312}.
+ 
+-@itemx -mtune=@var{name}
++@item -mtune=@var{name}
+ @opindex mtune
+ This option is very similar to the @option{-mcpu=} option, except that
+ instead of specifying the actual target processor type, and hence
+diff -ur gcc-4.3.2/gcc/doc/rtl.texi gcc-4.3.2-mod/gcc/doc/rtl.texi
+--- gcc-4.3.2/gcc/doc/rtl.texi	2008-02-17 12:52:04.000000000 -0600
++++ gcc-4.3.2-mod/gcc/doc/rtl.texi	2018-12-17 15:36:48.620796486 -0600
+@@ -3020,9 +3020,9 @@
+ 
+ The expression @var{y} must be one of three forms:
+ @table @code
+-@code{(plus:@var{m} @var{x} @var{z})},
+-@code{(minus:@var{m} @var{x} @var{z})}, or
+-@code{(plus:@var{m} @var{x} @var{i})},
++@item @code{(plus:@var{m} @var{x} @var{z})},
++@item @code{(minus:@var{m} @var{x} @var{z})}, or
++@item @code{(plus:@var{m} @var{x} @var{i})},
+ @end table
+ where @var{z} is an index register and @var{i} is a constant.
+ 
+Only in gcc-4.3.2-mod/: libstdc++-v3
