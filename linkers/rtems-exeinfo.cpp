@@ -757,6 +757,7 @@ static struct option rld_opts[] = {
   { "sections",    no_argument,            NULL,           'S' },
   { "init",        no_argument,            NULL,           'I' },
   { "fini",        no_argument,            NULL,           'F' },
+  { "objects",     no_argument,            NULL,           'O' },
   { "inlined",     no_argument,            NULL,           'i' },
   { "dwarf",       no_argument,            NULL,           'D' },
   { NULL,          0,                      NULL,            0 }
@@ -848,7 +849,7 @@ main (int argc, char* argv[])
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvVMaSIFiD", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvVMaSIFOiD", rld_opts, NULL);
       if (opt < 0)
         break;
 
