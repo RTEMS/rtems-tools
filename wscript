@@ -37,7 +37,8 @@ subdirs = ['rtemstoolkit',
            'linkers',
            'misc',
            'tester',
-           'tools/gdb/python']
+           'tools/gdb/python',
+           'trace']
 
 def get_version(ctx):
     #
