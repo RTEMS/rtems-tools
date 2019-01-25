@@ -36,7 +36,7 @@ namespace Coverage {
 
     uint32_t lowAddress = coverageMap.getFirstLowAddress();
     uint32_t size = coverageMap.getSize();
-    uint32_t highAddress = lowAddress + size;
+    uint32_t highAddress = lowAddress + size - 1;
 
     // If there are NOT already saved instructions, save them.
     SymbolInformation* symbolInfo = SymbolsToAnalyze->find( symbolName );

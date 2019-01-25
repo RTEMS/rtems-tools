@@ -47,7 +47,7 @@ namespace Coverage {
         for (auto& func : cu.get_functions()) {
           if (func.has_machine_code() && (!func.is_inlined() || func.is_external())) {
             createCoverageMap (cu.name(), func.name(),
-                               func.pc_low(), func.pc_high());
+                               func.pc_low(), func.pc_high() - 1);
           }
         }
       }
