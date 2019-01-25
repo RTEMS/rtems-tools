@@ -163,7 +163,7 @@ int covoar(
   char                          gcdaFileName[FILE_NAME_LENGTH];
   char                          gcovBashCommand[256];
   std::string                   target;
-  const char*                   format = "html";
+  const char*                   format = "QEMU";
   FILE*                         gcnosFile = NULL;
   Gcov::GcovData*               gcovFile;
   const char*                   singleExecutable = NULL;
@@ -359,6 +359,7 @@ int covoar(
     AllExplanations->load( explanations );
 
   // Create coverage map reader.
+  coverageFormat = Coverage::CoverageFormatToEnum(format);
   coverageReader = Coverage::CreateCoverageReader(coverageFormat);
   if (!coverageReader)
     throw rld::error( "Unable to create coverage file reader", "covoar" );
