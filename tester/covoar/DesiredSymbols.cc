@@ -296,6 +296,7 @@ namespace Coverage {
                 );
               if (Verbose)
                 std::cerr << "Branch never taken found in " << s.first
+                          << std::hex
                           << " (0x" << s.second.baseAddress + la
                           << " - 0x" << s.second.baseAddress + ha
                           << ")"
