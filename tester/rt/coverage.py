@@ -45,6 +45,7 @@ from rtemstoolkit import path
 from rtemstoolkit import log
 from rtemstoolkit import execute
 from rtemstoolkit import macros
+from rtemstoolkit import version
 
 
 import options
@@ -288,14 +289,20 @@ class covoar(object):
     '''
     Covoar runner
     '''
-    def __init__(self, base_result_dir, config_dir, executables, explanations_txt, trace, prefix):
+    def __init__(self,
+                 base_result_dir,
+                 config_dir,
+                 executables,
+                 trace,
+                 prefix,
+                 covoar_cmd):
         self.base_result_dir = base_result_dir
         self.config_dir = config_dir
         self.executables = ' '.join(executables)
-        self.explanations_txt = explanations_txt
-        self.project_name = 'RTEMS-5'
+        self.project_name = 'RTEMS-' + str(version.version())
         self.trace = trace
         self.prefix = prefix
+        self.covoar_cmd = covoar_cmd
 
     def _find_covoar(self):
         covoar_exe = 'covoar'
@@ -316,10 +323,11 @@ class covoar(object):
         if not path.exists(symbol_file):
             raise error.general('coverage: no symbol set file: %s'% (symbol_file))
         exe = self._find_covoar()
-        command = exe + ' -S ' + symbol_file + \
-                  ' -O ' + covoar_result_dir + \
-                  ' -E ' + self.explanations_txt + \
-                  ' -p ' + self.project_name + ' ' + self.executables
+        command = exe + ' -O ' + covoar_result_dir + \
+                  ' -p ' + self.project_name + \
+                  ' ' + self.executables + ' '
+        command += self.covoar_cmd
+
         log.notice()
         log.notice('Running coverage analysis: %s (%s)' % (set_name, covoar_result_dir))
         start_time = datetime.datetime.now()
@@ -344,7 +352,6 @@ class coverage_run(object):
         self.trace = trace
         self.macros = macros_
         self.build_dir = self.macros['_cwd']
-        self.explanations_txt = self.macros.expand(self.macros['cov_explanations'])
         self.test_dir = path.join(self.build_dir, self.macros['bsp'] + '-coverage')
         if not path.exists(self.test_dir):
             path.mkdir(self.test_dir)
@@ -353,8 +360,7 @@ class coverage_run(object):
         self.coverage_config_path = path.join(self.rtscripts, 'coverage')
         self.symbol_config_path = path.join(self.coverage_config_path,
                                             'symbol-sets.ini')
-        self.symbol_select_path = path.join(self.coverage_config_path,
-                                            self.macros['bsp'] + '-symbols.ini')
+        self.symbol_select_path = self.macros.expand(self.macros['bsp_symbol_path'])
         self.executables = executables
         self.symbol_sets = []
         self.no_clean = int(self.macros['_no_clean'])
@@ -364,6 +370,7 @@ class coverage_run(object):
         self.bsp_name = self.macros['bsp'].split('-')[0]
         self.prefix = prefix
         self.macros.define('coverage')
+        self.covoar_cmd = self.macros.expand(self.macros['bsp_covoar_cmd'])
 
     def run(self):
         try:
@@ -379,10 +386,12 @@ class coverage_run(object):
             symbol_sets = parser.parse()
             for sset in symbol_sets:
                 parser.write_ini(sset)
-                covoar_runner = covoar(self.test_dir, self.symbol_select_path,
-                                       self.executables, self.explanations_txt,
+                covoar_runner = covoar(self.test_dir,
+                                       self.symbol_select_path,
+                                       self.executables,
                                        self.trace,
-                                       self.prefix)
+                                       self.prefix,
+                                       self.covoar_cmd)
                 covoar_runner.run(sset, self.symbol_select_path)
             self._generate_reports(symbol_sets);
             self._summarize();

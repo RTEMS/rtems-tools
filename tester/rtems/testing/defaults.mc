@@ -122,5 +122,9 @@ _rtbase:             none,    none,     '%{_rtdir}'
 _rttesting:          none,    none,     '%{_rtbase}/rtems/testing'
 _configdir:          none,    none,     '%{_rtbase}/config:%{_rttesting}'
 
+#Coverage macros
+bsp_symbol_path:     none,    none,      '%{_rtscripts}/coverage/%{bsp}-symbols.ini'
+project_name:        none,    none,      'RTEMS-%{rtems_version}'
+
 # Include the testing macros.
 %include %{_rttesting}/testing.mc
