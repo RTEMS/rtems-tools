@@ -105,7 +105,8 @@ def build(bld):
                         'Target_lm32.cc',
                         'Target_m68k.cc',
                         'Target_powerpc.cc',
-                        'Target_sparc.cc'],
+                        'Target_sparc.cc',
+                        'Target_riscv.cc'],
               cflags = ['-O2', '-g', '-Wall'],
               cxxflags = ['-std=c++11', '-O2', '-g', '-Wall'],
               includes = ['.'] + rtl_includes)

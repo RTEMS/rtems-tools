@@ -23,6 +23,7 @@
 #include "Target_powerpc.h"
 #include "Target_lm32.h"
 #include "Target_sparc.h"
+#include "Target_riscv.h"
 
 namespace Target {
 
@@ -56,6 +57,7 @@ namespace Target {
     { "m68k",    Target_m68k_Constructor },
     { "powerpc", Target_powerpc_Constructor },
     { "sparc",   Target_sparc_Constructor },
+    { "riscv",   Target_riscv_Constructor },
     { "TBD",     NULL },
   };
 
