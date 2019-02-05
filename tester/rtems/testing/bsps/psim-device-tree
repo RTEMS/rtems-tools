@@ -3,7 +3,7 @@
 #
 /#address-cells 1
 /openprom/init/register/pvr 0xfffe0000
-/openprom/options/oea-memory-size 16777216
+/openprom/options/oea-memory-size 0x10000000
 ##### EEPROM @ 0x0c000000 for 512K
 /eeprom@0x0c000000/reg 0x0c000000 0x80000
 /eeprom@0x0c000000/nr-sectors 8
