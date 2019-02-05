@@ -48,6 +48,7 @@ import traceback
 
 from rtemstoolkit import error
 from rtemstoolkit import log
+from rtemstoolkit import stacktraces
 
 # Trace exceptions
 trace_threads = False
@@ -174,13 +175,15 @@ class execute(object):
                 #exe.lock.acquire()
                 #exe.outputting = True
                 #exe.lock.release()
-                if out:
-                    out(prefix + line)
-                else:
-                    log.output(prefix + line)
-                    if count > 10:
-                        log.flush()
-
+                try:
+                    if out:
+                        out(prefix + line)
+                    else:
+                        log.output(prefix + line)
+                        if count > 10:
+                            log.flush()
+                except:
+                    stacktraces.trace()
             if trace_threads:
                 print('execute:_readthread: start')
             count = 0
@@ -339,17 +342,19 @@ class execute(object):
              timeout = None):
         """Open a command with arguments. Provide the arguments as a list or
         a string."""
-        if self.verbose:
-            s = command
-            if type(command) is list:
-                def add(x, y): return x + ' ' + str(y)
-                s = functools.reduce(add, command, '')[1:]
-            what = 'spawn'
-            if shell:
-                what = 'shell'
-            log.output(what + ': ' + s)
         if self.output is None:
             raise error.general('capture needs an output handler')
+        cs = command
+        if type(command) is list:
+            def add(x, y): return x + ' ' + str(y)
+            cs = functools.reduce(add, command, '')[1:]
+        what = 'spawn'
+        if shell:
+            what = 'shell'
+        cs = what + ': ' + cs
+        if self.verbose:
+            log.output(what + ': ' + cs)
+        log.trace('exe: %s' % (cs))
         if shell and self.shell_exe:
             command = arg_list(command)
             command[:0] = self.shell_exe
@@ -373,7 +378,6 @@ class execute(object):
                     r, e = os.path.splitext(command[0])
                     if e not in ['.exe', '.com', '.bat']:
                         command[0] = command[0] + '.exe'
-            log.trace('exe: %s' % (command))
             proc = subprocess.Popen(command, shell = shell,
                                     cwd = cwd, env = env,
                                     stdin = stdin, stdout = stdout,
