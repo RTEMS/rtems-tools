@@ -46,6 +46,8 @@ from rtemstoolkit import execute
 from rtemstoolkit import log
 from rtemstoolkit import path
 
+from rtemstoolkit import stacktraces
+
 import console
 import gdb
 import tftp
@@ -341,7 +343,14 @@ class file(config.file):
 
     def _realtime_trace(self, text):
         for l in text:
-            print(''.join(l))
+            self._unlock()
+            try:
+                print(''.join(l))
+            except:
+                stacktraces.trace()
+                raise
+            finally:
+                self._lock()
 
     def run(self):
         self.target_start_regx = self._target_regex('target_start_regex')
