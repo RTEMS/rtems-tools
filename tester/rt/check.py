@@ -304,7 +304,7 @@ class warnings_errors:
                             count = group_counts[build][group]
                         else:
                             count = 0
-                        gs += ['%*s' % (cols_4[g % 4] - 2,
+                        gs += ['%*s' % (int(cols_4[g % 4] - 2),
                                         '%s : %4d' % (group, count))]
                     for row in range(0, len(self.groups['groups']), 4):
                         if row + 4 > len(self.groups['groups']):
