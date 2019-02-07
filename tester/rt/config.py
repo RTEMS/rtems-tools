@@ -229,7 +229,7 @@ class file(config.file):
                                              timeout = (int(self.expand('%{timeout}')),
                                                         self._timeout))
                 self._lock()
-                if not self.kill_good and ec > 0:
+                if not (self.kill_good or self.defined('exe_ignore_ret')) and ec > 0:
                     self._error('execute failed: %s: exit-code:%d' % (' '.join(data), ec))
                 elif self.timedout:
                     self.process.kill()
