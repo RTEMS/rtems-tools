@@ -88,7 +88,8 @@ namespace rld
     {
       if (!object_)
         throw rld_error_at ("object pointer is 0");
-      demangle_name (name_, demangled_);
+      if (!demangle_name (name_, demangled_))
+        demangled_ = name_;
     }
 
     symbol::symbol (int                 index,
@@ -100,7 +101,8 @@ namespace rld
         esym_ (esym),
         references_ (0)
     {
-      demangle_name (name_, demangled_);
+      if (!demangle_name (name_, demangled_))
+        demangled_ = name_;
     }
 
     symbol::symbol (const std::string&  name,

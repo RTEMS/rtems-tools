@@ -29,6 +29,7 @@
 #include <fstream>
 #include <iomanip>
 #include <iostream>
+#include <regex>
 
 #include <cxxabi.h>
 #include <signal.h>
@@ -143,6 +144,70 @@ c_embedded_trailer (rld::process::tempfile& c)
 }
 
 /**
+ * Filter the symbols given a list of regx expressions.
+ */
+class symbol_filter
+{
+public:
+  typedef std::vector < std::string > expressions;
+
+  symbol_filter ();
+
+  void load (const std::string& file);
+  void add (const std::string& re);
+
+  void filter (const rld::symbols::symtab& symbols,
+               rld::symbols::symtab&       filtered_symbols);
+
+private:
+
+  expressions expr;
+};
+
+symbol_filter::symbol_filter ()
+{
+}
+
+void
+symbol_filter::load (const std::string& file)
+{
+  std::ifstream in (file);
+  std::string   re;
+  while (in >> re)
+    add (re);
+}
+
+void
+symbol_filter::add (const std::string& re)
+{
+  expr.push_back (re);
+}
+
+void
+symbol_filter::filter (const rld::symbols::symtab& symbols,
+                       rld::symbols::symtab&       filtered_symbols)
+{
+  if (expr.size () > 0)
+  {
+    for (auto& re : expr)
+    {
+      const std::regex sym_re(re);
+      for (const auto& sym : symbols)
+      {
+        std::smatch      m;
+        if (std::regex_match (sym.second->demangled (), m, sym_re))
+          filtered_symbols[sym.first] = sym.second;
+      }
+    }
+  }
+  else
+  {
+    for (const auto& sym : symbols)
+      filtered_symbols[sym.first] = sym.second;
+  }
+}
+
+/**
  * Generate the symbol map object file for loading or linking into
  * a running RTEMS machine.
  */
@@ -192,27 +257,20 @@ output_sym::operator ()(const rld::symbols::symtab::value_type& value)
 
 static void
 generate_c (rld::process::tempfile& c,
-            rld::symbols::table&    symbols,
+            rld::symbols::symtab&   symbols,
             bool                    embed)
 {
   temporary_file_paint (c, c_header);
 
   /*
-   * Add the global symbols.
+   * Add the symbols. The is the globals and the weak symbols that have been
+   * linked into the base image. A weak symbols present in the base image is no
+   * longer weak and should be consider a global symbol. You cannot link a
+   * global symbol with the same in a dynamically loaded module.
    */
-  std::for_each (symbols.globals ().begin (),
-                 symbols.globals ().end (),
+  std::for_each (symbols.begin (),
+                 symbols.end (),
                  output_sym (c, embed, false));
-
-  /*
-   * Add the weak symbols that have been linked into the base image. A weak
-   * symbols present in the base image is no longer weak and should be consider
-   * a global symbol. You cannot link a global symbol with the same in a
-   * dynamically loaded module.
-   */
-  std::for_each (symbols.weaks ().begin (),
-                 symbols.weaks ().end (),
-                 output_sym (c, embed, true));
 
   temporary_file_paint (c, c_trailer);
 
@@ -225,7 +283,7 @@ generate_c (rld::process::tempfile& c,
 static void
 generate_symmap (rld::process::tempfile& c,
                  const std::string&      output,
-                 rld::symbols::table&    symbols,
+                 rld::symbols::symtab&   symbols,
                  bool                    embed)
 {
   c.open (true);
@@ -283,6 +341,8 @@ static struct option rld_opts[] = {
   { "cc",          required_argument,      NULL,           'C' },
   { "exec-prefix", required_argument,      NULL,           'E' },
   { "cflags",      required_argument,      NULL,           'c' },
+  { "filter",      required_argument,      NULL,           'f' },
+  { "filter-re",   required_argument,      NULL,           'F' },
   { NULL,          0,                      NULL,            0 }
 };
 
@@ -301,9 +361,11 @@ usage (int exit_code)
             << " -S file   : symbol's C file (also --symc)" << std::endl
             << " -o file   : output object file (also --output)" << std::endl
             << " -m file   : output a map file (also --map)" << std::endl
-            << " -C file   : execute file as the target C compiler (also --cc)" << std::endl
+            << " -C file   : target C compiler executable (also --cc)" << std::endl
             << " -E prefix : the RTEMS tool prefix (also --exec-prefix)" << std::endl
-            << " -c cflags : C compiler flags (also --cflags)" << std::endl;
+            << " -c cflags : C compiler flags (also --cflags)" << std::endl
+            << " -f file   : file of symbol filters (also --filter)" << std::endl
+            << " -F re     : filter regx expression (also --filter-re)" << std::endl;
   ::exit (exit_code);
 }
 
@@ -352,6 +414,7 @@ main (int argc, char* argv[])
   {
     rld::files::cache   kernel;
     rld::symbols::table symbols;
+    symbol_filter       filter;
     std::string         kernel_name;
     std::string         output;
     std::string         map;
@@ -363,7 +426,7 @@ main (int argc, char* argv[])
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvVwkef:S:o:m:E:c:C:", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvVwkef:S:o:m:E:c:C:f:F:", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -417,6 +480,14 @@ main (int argc, char* argv[])
 
         case 'S':
           symc = optarg;
+          break;
+
+        case 'f':
+          filter.load (optarg);
+          break;
+
+        case 'F':
+          filter.add (optarg);
           break;
 
         case '?':
@@ -479,6 +550,17 @@ main (int argc, char* argv[])
         rld::cc::set_exec_prefix (rld::elf::machine_type ());
 
       /*
+       * Filter the symbols.
+       */
+      rld::symbols::symtab filter_symbols;
+      filter.filter (symbols.globals (), filter_symbols);
+      filter.filter (symbols.weaks (), filter_symbols);
+      if (filter_symbols.size () == 0)
+        throw rld::error ("no filtered symbols", "filter");
+      if (rld::verbose ())
+        std::cout << "Filtered symbols: " << filter_symbols.size () << std::endl;
+
+      /*
        * Create a map file if asked too.
        */
       if (!map.empty ())
@@ -490,7 +572,7 @@ main (int argc, char* argv[])
         mout << "RTEMS Kernel Symbols Map" << std::endl
              << " kernel: " << kernel_name << std::endl
              << std::endl;
-        rld::symbols::output (mout, symbols);
+        rld::symbols::output (mout, filter_symbols);
         mout.close ();
       }
 
@@ -510,7 +592,7 @@ main (int argc, char* argv[])
         /*
          * Generate and compile the symbol map.
          */
-        generate_symmap (c, output, symbols, embed);
+        generate_symmap (c, output, filter_symbols, embed);
       }
 
       kernel.close ();
