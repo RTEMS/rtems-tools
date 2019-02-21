@@ -67,7 +67,9 @@ class mail:
 
     def _get_arg(self, arg):
         if self._args_are_macros():
-            value = self.opts.find_arg(arg)[1]
+            value = self.opts.find_arg(arg)
+            if value is not None:
+                value = self.opts.find_arg(arg)[1]
         else:
             if arg.startswith('--'):
                 arg = arg[2:]
