@@ -211,6 +211,23 @@ class report_gen_html:
             path.copy_tree(covoar_css_path, symbol_set_dir)
             path.copy_tree(table_js_path, symbol_set_dir)
 
+    def add_dir_name(self):
+        for symbol_set in self.symbol_sets:
+             symbol_set_dir = path.join(self.build_dir,
+                                        self.bsp + '-coverage', symbol_set)
+             html_files = os.listdir(symbol_set_dir)
+             for html_file in html_files:
+                 html_file = path.join(symbol_set_dir, html_file)
+                 if path.exists(html_file) and 'html' in html_file:
+                     with open(html_file, 'r') as f:
+                         file_data = f.read()
+                     text = file_data[file_data.find('<div class="heading-title">')\
+                                     +len('<div class="heading-title">') \
+                                     : file_data.find('</div')]
+                     file_data = file_data.replace(text, text + '<br>' + symbol_set)
+                     with open(html_file, 'w') as f:
+                         f.write(file_data)
+
 class build_path_generator(object):
     '''
     Generates the build path from the path to executables
@@ -406,6 +423,7 @@ class coverage_run(object):
                                      self.macros['bsp'])
             report.generate()
             report.add_covoar_css()
+            report.add_dir_name()
 
     def _cleanup(self):
         if not self.no_clean:
