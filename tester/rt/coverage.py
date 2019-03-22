@@ -256,10 +256,9 @@ class symbol_parser(object):
                 self.ssets = self.symbol_set.split(',')
             else:
                 self.ssets = config.get('symbol-sets', 'sets').split(',')
-                self.ssets = [sset.encode('utf-8') for sset in self.ssets]
             for sset in self.ssets:
                 lib = path.join(self.build_dir, config.get('libraries', sset))
-                self.symbol_sets[sset] = lib.encode('utf-8')
+                self.symbol_sets[sset] = lib
                 ss = self.symbol_sets[sset]
                 ss = ss.replace('@BSP@', self.bsp_name)
                 ss = ss.replace('@BUILD-TARGET@', self.target)
