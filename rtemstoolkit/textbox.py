@@ -61,7 +61,7 @@ def row(cols, data, indent = 0, marker = '|', linesep = os.linesep):
     return s + linesep
 
 def even_columns(cols, width = 80):
-    per_col = width / cols
+    per_col = int(width / cols)
     columns = [per_col for c in range(0, cols)]
     for remainder in range(0, int(width - (per_col * cols))):
         if remainder % 2 == 0:
