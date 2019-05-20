@@ -126,17 +126,17 @@ def mkdir(path):
                 os.makedirs(host(path))
             except IOError:
                 raise error.general('cannot make directory: %s' % (path))
-            except OSError:
-                raise error.general('cannot make directory: %s' % (path))
-            except WindowsError:
-                raise error.general('cannot make directory: %s' % (path))
+            except OSError as e:
+                raise error.general('cannot make directory: %s: %s' % (path, str(e)))
+            except WindowsError as e:
+                raise error.general('cannot make directory: %s: %s' % (path, str(e)))
         else:
             try:
                 os.makedirs(host(path))
             except IOError:
                 raise error.general('cannot make directory: %s' % (path))
-            except OSError:
-                raise error.general('cannot make directory: %s' % (path))
+            except OSError as e:
+                raise error.general('cannot make directory: %s: %s' % (path, str(e)))
 
 def removeall(path):
 
