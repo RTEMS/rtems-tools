@@ -157,6 +157,33 @@ def expanduser(path):
     path = os.path.expanduser(path)
     return shell(path)
 
+def listdir(path):
+    path = host(path)
+    files = []
+    if not exists(path):
+        raise error.general('path does not exist : %s' % (path))
+    elif not isdir(path):
+        raise error.general('path is not a directory: %s' % (path))
+    else:
+        if windows:
+            try:
+                files = os.listdir(host(path))
+            except IOError:
+                raise error.general('Could not list files: %s' % (path))
+            except OSError as e:
+                raise error.general('Could not list files: %s: %s' % (path, str(e)))
+            except WindowsError as e:
+                raise error.general('Could not list files: %s: %s' % (path, str(e)))
+        else:
+            try:
+                files = os.listdir(host(path))
+            except IOError:
+                raise error.general('Could not list files: %s' % (path))
+            except OSError as e:
+                raise error.general('Could not list files: %s: %s' % (path, str(e)))
+
+    return files
+
 def collect_files(path_):
     #
     # Convert to shell paths and return shell paths.
@@ -184,7 +211,7 @@ def copy_tree(src, dst):
     hdst = host(dst)
 
     if os.path.exists(src) and os.path.isdir(src):
-        names = os.listdir(src)
+        names = listdir(src)
     else:
         names = [basename(src)]
         src = dirname(src)

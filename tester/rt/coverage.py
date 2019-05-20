@@ -215,7 +215,7 @@ class report_gen_html:
         for symbol_set in self.symbol_sets:
              symbol_set_dir = path.join(self.build_dir,
                                         self.bsp + '-coverage', symbol_set)
-             html_files = os.listdir(symbol_set_dir)
+             html_files = path.listdir(symbol_set_dir)
              for html_file in html_files:
                  html_file = path.join(symbol_set_dir, html_file)
                  if path.exists(html_file) and 'html' in html_file:
@@ -291,7 +291,7 @@ class symbol_parser(object):
             config.add_section('symbol-sets')
             config.set('symbol-sets', 'sets', sset)
             config.add_section(sset)
-            object_files = [o for o in os.listdir(self.symbol_sets[sset]) if o[-1] == 'o']
+            object_files = [o for o in path.listdir(self.symbol_sets[sset]) if o[-1] == 'o']
             object_paths = []
             for o in object_files:
                 object_paths.append(path.join(self.symbol_sets[sset], o))
