@@ -54,8 +54,16 @@ def options(opt):
 
 def configure(conf):
     conf.load('compiler_cxx')
-    conf.check_cc(function_name='open64', header_name="stdlib.h", mandatory = False)
-    conf.check_cc(function_name='stat64', header_name="stdlib.h", mandatory = False)
+    conf.check_cc(fragment = '''
+                    #include <stdlib.h>
+                    int main() { FILE* f = fopen64("name", "r"); } ''',
+                  cflags = '-Wall', define_name = 'HAVE_OPEN64',
+                  msg = 'Checking for fopen64', mandatory = False)
+    conf.check_cc(fragment = '''
+                    #include <sys/stat.h>
+                    int main() { struct stat64 sb; int f = 3; int r = stat64(f, &sb); } ''',
+                  cflags = '-Wall', define_name = 'HAVE_STAT64',
+                  msg = 'Checking for stat64', mandatory = False)
     conf.write_config_header('covoar-config.h')
 
 def build(bld):

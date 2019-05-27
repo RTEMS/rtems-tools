@@ -45,8 +45,12 @@ def configure(conf):
     conf.find_program('m4')
 
     conf.check(header_name = 'sys/wait.h',  features = 'c', mandatory = False)
-    conf.check_cc(function_name = 'kill', header_name="signal.h",
-                  features = 'c', mandatory = False)
+    conf.check_cc(fragment = '''
+                    #include <sys/types.h>
+                    #include <signal.h>
+                    int main() { pid_t pid = 1234; int r = kill(pid, SIGKILL); } ''',
+                  cflags = '-Wall', define_name = 'HAVE_KILL',
+                  msg = 'Checking for kill', mandatory = False)
     conf.write_config_header('config.h')
 
 def build(bld):
@@ -383,10 +387,13 @@ def conf_libiberty(conf):
     conf.check(header_name='unistd.h',    features = 'c', mandatory = False)
     conf.check(header_name='vfork.h',     features = 'c', mandatory = False)
 
-    conf.check_cc(function_name='getrusage',
-                  header_name="sys/time.h sys/resource.h",
-                  features = 'c', mandatory = False)
-
+    conf.check_cc(fragment = '''
+                    #include <sys/types.h>
+                    #include <sys/time.h>
+                    #include <sys/resource.h>
+                  int main() { struct rusage ru = {0}; int r = getrusage(RUSAGE_SELF, &ru); } ''',
+                  cflags = '-Wall', define_name = 'HAVE_GETRUSAGE',
+                  msg = 'Checking for getrusage', mandatory = False)
     conf.write_config_header('libiberty/config.h')
 
 def bld_libiberty(bld, conf):

@@ -21,7 +21,7 @@
 
 #include "qemu-traces.h"
 
-#if HAVE_STAT64
+#if HAVE_OPEN64
 #define OPEN fopen64
 #else
 #define OPEN fopen

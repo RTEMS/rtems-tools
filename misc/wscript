@@ -33,8 +33,11 @@ def options(opt):
 def configure(conf):
     conf.load('compiler_c')
 
-    conf.check_cc(function_name = 'strnlen', header_name="string.h",
-                  features = 'c', mandatory = False)
+    conf.check_cc(fragment = '''
+                     #include <string.h>
+                     int main() { size_t l = strnlen("string", 10); } ''',
+                  cflags = '-Wall', define_name = 'HAVE_STRNLEN',
+                  msg = 'Checking for strnlen', mandatory = False)
     conf.write_config_header('config.h')
 
 def build(bld):
