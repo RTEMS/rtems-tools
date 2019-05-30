@@ -508,8 +508,7 @@ class command_line(object):
         return None
 
     def log_info(self):
-        log.output(' Command Line: %s' % (' '.join(self.argv)))
-        log.output(' Python: %s' % (sys.version.replace('\n', '')))
+        log.output(log.info(self.argv))
 
 def load(opts):
     """

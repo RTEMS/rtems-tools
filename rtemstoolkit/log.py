@@ -61,6 +61,20 @@ quiet = False
 #
 lock = threading.Lock()
 
+def info(args):
+    s = [' Command Line: %s' % (' '.join(args))]
+    if hasattr(os, 'uname'):
+        s += [' Host: %s' % (' '.join(os.uname()))]
+    else:
+        h = ' Host: win32-mingw'
+        if 'HOSTTYPE' in os.environ:
+            h += ' ' + os.environ['HOSTTYPE']
+        else:
+            h += ' i686'
+        s += [h]
+    s += [' Python: %s' % (sys.version.replace('\n', ''))]
+    return s
+
 def set_default_once(log):
     if default is None:
         default = log
