@@ -143,12 +143,12 @@ def host_setup(opts):
     return sane
 
 
-def check_exe(label, exe):
-    return _check_exe(None, label, exe, None, True)
+def check_exe(label, exe, silent = True):
+    return _check_exe(None, label, exe, None, silent)
 
 
-def check_dir(label, path):
-    return _check_dir(None, label, path, 'required', True)
+def check_dir(label, path, silent = True):
+    return _check_dir(None, label, path, 'required', silent)
 
 
 def run(args):
