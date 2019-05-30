@@ -42,7 +42,7 @@ is_windows = False
 platform = None
 name = None
 
-def _load():
+def load():
 
     global is_windows
     global platform
@@ -83,11 +83,11 @@ def _load():
         raise error.general('failed to load %s host support' % (name))
 
 def cpus():
-    _load()
+    load()
     return platform.cpus()
 
 def overrides():
-    _load()
+    load()
     return platform.overrides()
 
 def label(mode = 'all'):
@@ -107,7 +107,7 @@ def label(mode = 'all'):
 if __name__ == '__main__':
     import pprint
     print('Python\'s OS name: %s' % (os.name))
-    _load()
+    load()
     print('Name      : %s' % (name))
     if is_windows:
         status = 'Yes'
