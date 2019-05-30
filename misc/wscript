@@ -70,5 +70,19 @@ def build(bld):
                 cflags = conf['cflags'] + conf['warningflags'],
                 linkflags = conf['linkflags'])
 
+    #
+    # Install the boot image code.
+    #
+    bld(features = 'py',
+        source = ['tools/boot.py',
+                  'tools/cmd-boot-image.py'],
+        install_from = '.',
+        install_path = '${PREFIX}/share/rtems/misc')
+    bld.install_files('${PREFIX}/bin',
+                      ['rtems-boot-image'],
+                      chmod = 0o755)
+    bld.install_files('${PREFIX}/share/rtems/tools/config',
+                      'tools/config/rtems-boot.ini')
+
 def tags(ctx):
     ctx.exec_command('etags $(find . -name \*.[sSch])', shell = True)
