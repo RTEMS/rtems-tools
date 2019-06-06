@@ -80,8 +80,9 @@ class macros:
             pass
         return us
 
-    def __init__(self, name = None, original = None, rtdir = '.'):
+    def __init__(self, name = None, original = None, rtdir = '.', show_minimal = False):
         self.files = []
+        self.str_show_minimal = show_minimal
         self.macro_filter = re.compile(r'%{[^}]+}')
         if original is None:
             self.macros = {}
@@ -124,7 +125,14 @@ class macros:
         text = ''
         for f in self.files:
             text += '> %s%s' % (f, os.linesep)
+        max_key_size = 0
         for map in self.macros:
+            size = len(max(self.macros[map].keys(), key = lambda x: len(x)))
+            if size > max_key_size:
+                max_key_size = size
+        maps = sorted(self.macros)
+        maps.remove('global')
+        for map in ['global'] + maps:
             rm = '-'
             for rmap in self.read_maps:
                 if rmap[4:] == '___%s' % (map):
@@ -140,10 +148,13 @@ class macros:
             text += '[%s] %s,%s%s' % (map, wm, rm, os.linesep)
             for k in sorted(self.macros[map].keys()):
                 d = self.macros[map][k]
-                text += " %s:%s '%s'%s '%s'%s" % \
-                    (k, ' ' * (20 - len(k)),
-                     d[0], ' ' * (8 - len(d[0])),
-                     d[1], ' ' * (10 - len(d[1])))
+                if self.str_show_minimal:
+                    text += " %s: %s" % (k, ' ' * (max_key_size - len(k)))
+                else:
+                    text += " %s:%s '%s'%s '%s'%s" % \
+                            (k, ' ' * (max_key_size - len(k)),
+                             d[0], ' ' * (8 - len(d[0])),
+                             d[1], ' ' * (10 - len(d[1])))
                 if len(d[2]) == 0:
                     text += "''%s" % (os.linesep)
                 else:
@@ -151,14 +162,18 @@ class macros:
                         text += "'''"
                     else:
                         text += "'"
-                indent = False
                 ds = d[2].split('\n')
                 lc = 0
+                indent = False
                 for l in ds:
                     lc += 1
                     while len(l):
                         if indent:
-                            text += ' %21s %10s %12s' % (' ', ' ', ' ')
+                            if self.str_show_minimal:
+                                text += ' %s  ' % (' ' * max_key_size)
+                            else:
+                                text += ' %s  %10s %12s' % (' ' * max_key_size, ' ', ' ')
+                        indent = True
                         text += l[0:text_len]
                         l = l[text_len:]
                         if len(l):
@@ -169,7 +184,6 @@ class macros:
                             else:
                                 text += "'"
                         text += '%s' % (os.linesep)
-                        indent = True
         return text
 
     def __iter__(self):
