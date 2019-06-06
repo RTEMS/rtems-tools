@@ -40,16 +40,21 @@ import re
 from rtemstoolkit import error
 from rtemstoolkit import path
 
+try:
+    import configparser
+    has_strict = True
+except:
+    # python2
+    import ConfigParser as configparser
+    has_strict = False
+
 class configuration:
 
     def __init__(self, raw = True):
         self.raw = True
-        try:
-            import configparser
+        if has_strict:
             self.config = configparser.ConfigParser(strict = False)
-        except:
-            # python2
-            import ConfigParser as configparser
+        else:
             self.config = configparser.ConfigParser()
         self.ini = None
         self.macro_filter = re.compile('\$\{.+\}')
@@ -74,9 +79,14 @@ class configuration:
                                                      raw = self.raw))]
         return os.linesep.join(s)
 
+    def get_sections(self):
+        return self.config.sections()
+
     def get_item(self, section, label, err = True):
         try:
-            rec = self.config.get(section, label, raw = self.raw).replace(os.linesep, ' ')
+            rec = self.config.get(section,
+                                  label,
+                                  raw = self.raw).replace(os.linesep, ' ')
         except:
             if err:
                 raise error.general('config: no "%s" found in "%s"' % (label, section))
@@ -88,10 +98,12 @@ class configuration:
         #
         for m in self.macro_filter.findall(rec):
             if ':' not in m:
-                raise error.general('config: interpolation is ${section:value}: %s' % (m))
+                err = 'config: interpolation is ${section:value}: %s' % (m)
+                raise error.general(err)
             section_value = m[2:-1].split(':')
             if len(section_value) != 2:
-                raise error.general('config: interpolation is ${section:value}: %s' % (m))
+                err = 'config: interpolation is ${section:value}: %s' % (m)
+                raise error.general(err)
             try:
                 ref = self.config.get(section_value[0],
                                       section_value[1],
