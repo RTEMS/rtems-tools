@@ -51,13 +51,13 @@ except:
 class configuration:
 
     def __init__(self, raw = True):
-        self.raw = True
+        self.raw = raw
         if has_strict:
             self.config = configparser.ConfigParser(strict = False)
         else:
             self.config = configparser.ConfigParser()
         self.ini = None
-        self.macro_filter = re.compile('\$\{.+\}')
+        self.macro_filter = re.compile('\$\{[^\}]+\}')
 
     def __str__(self):
         if self.ini is None:
@@ -73,11 +73,42 @@ class configuration:
         for section in self.config.sections():
             s += [' [%s]' % (section)]
             for option in self.config.options(section):
-                s += ['  %s = %s' % (option,
-                                     self.config.get(section,
-                                                     option,
-                                                     raw = self.raw))]
+                rec = self.config.get(section,
+                                      option,
+                                      raw = True).replace(os.linesep, ' ')
+                s += ['  %s = %s' % (option, rec)]
         return os.linesep.join(s)
+
+    def _interpolate(self, section, rec):
+        #
+        # On Python 2.7 there is no extended interpolation so add support here.
+        # On Python 3 we disable the built in support and also the code here.
+        #
+        if not self.raw:
+            not_found = []
+            while True:
+                macros = [m for m in self.macro_filter.findall(rec) if m not in not_found]
+                if len(macros) == 0:
+                    break
+                for m in macros:
+                    if m in not_found:
+                        continue
+                    if ':' in m:
+                        section_value = m[2:-1].split(':')
+                        if len(section_value) != 2:
+                            err = 'config: interpolation is ${section:item}: %s' % (m)
+                            raise error.general(err)
+                    else:
+                        section_value = [section, m[2:-1]]
+                    try:
+                        ref = self.config.get(section_value[0],
+                                              section_value[1],
+                                              raw = True).replace(os.linesep, ' ')
+                        rec = rec.replace(m, ref)
+                    except:
+                        not_found += [m]
+                        pass
+        return rec
 
     def get_sections(self):
         return self.config.sections()
@@ -86,41 +117,21 @@ class configuration:
         try:
             rec = self.config.get(section,
                                   label,
-                                  raw = self.raw).replace(os.linesep, ' ')
+                                  raw = True).replace(os.linesep, ' ')
         except:
             if err:
                 raise error.general('config: no "%s" found in "%s"' % (label, section))
             return None
-        #
-        # On Python 2.7 there is no extended interpolation so add support here.
-        # On Python 3 this should happen automatically and so the findall
-        # should find nothing.
-        #
-        for m in self.macro_filter.findall(rec):
-            if ':' not in m:
-                err = 'config: interpolation is ${section:value}: %s' % (m)
-                raise error.general(err)
-            section_value = m[2:-1].split(':')
-            if len(section_value) != 2:
-                err = 'config: interpolation is ${section:value}: %s' % (m)
-                raise error.general(err)
-            try:
-                ref = self.config.get(section_value[0],
-                                      section_value[1],
-                                      raw = self.raw).replace(os.linesep, ' ')
-                rec = rec.replace(m, ref)
-            except:
-                pass
-        return rec
+        return self._interpolate(section, rec)
 
     def get_items(self, section, err = True, flatten = True):
         try:
             items = []
-            for name, key in self.config.items(section, raw = self.raw):
+            for name, value in self.config.items(section, raw = True):
                 if flatten:
-                    items += [(name, key.replace(os.linesep, ' '))]
-                else:
-                    items += [(name, key)]
+                    value = value.replace(os.linesep, ' ')
+                value = self._interpolate(section, value)
+                items += [(name, value)]
             return items
         except:
             if err:
@@ -135,7 +146,7 @@ class configuration:
 
     def get_item_names(self, section, err = True):
         try:
-            return [item[0] for item in self.config.items(section, raw = self.raw)]
+            return [item[0] for item in self.config.items(section, raw = True)]
         except:
             if err:
                 raise error.general('config: section "%s" not found' % (section))
