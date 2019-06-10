@@ -232,6 +232,7 @@ class macros:
         return sorted(set(keys))
 
     def has_key(self, key):
+        key = self._unicode_to_str(key)
         if type(key) is not str:
             raise TypeError('bad key type (want str): %s' % (type(key)))
         if self.key_filter(key) not in list(self.keys()):
@@ -408,6 +409,7 @@ class macros:
                                 (path.host(self.expand(name))))
 
     def get(self, key):
+        key = self._unicode_to_str(key)
         if type(key) is not str:
             raise TypeError('bad key type: %s' % (type(key)))
         key = self.key_filter(key)
