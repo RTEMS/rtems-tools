@@ -160,8 +160,10 @@ class bootloader(object):
     def __setitem__(self, key, value):
         if value is None:
             value = 'None'
-        if isinstance(value, int):
-            value = str(int)
+        elif isinstance(value, bool):
+            value = '1' if value else '0'
+        elif isinstance(value, int):
+            value = str(value)
         self.macros[key] = value
 
     def get_mandatory_configs(self):
@@ -377,9 +379,8 @@ class uboot_bootloader(bootloader):
             image.install(path.abspath(uenv_txt), mountpoint)
         else:
             template = None
-            if self['net_dhcp'] is not None or \
-               self['net_ip'] is not None:
-                if self['net_dhcp'] is not None:
+            if self['net_dhcp'] or self['net_ip'] is not None:
+                if self['net_dhcp']:
                     template = 'uenv_net_dhcp'
                 else:
                     template = 'uenv_net_static'
