@@ -73,7 +73,7 @@ siunits = { 'g': 1024 * 1024 * 1024,
             'm': 1024 * 1024,
             'k': 1024 }
 
-def si_units(self, units):
+def _si_units(units):
     if units not in siunits:
         raise error.general('invalid SI unit: %s' % (units))
     return siunits[units]
@@ -488,7 +488,9 @@ class image(object):
                 # Format the first partition.
                 #
                 log.notice('Format: %s as %s' % (part, self.loader['fs_format']))
-                self.format_partition(part, self.loader['fs_format'])
+                self.format_partition(part,
+                                      self.loader['fs_format'],
+                                      self.loader['part_label'])
 
                 #
                 # Mount the file system.
@@ -560,8 +562,8 @@ class image(object):
         return self.host_partition(image_, device,
                                    ptype, plabel, pformat, psize, palign)
 
-    def format_partition(self, device, pformat):
-        self.host_format_partition(device, pformat)
+    def format_partition(self, device, pformat, plabel):
+        self.host_format_partition(device, pformat, plabel)
 
     def device_partition(self, device, pindex):
         return self.host_device_partition(device, pindex)
@@ -633,7 +635,7 @@ class image(object):
     def host_partition(self, image_, device, ptype, plabel, pformat, psize, palign):
         raise error.general('no platform support: host_partition')
 
-    def host_format_partition(self, device, pformat):
+    def host_format_partition(self, device, pformat, plabel):
         raise error.general('no platform support: host_format_partition')
 
     def host_device_partition(self, device, pindex):
@@ -680,7 +682,7 @@ class freebsd_image(image):
         self.command('sudo gpart set -a active -i 1 %s' % (device))
         return device
 
-    def host_format_partition(self, device, pformat):
+    def host_format_partition(self, device, pformat, plabel):
         formats = { 'fat16': ('newfs_msdos', '16'),
                     'fat32': ('newfs_msdos', '32') }
         if pformat not in formats:
@@ -727,7 +729,7 @@ class linux_image(image):
     def host_image_detach(self, device):
         self.command('sudo losetup --detach %s' % (device))
 
-    def host_partition(self, image_, device, ptype, pformat, psize, palign):
+    def host_partition(self, image_, device, ptype, plabel, pformat, psize, palign):
         types = { 'MBR': 'MBR' }
         formats = { 'fat16': '6',
                     'fat32': 'b' }
@@ -766,14 +768,15 @@ class linux_image(image):
                                                       image_))
         return self.host_image_attach(image_)
 
-    def host_format_partition(self, device, pformat):
+    def host_format_partition(self, device, pformat, plabel):
         formats = { 'fat16': ('mkfs.fat', '16'),
                     'fat32': ('mkfs.fat', '32') }
         if pformat not in formats:
             raise error.general('unknown format: %s' % (pformat))
-        self.command('sudo %s -F %s %s' % (formats[pformat][0],
-                                           formats[pformat][1],
-                                           device))
+        self.command('sudo %s -F %s -n %s %s' % (formats[pformat][0],
+                                                 formats[pformat][1],
+                                                 plabel,
+                                                 device))
 
     def host_device_partition(self, device, pindex):
         return '%sp%d' % (device, pindex)
@@ -848,7 +851,7 @@ class darwin_image(image):
             self.command('cat %s | sudo fdisk -y -e %s' % (tmp.name, device))
         return device
 
-    def host_format_partition(self, device, pformat):
+    def host_format_partition(self, device, pformat, plabel):
         log.output(' * No format stage; done when partitioning')
 
     def host_device_partition(self, device, pindex):
