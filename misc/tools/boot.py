@@ -127,7 +127,7 @@ class bootloader(object):
         'bootloaders'
     ]
 
-    def __init__(self, command_path, bootloader = None):
+    def __init__(self, command_path, build = None, bootloader = None):
         #
         # Check if there is a defaults.mc file under the command path. If so
         # this is the tester being run from within the git repo. If not found
@@ -140,7 +140,7 @@ class bootloader(object):
         else:
             rtdir = '%{_prefix}/share/rtems'
         boot_ini = '%s/%s' % (rtdir, boot_ini)
-        self.build = 'build'
+        self.build = None
         self.macros = macros.macros(rtdir = rtdir, show_minimal = True)
         self.config = configuration.configuration(raw = False)
         self.load_config(bootloader, self.macros.expand(boot_ini))
@@ -304,10 +304,10 @@ class bootloader(object):
 
 class uboot_bootloader(bootloader):
 
-    def __init__(self, command_path, convert_kernel, paths, board):
+    def __init__(self, command_path, build, convert_kernel, paths, board):
         self.uboot = { 'paths': paths, 'board': board }
         self.convert_kernel = convert_kernel
-        super(uboot_bootloader, self).__init__(command_path, 'u-boot')
+        super(uboot_bootloader, self).__init__(command_path, build, 'u-boot')
         if self.board() not in self.boards():
             raise error.general('board not found: %s' %(self.board()))
         log.output('Board: %s' % (self.board()))
@@ -317,16 +317,17 @@ class uboot_bootloader(bootloader):
         self._check_frist_second_stages()
 
     def _check_frist_second_stages(self):
-        if self['first_stage'] is not None and \
-           not path.exists(self['first_stage']):
-            err = 'u-boot: first stage loader not found: %s' % \
-                (self['first_stage'])
-            raise error.general(err)
-        if self['second_stage'] is not None and \
-           not path.exists(self['second_stage']):
-            err = 'u-boot: second stage loader not found: %s' % \
-                (self['second_stage'])
-            raise error.general(err)
+        if not self.convert_kernel:
+            if self['first_stage'] is not None and \
+               not path.exists(self['first_stage']):
+                err = 'u-boot: first stage loader not found: %s' % \
+                      (self['first_stage'])
+                raise error.general(err)
+            if self['second_stage'] is not None and \
+               not path.exists(self['second_stage']):
+                err = 'u-boot: second stage loader not found: %s' % \
+                      (self['second_stage'])
+                raise error.general(err)
 
     def load_config(self, bootloader, config):
         super(uboot_bootloader, self).load_config(bootloader, config)
@@ -1040,6 +1041,9 @@ def run(args = sys.argv, command_path = None):
                            help = 'convert a kernel to a bootoader image ' + \
                                   '(default: %(default)r).',
                            action = 'store_true', default = False)
+        argsp.add_argument('--build',
+                           help = 'set the build directory (default: %(default)r).',
+                           type = str, default = 'ribuild')
         argsp.add_argument('--no-clean',
                            help = 'do not clean when finished (default: %(default)r).',
                            action = 'store_false', default = True)
@@ -1057,7 +1061,7 @@ def run(args = sys.argv, command_path = None):
         log.output(log.info(args))
         log.tracing = argopts.trace
 
-        if argopts.net_boot_dhcp is not None or \
+        if argopts.net_boot_dhcp or \
            argopts.net_boot_ip is not None:
             if argopts.convert_kernel:
                 raise error.general('net boot options not valid with kernel convert.')
@@ -1079,6 +1083,7 @@ def run(args = sys.argv, command_path = None):
             raise error.exit()
 
         loader = uboot_bootloader(command_path,
+                                  argopts.build,
                                   argopts.convert_kernel,
                                   argopts.paths,
                                   argopts.board)
@@ -1094,9 +1099,9 @@ def run(args = sys.argv, command_path = None):
         else:
             loader.clean = argopts.no_clean
 
+        loader['build'] = argopts.build
         loader['board'] = argopts.board
         loader['output'] = argopts.output
-        loader['build'] = 'build'  # need an option for this at some point
         loader['image_size'] = argopts.image_size
         loader['fs_format'] = argopts.fs_format
         loader['fs_size'] = argopts.fs_size
