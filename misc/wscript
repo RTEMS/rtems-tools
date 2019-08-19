@@ -75,11 +75,16 @@ def build(bld):
     #
     bld(features = 'py',
         source = ['tools/boot.py',
-                  'tools/cmd-boot-image.py'],
+                  'tools/cmd-boot-image.py',
+                  'tools/cmd-tftpproxy.py',
+                  'tools/tftpproxy.py',
+                  'tools/getmac/__init__.py',
+                  'tools/getmac/getmac.py'],
         install_from = '.',
         install_path = '${PREFIX}/share/rtems/misc')
     bld.install_files('${PREFIX}/bin',
-                      ['rtems-boot-image'],
+                      ['rtems-boot-image',
+                       'rtems-tftp-proxy'],
                       chmod = 0o755)
     bld.install_files('${PREFIX}/share/rtems/tools/config',
                       'tools/config/rtems-boot.ini')
