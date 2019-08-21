@@ -178,7 +178,7 @@ def find_executables(paths, glob):
     executables = [e for e in executables if not norun.match(e)]
     return sorted(executables)
 
-def report_finished(reports, report_mode, reporting, finished, job_trace):
+def report_finished(reports, log_mode, reporting, finished, job_trace):
     processing = True
     while processing:
         processing = False
@@ -192,7 +192,7 @@ def report_finished(reports, report_mode, reporting, finished, job_trace):
                                                         'reporting',
                                                         reporting))
                 processing = True
-                reports.log(tst.executable, report_mode)
+                reports.log(tst.executable, log_mode)
                 reported += [tst]
                 reporting += 1
         finished[:] = [t for t in finished if t not in reported]
@@ -217,6 +217,88 @@ def killall(tests):
     for test in tests:
         test.kill()
 
+
+def generate_json_report(args, reports, start_time, end_time,
+                         total, json_file):
+    import json
+    import sys
+    json_log = {}
+    json_log['Command Line'] = " ".join(args)
+    json_log['Python'] = sys.version.replace('\n', '')
+    json_log['test_groups'] = []
+    json_log['Host'] = host.label(mode='all')
+    json_log['summary'] = {}
+    json_log['summary']['passed_count'] = reports.passed
+    json_log['summary']['failed_count'] = reports.failed
+    json_log['summary']['user-input_count'] = reports.user_input
+    json_log['summary']['expected-fail_count'] = reports.expected_fail
+    json_log['summary']['indeterminate_count'] = reports.indeterminate
+    json_log['summary']['benchmark_count'] = reports.benchmark
+    json_log['summary']['timeout_count'] = reports.timeouts
+    json_log['summary']['invalid_count'] = reports.invalids
+    json_log['summary']['wrong-version_count'] = reports.wrong_version
+    json_log['summary']['wrong-build_count'] = reports.wrong_build
+    json_log['summary']['wrong-tools_count'] = reports.wrong_tools
+    json_log['summary']['total_count'] = reports.total
+    time_delta = end_time - start_time
+    json_log['summary']['average_test_time'] = str(time_delta / total)
+    json_log['summary']['testing_time'] = str(time_delta)
+
+    result_types = [
+            'failed', 'user-input', 'expected-fail', 'indeterminate',
+            'benchmark', 'timeout', 'invalid', 'wrong-version', 'wrong-build',
+            'wrong-tools'
+    ]
+    json_results = {}
+    for result_type in result_types:
+        json_log['summary'][result_type] = []
+
+    # collate results for JSON log
+    for name in reports.results:
+        result_type = reports.results[name]['result']
+        test_parts = name.split("/")
+        test_category = test_parts[-2]
+        test_name = test_parts[-1]
+        if result_type != 'passed':
+            json_log['summary'][result_type].append(test_name)
+        if test_category not in json_results:
+            json_results[test_category] = []
+        json_result = {}
+        # remove the file extension
+        json_result["name"] = test_name.split('.')[0]
+        json_result["result"] = result_type
+        if result_type == "failed" or result_type == "timeout":
+            json_result["output"] = reports.results[name]["output"]
+        json_results[test_category].append(json_result)
+
+    # convert results to a better format for report generation
+    sorted_keys = sorted(json_results.keys())
+    for i in range(len(sorted_keys)):
+        results_log = {}
+        results_log["index"] = i + 1
+        results_log["name"] = sorted_keys[i]
+        results_log["results"] = json_results[sorted_keys[i]]
+        json_log["test_groups"].append(results_log)
+
+    # write out JSON log
+    with open(json_file, 'w') as outfile:
+        json.dump(json_log, outfile, sort_keys=True, indent=4)
+
+
+report_formatters = {
+        'json': generate_json_report
+}
+
+
+def check_report_formats(report_formats, report_location):
+    if report_location is None:
+        raise error.general('report base path missing')
+    for report_format in report_formats:
+        if report_format not in report_formatters:
+            raise error.general('invalid RTEMS report formatter: %s'
+                                % report_format)
+
+
 def run(args, command_path = None):
     import sys
     tests = []
@@ -227,7 +309,9 @@ def run(args, command_path = None):
         optargs = { '--rtems-tools':    'The path to the RTEMS tools',
                     '--rtems-bsp':      'The RTEMS BSP to run the test on',
                     '--user-config':    'Path to your local user configuration INI file',
-                    '--report-mode':    'Reporting modes, failures (default),all,none',
+                    '--report-path':    'Report output base path (file extension will be added)',
+                    '--report-format':  'Formats in which to report test results in addition to txt: json',
+                    '--log-mode':       'Reporting modes, failures (default),all,none',
                     '--list-bsps':      'List the supported BSPs',
                     '--debug-trace':    'Debug trace based on specific flags (console,gdb,output,cov)',
                     '--filter':         'Glob that executables must match to run (default: ' +
@@ -251,6 +335,16 @@ def run(args, command_path = None):
             else:
                 to_addr = 'build@rtems.org'
             output = log_capture()
+        report_location = opts.find_arg('--report-path')
+        if report_location is not None:
+            report_location = report_location[1]
+
+        report_formats = opts.find_arg('--report-format')
+        if report_formats is not None:
+            if len(report_formats) != 2:
+                raise error.general('invalid RTEMS report formats option')
+            report_formats = report_formats[1].split(',')
+            check_report_formats(report_formats, report_location)
         log.notice('RTEMS Testing - Tester, %s' % (version.string()))
         if opts.find_arg('--list-bsps'):
             bsps.list(opts)
@@ -298,15 +392,15 @@ def run(args, command_path = None):
                                                         executables,
                                                         rtems_tools,
                                                         trace = cov_trace)
-        report_mode = opts.find_arg('--report-mode')
-        if report_mode:
-            if report_mode[1] != 'failures' and \
-                    report_mode[1] != 'all' and \
-                    report_mode[1] != 'none':
+        log_mode = opts.find_arg('--log-mode')
+        if log_mode:
+            if log_mode[1] != 'failures' and \
+                    log_mode[1] != 'all' and \
+                    log_mode[1] != 'none':
                 raise error.general('invalid report mode')
-            report_mode = report_mode[1]
+            log_mode = log_mode[1]
         else:
-            report_mode = 'failures'
+            log_mode = 'failures'
         if len(executables) == 0:
             raise error.general('no executables supplied')
         start_time = datetime.datetime.now()
@@ -344,22 +438,26 @@ def run(args, command_path = None):
                     time.sleep(0.250)
                 if len(finished):
                     reporting = report_finished(reports,
-                                                report_mode,
+                                                log_mode,
                                                 reporting,
                                                 finished,
                                                 job_trace)
         finished_time = datetime.datetime.now()
-        reporting = report_finished(reports, report_mode,
+        reporting = report_finished(reports, log_mode,
                                     reporting, finished, job_trace)
         if reporting < total:
             log.warning('finished jobs does match: %d' % (reporting))
-            report_finished(reports, report_mode, -1, finished, job_trace)
+            report_finished(reports, log_mode, -1, finished, job_trace)
         reports.summary()
         end_time = datetime.datetime.now()
         average_time = 'Average test time: %s' % (str((end_time - start_time) / total))
         total_time = 'Testing time     : %s' % (str(end_time - start_time))
         log.notice(average_time)
         log.notice(total_time)
+        for report_format in report_formats:
+            report_formatters[report_format](args, reports, start_time,
+                    end_time, total, '.'.join([report_location, report_format]))
+
         if mail is not None and output is not None:
             m_arch = opts.defaults.expand('%{arch}')
             m_bsp = opts.defaults.expand('%{bsp}')
