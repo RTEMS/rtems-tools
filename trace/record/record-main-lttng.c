@@ -79,7 +79,7 @@ typedef struct {
 } __attribute__((__packed__)) packet_header;
 
 typedef struct packet_context {
-  packet_header                packet_header;
+  packet_header                header;
   uint64_t                     timestamp_begin;
   uint64_t                     timestamp_end;
   uint64_t                     content_size;
@@ -450,23 +450,22 @@ void generate_metadata()
 
 int main( int argc, char **argv )
 {
-  rtems_record_client_context ctx;
-  client_context cctx;
-  packet_context pckt_ctx;
-  packet_header *pckt_head;
-  const char *host;
-  uint16_t port;
-  const char *input_file;
-  bool input_file_flag;
-  bool input_TCP_host;
-  bool input_TCP_port;
-  int fd;
-  int rv;
-  int opt;
-  int longindex;
-  size_t i;
-  size_t pckt_ctx_size;
-  char filename[ 256 ];
+  rtems_record_client_context  ctx;
+  client_context               cctx;
+  packet_context               pkt_ctx;
+  size_t                       pkt_ctx_size;
+  const char                  *host;
+  uint16_t                     port;
+  const char                  *input_file;
+  bool                         input_file_flag;
+  bool                         input_TCP_host;
+  bool                         input_TCP_port;
+  int                          fd;
+  int                          rv;
+  int                          opt;
+  int                          longindex;
+  size_t                       i;
+  char                         filename[ 256 ];
 
   host = "127.0.0.1";
   port = 1234;
@@ -474,8 +473,6 @@ int main( int argc, char **argv )
   input_file_flag = false;
   input_TCP_host = false;
   input_TCP_port = false;
-  pckt_head = &pckt_ctx.packet_header;
-  pckt_ctx_size = sizeof( pckt_ctx ) * BITS_PER_CHAR;
 
   while (
     ( opt = getopt_long( argc, argv, "hH:p:i:", &longopts[0], &longindex ) )
@@ -511,9 +508,12 @@ int main( int argc, char **argv )
   }
 
   memset( &cctx, 0, sizeof( cctx ) );
-  memcpy( pckt_head->uuid, uuid, sizeof( pckt_head->uuid ) );
 
   generate_metadata();
+
+  memset( &pkt_ctx, 0, sizeof( pkt_ctx ) );
+  memcpy( pkt_ctx.header.uuid, uuid, sizeof( pkt_ctx.header.uuid ) );
+  pkt_ctx.header.ctf_magic = CTF_MAGIC;
 
   for ( i = 0; i < RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT; ++i ) {
     FILE *f;
@@ -522,7 +522,7 @@ int main( int argc, char **argv )
     f = fopen( filename, "wb" );
     assert( f != NULL );
     cctx.per_cpu[ i ].event_stream = f;
-    fwrite( &pckt_ctx, sizeof( pckt_ctx ), 1, f );
+    fwrite( &pkt_ctx, sizeof( pkt_ctx ), 1, f );
   }
 
   fd = connect_client( host, port, input_file, input_file_flag );
@@ -542,6 +542,7 @@ int main( int argc, char **argv )
   }
 
   rtems_record_client_destroy( &ctx );
+  pkt_ctx_size = sizeof( pkt_ctx ) * BITS_PER_CHAR;
 
   for ( i = 0; i < RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT; ++i ) {
     per_cpu_context *pcpu;
@@ -549,19 +550,14 @@ int main( int argc, char **argv )
     pcpu = &cctx.per_cpu[ i ];
     fseek( pcpu->event_stream, 0, SEEK_SET );
 
-    pckt_head->ctf_magic = CTF_MAGIC;
-    pckt_head->stream_id = 0;
-    pckt_head->stream_instance_id = i;
+    pkt_ctx.header.stream_instance_id = i;
+    pkt_ctx.timestamp_begin = pcpu->timestamp_begin;
+    pkt_ctx.timestamp_end = pcpu->timestamp_end;
+    pkt_ctx.content_size = pcpu->content_size + pkt_ctx_size;
+    pkt_ctx.packet_size = pcpu->packet_size + pkt_ctx_size;
+    pkt_ctx.cpu_id = i;
 
-    pckt_ctx.timestamp_begin = pcpu->timestamp_begin;
-    pckt_ctx.timestamp_end = pcpu->timestamp_end;
-    pckt_ctx.content_size = pcpu->content_size + pckt_ctx_size;
-    pckt_ctx.packet_size = pcpu->packet_size + pckt_ctx_size;
-    pckt_ctx.packet_seq_num = 0;
-    pckt_ctx.events_discarded = 0;
-    pckt_ctx.cpu_id = i;
-
-    fwrite( &pckt_ctx, sizeof( pckt_ctx ), 1, pcpu->event_stream );
+    fwrite( &pkt_ctx, sizeof( pkt_ctx ), 1, pcpu->event_stream );
     fclose( pcpu->event_stream );
   }
 
