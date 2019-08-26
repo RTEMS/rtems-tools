@@ -119,6 +119,7 @@ typedef struct {
 } per_cpu_context;
 
 typedef struct {
+  rtems_record_client_context base;
   per_cpu_context per_cpu[ RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT ];
 
   /*
@@ -149,8 +150,12 @@ static void usage( char **argv )
   );
 }
 
-static int connect_client( const char *host, uint16_t port,
-const char *input_file, bool input_file_flag )
+static int connect_client(
+  const char *host,
+  uint16_t    port,
+  const char *input_file,
+  bool        input_file_flag
+)
 {
   struct sockaddr_in in_addr;
   int fd;
@@ -189,7 +194,7 @@ static bool is_idle_task_by_api_index( uint32_t api_index )
 }
 
 static void copy_thread_name(
-  const client_context *cctx,
+  const client_context *ctx,
   const client_item    *item,
   size_t                api_index,
   uint8_t              *dst
@@ -198,7 +203,7 @@ static void copy_thread_name(
   const char *name;
 
   if ( api_index < THREAD_API_COUNT ) {
-    name = cctx->thread_names[ api_index ][ get_obj_index_of_id( item->data ) ];
+    name = ctx->thread_names[ api_index ][ get_obj_index_of_id( item->data ) ];
   } else {
     name = empty_thread_name;
   }
@@ -207,7 +212,7 @@ static void copy_thread_name(
 }
 
 static void write_sched_switch(
-  client_context    *cctx,
+  client_context    *ctx,
   per_cpu_context   *pcpu,
   const client_item *item
 )
@@ -228,12 +233,12 @@ static void write_sched_switch(
   se->header.ns = item->ns;
   se->next_tid = is_idle_task_by_api_index( api_index ) ? 0 : item->data;
 
-  copy_thread_name( cctx, item, api_index, se->next_comm );
+  copy_thread_name( ctx, item, api_index, se->next_comm );
   fwrite( se, sizeof( *se ), 1, pcpu->event_stream );
 }
 
 static void add_thread_name(
-  client_context    *cctx,
+  client_context    *ctx,
   per_cpu_context   *pcpu,
   const client_item *item
 )
@@ -261,20 +266,20 @@ static void add_thread_name(
     i < pcpu->thread_name_index + 8;
     ++i
   ) {
-    cctx->thread_names[ api_index ][ obj_index ][ i ] = (char) name;
+    ctx->thread_names[ api_index ][ obj_index ][ i ] = (char) name;
     name >>= BITS_PER_CHAR;
   }
 
   pcpu->thread_name_index = i;
 }
 
-static void print_item( client_context *cctx, const client_item *item )
+static void print_item( client_context *ctx, const client_item *item )
 {
   per_cpu_context *pcpu;
   sched_switch    *se;
   uint32_t         api_index;
 
-  pcpu = &cctx->per_cpu[ item->cpu ];
+  pcpu = &ctx->per_cpu[ item->cpu ];
   se = &pcpu->sched_switch;
 
   if ( pcpu->timestamp_begin == 0 ) {
@@ -296,11 +301,11 @@ static void print_item( client_context *cctx, const client_item *item )
         se->prev_state = TASK_RUNNING;
       }
 
-      copy_thread_name( cctx, item, api_index, se->prev_comm );
+      copy_thread_name( ctx, item, api_index, se->prev_comm );
       break;
     case RTEMS_RECORD_THREAD_SWITCH_IN:
       if ( item->ns == se->header.ns ) {
-        write_sched_switch( cctx, pcpu, item );
+        write_sched_switch( ctx, pcpu, item );
       }
       break;
     case RTEMS_RECORD_THREAD_ID:
@@ -309,7 +314,7 @@ static void print_item( client_context *cctx, const client_item *item )
       pcpu->thread_name_index = 0;
       break;
     case RTEMS_RECORD_THREAD_NAME:
-      add_thread_name( cctx, pcpu, item );
+      add_thread_name( ctx, pcpu, item );
       break;
     default:
       break;
@@ -440,7 +445,7 @@ static const char metadata[] =
 "};"
 ;
 
-void generate_metadata()
+static void generate_metadata()
 {
   FILE *file = fopen( "metadata", "w" );
   assert( file != NULL );
@@ -450,22 +455,21 @@ void generate_metadata()
 
 int main( int argc, char **argv )
 {
-  rtems_record_client_context  ctx;
-  client_context               cctx;
-  packet_context               pkt_ctx;
-  size_t                       pkt_ctx_size;
-  const char                  *host;
-  uint16_t                     port;
-  const char                  *input_file;
-  bool                         input_file_flag;
-  bool                         input_TCP_host;
-  bool                         input_TCP_port;
-  int                          fd;
-  int                          rv;
-  int                          opt;
-  int                          longindex;
-  size_t                       i;
-  char                         filename[ 256 ];
+  client_context  ctx;
+  packet_context  pkt_ctx;
+  size_t          pkt_ctx_size;
+  const char     *host;
+  uint16_t        port;
+  const char     *input_file;
+  bool            input_file_flag;
+  bool            input_TCP_host;
+  bool            input_TCP_port;
+  int             fd;
+  int             rv;
+  int             opt;
+  int             longindex;
+  size_t          i;
+  char            filename[ 256 ];
 
   host = "127.0.0.1";
   port = 1234;
@@ -507,7 +511,7 @@ int main( int argc, char **argv )
     exit( EXIT_SUCCESS );
   }
 
-  memset( &cctx, 0, sizeof( cctx ) );
+  memset( &ctx, 0, sizeof( ctx ) );
 
   generate_metadata();
 
@@ -521,12 +525,12 @@ int main( int argc, char **argv )
     snprintf( filename, sizeof( filename ), "event_%zu", i );
     f = fopen( filename, "wb" );
     assert( f != NULL );
-    cctx.per_cpu[ i ].event_stream = f;
+    ctx.per_cpu[ i ].event_stream = f;
     fwrite( &pkt_ctx, sizeof( pkt_ctx ), 1, f );
   }
 
   fd = connect_client( host, port, input_file, input_file_flag );
-  rtems_record_client_init( &ctx, handler, &cctx );
+  rtems_record_client_init( &ctx.base, handler, &ctx );
 
   while ( true ) {
     int buf[ 8192 ];
@@ -535,19 +539,19 @@ int main( int argc, char **argv )
     n = ( input_file_flag ) ? read( fd, buf, sizeof( buf ) ) :
     recv( fd, buf, sizeof( buf ), 0 );
     if ( n > 0 ) {
-      rtems_record_client_run( &ctx, buf, (size_t) n );
+      rtems_record_client_run( &ctx.base, buf, (size_t) n );
     } else {
       break;
     }
   }
 
-  rtems_record_client_destroy( &ctx );
+  rtems_record_client_destroy( &ctx.base );
   pkt_ctx_size = sizeof( pkt_ctx ) * BITS_PER_CHAR;
 
   for ( i = 0; i < RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT; ++i ) {
     per_cpu_context *pcpu;
 
-    pcpu = &cctx.per_cpu[ i ];
+    pcpu = &ctx.per_cpu[ i ];
     fseek( pcpu->event_stream, 0, SEEK_SET );
 
     pkt_ctx.header.stream_instance_id = i;
