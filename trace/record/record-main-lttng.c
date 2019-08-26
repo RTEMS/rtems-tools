@@ -552,6 +552,8 @@ int main( int argc, char **argv )
     }
   }
 
+  rtems_record_client_destroy( &ctx );
+
   for ( i = 0; i < RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT; i++ ) {
     fseek( event_streams[ i ], 0, SEEK_SET );
 
@@ -575,8 +577,6 @@ int main( int argc, char **argv )
 
   rv = close( fd );
   assert( rv == 0 );
-
-  rtems_record_client_destroy( &ctx );
 
   return 0;
 }
