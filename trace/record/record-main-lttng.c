@@ -276,7 +276,7 @@ static void add_thread_name(
 
   for (
     i = pcpu->thread_name_index;
-    i < pcpu->thread_name_index + 8;
+    i < pcpu->thread_name_index + ctx->base.data_size;
     ++i
   ) {
     ctx->thread_names[ api_index ][ obj_index ][ i ] = (char) name;
