@@ -209,6 +209,19 @@ static void copy_thread_name(
   }
 
   memcpy( dst, name, THREAD_NAME_SIZE );
+
+  if ( is_idle_task_by_api_index( api_index ) ) {
+    /*
+     * In Linux, the idle threads are bound to a specific CPU (swapper/n).  In
+     * RTEMS, the idle threads can move around, so mimic this Linux behaviour.
+     */
+    snprintf(
+      (char *) dst + 4,
+      THREAD_NAME_SIZE - 4,
+      "/%lu",
+      (unsigned long) item->cpu
+    );
+  }
 }
 
 static void write_sched_switch(
