@@ -29,9 +29,11 @@ def init(ctx):
 
 def options(opt):
     opt.load('compiler_c')
+    opt.load('compiler_cxx')
 
 def configure(conf):
     conf.load('compiler_c')
+    conf.load('compiler_cxx')
 
 def build(bld):
     #
@@ -57,7 +59,7 @@ def build(bld):
     # Build rtems-record-lttng
     #
     bld.program(target = 'rtems-record-lttng',
-                source = ['record/record-client.c', 'record/record-main-lttng.c'],
+                source = ['record/record-client.c', 'record/record-main-lttng.cc'],
                 includes = ['record'],
                 defines = defines,
                 cflags = conf['cflags'] + conf['warningflags'],
