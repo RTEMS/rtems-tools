@@ -26,20 +26,13 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <rtems/recordclient.h>
-#include <rtems/recorddata.h>
+#include "client.h"
 
-#include <arpa/inet.h>
 #include <assert.h>
-#include <fcntl.h>
 #include <getopt.h>
 #include <inttypes.h>
-#include <netinet/in.h>
-#include <string.h>
-#include <sys/queue.h>
-#include <sys/socket.h>
-#include <unistd.h>
 
+#include <cstring>
 #include <iostream>
 
 #define CTF_MAGIC 0xC1FC1FC1
@@ -82,6 +75,8 @@ struct PacketContext {
   uint32_t cpu_id;
 } __attribute__((__packed__));
 
+static const size_t kPacketContextBits = sizeof(PacketContext) * BITS_PER_CHAR;
+
 struct EventHeaderCompact {
   uint8_t id;
   uint32_t event_id;
@@ -99,6 +94,9 @@ struct EventSchedSwitch {
   int32_t next_prio;
 } __attribute__((__packed__));
 
+static const size_t kEventSchedSwitchBits =
+    sizeof(EventSchedSwitch) * BITS_PER_CHAR;
+
 struct PerCPUContext {
   FILE* event_stream;
   uint64_t timestamp_begin;
@@ -111,8 +109,21 @@ struct PerCPUContext {
   EventSchedSwitch sched_switch;
 };
 
-struct LTTNGClient {
-  rtems_record_client_context base;
+class LTTNGClient : public Client {
+ public:
+  LTTNGClient() {
+    Initialize(LTTNGClient::HandlerCaller);
+
+    memset(&pkt_ctx_, 0, sizeof(pkt_ctx_));
+    memcpy(pkt_ctx_.header.uuid, kUUID, sizeof(pkt_ctx_.header.uuid));
+    pkt_ctx_.header.ctf_magic = CTF_MAGIC;
+  }
+
+  void OpenStreamFiles();
+
+  void CloseStreamFiles();
+
+ private:
   PerCPUContext per_cpu_[RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT];
 
   /*
@@ -122,32 +133,33 @@ struct LTTNGClient {
    * POSIX API.
    */
   uint8_t thread_names_[THREAD_API_COUNT][THREAD_ID_COUNT][THREAD_NAME_SIZE];
-};
 
-static int ConnectClient(const char* host,
-                         uint16_t port,
-                         const char* input_file,
-                         bool input_file_flag) {
-  struct sockaddr_in in_addr;
-  int fd;
-  int rv;
+  PacketContext pkt_ctx_;
 
-  fd = (input_file_flag) ? open(input_file, O_RDONLY)
-                         : socket(PF_INET, SOCK_STREAM, 0);
-  assert(fd >= 0);
-
-  memset(&in_addr, 0, sizeof(in_addr));
-  in_addr.sin_family = AF_INET;
-  in_addr.sin_port = htons(port);
-  in_addr.sin_addr.s_addr = inet_addr(host);
-
-  if (!input_file_flag) {
-    rv = connect(fd, (struct sockaddr*)&in_addr, sizeof(in_addr));
-    assert(rv == 0);
+  static rtems_record_client_status HandlerCaller(uint64_t bt,
+                                                  uint32_t cpu,
+                                                  rtems_record_event event,
+                                                  uint64_t data,
+                                                  void* arg) {
+    LTTNGClient& self = *static_cast<LTTNGClient*>(arg);
+    return self.Handler(bt, cpu, event, data);
   }
 
-  return fd;
-}
+  rtems_record_client_status Handler(uint64_t bt,
+                                     uint32_t cpu,
+                                     rtems_record_event event,
+                                     uint64_t data);
+
+  void CopyThreadName(const ClientItem& item,
+                      size_t api_index,
+                      uint8_t* dst) const;
+
+  void WriteSchedSwitch(PerCPUContext* pcpu, const ClientItem& item);
+
+  void AddThreadName(PerCPUContext* pcpu, const ClientItem& item);
+
+  void PrintItem(const ClientItem& item);
+};
 
 static uint32_t GetAPIIndexOfID(uint32_t id) {
   return ((id >> 24) & 0x7) - 1;
@@ -161,14 +173,13 @@ static bool IsIdleTaskByAPIIndex(uint32_t api_index) {
   return api_index == 0;
 }
 
-static void CopyThreadName(const LTTNGClient* ctx,
-                           const ClientItem* item,
-                           size_t api_index,
-                           uint8_t* dst) {
+void LTTNGClient::CopyThreadName(const ClientItem& item,
+                                 size_t api_index,
+                                 uint8_t* dst) const {
   const uint8_t* name;
 
   if (api_index < THREAD_API_COUNT) {
-    name = ctx->thread_names_[api_index][GetObjIndexOfID(item->data)];
+    name = thread_names_[api_index][GetObjIndexOfID(item.data)];
   } else {
     name = kEmptyThreadName;
   }
@@ -181,115 +192,96 @@ static void CopyThreadName(const LTTNGClient* ctx,
      * RTEMS, the idle threads can move around, so mimic this Linux behaviour.
      */
     snprintf(reinterpret_cast<char*>(dst) + 4, THREAD_NAME_SIZE - 4,
-             "/%" PRIu32, item->cpu);
+             "/%" PRIu32, item.cpu);
   }
 }
 
-static void WriteSchedSwitch(LTTNGClient* ctx,
-                             PerCPUContext* pcpu,
-                             const ClientItem* item) {
-  size_t se_size;
-  EventSchedSwitch* se;
-  uint32_t api_index;
+void LTTNGClient::WriteSchedSwitch(PerCPUContext* pcpu,
+                                   const ClientItem& item) {
+  pcpu->content_size += kEventSchedSwitchBits;
+  pcpu->packet_size += kEventSchedSwitchBits;
 
-  se_size = sizeof(*se) * BITS_PER_CHAR;
-  pcpu->content_size += se_size;
-  pcpu->packet_size += se_size;
+  EventSchedSwitch& ss = pcpu->sched_switch;
+  ss.header.id = COMPACT_HEADER_ID;
+  ss.header.event_id = 0;
+  ss.header.ns = item.ns;
 
-  api_index = GetAPIIndexOfID(item->data);
-  se = &pcpu->sched_switch;
+  uint32_t api_index = GetAPIIndexOfID(item.data);
+  ss.next_tid = IsIdleTaskByAPIIndex(api_index) ? 0 : item.data;
 
-  se->header.id = COMPACT_HEADER_ID;
-  se->header.event_id = 0;
-  se->header.ns = item->ns;
-  se->next_tid = IsIdleTaskByAPIIndex(api_index) ? 0 : item->data;
-
-  CopyThreadName(ctx, item, api_index, se->next_comm);
-  fwrite(se, sizeof(*se), 1, pcpu->event_stream);
+  CopyThreadName(item, api_index, ss.next_comm);
+  fwrite(&ss, sizeof(ss), 1, pcpu->event_stream);
 }
 
-static void AddThreadName(LTTNGClient* ctx,
-                          PerCPUContext* pcpu,
-                          const ClientItem* item) {
-  uint64_t name;
-  uint32_t api_index;
-  uint32_t obj_index;
-  size_t i;
-
+void LTTNGClient::AddThreadName(PerCPUContext* pcpu, const ClientItem& item) {
   if (pcpu->thread_name_index >= THREAD_NAME_SIZE) {
     return;
   }
 
-  api_index = GetAPIIndexOfID(pcpu->thread_id);
-
+  uint32_t api_index = GetAPIIndexOfID(pcpu->thread_id);
   if (api_index >= THREAD_API_COUNT) {
     return;
   }
 
-  obj_index = GetObjIndexOfID(pcpu->thread_id);
-  name = item->data;
-
-  for (i = pcpu->thread_name_index;
-       i < pcpu->thread_name_index + ctx->base.data_size; ++i) {
-    ctx->thread_names_[api_index][obj_index][i] = static_cast<uint8_t>(name);
+  uint32_t obj_index = GetObjIndexOfID(pcpu->thread_id);
+  uint64_t name = item.data;
+  size_t i;
+  for (i = pcpu->thread_name_index; i < pcpu->thread_name_index + data_size();
+       ++i) {
+    thread_names_[api_index][obj_index][i] = static_cast<uint8_t>(name);
     name >>= BITS_PER_CHAR;
   }
 
   pcpu->thread_name_index = i;
 }
 
-static void PrintItem(LTTNGClient* ctx, const ClientItem* item) {
-  PerCPUContext* pcpu;
-  EventSchedSwitch* se;
-  uint32_t api_index;
-
-  pcpu = &ctx->per_cpu_[item->cpu];
-  se = &pcpu->sched_switch;
-
-  if (pcpu->timestamp_begin == 0) {
-    pcpu->timestamp_begin = item->ns;
+void LTTNGClient::PrintItem(const ClientItem& item) {
+  PerCPUContext& pcpu = per_cpu_[item.cpu];
+  if (pcpu.timestamp_begin == 0) {
+    pcpu.timestamp_begin = item.ns;
   }
 
-  pcpu->timestamp_end = item->ns;
+  pcpu.timestamp_end = item.ns;
 
-  switch (item->event) {
-    case RTEMS_RECORD_THREAD_SWITCH_OUT:
-      api_index = GetAPIIndexOfID(item->data);
-      se->header.ns = item->ns;
+  EventSchedSwitch& ss = pcpu.sched_switch;
+  switch (item.event) {
+    case RTEMS_RECORD_THREAD_SWITCH_OUT: {
+      uint32_t api_index = GetAPIIndexOfID(item.data);
+      ss.header.ns = item.ns;
 
       if (IsIdleTaskByAPIIndex(api_index)) {
-        se->prev_tid = 0;
-        se->prev_state = TASK_IDLE;
+        ss.prev_tid = 0;
+        ss.prev_state = TASK_IDLE;
       } else {
-        se->prev_tid = item->data;
-        se->prev_state = TASK_RUNNING;
+        ss.prev_tid = item.data;
+        ss.prev_state = TASK_RUNNING;
       }
 
-      CopyThreadName(ctx, item, api_index, se->prev_comm);
+      CopyThreadName(item, api_index, ss.prev_comm);
       break;
+    }
     case RTEMS_RECORD_THREAD_SWITCH_IN:
-      if (item->ns == se->header.ns) {
-        WriteSchedSwitch(ctx, pcpu, item);
+      if (item.ns == ss.header.ns) {
+        WriteSchedSwitch(&pcpu, item);
       }
       break;
     case RTEMS_RECORD_THREAD_ID:
-      pcpu->thread_id = item->data;
-      pcpu->thread_ns = item->ns;
-      pcpu->thread_name_index = 0;
+      pcpu.thread_id = item.data;
+      pcpu.thread_ns = item.ns;
+      pcpu.thread_name_index = 0;
       break;
     case RTEMS_RECORD_THREAD_NAME:
-      AddThreadName(ctx, pcpu, item);
+      AddThreadName(&pcpu, item);
       break;
     default:
       break;
   }
 }
 
-static rtems_record_client_status Handler(uint64_t bt,
-                                          uint32_t cpu,
-                                          rtems_record_event event,
-                                          uint64_t data,
-                                          void* arg) {
+rtems_record_client_status LTTNGClient::Handler(uint64_t bt,
+                                                uint32_t cpu,
+                                                rtems_record_event event,
+                                                uint64_t data) {
   ClientItem item;
 
   item.ns = rtems_record_client_bintime_to_nanoseconds(bt);
@@ -297,9 +289,37 @@ static rtems_record_client_status Handler(uint64_t bt,
   item.event = event;
   item.data = data;
 
-  PrintItem(static_cast<LTTNGClient*>(arg), &item);
+  PrintItem(item);
 
   return RTEMS_RECORD_CLIENT_SUCCESS;
+}
+
+void LTTNGClient::OpenStreamFiles() {
+  for (size_t i = 0; i < RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT; ++i) {
+    char filename[256];
+    snprintf(filename, sizeof(filename), "event_%zu", i);
+    FILE* f = fopen(filename, "wb");
+    assert(f != NULL);
+    per_cpu_[i].event_stream = f;
+    fwrite(&pkt_ctx_, sizeof(pkt_ctx_), 1, f);
+  }
+}
+
+void LTTNGClient::CloseStreamFiles() {
+  for (size_t i = 0; i < RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT; ++i) {
+    PerCPUContext* pcpu = &per_cpu_[i];
+    fseek(pcpu->event_stream, 0, SEEK_SET);
+
+    pkt_ctx_.header.stream_instance_id = i;
+    pkt_ctx_.timestamp_begin = pcpu->timestamp_begin;
+    pkt_ctx_.timestamp_end = pcpu->timestamp_end;
+    pkt_ctx_.content_size = pcpu->content_size + kPacketContextBits;
+    pkt_ctx_.packet_size = pcpu->packet_size + kPacketContextBits;
+    pkt_ctx_.cpu_id = i;
+
+    fwrite(&pkt_ctx_, sizeof(pkt_ctx_), 1, pcpu->event_stream);
+    fclose(pcpu->event_stream);
+  }
 }
 
 static const char kMetadata[] =
@@ -411,6 +431,13 @@ static void GenerateMetadata() {
   fclose(file);
 }
 
+static LTTNGClient client;
+
+static void SignalHandler(int s) {
+  client.RequestStop();
+  signal(s, SIG_DFL);
+}
+
 static const struct option kLongOpts[] = {{"help", 0, NULL, 'h'},
                                           {"host", 1, NULL, 'H'},
                                           {"port", 1, NULL, 'p'},
@@ -434,28 +461,11 @@ static void Usage(char** argv) {
 }
 
 int main(int argc, char** argv) {
-  LTTNGClient ctx;
-  PacketContext pkt_ctx;
-  size_t pkt_ctx_size;
-  const char* host;
-  uint16_t port;
-  const char* input_file;
-  bool input_file_flag;
-  bool input_TCP_host;
-  bool input_TCP_port;
-  int fd;
-  int rv;
+  const char* host = "127.0.0.1";
+  uint16_t port = 1234;
+  const char* file = nullptr;
   int opt;
   int longindex;
-  size_t i;
-  char filename[256];
-
-  host = "127.0.0.1";
-  port = 1234;
-  input_file = "raw_data";
-  input_file_flag = false;
-  input_TCP_host = false;
-  input_TCP_port = false;
 
   while ((opt = getopt_long(argc, argv, "hH:p:i:", &kLongOpts[0],
                             &longindex)) != -1) {
@@ -465,83 +475,31 @@ int main(int argc, char** argv) {
         return 0;
       case 'H':
         host = optarg;
-        input_TCP_host = true;
         break;
       case 'p':
         port = (uint16_t)strtoul(optarg, NULL, 10);
-        input_TCP_port = true;
         break;
       case 'i':
-        input_file = optarg;
-        assert(input_file != NULL);
-        input_file_flag = true;
+        file = optarg;
         break;
       default:
         return 1;
     }
   }
 
-  if (input_file_flag && (input_TCP_host || input_TCP_port)) {
-    printf("There should be one input medium\n");
-    exit(EXIT_SUCCESS);
-  }
-
-  memset(&ctx, 0, sizeof(ctx));
-
   GenerateMetadata();
+  client.OpenStreamFiles();
 
-  memset(&pkt_ctx, 0, sizeof(pkt_ctx));
-  memcpy(pkt_ctx.header.uuid, kUUID, sizeof(pkt_ctx.header.uuid));
-  pkt_ctx.header.ctf_magic = CTF_MAGIC;
-
-  for (i = 0; i < RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT; ++i) {
-    FILE* f;
-
-    snprintf(filename, sizeof(filename), "event_%zu", i);
-    f = fopen(filename, "wb");
-    assert(f != NULL);
-    ctx.per_cpu_[i].event_stream = f;
-    fwrite(&pkt_ctx, sizeof(pkt_ctx), 1, f);
+  if (file != nullptr) {
+    client.Open(file);
+  } else {
+    client.Connect(host, port);
   }
 
-  fd = ConnectClient(host, port, input_file, input_file_flag);
-  rtems_record_client_init(&ctx.base, Handler, &ctx);
-
-  while (true) {
-    int buf[8192];
-    ssize_t n;
-
-    n = (input_file_flag) ? read(fd, buf, sizeof(buf))
-                          : recv(fd, buf, sizeof(buf), 0);
-    if (n > 0) {
-      rtems_record_client_run(&ctx.base, buf, (size_t)n);
-    } else {
-      break;
-    }
-  }
-
-  rtems_record_client_destroy(&ctx.base);
-  pkt_ctx_size = sizeof(pkt_ctx) * BITS_PER_CHAR;
-
-  for (i = 0; i < RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT; ++i) {
-    PerCPUContext* pcpu;
-
-    pcpu = &ctx.per_cpu_[i];
-    fseek(pcpu->event_stream, 0, SEEK_SET);
-
-    pkt_ctx.header.stream_instance_id = i;
-    pkt_ctx.timestamp_begin = pcpu->timestamp_begin;
-    pkt_ctx.timestamp_end = pcpu->timestamp_end;
-    pkt_ctx.content_size = pcpu->content_size + pkt_ctx_size;
-    pkt_ctx.packet_size = pcpu->packet_size + pkt_ctx_size;
-    pkt_ctx.cpu_id = i;
-
-    fwrite(&pkt_ctx, sizeof(pkt_ctx), 1, pcpu->event_stream);
-    fclose(pcpu->event_stream);
-  }
-
-  rv = close(fd);
-  assert(rv == 0);
+  signal(SIGINT, SignalHandler);
+  client.Run();
+  client.Destroy();
+  client.CloseStreamFiles();
 
   return 0;
 }

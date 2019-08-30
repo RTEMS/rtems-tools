@@ -59,7 +59,9 @@ def build(bld):
     # Build rtems-record-lttng
     #
     bld.program(target = 'rtems-record-lttng',
-                source = ['record/record-client.c', 'record/record-main-lttng.cc'],
+                source = ['record/record-client.c',
+                          'record/record-client-base.cc',
+                          'record/record-main-lttng.cc'],
                 includes = ['record'],
                 defines = defines,
                 cflags = conf['cflags'] + conf['warningflags'],
