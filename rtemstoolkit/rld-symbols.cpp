@@ -50,7 +50,8 @@ namespace rld
         if (name.compare (0, wrapper.length (), wrapper) == 0)
           offset = wrapper.length ();
         char* demangled_name = ::cplus_demangle (name.c_str () + offset,
-                                                 DMGL_ANSI | DMGL_PARAMS);
+                                                 DMGL_ANSI | DMGL_PARAMS | DMGL_TYPES |
+                                                 DMGL_RET_POSTFIX);
         if (demangled_name)
         {
           demangled = demangled_name;

@@ -32,6 +32,7 @@
 #include <rld.h>
 #include <rld-path.h>
 #include <rld-dwarf.h>
+#include <rld-symbols.h>
 
 namespace rld
 {
@@ -635,81 +636,77 @@ namespace rld
         }
       }
 
-      if (declaration_)
+      /*
+       * Get the name attribute. (if present)
+       */
+      if (!die.attribute (DW_AT_name, name_, false))
       {
-        die.attribute (DW_AT_name, name_);
-      }
-      else
-      {
-        /*
-         * Get the name attribute. (if present)
-         */
-        if (!die.attribute (DW_AT_name, name_, false))
-        {
-          bool found = false;
+        bool found = false;
 
-          /*
-           * For inlined function, the actual name is probably in the DIE
-           * referenced by DW_AT_abstract_origin. (if present)
-           */
-          dwarf_attribute abst_at;
-          if (die.attribute (DW_AT_abstract_origin, abst_at, false))
+        /*
+         * For inlined function, the actual name is probably in the DIE
+         * referenced by DW_AT_abstract_origin. (if present)
+         */
+        dwarf_attribute abst_at;
+        if (die.attribute (DW_AT_abstract_origin, abst_at, false))
+        {
+          dwarf_offset abst_at_die_offset;
+          dwarf_error  de;
+          int          dr;
+          dr = ::dwarf_global_formref (abst_at, &abst_at_die_offset, &de);
+          if (dr == DW_DLV_OK)
           {
-            dwarf_offset abst_at_die_offset;
-            dwarf_error  de;
-            int          dr;
-            dr = ::dwarf_global_formref (abst_at, &abst_at_die_offset, &de);
-            if (dr == DW_DLV_OK)
+            debug_info_entry abst_at_die (debug, abst_at_die_offset);
+            if (abst_at_die.attribute (DW_AT_name, name_, false))
             {
-              debug_info_entry abst_at_die (debug, abst_at_die_offset);
-              if (abst_at_die.attribute (DW_AT_name, name_, false))
-              {
-                found = true;
-                abst_at_die.attribute (DW_AT_inline, inline_, false);
-                if (abst_at_die.attribute (DW_AT_external, db, false))
-                  external_ = db ? true : false;
-                if (abst_at_die.attribute (DW_AT_declaration, db, false))
-                  declaration_ = db ? true : false;
-                abst_at_die.attribute (DW_AT_linkage_name, linkage_name_, false);
-                abst_at_die.attribute (DW_AT_decl_file, decl_file_, false);
-                abst_at_die.attribute (DW_AT_decl_line, decl_line_, false);
-              }
+              found = true;
+              abst_at_die.attribute (DW_AT_inline, inline_, false);
+              if (abst_at_die.attribute (DW_AT_external, db, false))
+                external_ = db ? true : false;
+              if (abst_at_die.attribute (DW_AT_declaration, db, false))
+                declaration_ = db ? true : false;
+              abst_at_die.attribute (DW_AT_linkage_name, linkage_name_, false);
+              abst_at_die.attribute (DW_AT_decl_file, decl_file_, false);
+              abst_at_die.attribute (DW_AT_decl_line, decl_line_, false);
             }
           }
+        }
 
-          /*
-           * If DW_AT_name is not present, but DW_AT_specification is present,
-           * then probably the actual name is in the DIE referenced by
-           * DW_AT_specification.
-           */
-          if (!found)
+        /*
+         * If DW_AT_name is not present, but DW_AT_specification is present,
+         * then probably the actual name is in the DIE referenced by
+         * DW_AT_specification.
+         */
+        if (!found)
+        {
+          dwarf_attribute spec;
+          if (die.attribute (DW_AT_specification, spec, false))
           {
-            dwarf_attribute spec;
-            if (die.attribute (DW_AT_specification, spec, false))
+            dwarf_offset spec_die_offset;
+            dwarf_error  de;
+            int          dr;
+            dr = ::dwarf_global_formref (spec, &spec_die_offset, &de);
+            if (dr == DW_DLV_OK)
             {
-              dwarf_offset spec_die_offset;
-              dwarf_error  de;
-              int          dr;
-              dr = ::dwarf_global_formref (spec, &spec_die_offset, &de);
-              if (dr == DW_DLV_OK)
+              debug_info_entry spec_die (debug, spec_die_offset);
+              if (spec_die.attribute (DW_AT_name, name_, false))
               {
-                debug_info_entry spec_die (debug, spec_die_offset);
-                if (spec_die.attribute (DW_AT_name, name_, false))
-                {
-                  found = true;
-                  if (spec_die.attribute (DW_AT_external, db, false))
-                    external_ = db ? true : false;
-                  if (spec_die.attribute (DW_AT_declaration, db, false))
-                    declaration_ = db ? true : false;
-                  spec_die.attribute (DW_AT_linkage_name, linkage_name_, false);
-                  spec_die.attribute (DW_AT_decl_file, decl_file_, false);
-                  spec_die.attribute (DW_AT_decl_line, decl_line_, false);
-                }
+                found = true;
+                if (spec_die.attribute (DW_AT_external, db, false))
+                  external_ = db ? true : false;
+                if (spec_die.attribute (DW_AT_declaration, db, false))
+                  declaration_ = db ? true : false;
+                spec_die.attribute (DW_AT_linkage_name, linkage_name_, false);
+                spec_die.attribute (DW_AT_decl_file, decl_file_, false);
+                spec_die.attribute (DW_AT_decl_line, decl_line_, false);
               }
             }
           }
         }
       }
+
+      if (!linkage_name_.empty() && name_.empty())
+        rld::symbols::demangle_name(linkage_name_, name_);
 
       if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
       {
@@ -911,7 +908,11 @@ namespace rld
       out << " pc_low=0x" << pc_low_
           << " pc_high=0x" << pc_high_;
       if (!linkage_name_.empty ())
-        out << " ln=" << linkage_name_;
+      {
+        std::string show_name;
+        rld::symbols::demangle_name(linkage_name_, show_name);
+        out << " ln=" << show_name;
+      }
       out << std::dec << std::setfill (' ');
       if (!call_file_.empty ())
         out << " cf=" << call_file_ << ':' << call_line_;
@@ -1428,6 +1429,12 @@ namespace rld
               dr = ::dwarf_attrval_string (die, attr, &s, &de);
               libdwarf_error_check ("debug_info_entry::dump", dr, de);
               out << " : " << s;
+              if (rld::symbols::is_cplusplus(s))
+              {
+                std::string cpps;
+                rld::symbols::demangle_name(s, cpps);
+                out << " `" << cpps << '`';
+              }
               break;
             case DW_FORM_sec_offset:
               switch (attr)
@@ -1609,11 +1616,11 @@ namespace rld
           auto first = addr_lines_.begin ();
           auto last = addr_lines_.end () - 1;
           std::cout << "dwarf::compilation_unit: line_low=0x"
-                    << std::hex
+                    << std::hex << std::setfill('0')
                     << std::setw (8) << first->location ()
                     << ", line_high=0x"
                     << std::setw (8) << last->location ()
-                    << std::dec
+                    << std::dec << std::setfill(' ')
                     << std::endl;
         }
       }
@@ -1625,7 +1632,9 @@ namespace rld
         {
           std::cout << "dwarf::compilation_unit: " << std::setw (3) << ++lc
                     << ": 0x"
-                    << std::hex << std::setw (8) << l.location () << std::dec
+                    << std::hex << std::setfill('0')
+                    << std::setw (8) << l.location ()
+                    << std::dec << std::setfill(' ')
                     << " - "
                     << (char) (l.is_a_begin_statement () ? 'B' : '.')
                     << (char) (l.is_in_a_block () ? 'I' : '.')
