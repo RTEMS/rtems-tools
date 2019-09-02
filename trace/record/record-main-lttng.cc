@@ -487,19 +487,23 @@ int main(int argc, char** argv) {
     }
   }
 
-  GenerateMetadata();
-  client.OpenStreamFiles();
+  try {
+    GenerateMetadata();
+    client.OpenStreamFiles();
 
-  if (file != nullptr) {
-    client.Open(file);
-  } else {
-    client.Connect(host, port);
+    if (file != nullptr) {
+      client.Open(file);
+    } else {
+      client.Connect(host, port);
+    }
+
+    signal(SIGINT, SignalHandler);
+    client.Run();
+    client.Destroy();
+    client.CloseStreamFiles();
+  } catch (std::exception& e) {
+    std::cerr << e.what() << std::endl;
   }
-
-  signal(SIGINT, SignalHandler);
-  client.Run();
-  client.Destroy();
-  client.CloseStreamFiles();
 
   return 0;
 }

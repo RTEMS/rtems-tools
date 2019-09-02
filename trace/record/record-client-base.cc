@@ -45,17 +45,24 @@ static ssize_t ReadSocket(int fd, void* buf, size_t n) {
   return recv(fd, buf, n, 0);
 }
 
-void Client::Open(const char* file) {
+void FileDescriptor::Open(const char* file) {
   assert(fd_ == -1);
+
   fd_ = open(file, O_RDONLY);
-  assert(fd_ >= 0);
+  if (fd_ < 0) {
+    throw ErrnoException(std::string("cannot open file '") + file + "'");
+  }
+
   reader_ = ReadFile;
 }
 
-void Client::Connect(const char* host, uint16_t port) {
+void FileDescriptor::Connect(const char* host, uint16_t port) {
   assert(fd_ == -1);
+
   fd_ = socket(PF_INET, SOCK_STREAM, 0);
-  assert(fd_ >= 0);
+  if (fd_ < 0) {
+    throw ErrnoException("cannot open socket");
+  }
 
   struct sockaddr_in in_addr;
   memset(&in_addr, 0, sizeof(in_addr));
@@ -64,15 +71,27 @@ void Client::Connect(const char* host, uint16_t port) {
   in_addr.sin_addr.s_addr = inet_addr(host);
 
   int rv = connect(fd_, (struct sockaddr*)&in_addr, sizeof(in_addr));
-  assert(rv == 0);
+  if (rv != 0) {
+    throw ErrnoException(std::string("cannot connect to ") + host + " port " +
+                         std::to_string(port));
+  }
 
   reader_ = ReadSocket;
+}
+
+void FileDescriptor::Destroy() {
+  if (fd_ != -1) {
+    int rv = close(fd_);
+    if (rv != 0) {
+      std::cerr << "close failed: " << strerror(errno) << std::endl;
+    }
+  }
 }
 
 void Client::Run() {
   while (stop_ == 0) {
     int buf[8192];
-    ssize_t n = (*reader_)(fd_, buf, sizeof(buf));
+    ssize_t n = input_.Read(buf, sizeof(buf));
 
     if (n > 0) {
       rtems_record_client_run(&base_, buf, static_cast<size_t>(n));
@@ -83,8 +102,6 @@ void Client::Run() {
 }
 
 void Client::Destroy() {
-  int rv = close(fd_);
-  assert(rv == 0);
-
+  input_.Destroy();
   rtems_record_client_destroy(&base_);
 }

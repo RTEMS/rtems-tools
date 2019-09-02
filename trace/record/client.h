@@ -31,9 +31,43 @@
 #include <rtems/recordclient.h>
 #include <rtems/recorddata.h>
 
+#include <errno.h>
 #include <sys/types.h>
 
 #include <csignal>
+#include <cstring>
+#include <iostream>
+#include <stdexcept>
+#include <string>
+
+class ErrnoException : public std::runtime_error {
+ public:
+  ErrnoException(std::string msg)
+      : std::runtime_error(msg + ": " + strerror(errno)) {
+    // Nothing to do
+  }
+};
+
+class FileDescriptor {
+ public:
+  FileDescriptor() = default;
+
+  FileDescriptor(const FileDescriptor&) = delete;
+
+  FileDescriptor& operator=(const FileDescriptor&) = delete;
+
+  void Open(const char* file);
+
+  void Connect(const char* host, uint16_t port);
+
+  ssize_t Read(void* buf, size_t n) { return (*reader_)(fd_, buf, n); }
+
+  void Destroy();
+
+ private:
+  int fd_ = -1;
+  ssize_t (*reader_)(int fd, void* buf, size_t n) = nullptr;
+};
 
 class Client {
  public:
@@ -43,9 +77,9 @@ class Client {
 
   Client& operator=(const Client&) = delete;
 
-  void Open(const char* file);
+  void Open(const char* file) { input_.Open(file); }
 
-  void Connect(const char* host, uint16_t port);
+  void Connect(const char* host, uint16_t port) { input_.Connect(host, port); }
 
   void Run();
 
@@ -62,8 +96,7 @@ class Client {
 
  private:
   rtems_record_client_context base_;
-  int fd_ = -1;
-  ssize_t (*reader_)(int fd, void* buf, size_t n) = nullptr;
+  FileDescriptor input_;
   sig_atomic_t stop_ = 0;
 };
 
