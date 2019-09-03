@@ -367,12 +367,10 @@ def run(args, command_path = None):
         opts.defaults['exe_trace'] = debug_trace
         job_trace = 'jobs' in debug_trace.split(',')
         rtems_tools = opts.find_arg('--rtems-tools')
-        if rtems_tools:
+        if rtems_tools is not None:
             if len(rtems_tools) != 2:
                 raise error.general('invalid RTEMS tools option')
             rtems_tools = rtems_tools[1]
-        else:
-            rtems_tools = '%{_prefix}'
         bsp = opts.find_arg('--rtems-bsp')
         if bsp is None or len(bsp) != 2:
             raise error.general('RTEMS BSP not provided or an invalid option')
