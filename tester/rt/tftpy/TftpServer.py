@@ -168,15 +168,21 @@ class TftpServer(TftpSession):
                     if not key in self.sessions:
                         log.debug("Creating new server context for "
                                      "session key = %s" % key)
-                        self.sessions[key] = TftpContextServer(raddress,
-                                                               rport,
-                                                               timeout,
-                                                               self.root,
-                                                               self.dyn_file_func,
-                                                               self.upload_open)
                         try:
+                            self.sessions[key] = TftpContextServer(raddress,
+                                                                   rport,
+                                                                   timeout,
+                                                                   self.root,
+                                                                   self.dyn_file_func,
+                                                                   self.upload_open)
                             self.sessions[key].start(buffer)
                         except TftpException as err:
+                            deletion_list.append(key)
+                            log.error("Fatal exception thrown from "
+                                      "session %s: %s" % (key, str(err)))
+                        except KeyboardInterrupt:
+                            pass
+                        except:
                             deletion_list.append(key)
                             log.error("Fatal exception thrown from "
                                       "session %s: %s" % (key, str(err)))
@@ -186,7 +192,6 @@ class TftpServer(TftpSession):
                     log.info("Currently handling these sessions:")
                     for session_key, session in list(self.sessions.items()):
                         log.info("    %s" % session)
-
                 else:
                     # Must find the owner of this traffic.
                     for key in self.sessions:
