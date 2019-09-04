@@ -74,8 +74,8 @@ def build(bld):
     #
     conf['warningflags'] = ['-Wall', '-Wextra', '-pedantic']
     conf['optflags'] = bld.env.C_OPTS
-    conf['cflags'] = list(set(['-pipe', '-g'] + conf['optflags']))
-    conf['cxxflags'] = list(set(['-pipe', '-g', '-std=c++11'] + conf['optflags']))
+    conf['cflags'] = ['-pipe', '-g'] + conf['optflags']
+    conf['cxxflags'] = ['-pipe', '-g', '-std=c++11'] + conf['optflags']
     conf['linkflags'] = ['-g']
 
     #
@@ -208,7 +208,7 @@ def bld_elftoolchain(bld, conf):
     bld.stlib(target = 'elf',
               features = 'c',
               install_path = None,
-              uses = ['native-elf-format'],
+              use = ['native-elf-format'],
               includes = [bld.bldnode.abspath(),
                           'elftoolchain/libelf', 'elftoolchain/common'] + includes,
               cflags = conf['cflags'],
