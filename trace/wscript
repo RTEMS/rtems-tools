@@ -20,9 +20,8 @@
 #
 
 #
-# RTEMS miscellaneous build script.
+# RTEMS record build script.
 #
-import sys
 
 def init(ctx):
     pass
