@@ -87,6 +87,8 @@ class Client {
 
   void Destroy();
 
+  void set_limit(uint64_t limit) { limit_ = limit; }
+
  protected:
   void Initialize(rtems_record_client_handler handler) {
     rtems_record_client_init(&base_, handler, this);
@@ -98,6 +100,7 @@ class Client {
   rtems_record_client_context base_;
   FileDescriptor input_;
   sig_atomic_t stop_ = 0;
+  uint64_t limit_ = 0;
 };
 
 #endif  // RTEMS_TOOLS_TRACE_RECORD_CLIENT_H_

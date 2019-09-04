@@ -89,15 +89,22 @@ void FileDescriptor::Destroy() {
 }
 
 void Client::Run() {
-  while (stop_ == 0) {
-    int buf[8192];
-    ssize_t n = input_.Read(buf, sizeof(buf));
+  uint64_t todo = UINT64_MAX;
 
-    if (n > 0) {
-      rtems_record_client_run(&base_, buf, static_cast<size_t>(n));
-    } else {
+  if (limit_ != 0) {
+    todo = limit_;
+  }
+
+  while (stop_ == 0 && todo > 0) {
+    int buf[8192];
+    size_t m = std::min(sizeof(buf), todo);
+    ssize_t n = input_.Read(buf, m);
+    if (n <= 0) {
       break;
     }
+
+    rtems_record_client_run(&base_, buf, static_cast<size_t>(n));
+    todo -= static_cast<size_t>(n);
   }
 }
 

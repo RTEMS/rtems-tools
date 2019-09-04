@@ -548,7 +548,7 @@ static const struct option kLongOpts[] = {{"help", 0, NULL, 'h'},
                                           {NULL, 0, NULL, 0}};
 
 static void Usage(char** argv) {
-  std::cout << argv[0] << " [--host=HOST] [--port=PORT] [INPUT-FILE]"
+  std::cout << argv[0] << " [--host=HOST] [--port=PORT] [--limit=LIMIT] [INPUT-FILE]"
             << std::endl
             << std::endl
             << "Mandatory arguments to long options are mandatory for short "
@@ -560,6 +560,8 @@ static void Usage(char** argv) {
             << std::endl
             << "  -p, --port=PORT            the TCP port of the record server"
             << std::endl
+            << "  -l, --limit=LIMIT          limit in bytes to process"
+            << std::endl
             << "  INPUT-FILE                 the input file" << std::endl;
 }
 
@@ -570,7 +572,7 @@ int main(int argc, char** argv) {
   int opt;
   int longindex;
 
-  while ((opt = getopt_long(argc, argv, "hH:p:", &kLongOpts[0],
+  while ((opt = getopt_long(argc, argv, "hH:l:p:", &kLongOpts[0],
                             &longindex)) != -1) {
     switch (opt) {
       case 'h':
@@ -580,7 +582,10 @@ int main(int argc, char** argv) {
         host = optarg;
         break;
       case 'p':
-        port = (uint16_t)strtoul(optarg, NULL, 10);
+        port = (uint16_t)strtoul(optarg, NULL, 0);
+        break;
+      case 'l':
+        client.set_limit(strtoull(optarg, NULL, 0));
         break;
       default:
         return 1;
