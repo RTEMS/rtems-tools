@@ -118,8 +118,7 @@ struct PerCPUContext {
   FILE* event_stream;
   uint64_t timestamp_begin;
   uint64_t timestamp_end;
-  uint64_t content_size;
-  uint64_t packet_size;
+  uint64_t size_in_bits;
   uint32_t thread_id;
   uint64_t thread_ns;
   size_t thread_name_index;
@@ -250,8 +249,7 @@ void LTTNGClient::CopyThreadName(const ClientItem& item,
 
 void LTTNGClient::WriteSchedSwitch(PerCPUContext* pcpu,
                                    const ClientItem& item) {
-  pcpu->content_size += kEventSchedSwitchBits;
-  pcpu->packet_size += kEventSchedSwitchBits;
+  pcpu->size_in_bits += kEventSchedSwitchBits;
 
   EventSchedSwitch& ss = pcpu->sched_switch;
   ss.header.ns = item.ns;
@@ -265,8 +263,7 @@ void LTTNGClient::WriteSchedSwitch(PerCPUContext* pcpu,
 
 void LTTNGClient::WriteIRQHandlerEntry(PerCPUContext* pcpu,
                                        const ClientItem& item) {
-  pcpu->content_size += kEventIRQHandlerEntryBits;
-  pcpu->packet_size += kEventIRQHandlerEntryBits;
+  pcpu->size_in_bits += kEventIRQHandlerEntryBits;
 
   EventIRQHandlerEntry& ih = pcpu->irq_handler_entry;
   ih.header.ns = item.ns;
@@ -276,8 +273,7 @@ void LTTNGClient::WriteIRQHandlerEntry(PerCPUContext* pcpu,
 
 void LTTNGClient::WriteIRQHandlerExit(PerCPUContext* pcpu,
                                       const ClientItem& item) {
-  pcpu->content_size += kEventIRQHandlerExitBits;
-  pcpu->packet_size += kEventIRQHandlerExitBits;
+  pcpu->size_in_bits += kEventIRQHandlerExitBits;
 
   EventIRQHandlerExit& ih = pcpu->irq_handler_exit;
   ih.header.ns = item.ns;
@@ -400,8 +396,8 @@ void LTTNGClient::CloseStreamFiles() {
     pkt_ctx_.header.stream_instance_id = i;
     pkt_ctx_.timestamp_begin = pcpu->timestamp_begin;
     pkt_ctx_.timestamp_end = pcpu->timestamp_end;
-    pkt_ctx_.content_size = pcpu->content_size + kPacketContextBits;
-    pkt_ctx_.packet_size = pcpu->packet_size + kPacketContextBits;
+    pkt_ctx_.content_size = pcpu->size_in_bits + kPacketContextBits;
+    pkt_ctx_.packet_size = pkt_ctx_.content_size;
     pkt_ctx_.cpu_id = i;
 
     fwrite(&pkt_ctx_, sizeof(pkt_ctx_), 1, pcpu->event_stream);
