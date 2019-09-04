@@ -30,7 +30,6 @@
 
 #include <assert.h>
 #include <getopt.h>
-#include <inttypes.h>
 
 #include <cstring>
 #include <iostream>
@@ -180,6 +179,15 @@ static bool IsIdleTaskByAPIIndex(uint32_t api_index) {
   return api_index == 0;
 }
 
+static const uint8_t kCPUPostfix[RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT][2] = {
+    {'0', '\0'}, {'1', '\0'}, {'2', '\0'}, {'3', '\0'}, {'4', '\0'},
+    {'5', '\0'}, {'6', '\0'}, {'7', '\0'}, {'8', '\0'}, {'9', '\0'},
+    {'1', '0'},  {'1', '1'},  {'1', '2'},  {'1', '3'},  {'1', '4'},
+    {'1', '5'},  {'1', '6'},  {'1', '7'},  {'1', '8'},  {'1', '9'},
+    {'2', '0'},  {'2', '1'},  {'2', '2'},  {'2', '3'},  {'2', '4'},
+    {'2', '5'},  {'2', '6'},  {'2', '7'},  {'2', '8'},  {'2', '9'},
+    {'3', '0'},  {'3', '1'}};
+
 void LTTNGClient::CopyThreadName(const ClientItem& item,
                                  size_t api_index,
                                  uint8_t* dst) const {
@@ -198,8 +206,9 @@ void LTTNGClient::CopyThreadName(const ClientItem& item,
      * In Linux, the idle threads are bound to a specific CPU (swapper/n).  In
      * RTEMS, the idle threads can move around, so mimic this Linux behaviour.
      */
-    snprintf(reinterpret_cast<char*>(dst) + 4, THREAD_NAME_SIZE - 4,
-             "/%" PRIu32, item.cpu);
+    dst[4] = '/';
+    dst[5] = kCPUPostfix[item.cpu][0];
+    dst[6] = kCPUPostfix[item.cpu][1];
   }
 }
 
