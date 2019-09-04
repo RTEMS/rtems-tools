@@ -1020,7 +1020,7 @@ class builder:
         self._failures_report()
 
     def run_jobs(self, jobs):
-        if path.exists(self.build_dir):
+        if path.exists(self.build_dir) and not self.options['no-clean']:
             log.notice('Cleaning: %s' % (self.build_dir))
             path.removeall(self.build_dir)
         self.start = _now()
