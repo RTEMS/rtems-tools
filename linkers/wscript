@@ -33,7 +33,6 @@ def options(opt):
 def configure(conf):
     conf.load('compiler_c')
     conf.load('compiler_cxx')
-
     conf.write_config_header('config.h')
 
 def build(bld):
