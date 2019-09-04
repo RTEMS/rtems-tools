@@ -119,9 +119,10 @@ class LTTNGClient : public Client {
     pkt_ctx_.header.ctf_magic = CTF_MAGIC;
   }
 
-  void OpenStreamFiles();
-
-  void CloseStreamFiles();
+  void Destroy() {
+    Client::Destroy();
+    CloseStreamFiles();
+  }
 
  private:
   PerCPUContext per_cpu_[RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT];
@@ -135,6 +136,8 @@ class LTTNGClient : public Client {
   uint8_t thread_names_[THREAD_API_COUNT][THREAD_ID_COUNT][THREAD_NAME_SIZE];
 
   PacketContext pkt_ctx_;
+
+  size_t cpu_count_ = 0;
 
   static rtems_record_client_status HandlerCaller(uint64_t bt,
                                                   uint32_t cpu,
@@ -159,6 +162,10 @@ class LTTNGClient : public Client {
   void AddThreadName(PerCPUContext* pcpu, const ClientItem& item);
 
   void PrintItem(const ClientItem& item);
+
+  void OpenStreamFiles(uint64_t data);
+
+  void CloseStreamFiles();
 };
 
 static uint32_t GetAPIIndexOfID(uint32_t id) {
@@ -273,6 +280,9 @@ void LTTNGClient::PrintItem(const ClientItem& item) {
     case RTEMS_RECORD_THREAD_NAME:
       AddThreadName(&pcpu, item);
       break;
+    case RTEMS_RECORD_PROCESSOR_MAXIMUM:
+      OpenStreamFiles(item.data);
+      break;
     default:
       break;
   }
@@ -294,19 +304,25 @@ rtems_record_client_status LTTNGClient::Handler(uint64_t bt,
   return RTEMS_RECORD_CLIENT_SUCCESS;
 }
 
-void LTTNGClient::OpenStreamFiles() {
-  for (size_t i = 0; i < RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT; ++i) {
-    char filename[256];
-    snprintf(filename, sizeof(filename), "event_%zu", i);
-    FILE* f = fopen(filename, "wb");
-    assert(f != NULL);
+void LTTNGClient::OpenStreamFiles(uint64_t data) {
+  // Assertions are ensured by C record client
+  assert(cpu_count_ == 0 && data < RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT);
+  cpu_count_ = static_cast<size_t>(data) + 1;
+
+  for (size_t i = 0; i < cpu_count_; ++i) {
+    std::string filename("stream_");
+    filename += std::to_string(i);
+    FILE* f = fopen(filename.c_str(), "wb");
+    if (f == NULL) {
+      throw ErrnoException("cannot create file '" + filename + "'");
+    }
     per_cpu_[i].event_stream = f;
     fwrite(&pkt_ctx_, sizeof(pkt_ctx_), 1, f);
   }
 }
 
 void LTTNGClient::CloseStreamFiles() {
-  for (size_t i = 0; i < RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT; ++i) {
+  for (size_t i = 0; i < cpu_count_; ++i) {
     PerCPUContext* pcpu = &per_cpu_[i];
     fseek(pcpu->event_stream, 0, SEEK_SET);
 
@@ -425,10 +441,12 @@ static const char kMetadata[] =
     "};\n";
 
 static void GenerateMetadata() {
-  FILE* file = fopen("metadata", "w");
-  assert(file != NULL);
-  fwrite(kMetadata, sizeof(kMetadata) - 1, 1, file);
-  fclose(file);
+  FILE* f = fopen("metadata", "w");
+  if (f == NULL) {
+    throw ErrnoException("cannot create file 'metadata'");
+  }
+  fwrite(kMetadata, sizeof(kMetadata) - 1, 1, f);
+  fclose(f);
 }
 
 static LTTNGClient client;
@@ -489,7 +507,6 @@ int main(int argc, char** argv) {
 
   try {
     GenerateMetadata();
-    client.OpenStreamFiles();
 
     if (file != nullptr) {
       client.Open(file);
@@ -500,7 +517,6 @@ int main(int argc, char** argv) {
     signal(SIGINT, SignalHandler);
     client.Run();
     client.Destroy();
-    client.CloseStreamFiles();
   } catch (std::exception& e) {
     std::cerr << e.what() << std::endl;
   }
