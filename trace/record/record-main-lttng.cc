@@ -545,11 +545,10 @@ static void SignalHandler(int s) {
 static const struct option kLongOpts[] = {{"help", 0, NULL, 'h'},
                                           {"host", 1, NULL, 'H'},
                                           {"port", 1, NULL, 'p'},
-                                          {"input", 1, NULL, 'i'},
                                           {NULL, 0, NULL, 0}};
 
 static void Usage(char** argv) {
-  std::cout << argv[0] << "%s [--host=HOST] [--port=PORT] [--input=INPUT]"
+  std::cout << argv[0] << " [--host=HOST] [--port=PORT] [INPUT-FILE]"
             << std::endl
             << std::endl
             << "Mandatory arguments to long options are mandatory for short "
@@ -561,7 +560,7 @@ static void Usage(char** argv) {
             << std::endl
             << "  -p, --port=PORT            the TCP port of the record server"
             << std::endl
-            << "  -i, --input=INPUT          the input file" << std::endl;
+            << "  INPUT-FILE                 the input file" << std::endl;
 }
 
 int main(int argc, char** argv) {
@@ -571,7 +570,7 @@ int main(int argc, char** argv) {
   int opt;
   int longindex;
 
-  while ((opt = getopt_long(argc, argv, "hH:p:i:", &kLongOpts[0],
+  while ((opt = getopt_long(argc, argv, "hH:p:", &kLongOpts[0],
                             &longindex)) != -1) {
     switch (opt) {
       case 'h':
@@ -583,12 +582,23 @@ int main(int argc, char** argv) {
       case 'p':
         port = (uint16_t)strtoul(optarg, NULL, 10);
         break;
-      case 'i':
-        file = optarg;
-        break;
       default:
         return 1;
     }
+  }
+
+  if (optind == argc - 1) {
+    file = argv[optind];
+    ++optind;
+  }
+
+  if (optind != argc) {
+    std::cerr << argv[0] << ": unrecognized options:";
+    for (int i = optind; i < argc; ++i) {
+      std::cerr << " '" << argv[i] << "'";
+    }
+    std::cerr << std::endl;
+    return 1;
   }
 
   try {
@@ -604,7 +614,7 @@ int main(int argc, char** argv) {
     client.Run();
     client.Destroy();
   } catch (std::exception& e) {
-    std::cerr << e.what() << std::endl;
+    std::cerr << argv[0] << ": " << e.what() << std::endl;
   }
 
   return 0;
