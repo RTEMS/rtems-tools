@@ -96,6 +96,24 @@ struct EventSchedSwitch {
 static const size_t kEventSchedSwitchBits =
     sizeof(EventSchedSwitch) * BITS_PER_CHAR;
 
+struct EventIRQHandlerEntry {
+  EventHeaderCompact header;
+  int32_t irq;
+  uint8_t name[1];
+} __attribute__((__packed__));
+
+static const size_t kEventIRQHandlerEntryBits =
+    sizeof(EventIRQHandlerEntry) * BITS_PER_CHAR;
+
+struct EventIRQHandlerExit {
+  EventHeaderCompact header;
+  int32_t irq;
+  int32_t ret;
+} __attribute__((__packed__));
+
+static const size_t kEventIRQHandlerExitBits =
+    sizeof(EventIRQHandlerExit) * BITS_PER_CHAR;
+
 struct PerCPUContext {
   FILE* event_stream;
   uint64_t timestamp_begin;
@@ -106,6 +124,8 @@ struct PerCPUContext {
   uint64_t thread_ns;
   size_t thread_name_index;
   EventSchedSwitch sched_switch;
+  EventIRQHandlerEntry irq_handler_entry;
+  EventIRQHandlerExit irq_handler_exit;
 };
 
 class LTTNGClient : public Client {
@@ -116,6 +136,18 @@ class LTTNGClient : public Client {
     memset(&pkt_ctx_, 0, sizeof(pkt_ctx_));
     memcpy(pkt_ctx_.header.uuid, kUUID, sizeof(pkt_ctx_.header.uuid));
     pkt_ctx_.header.ctf_magic = CTF_MAGIC;
+
+    for (size_t i = 0; i < RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT; ++i) {
+      PerCPUContext& pcpu = per_cpu_[i];
+      pcpu.sched_switch.header.id = COMPACT_HEADER_ID;
+      pcpu.sched_switch.header.event_id = 0;
+      pcpu.irq_handler_entry.header.id = COMPACT_HEADER_ID;
+      pcpu.irq_handler_entry.header.event_id = 1;
+      pcpu.irq_handler_entry.name[0] = '\0';
+      pcpu.irq_handler_exit.header.id = COMPACT_HEADER_ID;
+      pcpu.irq_handler_exit.header.event_id = 2;
+      pcpu.irq_handler_exit.ret = 1;
+    }
   }
 
   void Destroy() {
@@ -157,6 +189,10 @@ class LTTNGClient : public Client {
                       uint8_t* dst) const;
 
   void WriteSchedSwitch(PerCPUContext* pcpu, const ClientItem& item);
+
+  void WriteIRQHandlerEntry(PerCPUContext* pcpu, const ClientItem& item);
+
+  void WriteIRQHandlerExit(PerCPUContext* pcpu, const ClientItem& item);
 
   void AddThreadName(PerCPUContext* pcpu, const ClientItem& item);
 
@@ -218,8 +254,6 @@ void LTTNGClient::WriteSchedSwitch(PerCPUContext* pcpu,
   pcpu->packet_size += kEventSchedSwitchBits;
 
   EventSchedSwitch& ss = pcpu->sched_switch;
-  ss.header.id = COMPACT_HEADER_ID;
-  ss.header.event_id = 0;
   ss.header.ns = item.ns;
 
   uint32_t api_index = GetAPIIndexOfID(item.data);
@@ -227,6 +261,28 @@ void LTTNGClient::WriteSchedSwitch(PerCPUContext* pcpu,
 
   CopyThreadName(item, api_index, ss.next_comm);
   fwrite(&ss, sizeof(ss), 1, pcpu->event_stream);
+}
+
+void LTTNGClient::WriteIRQHandlerEntry(PerCPUContext* pcpu,
+                                       const ClientItem& item) {
+  pcpu->content_size += kEventIRQHandlerEntryBits;
+  pcpu->packet_size += kEventIRQHandlerEntryBits;
+
+  EventIRQHandlerEntry& ih = pcpu->irq_handler_entry;
+  ih.header.ns = item.ns;
+  ih.irq = static_cast<int32_t>(item.data);
+  fwrite(&ih, sizeof(ih), 1, pcpu->event_stream);
+}
+
+void LTTNGClient::WriteIRQHandlerExit(PerCPUContext* pcpu,
+                                      const ClientItem& item) {
+  pcpu->content_size += kEventIRQHandlerExitBits;
+  pcpu->packet_size += kEventIRQHandlerExitBits;
+
+  EventIRQHandlerExit& ih = pcpu->irq_handler_exit;
+  ih.header.ns = item.ns;
+  ih.irq = static_cast<int32_t>(item.data);
+  fwrite(&ih, sizeof(ih), 1, pcpu->event_stream);
 }
 
 void LTTNGClient::AddThreadName(PerCPUContext* pcpu, const ClientItem& item) {
@@ -285,6 +341,12 @@ void LTTNGClient::PrintItem(const ClientItem& item) {
       pcpu.thread_id = item.data;
       pcpu.thread_ns = item.ns;
       pcpu.thread_name_index = 0;
+      break;
+    case RTEMS_RECORD_INTERRUPT_ENTRY:
+      WriteIRQHandlerEntry(&pcpu, item);
+      break;
+    case RTEMS_RECORD_INTERRUPT_EXIT:
+      WriteIRQHandlerExit(&pcpu, item);
       break;
     case RTEMS_RECORD_THREAD_NAME:
       AddThreadName(&pcpu, item);
@@ -371,7 +433,6 @@ static const char kMetadata[] =
     "\tmap = clock.monotonic.value;\n"
     "} := uint64_clock_monotonic_t;\n"
     "\n"
-    "\n"
     "trace {\n"
     "\tmajor = 1;\n"
     "\tminor = 8;\n"
@@ -435,7 +496,7 @@ static const char kMetadata[] =
     "};\n"
     "\n"
     "event {\n"
-    "\tname = \"sched_switch\";\n"
+    "\tname = sched_switch;\n"
     "\tid = 0;\n"
     "\tstream_id = 0;\n"
     "\tfields := struct {\n"
@@ -446,6 +507,26 @@ static const char kMetadata[] =
     "\t\tutf8_t _next_comm[16];\n"
     "\t\tint32_t _next_tid;\n"
     "\t\tint32_t _next_prio;\n"
+    "\t};\n"
+    "};\n"
+    "\n"
+    "event {\n"
+    "\tname = irq_handler_entry;\n"
+    "\tid = 1;\n"
+    "\tstream_id = 0;\n"
+    "\tfields := struct {\n"
+    "\t\tint32_t _irq;\n"
+    "\t\tstring _name;\n"
+    "\t};\n"
+    "};\n"
+    "\n"
+    "event {\n"
+    "\tname = irq_handler_exit;\n"
+    "\tid = 2;\n"
+    "\tstream_id = 0;\n"
+    "\tfields := struct {\n"
+    "\t\tint32_t _irq;\n"
+    "\t\tint32_t _ret;\n"
     "\t};\n"
     "};\n";
 
