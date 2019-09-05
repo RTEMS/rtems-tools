@@ -83,6 +83,14 @@ struct EventHeaderCompact {
   uint64_t ns;
 } __attribute__((__packed__));
 
+struct EventRecordItem {
+  EventHeaderCompact header;
+  uint64_t data;
+} __attribute__((__packed__));
+
+static const size_t kEventRecordItemBits =
+    sizeof(EventRecordItem) * BITS_PER_CHAR;
+
 struct EventSchedSwitch {
   EventHeaderCompact header;
   uint8_t prev_comm[THREAD_NAME_SIZE];
@@ -123,6 +131,7 @@ struct PerCPUContext {
   uint32_t thread_id;
   uint64_t thread_ns;
   size_t thread_name_index;
+  EventRecordItem record_item;
   EventSchedSwitch sched_switch;
   EventIRQHandlerEntry irq_handler_entry;
   EventIRQHandlerExit irq_handler_exit;
@@ -140,13 +149,14 @@ class LTTNGClient : public Client {
     for (size_t i = 0; i < RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT; ++i) {
       PerCPUContext& pcpu = per_cpu_[i];
       pcpu.sched_switch.header.id = COMPACT_HEADER_ID;
-      pcpu.sched_switch.header.event_id = 0;
+      pcpu.sched_switch.header.event_id = 1024;
       pcpu.irq_handler_entry.header.id = COMPACT_HEADER_ID;
-      pcpu.irq_handler_entry.header.event_id = 1;
+      pcpu.irq_handler_entry.header.event_id = 1025;
       pcpu.irq_handler_entry.name[0] = '\0';
       pcpu.irq_handler_exit.header.id = COMPACT_HEADER_ID;
-      pcpu.irq_handler_exit.header.event_id = 2;
+      pcpu.irq_handler_exit.header.event_id = 1026;
       pcpu.irq_handler_exit.ret = 1;
+      pcpu.record_item.header.id = COMPACT_HEADER_ID;
     }
   }
 
@@ -187,6 +197,8 @@ class LTTNGClient : public Client {
   void CopyThreadName(const ClientItem& item,
                       size_t api_index,
                       uint8_t* dst) const;
+
+  void WriteRecordItem(PerCPUContext* pcpu, const ClientItem& item);
 
   void WriteSchedSwitch(PerCPUContext* pcpu, const ClientItem& item);
 
@@ -246,6 +258,17 @@ void LTTNGClient::CopyThreadName(const ClientItem& item,
     dst[5] = kCPUPostfix[item.cpu][0];
     dst[6] = kCPUPostfix[item.cpu][1];
   }
+}
+
+void LTTNGClient::WriteRecordItem(PerCPUContext* pcpu, const ClientItem& item) {
+  pcpu->size_in_bits += kEventRecordItemBits;
+
+  EventRecordItem& ri = pcpu->record_item;
+  ri.header.ns = item.ns;
+  ri.header.event_id = item.event;
+  ri.data = item.data;
+
+  std::fwrite(&ri, sizeof(ri), 1, pcpu->event_stream);
 }
 
 void LTTNGClient::WriteSchedSwitch(PerCPUContext* pcpu,
@@ -352,6 +375,9 @@ void LTTNGClient::PrintItem(const ClientItem& item) {
       OpenStreamFiles(item.data);
       break;
     default:
+      if (item.ns != 0) {
+        WriteRecordItem(&pcpu, item);
+      }
       break;
   }
 }
@@ -417,7 +443,11 @@ static const char kMetadata[] =
     "typealias integer { size = 64; align = 8; signed = false; } := uint64_t;\n"
     "\n"
     "typealias integer {\n"
-    "\tsize = 8; align = 8; signed = 0; encoding = UTF8; base = 10;\n"
+    "\tsize = 64; align = 8; signed = false; base = 16;\n"
+    "} := xint64_t;\n"
+    "\n"
+    "typealias integer {\n"
+    "\tsize = 8; align = 8; signed = false; encoding = UTF8; base = 10;\n"
     "} := utf8_t;\n"
     "\n"
     "typealias integer {\n"
@@ -494,7 +524,7 @@ static const char kMetadata[] =
     "\n"
     "event {\n"
     "\tname = sched_switch;\n"
-    "\tid = 0;\n"
+    "\tid = 1024;\n"
     "\tstream_id = 0;\n"
     "\tfields := struct {\n"
     "\t\tutf8_t _prev_comm[16];\n"
@@ -509,7 +539,7 @@ static const char kMetadata[] =
     "\n"
     "event {\n"
     "\tname = irq_handler_entry;\n"
-    "\tid = 1;\n"
+    "\tid = 1025;\n"
     "\tstream_id = 0;\n"
     "\tfields := struct {\n"
     "\t\tint32_t _irq;\n"
@@ -519,7 +549,7 @@ static const char kMetadata[] =
     "\n"
     "event {\n"
     "\tname = irq_handler_exit;\n"
-    "\tid = 2;\n"
+    "\tid = 1026;\n"
     "\tstream_id = 0;\n"
     "\tfields := struct {\n"
     "\t\tint32_t _irq;\n"
@@ -532,7 +562,24 @@ static void GenerateMetadata() {
   if (f == NULL) {
     throw ErrnoException("cannot create file 'metadata'");
   }
+
   std::fwrite(kMetadata, sizeof(kMetadata) - 1, 1, f);
+
+  for (int i = 0; i <= RTEMS_RECORD_LAST; ++i) {
+    std::fprintf(f,
+                 "\n"
+                 "event {\n"
+                 "\tname = %s;\n"
+                 "\tid = %i;\n"
+                 "\tstream_id = 0;\n"
+                 "\tfields := struct {\n"
+                 "\t\txint64_t _data;\n"
+                 "\t};\n"
+                 "};\n",
+                 rtems_record_event_text(static_cast<rtems_record_event>(i)),
+                 i);
+  }
+
   std::fclose(f);
 }
 
@@ -549,7 +596,8 @@ static const struct option kLongOpts[] = {{"help", 0, NULL, 'h'},
                                           {NULL, 0, NULL, 0}};
 
 static void Usage(char** argv) {
-  std::cout << argv[0] << " [--host=HOST] [--port=PORT] [--limit=LIMIT] [INPUT-FILE]"
+  std::cout << argv[0]
+            << " [--host=HOST] [--port=PORT] [--limit=LIMIT] [INPUT-FILE]"
             << std::endl
             << std::endl
             << "Mandatory arguments to long options are mandatory for short "

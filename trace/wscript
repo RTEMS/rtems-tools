@@ -59,6 +59,7 @@ def build(bld):
     #
     bld.program(target = 'rtems-record-lttng',
                 source = ['record/record-client.c',
+                          'record/record-text.c',
                           'record/record-client-base.cc',
                           'record/record-main-lttng.cc'],
                 includes = ['record'],
