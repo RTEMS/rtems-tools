@@ -31,9 +31,9 @@
 #include <rtems/recordclient.h>
 #include <rtems/recorddata.h>
 
-#include <errno.h>
 #include <sys/types.h>
 
+#include <cerrno>
 #include <csignal>
 #include <cstring>
 #include <iostream>
@@ -43,7 +43,7 @@
 class ErrnoException : public std::runtime_error {
  public:
   ErrnoException(std::string msg)
-      : std::runtime_error(msg + ": " + strerror(errno)) {
+      : std::runtime_error(msg + ": " + std::strerror(errno)) {
     // Nothing to do
   }
 };

@@ -28,27 +28,27 @@
 #include "client.h"
 
 #include <arpa/inet.h>
-#include <assert.h>
 #include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
+#include <cassert>
 #include <cstring>
 
 static ssize_t ReadFile(int fd, void* buf, size_t n) {
-  return read(fd, buf, n);
+  return ::read(fd, buf, n);
 }
 
 static ssize_t ReadSocket(int fd, void* buf, size_t n) {
-  return recv(fd, buf, n, 0);
+  return ::recv(fd, buf, n, 0);
 }
 
 void FileDescriptor::Open(const char* file) {
   assert(fd_ == -1);
 
-  fd_ = open(file, O_RDONLY);
+  fd_ = ::open(file, O_RDONLY);
   if (fd_ < 0) {
     throw ErrnoException(std::string("cannot open file '") + file + "'");
   }
@@ -59,18 +59,18 @@ void FileDescriptor::Open(const char* file) {
 void FileDescriptor::Connect(const char* host, uint16_t port) {
   assert(fd_ == -1);
 
-  fd_ = socket(PF_INET, SOCK_STREAM, 0);
+  fd_ = ::socket(PF_INET, SOCK_STREAM, 0);
   if (fd_ < 0) {
     throw ErrnoException("cannot open socket");
   }
 
   struct sockaddr_in in_addr;
-  memset(&in_addr, 0, sizeof(in_addr));
+  std::memset(&in_addr, 0, sizeof(in_addr));
   in_addr.sin_family = AF_INET;
   in_addr.sin_port = htons(port);
   in_addr.sin_addr.s_addr = inet_addr(host);
 
-  int rv = connect(fd_, (struct sockaddr*)&in_addr, sizeof(in_addr));
+  int rv = ::connect(fd_, (struct sockaddr*)&in_addr, sizeof(in_addr));
   if (rv != 0) {
     throw ErrnoException(std::string("cannot connect to ") + host + " port " +
                          std::to_string(port));
@@ -81,7 +81,7 @@ void FileDescriptor::Connect(const char* host, uint16_t port) {
 
 void FileDescriptor::Destroy() {
   if (fd_ != -1) {
-    int rv = close(fd_);
+    int rv = ::close(fd_);
     if (rv != 0) {
       std::cerr << "close failed: " << strerror(errno) << std::endl;
     }

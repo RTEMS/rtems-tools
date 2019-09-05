@@ -28,9 +28,10 @@
 
 #include "client.h"
 
-#include <assert.h>
 #include <getopt.h>
 
+#include <cassert>
+#include <cstdio>
 #include <cstring>
 #include <iostream>
 
@@ -132,8 +133,8 @@ class LTTNGClient : public Client {
   LTTNGClient() {
     Initialize(LTTNGClient::HandlerCaller);
 
-    memset(&pkt_ctx_, 0, sizeof(pkt_ctx_));
-    memcpy(pkt_ctx_.header.uuid, kUUID, sizeof(pkt_ctx_.header.uuid));
+    std::memset(&pkt_ctx_, 0, sizeof(pkt_ctx_));
+    std::memcpy(pkt_ctx_.header.uuid, kUUID, sizeof(pkt_ctx_.header.uuid));
     pkt_ctx_.header.ctf_magic = CTF_MAGIC;
 
     for (size_t i = 0; i < RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT; ++i) {
@@ -234,7 +235,7 @@ void LTTNGClient::CopyThreadName(const ClientItem& item,
     name = kEmptyThreadName;
   }
 
-  memcpy(dst, name, THREAD_NAME_SIZE);
+  std::memcpy(dst, name, THREAD_NAME_SIZE);
 
   if (IsIdleTaskByAPIIndex(api_index)) {
     /*
@@ -258,7 +259,7 @@ void LTTNGClient::WriteSchedSwitch(PerCPUContext* pcpu,
   ss.next_tid = IsIdleTaskByAPIIndex(api_index) ? 0 : item.data;
 
   CopyThreadName(item, api_index, ss.next_comm);
-  fwrite(&ss, sizeof(ss), 1, pcpu->event_stream);
+  std::fwrite(&ss, sizeof(ss), 1, pcpu->event_stream);
 }
 
 void LTTNGClient::WriteIRQHandlerEntry(PerCPUContext* pcpu,
@@ -268,7 +269,7 @@ void LTTNGClient::WriteIRQHandlerEntry(PerCPUContext* pcpu,
   EventIRQHandlerEntry& ih = pcpu->irq_handler_entry;
   ih.header.ns = item.ns;
   ih.irq = static_cast<int32_t>(item.data);
-  fwrite(&ih, sizeof(ih), 1, pcpu->event_stream);
+  std::fwrite(&ih, sizeof(ih), 1, pcpu->event_stream);
 }
 
 void LTTNGClient::WriteIRQHandlerExit(PerCPUContext* pcpu,
@@ -278,7 +279,7 @@ void LTTNGClient::WriteIRQHandlerExit(PerCPUContext* pcpu,
   EventIRQHandlerExit& ih = pcpu->irq_handler_exit;
   ih.header.ns = item.ns;
   ih.irq = static_cast<int32_t>(item.data);
-  fwrite(&ih, sizeof(ih), 1, pcpu->event_stream);
+  std::fwrite(&ih, sizeof(ih), 1, pcpu->event_stream);
 }
 
 void LTTNGClient::AddThreadName(PerCPUContext* pcpu, const ClientItem& item) {
@@ -379,19 +380,19 @@ void LTTNGClient::OpenStreamFiles(uint64_t data) {
   for (size_t i = 0; i < cpu_count_; ++i) {
     std::string filename("stream_");
     filename += std::to_string(i);
-    FILE* f = fopen(filename.c_str(), "wb");
+    FILE* f = std::fopen(filename.c_str(), "wb");
     if (f == NULL) {
       throw ErrnoException("cannot create file '" + filename + "'");
     }
     per_cpu_[i].event_stream = f;
-    fwrite(&pkt_ctx_, sizeof(pkt_ctx_), 1, f);
+    std::fwrite(&pkt_ctx_, sizeof(pkt_ctx_), 1, f);
   }
 }
 
 void LTTNGClient::CloseStreamFiles() {
   for (size_t i = 0; i < cpu_count_; ++i) {
     PerCPUContext* pcpu = &per_cpu_[i];
-    fseek(pcpu->event_stream, 0, SEEK_SET);
+    std::fseek(pcpu->event_stream, 0, SEEK_SET);
 
     pkt_ctx_.header.stream_instance_id = i;
     pkt_ctx_.timestamp_begin = pcpu->timestamp_begin;
@@ -400,8 +401,8 @@ void LTTNGClient::CloseStreamFiles() {
     pkt_ctx_.packet_size = pkt_ctx_.content_size;
     pkt_ctx_.cpu_id = i;
 
-    fwrite(&pkt_ctx_, sizeof(pkt_ctx_), 1, pcpu->event_stream);
-    fclose(pcpu->event_stream);
+    std::fwrite(&pkt_ctx_, sizeof(pkt_ctx_), 1, pcpu->event_stream);
+    std::fclose(pcpu->event_stream);
   }
 }
 
@@ -527,19 +528,19 @@ static const char kMetadata[] =
     "};\n";
 
 static void GenerateMetadata() {
-  FILE* f = fopen("metadata", "w");
+  FILE* f = std::fopen("metadata", "w");
   if (f == NULL) {
     throw ErrnoException("cannot create file 'metadata'");
   }
-  fwrite(kMetadata, sizeof(kMetadata) - 1, 1, f);
-  fclose(f);
+  std::fwrite(kMetadata, sizeof(kMetadata) - 1, 1, f);
+  std::fclose(f);
 }
 
 static LTTNGClient client;
 
 static void SignalHandler(int s) {
   client.RequestStop();
-  signal(s, SIG_DFL);
+  std::signal(s, SIG_DFL);
 }
 
 static const struct option kLongOpts[] = {{"help", 0, NULL, 'h'},
@@ -615,7 +616,7 @@ int main(int argc, char** argv) {
       client.Connect(host, port);
     }
 
-    signal(SIGINT, SignalHandler);
+    std::signal(SIGINT, SignalHandler);
     client.Run();
     client.Destroy();
   } catch (std::exception& e) {
