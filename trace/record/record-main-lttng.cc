@@ -26,14 +26,25 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include "config.h"
+
 #include "client.h"
 
 #include <getopt.h>
 
 #include <cassert>
+#include <cinttypes>
 #include <cstdio>
 #include <cstring>
 #include <iostream>
+#include <map>
+#include <string>
+#include <vector>
+
+#ifdef HAVE_LLVM_DEBUGINFO_SYMBOLIZE_SYMBOLIZE_H
+#include <llvm/DebugInfo/Symbolize/Symbolize.h>
+#include <llvm/Support/Path.h>
+#endif
 
 #define CTF_MAGIC 0xC1FC1FC1
 #define TASK_RUNNING 0x0000
@@ -82,6 +93,9 @@ struct EventHeaderCompact {
   uint32_t event_id;
   uint64_t ns;
 } __attribute__((__packed__));
+
+static const size_t kEventHeaderBits =
+    sizeof(EventHeaderCompact) * BITS_PER_CHAR;
 
 struct EventRecordItem {
   EventHeaderCompact header;
@@ -160,6 +174,8 @@ class LTTNGClient : public Client {
     }
   }
 
+  void OpenExecutable(const char* elf_file);
+
   void Destroy() {
     Client::Destroy();
     CloseStreamFiles();
@@ -179,6 +195,18 @@ class LTTNGClient : public Client {
   PacketContext pkt_ctx_;
 
   size_t cpu_count_ = 0;
+
+#ifdef HAVE_LLVM_DEBUGINFO_SYMBOLIZE_SYMBOLIZE_H
+  llvm::symbolize::LLVMSymbolizer symbolizer_;
+#endif
+
+  std::string elf_file_;
+
+  bool resolve_address_ = false;
+
+  typedef std::map<uint64_t, std::vector<char>> AddressToLineMap;
+
+  AddressToLineMap address_to_line_;
 
   static rtems_record_client_status HandlerCaller(uint64_t bt,
                                                   uint32_t cpu,
@@ -213,6 +241,10 @@ class LTTNGClient : public Client {
   void OpenStreamFiles(uint64_t data);
 
   void CloseStreamFiles();
+
+  AddressToLineMap::iterator AddAddressAsHexNumber(const ClientItem& item);
+
+  AddressToLineMap::iterator ResolveAddress(const ClientItem& item);
 };
 
 static uint32_t GetAPIIndexOfID(uint32_t id) {
@@ -235,6 +267,11 @@ static const uint8_t kCPUPostfix[RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT][2] = {
     {'2', '0'},  {'2', '1'},  {'2', '2'},  {'2', '3'},  {'2', '4'},
     {'2', '5'},  {'2', '6'},  {'2', '7'},  {'2', '8'},  {'2', '9'},
     {'3', '0'},  {'3', '1'}};
+
+void LTTNGClient::OpenExecutable(const char* elf_file) {
+  elf_file_ = elf_file;
+  resolve_address_ = true;
+}
 
 void LTTNGClient::CopyThreadName(const ClientItem& item,
                                  size_t api_index,
@@ -260,15 +297,87 @@ void LTTNGClient::CopyThreadName(const ClientItem& item,
   }
 }
 
+static bool IsCodeEvent(rtems_record_event event) {
+  switch (event) {
+    default:
+      return false;
+    case RTEMS_RECORD_CALLER:
+    case RTEMS_RECORD_FUNCTION_ENTRY:
+    case RTEMS_RECORD_FUNCTION_EXIT:
+    case RTEMS_RECORD_ISR_DISABLE:
+    case RTEMS_RECORD_ISR_ENABLE:
+    case RTEMS_RECORD_LINE:
+    case RTEMS_RECORD_THREAD_DISPATCH_DISABLE:
+    case RTEMS_RECORD_THREAD_DISPATCH_ENABLE:
+      return true;
+  }
+}
+
+LTTNGClient::AddressToLineMap::iterator LTTNGClient::AddAddressAsHexNumber(
+    const ClientItem& item) {
+  char hex[19];
+  int n = std::snprintf(hex, sizeof(hex), "0x%" PRIx64, item.data);
+  assert(static_cast<size_t>(n) < sizeof(hex));
+  std::vector<char> code(hex, hex + n + 1);
+  return address_to_line_.emplace(item.data, std::move(code)).first;
+}
+
+LTTNGClient::AddressToLineMap::iterator LTTNGClient::ResolveAddress(
+    const ClientItem& item) {
+#ifdef HAVE_LLVM_DEBUGINFO_SYMBOLIZE_SYMBOLIZE_H
+  if (resolve_address_) {
+    auto res_or_err = symbolizer_.symbolizeCode(elf_file_, item.data);
+
+    if (res_or_err) {
+      auto info = res_or_err.get();
+      std::string fn = info.FunctionName;
+      std::string str;
+
+      if (fn != "<invalid>") {
+        str += fn;
+        str += " at ";
+      }
+
+      str += llvm::sys::path::filename(info.FileName);
+      str += ":";
+      str += std::to_string(info.Line);
+      std::vector<char> code(str.begin(), str.end());
+      code.push_back('\0');
+      return address_to_line_.emplace(item.data, std::move(code)).first;
+    }
+  }
+#endif
+
+  return AddAddressAsHexNumber(item);
+}
+
 void LTTNGClient::WriteRecordItem(PerCPUContext* pcpu, const ClientItem& item) {
-  pcpu->size_in_bits += kEventRecordItemBits;
+  if (IsCodeEvent(item.event)) {
+    EventHeaderCompact header;
+    header.id = COMPACT_HEADER_ID;
+    header.event_id = item.event;
+    header.ns = item.ns;
 
-  EventRecordItem& ri = pcpu->record_item;
-  ri.header.ns = item.ns;
-  ri.header.event_id = item.event;
-  ri.data = item.data;
+    auto it = address_to_line_.find(item.data);
+    if (it == address_to_line_.end()) {
+      it = ResolveAddress(item);
+    }
 
-  std::fwrite(&ri, sizeof(ri), 1, pcpu->event_stream);
+    pcpu->size_in_bits += (sizeof(header) + it->second.size()) * BITS_PER_CHAR;
+
+    std::fwrite(&header, sizeof(header), 1, pcpu->event_stream);
+    std::fwrite(&(*it->second.begin()), it->second.size(), 1,
+                pcpu->event_stream);
+  } else {
+    pcpu->size_in_bits += kEventRecordItemBits;
+
+    EventRecordItem& ri = pcpu->record_item;
+    ri.header.ns = item.ns;
+    ri.header.event_id = item.event;
+    ri.data = item.data;
+
+    std::fwrite(&ri, sizeof(ri), 1, pcpu->event_stream);
+  }
 }
 
 void LTTNGClient::WriteSchedSwitch(PerCPUContext* pcpu,
@@ -566,18 +675,33 @@ static void GenerateMetadata() {
   std::fwrite(kMetadata, sizeof(kMetadata) - 1, 1, f);
 
   for (int i = 0; i <= RTEMS_RECORD_LAST; ++i) {
-    std::fprintf(f,
-                 "\n"
-                 "event {\n"
-                 "\tname = %s;\n"
-                 "\tid = %i;\n"
-                 "\tstream_id = 0;\n"
-                 "\tfields := struct {\n"
-                 "\t\txint64_t _data;\n"
-                 "\t};\n"
-                 "};\n",
-                 rtems_record_event_text(static_cast<rtems_record_event>(i)),
-                 i);
+    if (IsCodeEvent(static_cast<rtems_record_event>(i))) {
+      std::fprintf(f,
+                   "\n"
+                   "event {\n"
+                   "\tname = %s;\n"
+                   "\tid = %i;\n"
+                   "\tstream_id = 0;\n"
+                   "\tfields := struct {\n"
+                   "\t\tstring _code;\n"
+                   "\t};\n"
+                   "};\n",
+                   rtems_record_event_text(static_cast<rtems_record_event>(i)),
+                   i);
+    } else {
+      std::fprintf(f,
+                   "\n"
+                   "event {\n"
+                   "\tname = %s;\n"
+                   "\tid = %i;\n"
+                   "\tstream_id = 0;\n"
+                   "\tfields := struct {\n"
+                   "\t\txint64_t _data;\n"
+                   "\t};\n"
+                   "};\n",
+                   rtems_record_event_text(static_cast<rtems_record_event>(i)),
+                   i);
+    }
   }
 
   std::fclose(f);
@@ -596,45 +720,50 @@ static const struct option kLongOpts[] = {{"help", 0, NULL, 'h'},
                                           {NULL, 0, NULL, 0}};
 
 static void Usage(char** argv) {
-  std::cout << argv[0]
-            << " [--host=HOST] [--port=PORT] [--limit=LIMIT] [INPUT-FILE]"
-            << std::endl
-            << std::endl
-            << "Mandatory arguments to long options are mandatory for short "
-               "options too."
-            << std::endl
-            << "  -h, --help                 print this help text" << std::endl
-            << "  -H, --host=HOST            the host IPv4 address of the "
-               "record server"
-            << std::endl
-            << "  -p, --port=PORT            the TCP port of the record server"
-            << std::endl
-            << "  -l, --limit=LIMIT          limit in bytes to process"
-            << std::endl
-            << "  INPUT-FILE                 the input file" << std::endl;
+  std::cout
+      << argv[0]
+      << " [--host=HOST] [--port=PORT] [--limit=LIMIT] [--elf=ELF] [INPUT-FILE]"
+      << std::endl
+      << std::endl
+      << "Mandatory arguments to long options are mandatory for short "
+         "options too."
+      << std::endl
+      << "  -h, --help                 print this help text" << std::endl
+      << "  -H, --host=HOST            the host IPv4 address of the "
+         "record server"
+      << std::endl
+      << "  -p, --port=PORT            the TCP port of the record server"
+      << std::endl
+      << "  -l, --limit=LIMIT          limit in bytes to process" << std::endl
+      << "  -e, --elf=ELF              the ELF executable file" << std::endl
+      << "  INPUT-FILE                 the input file" << std::endl;
 }
 
 int main(int argc, char** argv) {
   const char* host = "127.0.0.1";
   uint16_t port = 1234;
-  const char* file = nullptr;
+  const char* elf_file = nullptr;
+  const char* input_file = nullptr;
   int opt;
   int longindex;
 
-  while ((opt = getopt_long(argc, argv, "hH:l:p:", &kLongOpts[0],
+  while ((opt = getopt_long(argc, argv, "e:hH:l:p:", &kLongOpts[0],
                             &longindex)) != -1) {
     switch (opt) {
+      case 'e':
+        elf_file = optarg;
+        break;
       case 'h':
         Usage(argv);
         return 0;
       case 'H':
         host = optarg;
         break;
-      case 'p':
-        port = (uint16_t)strtoul(optarg, NULL, 0);
-        break;
       case 'l':
         client.set_limit(strtoull(optarg, NULL, 0));
+        break;
+      case 'p':
+        port = (uint16_t)strtoul(optarg, NULL, 0);
         break;
       default:
         return 1;
@@ -642,7 +771,7 @@ int main(int argc, char** argv) {
   }
 
   if (optind == argc - 1) {
-    file = argv[optind];
+    input_file = argv[optind];
     ++optind;
   }
 
@@ -658,8 +787,12 @@ int main(int argc, char** argv) {
   try {
     GenerateMetadata();
 
-    if (file != nullptr) {
-      client.Open(file);
+    if (elf_file != nullptr) {
+      client.OpenExecutable(elf_file);
+    }
+
+    if (input_file != nullptr) {
+      client.Open(input_file);
     } else {
       client.Connect(host, port);
     }
@@ -669,6 +802,7 @@ int main(int argc, char** argv) {
     client.Destroy();
   } catch (std::exception& e) {
     std::cerr << argv[0] << ": " << e.what() << std::endl;
+    return 1;
   }
 
   return 0;
