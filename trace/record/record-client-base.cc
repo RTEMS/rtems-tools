@@ -27,12 +27,18 @@
 
 #include "client.h"
 
+#ifdef _WIN32
+#include <io.h>
+#include <winsock2.h>
+#else
 #include <arpa/inet.h>
-#include <fcntl.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
-#include <sys/stat.h>
 #include <unistd.h>
+#endif
+
+#include <fcntl.h>
+#include <sys/stat.h>
 
 #include <cassert>
 #include <cstring>
@@ -42,13 +48,18 @@ static ssize_t ReadFile(int fd, void* buf, size_t n) {
 }
 
 static ssize_t ReadSocket(int fd, void* buf, size_t n) {
-  return ::recv(fd, buf, n, 0);
+  // This cast is necessary for Windows
+  return ::recv(fd, static_cast<char*>(buf), n, 0);
 }
 
 void FileDescriptor::Open(const char* file) {
   assert(fd_ == -1);
 
-  fd_ = ::open(file, O_RDONLY);
+  int oflag = O_RDONLY;
+#ifdef _WIN32
+  oflag |= O_BINARY;
+#endif
+  fd_ = ::open(file, oflag);
   if (fd_ < 0) {
     throw ErrnoException(std::string("cannot open file '") + file + "'");
   }

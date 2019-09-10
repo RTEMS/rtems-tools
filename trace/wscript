@@ -33,6 +33,7 @@ def options(opt):
 def configure(conf):
     conf.load('compiler_c')
     conf.load('compiler_cxx')
+    conf.check_cxx(lib = 'ws2_32', mandatory=False)
 
 def build(bld):
     #
@@ -46,7 +47,10 @@ def build(bld):
     conf['warningflags'] = ['-Wall', '-Wextra', '-pedantic']
     conf['optflags'] = bld.env.C_OPTS
     conf['cflags'] = ['-pipe', '-g'] + conf['optflags']
-    conf['linkflags'] = ['-g']
+    conf['cxxflags'] = ['-std=c++11'] + conf['cflags']
+    conf['lib'] = []
+    if bld.env.LIB_WS2_32:
+        conf['lib'].extend(bld.env.LIB_WS2_32)
 
     #
     # The list of defines
@@ -65,7 +69,8 @@ def build(bld):
                 includes = ['record'],
                 defines = defines,
                 cflags = conf['cflags'] + conf['warningflags'],
-                linkflags = conf['linkflags'])
+                cxxflags = conf['cxxflags'] + conf['warningflags'],
+                lib = conf['lib'])
 
 def tags(ctx):
     ctx.exec_command('etags $(find . -name \*.[sSch])', shell = True)
