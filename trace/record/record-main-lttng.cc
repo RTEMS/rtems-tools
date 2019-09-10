@@ -35,6 +35,7 @@
 #include <getopt.h>
 
 #include <cassert>
+#include <cerrno>
 #include <cinttypes>
 #include <cstdio>
 #include <cstring>
@@ -152,26 +153,11 @@ struct PerCPUContext {
 
 class LTTNGClient : public Client {
  public:
-  LTTNGClient() {
-    Initialize(LTTNGClient::HandlerCaller);
+  LTTNGClient();
 
-    std::memset(&pkt_ctx_, 0, sizeof(pkt_ctx_));
-    std::memcpy(pkt_ctx_.header.uuid, kUUID, sizeof(pkt_ctx_.header.uuid));
-    pkt_ctx_.header.ctf_magic = CTF_MAGIC;
+  void ParseConfigFile(const char* config_file);
 
-    for (size_t i = 0; i < RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT; ++i) {
-      PerCPUContext& pcpu = per_cpu_[i];
-      pcpu.sched_switch.header.id = COMPACT_HEADER_ID;
-      pcpu.sched_switch.header.event_id = 1024;
-      pcpu.irq_handler_entry.header.id = COMPACT_HEADER_ID;
-      pcpu.irq_handler_entry.header.event_id = 1025;
-      pcpu.irq_handler_entry.name[0] = '\0';
-      pcpu.irq_handler_exit.header.id = COMPACT_HEADER_ID;
-      pcpu.irq_handler_exit.header.event_id = 1026;
-      pcpu.irq_handler_exit.ret = 1;
-      pcpu.record_item.header.id = COMPACT_HEADER_ID;
-    }
-  }
+  void GenerateMetadata();
 
   void OpenExecutable(const char* elf_file);
 
@@ -207,6 +193,8 @@ class LTTNGClient : public Client {
 
   AddressToLineMap address_to_line_;
 
+  std::vector<std::string> event_to_name_;
+
   static rtems_record_client_status HandlerCaller(uint64_t bt,
                                                   uint32_t cpu,
                                                   rtems_record_event event,
@@ -237,6 +225,10 @@ class LTTNGClient : public Client {
 
   void PrintItem(const ClientItem& item);
 
+  static std::string EventNameParser(void* arg,
+                                     const char* name,
+                                     const char* value);
+
   void OpenStreamFiles(uint64_t data);
 
   void CloseStreamFiles();
@@ -245,6 +237,32 @@ class LTTNGClient : public Client {
 
   AddressToLineMap::iterator ResolveAddress(const ClientItem& item);
 };
+
+LTTNGClient::LTTNGClient() : event_to_name_(RTEMS_RECORD_LAST + 1) {
+  Initialize(LTTNGClient::HandlerCaller);
+
+  std::memset(&pkt_ctx_, 0, sizeof(pkt_ctx_));
+  std::memcpy(pkt_ctx_.header.uuid, kUUID, sizeof(pkt_ctx_.header.uuid));
+  pkt_ctx_.header.ctf_magic = CTF_MAGIC;
+
+  for (size_t i = 0; i < RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT; ++i) {
+    PerCPUContext& pcpu = per_cpu_[i];
+    pcpu.sched_switch.header.id = COMPACT_HEADER_ID;
+    pcpu.sched_switch.header.event_id = 1024;
+    pcpu.irq_handler_entry.header.id = COMPACT_HEADER_ID;
+    pcpu.irq_handler_entry.header.event_id = 1025;
+    pcpu.irq_handler_entry.name[0] = '\0';
+    pcpu.irq_handler_exit.header.id = COMPACT_HEADER_ID;
+    pcpu.irq_handler_exit.header.event_id = 1026;
+    pcpu.irq_handler_exit.ret = 1;
+    pcpu.record_item.header.id = COMPACT_HEADER_ID;
+  }
+
+  for (int i = 0; i <= RTEMS_RECORD_LAST; ++i) {
+    event_to_name_[i] =
+        rtems_record_event_text(static_cast<rtems_record_event>(i));
+  }
+}
 
 static uint32_t GetAPIIndexOfID(uint32_t id) {
   return ((id >> 24) & 0x7) - 1;
@@ -512,6 +530,29 @@ rtems_record_client_status LTTNGClient::Handler(uint64_t bt,
   return RTEMS_RECORD_CLIENT_SUCCESS;
 }
 
+std::string LTTNGClient::EventNameParser(void* arg,
+                                         const char* name,
+                                         const char* value) {
+  LTTNGClient* self = static_cast<LTTNGClient*>(arg);
+  errno = 0;
+  char* end;
+  long event = std::strtol(name, &end, 0);
+  if (errno == 0 && *end == '\0' && event >= 0 && event <= RTEMS_RECORD_LAST) {
+    self->event_to_name_[event] = value;
+    return ConfigFile::kNoError;
+  }
+
+  return std::string("invalid event: ") + name;
+}
+
+void LTTNGClient::ParseConfigFile(const char* config_file) {
+  if (config_file != nullptr) {
+    ConfigFile file;
+    file.AddParser("EventNames", EventNameParser, this);
+    file.Parse(config_file);
+  }
+}
+
 void LTTNGClient::OpenStreamFiles(uint64_t data) {
   // Assertions are ensured by C record client
   assert(cpu_count_ == 0 && data < RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT);
@@ -671,7 +712,7 @@ static const char kMetadata[] =
     "\t};\n"
     "};\n";
 
-static void GenerateMetadata() {
+void LTTNGClient::GenerateMetadata() {
   FILE* f = std::fopen("metadata", "w");
   if (f == NULL) {
     throw ErrnoException("cannot create file 'metadata'");
@@ -684,28 +725,26 @@ static void GenerateMetadata() {
       std::fprintf(f,
                    "\n"
                    "event {\n"
-                   "\tname = %s;\n"
+                   "\tname = \"%s\";\n"
                    "\tid = %i;\n"
                    "\tstream_id = 0;\n"
                    "\tfields := struct {\n"
                    "\t\tstring _code;\n"
                    "\t};\n"
                    "};\n",
-                   rtems_record_event_text(static_cast<rtems_record_event>(i)),
-                   i);
+                   event_to_name_[i].c_str(), i);
     } else {
       std::fprintf(f,
                    "\n"
                    "event {\n"
-                   "\tname = %s;\n"
+                   "\tname = \"%s\";\n"
                    "\tid = %i;\n"
                    "\tstream_id = 0;\n"
                    "\tfields := struct {\n"
                    "\t\txint64_t _data;\n"
                    "\t};\n"
                    "};\n",
-                   rtems_record_event_text(static_cast<rtems_record_event>(i)),
-                   i);
+                   event_to_name_[i].c_str(), i);
     }
   }
 
@@ -719,29 +758,30 @@ static void SignalHandler(int s) {
   std::signal(s, SIG_DFL);
 }
 
-static const struct option kLongOpts[] = {{"help", 0, NULL, 'h'},
-                                          {"host", 1, NULL, 'H'},
-                                          {"port", 1, NULL, 'p'},
-                                          {NULL, 0, NULL, 0}};
+static const struct option kLongOpts[] = {
+    {"elf", 1, NULL, 'e'},   {"help", 0, NULL, 'h'}, {"host", 1, NULL, 'H'},
+    {"limit", 1, NULL, 'l'}, {"port", 1, NULL, 'p'}, {"config", 1, NULL, 'c'},
+    {NULL, 0, NULL, 0}};
 
 static void Usage(char** argv) {
-  std::cout
-      << argv[0]
-      << " [--host=HOST] [--port=PORT] [--limit=LIMIT] [--elf=ELF] [INPUT-FILE]"
-      << std::endl
-      << std::endl
-      << "Mandatory arguments to long options are mandatory for short "
-         "options too."
-      << std::endl
-      << "  -h, --help                 print this help text" << std::endl
-      << "  -H, --host=HOST            the host IPv4 address of the "
-         "record server"
-      << std::endl
-      << "  -p, --port=PORT            the TCP port of the record server"
-      << std::endl
-      << "  -l, --limit=LIMIT          limit in bytes to process" << std::endl
-      << "  -e, --elf=ELF              the ELF executable file" << std::endl
-      << "  INPUT-FILE                 the input file" << std::endl;
+  std::cout << argv[0] << " [OPTION]... [INPUT-FILE]" << std::endl
+            << std::endl
+            << "Mandatory arguments to long options are mandatory for short "
+               "options too."
+            << std::endl
+            << "  -h, --help                 print this help text" << std::endl
+            << "  -H, --host=HOST            the host IPv4 address of the "
+               "record server"
+            << std::endl
+            << "  -p, --port=PORT            the TCP port of the record server"
+            << std::endl
+            << "  -l, --limit=LIMIT          limit in bytes to process"
+            << std::endl
+            << "  -e, --elf=ELF              the ELF executable file"
+            << std::endl
+            << "  -c, --config=CONFIG        an INI-style configuration file"
+            << std::endl
+            << "  INPUT-FILE                 the input file" << std::endl;
 }
 
 int main(int argc, char** argv) {
@@ -749,10 +789,11 @@ int main(int argc, char** argv) {
   uint16_t port = 1234;
   const char* elf_file = nullptr;
   const char* input_file = nullptr;
+  const char* config_file = nullptr;
   int opt;
   int longindex;
 
-  while ((opt = getopt_long(argc, argv, "e:hH:l:p:", &kLongOpts[0],
+  while ((opt = getopt_long(argc, argv, "e:hH:l:p:c:", &kLongOpts[0],
                             &longindex)) != -1) {
     switch (opt) {
       case 'e':
@@ -769,6 +810,9 @@ int main(int argc, char** argv) {
         break;
       case 'p':
         port = (uint16_t)strtoul(optarg, NULL, 0);
+        break;
+      case 'c':
+        config_file = optarg;
         break;
       default:
         return 1;
@@ -790,7 +834,8 @@ int main(int argc, char** argv) {
   }
 
   try {
-    GenerateMetadata();
+    client.ParseConfigFile(config_file);
+    client.GenerateMetadata();
 
     if (elf_file != nullptr) {
       client.OpenExecutable(elf_file);

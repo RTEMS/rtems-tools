@@ -37,8 +37,10 @@
 #include <csignal>
 #include <cstring>
 #include <iostream>
+#include <map>
 #include <stdexcept>
 #include <string>
+#include <utility>
 
 class ErrnoException : public std::runtime_error {
  public:
@@ -67,6 +69,33 @@ class FileDescriptor {
  private:
   int fd_ = -1;
   ssize_t (*reader_)(int fd, void* buf, size_t n) = nullptr;
+};
+
+class ConfigFile {
+ public:
+  static const std::string kNoError;
+
+  ConfigFile() = default;
+
+  ConfigFile(const ConfigFile&) = delete;
+
+  ConfigFile& operator=(const ConfigFile&) = delete;
+
+  typedef std::string (*Parser)(void* arg, const char* name, const char* value);
+
+  void AddParser(const char* section, Parser parser, void* arg);
+
+  void Parse(const char* file);
+
+ private:
+  std::map<std::string, std::pair<Parser, void*> > parser_;
+
+  std::string error_;
+
+  static int INIHandler(void* user,
+                        const char* section,
+                        const char* name,
+                        const char* value);
 };
 
 class Client {

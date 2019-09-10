@@ -48,6 +48,8 @@
 #include <cassert>
 #include <cstring>
 
+#include <ini.h>
+
 static ssize_t ReadFile(int fd, void* buf, size_t n) {
   return ::read(fd, buf, n);
 }
@@ -102,6 +104,44 @@ void FileDescriptor::Destroy() {
       std::cerr << "close failed: " << strerror(errno) << std::endl;
     }
   }
+}
+
+const std::string ConfigFile::kNoError;
+
+void ConfigFile::AddParser(const char* section, Parser parser, void* arg) {
+  parser_[section] = std::make_pair(parser, arg);
+}
+
+void ConfigFile::Parse(const char* file) {
+  int status = ini_parse(file, INIHandler, this);
+  if (status < 0) {
+    throw ErrnoException(std::string("cannot parse configuration file '") +
+                         file + "'");
+  } else if (status > 0) {
+    throw std::runtime_error(
+        std::string("invalid line ") + std::to_string(status) +
+        " in configuration file '" + file + "': " + error_);
+  }
+}
+
+int ConfigFile::INIHandler(void* user,
+                           const char* section,
+                           const char* name,
+                           const char* value) {
+  ConfigFile* self = static_cast<ConfigFile*>(user);
+  auto it = self->parser_.find(section);
+  if (it != self->parser_.end()) {
+    std::string error = (*it->second.first)(it->second.second, name, value);
+    if (error == kNoError) {
+      return 1;
+    }
+
+    self->error_ = error;
+  } else {
+    self->error_ = std::string("unknown section: ") + section;
+  }
+
+  return 0;
 }
 
 void Client::Run() {
