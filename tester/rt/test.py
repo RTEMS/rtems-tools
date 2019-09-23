@@ -345,6 +345,8 @@ def run(args, command_path = None):
                 raise error.general('invalid RTEMS report formats option')
             report_formats = report_formats[1].split(',')
             check_report_formats(report_formats, report_location)
+        else:
+            report_formats = []
         log.notice('RTEMS Testing - Tester, %s' % (version.string()))
         if opts.find_arg('--list-bsps'):
             bsps.list(opts)
