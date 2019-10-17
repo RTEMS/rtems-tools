@@ -108,7 +108,7 @@ def bsp_configuration_file(prog = None):
 class configuration:
 
     def __init__(self):
-        self.config = configuration_.configuration()
+        self.config = configuration_.configuration(raw = False)
         self.archs = { }
         self.profiles = { }
 
