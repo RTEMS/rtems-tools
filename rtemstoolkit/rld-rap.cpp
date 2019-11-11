@@ -1399,6 +1399,12 @@ namespace rld
             bool              write_addend = sec.rela;
             bool              write_symname = false;
 
+            /*
+             * Ignore section index 0
+             */
+            if (reloc.symsect == 0)
+              continue;
+
             offset = sec.offset + reloc.offset;
 
             if (rld::verbose () >= RLD_VERBOSE_TRACE)
