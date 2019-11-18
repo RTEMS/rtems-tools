@@ -94,9 +94,6 @@ struct EventHeaderCompact {
   uint64_t ns;
 } __attribute__((__packed__));
 
-static const size_t kEventHeaderBits =
-    sizeof(EventHeaderCompact) * BITS_PER_CHAR;
-
 struct EventRecordItem {
   EventHeaderCompact header;
   uint64_t data;
