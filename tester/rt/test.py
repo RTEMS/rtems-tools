@@ -285,8 +285,58 @@ def generate_json_report(args, reports, start_time, end_time,
         json.dump(json_log, outfile, sort_keys=True, indent=4)
 
 
+def generate_junit_report(args, reports, start_time, end_time,
+                         total, junit_file):
+
+    from junit_xml import TestSuite, TestCase
+    import sys
+    junit_log = []
+
+    junit_prop = {}
+    junit_prop['Command Line'] = ' '.join(args)
+    junit_prop['Python'] = sys.version.replace('\n', '')
+    junit_prop['test_groups'] = []
+    junit_prop['Host'] = host.label(mode = 'all')
+    junit_prop['passed_count'] = reports.passed
+    junit_prop['failed_count'] = reports.failed
+    junit_prop['user-input_count'] = reports.user_input
+    junit_prop['expected-fail_count'] = reports.expected_fail
+    junit_prop['indeterminate_count'] = reports.indeterminate
+    junit_prop['benchmark_count'] = reports.benchmark
+    junit_prop['timeout_count'] = reports.timeouts
+    junit_prop['invalid_count'] = reports.invalids
+    junit_prop['wrong-version_count'] = reports.wrong_version
+    junit_prop['wrong-build_count'] = reports.wrong_build
+    junit_prop['wrong-tools_count'] = reports.wrong_tools
+    junit_prop['total_count'] = reports.total
+    time_delta = end_time - start_time
+    junit_prop['average_test_time'] = str(time_delta / total)
+    junit_prop['testing_time'] = str(time_delta)
+
+    for name in reports.results:
+        result_type = reports.results[name]['result']
+        test_parts = name.split('/')
+        test_category = test_parts[-2]
+        test_name = test_parts[-1]
+
+        junit_result = TestCase(test_name.split('.')[0])
+        junit_result.category = test_category
+        if result_type == 'failed' or result_type == 'timeout':
+            junit_result.add_failure_info(None, reports.results[name]['output'], result_type)
+
+        junit_log.append(junit_result)
+
+    ts = TestSuite('RTEMS Test Suite', junit_log)
+    ts.properties = junit_prop
+    ts.hostname = host.label(mode = 'all')
+
+    # write out junit log
+    with open(junit_file, 'w') as f:
+        TestSuite.to_file(f, [ts], prettyprint = True)
+
 report_formatters = {
-        'json': generate_json_report
+        'json': generate_json_report,
+        'junit': generate_junit_report
 }
 
 
