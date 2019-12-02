@@ -42,6 +42,15 @@ int zeroterminated = 0;
 int createC = 1;
 int createH = 1;
 
+static void sanitize_file_name(char *p)
+{
+  while (*p != '\0') {
+    if (!isalnum((unsigned char)*p)) /* cast to avoid negative indexing */
+      *p = '_';
+    ++p;
+  }
+}
+
 int myfgetc(FILE *f)
 {
   int c = fgetc(f);
@@ -55,7 +64,7 @@ int myfgetc(FILE *f)
 void process(const char *ifname, const char *ofname, const char *forced_name)
 {
   FILE *ifile, *ocfile, *ohfile;
-  char buf[PATH_MAX+1], *p;
+  char buf[PATH_MAX+1];
   char obasename[PATH_MAX+1];
   char ocname[PATH_MAX+5];
   char ohname[PATH_MAX+5];
@@ -132,10 +141,7 @@ void process(const char *ifname, const char *ofname, const char *forced_name)
   ifbasename = basename(ifbasename_to_free);
 
   strcpy(buf, ifbasename);
-  for (p = buf; *p != '\0'; ++p) {
-    if (!isalnum((unsigned char)*p)) /* cast to avoid negative indexing */
-      *p = '_';
-  }
+  sanitize_file_name(buf);
 
   if ( createC ) {
     /* print C file header */
@@ -191,18 +197,12 @@ void process(const char *ifname, const char *ofname, const char *forced_name)
   if ( createH ) {
     /* print H file header */
     char hbasename[PATH_MAX];
-    char* p;
     /* Clean up the file name if it is an abs path */
     strcpy(
       hbasename,
       obasename
     );
-    p = hbasename;
-    while (*p != '\0') {
-      if (*p < '0' || *p > 'z')
-        *p = '_';
-      ++p;
-    }
+    sanitize_file_name(hbasename);
     fprintf(
       ohfile,
       "/*\n"
