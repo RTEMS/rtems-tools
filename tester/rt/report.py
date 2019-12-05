@@ -142,7 +142,9 @@ class report(object):
                     elif banner.startswith('TEST VERSION:'):
                         version = banner[13:].strip()
                     elif banner.startswith('TEST STATE:'):
-                        state = banner[11:].strip()
+                        # Depending on the RTESM version '-' or '_' is used in
+                        # test state strings.  Normalize it to '_'.
+                        state = banner[11:].strip().replace('-', '_')
                     elif banner.startswith('TEST BUILD:'):
                         build = ','.join(banner[11:].strip().split(' '))
                     elif banner.startswith('TEST TOOLS:'):
@@ -164,22 +166,22 @@ class report(object):
                         self.config['version'] = version
                     else:
                         if version != self.config['version']:
-                            state = 'WRONG-VERSION'
+                            state = 'WRONG_VERSION'
                 if build:
                     if 'build' not in self.config:
                         self.config['build'] = build
                     else:
                         if build != self.config['build']:
-                            state = 'WRONG-BUILD'
+                            state = 'WRONG_BUILD'
                 if tools:
                     if 'tools' not in self.config:
                         self.config['tools'] = tools
                     else:
                         if tools != self.config['tools']:
-                            state = 'WRONG-TOOLS'
-            if state is None or state == 'EXPECTED-PASS':
+                            state = 'WRONG_TOOLS'
+            if state is None or state == 'EXPECTED_PASS':
                 if start and end:
-                    if state is None or state == 'EXPECTED-PASS':
+                    if state is None or state == 'EXPECTED_PASS':
                         status = 'passed'
                         self.passed += 1
                 elif timeout:
@@ -218,13 +220,13 @@ class report(object):
                 elif state == 'BENCHMARK':
                     status = 'benchmark'
                     self.benchmark += 1
-                elif state == 'WRONG-VERSION':
+                elif state == 'WRONG_VERSION':
                     status = 'wrong-version'
                     self.wrong_version += 1
-                elif state == 'WRONG-BUILD':
+                elif state == 'WRONG_BUILD':
                     status = 'wrong-build'
                     self.wrong_build += 1
-                elif state == 'WRONG-TOOLS':
+                elif state == 'WRONG_TOOLS':
                     status = 'wrong-tools'
                     self.wrong_tools += 1
                 else:
