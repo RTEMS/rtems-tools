@@ -33,8 +33,15 @@ def options(opt):
 def configure(conf):
     conf.load('compiler_c')
     conf.load('compiler_cxx')
-    conf.check_cxx(lib = 'LLVM', mandatory=False)
-    conf.check(header_name='llvm/DebugInfo/Symbolize/Symbolize.h', features='cxx', mandatory=False)
+    try:
+        cppflags = conf.cmd_and_log(['llvm-config', '--cppflags'])
+        ldflags = conf.cmd_and_log(['llvm-config', '--ldflags'])
+        conf.env.append_value('CPPFLAGS', cppflags.split())
+        conf.env.append_value('LDFLAGS', ldflags.split())
+    except:
+        pass
+    if conf.check_cxx(lib = 'LLVM', mandatory=False):
+        conf.check(header_name='llvm/DebugInfo/Symbolize/Symbolize.h', features='cxx', mandatory=False)
     conf.check_cxx(lib = 'ws2_32', mandatory=False)
     conf.write_config_header('config.h')
 
