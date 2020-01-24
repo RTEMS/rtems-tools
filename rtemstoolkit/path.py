@@ -314,8 +314,12 @@ def copy_tree(src, dst):
     hsrc = host(src)
     hdst = host(dst)
 
-    if exists(src):
-        names = listdir(src)
+    if exists(hsrc):
+        if isdir(hsrc):
+            names = listdir(hsrc)
+        else:
+            names = [basename(hsrc)]
+            hsrc = dirname(hsrc)
     else:
         names = []
 
