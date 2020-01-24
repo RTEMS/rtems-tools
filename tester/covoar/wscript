@@ -138,3 +138,4 @@ def build(bld):
                 cflags = ['-O2', '-g'],
                 cxxflags = ['-std=c++11', '-O2', '-g'],
                 includes = ['.'] + rtl_includes)
+    bld.install_files('${PREFIX}/share/rtems/tester/covoar', ['covoar.css', 'table.js'])
