@@ -39,4 +39,4 @@ elif test -f ${base}/share/rtems/${PYTHON_WRAPPER}; then
   PYTHON_CMD=${base}/share/rtems/${cmd}
   . ${base}/share/rtems/${PYTHON_WRAPPER}
 fi
-echo "error: RTEMS Toolkit python wrapper not found, plrease report"
+echo "error: RTEMS Toolkit python wrapper not found, please report"
