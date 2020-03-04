@@ -3,6 +3,7 @@
 # A quickly bashed together replacement for u-boot's mkimage written in python
 #
 # Copyright 2010 Craig Barker
+# Copyright 2020 Amar Takhar <amar@rtems.org>
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -27,7 +28,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 
-from optparse import OptionParser
+import argparse
 from struct import *
 import sys
 import os.path
@@ -53,30 +54,31 @@ types = {'invalid':0, 'standalone':1, 'kernel':2, 'ramdisk':3, 'multi':4,
 
 comps = {'none':0, 'bzip2':2, 'gzip':1, 'lzma':3 }
 
-usage = "usage: %prog [options] image"
-parser = OptionParser(usage=usage)
-parser.add_option("-A","--arch", dest="arch", default="powerpc",
+parser = argparse.ArgumentParser()
+
+parser.add_argument("-A","--arch", dest="arch", default="powerpc",
                   help="set architecture to 'arch'", metavar="ARCH")
-parser.add_option("-O","--os", dest="os", default="linux",
+parser.add_argument("-O","--os", dest="os", default="linux",
                   help="set operating system to 'os'", metavar="OS")
-parser.add_option("-T","--type", dest="type", default="kernel",
+parser.add_argument("-T","--type", dest="type", default="kernel",
                   help="set image type to 'type'", metavar="TYPE")
-parser.add_option("-C","--comp", dest="comp", default="gzip",
+parser.add_argument("-C","--comp", dest="comp", default="gzip",
                   help="set compression type 'comp'", metavar="COMP")
-parser.add_option("-a","--addr", dest="addr", default="0",
+parser.add_argument("-a","--addr", dest="addr", default="0",
                   help="set load address to 'addr' (hex)", metavar="ADDR")
-parser.add_option("-e","--ep", dest="ep", default="0",
+parser.add_argument("-e","--ep", dest="ep", default="0",
                   help="set entry point to 'ep' (hex)", metavar="EP")
-parser.add_option("-n","--name", dest="name", default="",
+parser.add_argument("-n","--name", dest="name", default="",
                   help="set image name to 'name'", metavar="NAME")
-parser.add_option("-d","--datafile", dest="datafile",
-                  help="use image data from 'datafile'", metavar="DATAFILE")
-parser.add_option("-x","--xip", action="store_true", dest="xip", default=False,
+parser.add_argument("-d","--datafile", dest="datafile",
+                  help="use image data from 'datafile'", metavar="DATAFILE", required=True)
+parser.add_argument("-x","--xip", action="store_true", dest="xip", default=False,
                   help="set XIP (execute in place)")
+parser.add_argument("outputfile",
+                  help="Output file.", metavar="OUTPUTFILE")
 
-(options, args) = parser.parse_args()
 
-if len(args) != 1: parser.print_help()
+options = parser.parse_args()
 
 if options.arch not in archs:
         print "Invalid architecture specified, aborting"
@@ -98,15 +100,15 @@ try:
         inputsize = os.path.getsize(options.datafile)
         inputfile = open(options.datafile, 'rb')
 
-except IOError:
-        print "Invalid datafile specified, aborting"
+except OSError as e:
+        print "Invalid datafile specified, aborting: %s" % e
         sys.exit(2)
 
 try:
-        outputfile = open(args[0],'wb')
+        outputfile = open(options.outputfile,'wb')
 
-except IOError:
-        print "Error opening output file for writing, aborting"
+except IOError as e:
+        print "Error opening output file for writing, aborting: %s" % e
         sys.exit(1)
 
 struct = Struct("!IIIIIIIBBBB"+str(IMG_NAME_LENGTH)+"s")
