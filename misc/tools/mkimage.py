@@ -27,6 +27,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
+# We support Python 2.6+ so this is okay.
+from __future__ import print_function
 
 import argparse
 from struct import *
@@ -34,6 +36,8 @@ import sys
 import os.path
 import time
 import binascii
+
+
 
 MAGIC = 0x27051956
 IMG_NAME_LENGTH = 32
@@ -125,14 +129,16 @@ while True:
 
 inputcrc = inputcrc & 0xffffffff
 
-structdata = struct.pack(MAGIC, 0, int(time.time()), inputsize,
+timestamp = int(time.time())
+
+structdata = struct.pack(MAGIC, 0, timestamp, inputsize,
                 int(options.addr,16), int(options.ep,16), inputcrc,
                 oss[options.os], archs[options.arch], types[options.type],
                 comps[options.comp], options.name.encode("utf-8"))
 
 headercrc = binascii.crc32(structdata) & 0xFFFFFFFF
 
-structdata =  struct.pack(MAGIC, headercrc, int(time.time()), inputsize,
+structdata =  struct.pack(MAGIC, headercrc, timestamp, inputsize,
                 int(options.addr,16), int(options.ep,16), inputcrc,
                 oss[options.os], archs[options.arch], types[options.type],
                 comps[options.comp], options.name.encode("utf-8"))
@@ -141,3 +147,10 @@ outputfile.seek(0)
 outputfile.write(structdata)
 outputfile.close()
 inputfile.close()
+
+print("Image Name:   ", options.name)
+print("Created:      ", time.ctime(timestamp))
+print("Image Type:   ", options.comp)
+print("Data Size:    ", inputsize)
+print("Load Address: ", options.addr)
+print("Entry Point:  ", options.ep)
