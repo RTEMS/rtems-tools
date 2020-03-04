@@ -1,4 +1,4 @@
-#!/usr/bin/env python2
+#!/usr/bin/env python
 
 # A quickly bashed together replacement for u-boot's mkimage written in python
 #
@@ -81,19 +81,19 @@ parser.add_argument("outputfile",
 options = parser.parse_args()
 
 if options.arch not in archs:
-        print "Invalid architecture specified, aborting"
+        print("Invalid architecture specified, aborting")
         sys.exit(2)
 
 if options.os not in oss:
-        print "Invalid operating system specified, aborting"
+        print("Invalid operating system specified, aborting")
         sys.exit(2)
 
 if options.comp not in comps:
-        print "Invalid compression specified, aborting"
+        print("Invalid compression specified, aborting")
         sys.exit(2)
 
 if options.type not in types:
-        print "Invalid image type specified, aborting"
+        print("Invalid image type specified, aborting")
         sys.exit(2)
 
 try:
@@ -101,14 +101,14 @@ try:
         inputfile = open(options.datafile, 'rb')
 
 except OSError as e:
-        print "Invalid datafile specified, aborting: %s" % e
+        print("Invalid datafile specified, aborting: %s" % e)
         sys.exit(2)
 
 try:
         outputfile = open(options.outputfile,'wb')
 
 except IOError as e:
-        print "Error opening output file for writing, aborting: %s" % e
+        print("Error opening output file for writing, aborting: %s" % e)
         sys.exit(1)
 
 struct = Struct("!IIIIIIIBBBB"+str(IMG_NAME_LENGTH)+"s")
@@ -128,14 +128,14 @@ inputcrc = inputcrc & 0xffffffff
 structdata = struct.pack(MAGIC, 0, int(time.time()), inputsize,
                 int(options.addr,16), int(options.ep,16), inputcrc,
                 oss[options.os], archs[options.arch], types[options.type],
-                comps[options.comp], options.name)
+                comps[options.comp], options.name.encode("utf-8"))
 
 headercrc = binascii.crc32(structdata) & 0xFFFFFFFF
 
 structdata =  struct.pack(MAGIC, headercrc, int(time.time()), inputsize,
                 int(options.addr,16), int(options.ep,16), inputcrc,
                 oss[options.os], archs[options.arch], types[options.type],
-                comps[options.comp], options.name)
+                comps[options.comp], options.name.encode("utf-8"))
 
 outputfile.seek(0)
 outputfile.write(structdata)
