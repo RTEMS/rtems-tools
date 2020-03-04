@@ -1,3 +1,5 @@
+#!/usr/bin/env python2
+
 # A quickly bashed together replacement for u-boot's mkimage written in python
 #
 # Copyright 2010 Craig Barker 
