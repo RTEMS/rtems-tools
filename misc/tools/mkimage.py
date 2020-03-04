@@ -2,28 +2,28 @@
 
 # A quickly bashed together replacement for u-boot's mkimage written in python
 #
-# Copyright 2010 Craig Barker 
+# Copyright 2010 Craig Barker
 #
-# Redistribution and use in source and binary forms, with or without 
+# Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
 #
-# 1. Redistributions of source code must retain the above copyright notice, 
+# 1. Redistributions of source code must retain the above copyright notice,
 #    this list of conditions and the following disclaimer.
 #
 # 2. Redistributions in binary form must reproduce the above copyright notice,
 #    this list of conditions and the following disclaimer in the documentation
 #    and/or other materials provided with the distribution.
 #
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" 
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE 
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE 
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE 
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR 
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF 
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS 
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN 
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) 
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
 
@@ -55,7 +55,7 @@ comps = {'none':0, 'bzip2':2, 'gzip':1, 'lzma':3 }
 
 usage = "usage: %prog [options] image"
 parser = OptionParser(usage=usage)
-parser.add_option("-A","--arch", dest="arch", default="powerpc", 
+parser.add_option("-A","--arch", dest="arch", default="powerpc",
                   help="set architecture to 'arch'", metavar="ARCH")
 parser.add_option("-O","--os", dest="os", default="linux",
                   help="set operating system to 'os'", metavar="OS")
@@ -78,21 +78,21 @@ parser.add_option("-x","--xip", action="store_true", dest="xip", default=False,
 
 if len(args) != 1: parser.print_help()
 
-if options.arch not in archs: 
+if options.arch not in archs:
         print "Invalid architecture specified, aborting"
         sys.exit(2)
 
 if options.os not in oss:
         print "Invalid operating system specified, aborting"
-        sys.exit(2) 
+        sys.exit(2)
 
 if options.comp not in comps:
         print "Invalid compression specified, aborting"
-        sys.exit(2) 
+        sys.exit(2)
 
 if options.type not in types:
         print "Invalid image type specified, aborting"
-        sys.exit(2) 
+        sys.exit(2)
 
 try:
         inputsize = os.path.getsize(options.datafile)
@@ -123,9 +123,9 @@ while True:
 
 inputcrc = inputcrc & 0xffffffff
 
-structdata = struct.pack(MAGIC, 0, int(time.time()), inputsize, 
-                int(options.addr,16), int(options.ep,16), inputcrc, 
-                oss[options.os], archs[options.arch], types[options.type], 
+structdata = struct.pack(MAGIC, 0, int(time.time()), inputsize,
+                int(options.addr,16), int(options.ep,16), inputcrc,
+                oss[options.os], archs[options.arch], types[options.type],
                 comps[options.comp], options.name)
 
 headercrc = binascii.crc32(structdata) & 0xFFFFFFFF
