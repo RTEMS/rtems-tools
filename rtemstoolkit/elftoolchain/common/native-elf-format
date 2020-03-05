@@ -41,6 +41,8 @@ $1 ~ "Machine:" {
             elfarch = "EM_MIPS";
         } else if (match($0, ".*[xX]86[-_]64")) {
             elfarch = "EM_X86_64";
+        } else if (match($0, "Sparc v9")) {
+            elfarch = "EM_SPARCV9";
         } else {
             elfarch = "unknown";
         }
