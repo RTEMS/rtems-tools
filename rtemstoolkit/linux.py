@@ -83,8 +83,9 @@ def overrides():
     try:
         distro = platform.dist()[0]
         distro_ver = float(platform.dist()[1])
-    except ValueError:
+    except (AttributeError, ValueError):
         # Non LSB distro found, use failover"
+        distro = ''
         pass
 
     # Non LSB - fail over to issue
