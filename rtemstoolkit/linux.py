@@ -33,26 +33,14 @@
 # RTEMS project's spec files.
 #
 
+import multiprocessing
 import os
 import platform
 
-from rtemstoolkit import execute
 from rtemstoolkit import path
 
 def cpus():
-    processors = '/bin/grep processor /proc/cpuinfo'
-    e = execute.capture_execution()
-    exit_code, proc, output = e.shell(processors)
-    ncpus = 0
-    if exit_code == 0:
-        try:
-            for l in output.split('\n'):
-                count = l.split(':')[1].strip()
-                if int(count) > ncpus:
-                    ncpus = int(count)
-        except:
-            pass
-    return ncpus + 1
+    return multiprocessing.cpu_count()
 
 def overrides():
     uname = os.uname()
