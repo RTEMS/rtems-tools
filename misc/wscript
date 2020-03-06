@@ -79,13 +79,13 @@ def build(bld):
                   'tools/cmd-tftpproxy.py',
                   'tools/tftpproxy.py',
                   'tools/getmac/__init__.py',
-                  'tools/mkimage.py',
                   'tools/getmac/getmac.py'],
         install_from = '.',
         install_path = '${PREFIX}/share/rtems/misc')
     bld.install_files('${PREFIX}/bin',
                       ['rtems-boot-image',
-                       'rtems-tftp-proxy'],
+                       'rtems-tftp-proxy',
+                       'tools/mkimage.py'],
                       chmod = 0o755)
     bld.install_files('${PREFIX}/share/rtems/tools/config',
                       'tools/config/rtems-boot.ini')
