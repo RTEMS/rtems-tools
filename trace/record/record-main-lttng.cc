@@ -323,11 +323,12 @@ LTTNGClient::AddressToLineMap::iterator LTTNGClient::ResolveAddress(
     const ClientItem& item) {
 #ifdef HAVE_LLVM_DEBUGINFO_SYMBOLIZE_SYMBOLIZE_H
   if (resolve_address_) {
-    auto res_or_err = symbolizer_.symbolizeCode(elf_file_,
+    auto res_or_err = symbolizer_.symbolizeCode(
+        elf_file_,
 #if LLVM_VERSION_MAJOR >= 9
-      {item.data, llvm::object::SectionedAddress::UndefSection});
+        {item.data, llvm::object::SectionedAddress::UndefSection});
 #else
-      item.data);
+        item.data);
 #endif
 
     if (res_or_err) {
