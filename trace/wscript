@@ -54,7 +54,7 @@ def build(bld):
     #
     # Build flags.
     #
-    conf['includes'] = ['.', 'record']
+    conf['includes'] = ['.', 'record', 'record/inih']
     conf['warningflags'] = ['-Wall', '-Wextra', '-pedantic']
     conf['optflags'] = bld.env.C_OPTS
     conf['cflags'] = ['-pipe', '-g'] + conf['optflags']
@@ -80,7 +80,8 @@ def build(bld):
                 source = ['record/record-client.c',
                           'record/record-text.c',
                           'record/record-client-base.cc',
-                          'record/record-main-lttng.cc'],
+                          'record/record-main-lttng.cc',
+                          'record/inih/ini.c'],
                 includes = conf['includes'],
                 defines = defines,
                 cflags = conf['cflags'] + conf['warningflags'],
