@@ -2,7 +2,7 @@
 
 /*
  * Copyright (c) 2019 Ravindra Kumar Meena <rmeena840@gmail.com>
- * Copyright (C) 2018, 2019 embedded brains GmbH (http://www.embedded-brains.de)
+ * Copyright (C) 2018, 2020 embedded brains GmbH (http://www.embedded-brains.de)
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -759,10 +759,11 @@ static void SignalHandler(int s) {
 }
 
 static const struct option kLongOpts[] = {
-    {"elf", 1, NULL, 'e'},      {"help", 0, NULL, 'h'},
-    {"host", 1, NULL, 'H'},     {"limit", 1, NULL, 'l'},
-    {"port", 1, NULL, 'p'},     {"config", 1, NULL, 'c'},
-    {"defaults", 0, NULL, 'd'}, {NULL, 0, NULL, 0}};
+    {"elf", 1, NULL, 'e'},    {"help", 0, NULL, 'h'},
+    {"host", 1, NULL, 'H'},   {"port", 1, NULL, 'p'},
+    {"limit", 1, NULL, 'l'},  {"base64", 0, NULL, 'b'},
+    {"config", 1, NULL, 'c'}, {"defaults", 0, NULL, 'd'},
+    {NULL, 0, NULL, 0}};
 
 static void Usage(char** argv) {
   std::cout << argv[0] << " [OPTION]... [INPUT-FILE]" << std::endl
@@ -777,6 +778,8 @@ static void Usage(char** argv) {
             << "  -p, --port=PORT            the TCP port of the record server"
             << std::endl
             << "  -l, --limit=LIMIT          limit in bytes to process"
+            << std::endl
+            << "  -b, --base64               input is base64 encoded"
             << std::endl
             << "  -e, --elf=ELF              the ELF executable file"
             << std::endl
@@ -801,6 +804,7 @@ static void PrintDefaults() {
 int main(int argc, char** argv) {
   const char* host = "127.0.0.1";
   uint16_t port = 1234;
+  bool is_base64_encoded = false;
   const char* elf_file = nullptr;
   const char* input_file = nullptr;
   const char* config_file = nullptr;
@@ -821,6 +825,9 @@ int main(int argc, char** argv) {
         break;
       case 'l':
         client.set_limit(strtoull(optarg, NULL, 0));
+        break;
+      case 'b':
+        is_base64_encoded = true;
         break;
       case 'e':
         elf_file = optarg;
@@ -851,6 +858,10 @@ int main(int argc, char** argv) {
   }
 
   try {
+    if (is_base64_encoded) {
+      client.AddFilter(new Base64Filter());
+    }
+
     client.ParseConfigFile(config_file);
     client.GenerateMetadata();
 
