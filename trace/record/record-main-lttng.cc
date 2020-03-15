@@ -759,9 +759,10 @@ static void SignalHandler(int s) {
 }
 
 static const struct option kLongOpts[] = {
-    {"elf", 1, NULL, 'e'},   {"help", 0, NULL, 'h'}, {"host", 1, NULL, 'H'},
-    {"limit", 1, NULL, 'l'}, {"port", 1, NULL, 'p'}, {"config", 1, NULL, 'c'},
-    {NULL, 0, NULL, 0}};
+    {"elf", 1, NULL, 'e'},      {"help", 0, NULL, 'h'},
+    {"host", 1, NULL, 'H'},     {"limit", 1, NULL, 'l'},
+    {"port", 1, NULL, 'p'},     {"config", 1, NULL, 'c'},
+    {"defaults", 0, NULL, 'd'}, {NULL, 0, NULL, 0}};
 
 static void Usage(char** argv) {
   std::cout << argv[0] << " [OPTION]... [INPUT-FILE]" << std::endl
@@ -781,7 +782,20 @@ static void Usage(char** argv) {
             << std::endl
             << "  -c, --config=CONFIG        an INI-style configuration file"
             << std::endl
+            << "  -d, --defaults             print default values for "
+               "configuration file"
+            << std::endl
             << "  INPUT-FILE                 the input file" << std::endl;
+}
+
+static void PrintDefaults() {
+  std::cout << "[EventNames]" << std::endl;
+
+  for (int i = 0; i <= RTEMS_RECORD_LAST; ++i) {
+    std::cout << i << " = "
+              << rtems_record_event_text(static_cast<rtems_record_event>(i))
+              << std::endl;
+  }
 }
 
 int main(int argc, char** argv) {
@@ -793,27 +807,30 @@ int main(int argc, char** argv) {
   int opt;
   int longindex;
 
-  while ((opt = getopt_long(argc, argv, "e:hH:l:p:c:", &kLongOpts[0],
+  while ((opt = getopt_long(argc, argv, "hH:p:l:be:c:d", &kLongOpts[0],
                             &longindex)) != -1) {
     switch (opt) {
-      case 'e':
-        elf_file = optarg;
-        break;
       case 'h':
         Usage(argv);
         return 0;
       case 'H':
         host = optarg;
         break;
+      case 'p':
+        port = (uint16_t)strtoul(optarg, NULL, 0);
+        break;
       case 'l':
         client.set_limit(strtoull(optarg, NULL, 0));
         break;
-      case 'p':
-        port = (uint16_t)strtoul(optarg, NULL, 0);
+      case 'e':
+        elf_file = optarg;
         break;
       case 'c':
         config_file = optarg;
         break;
+      case 'd':
+        PrintDefaults();
+        return 0;
       default:
         return 1;
     }
