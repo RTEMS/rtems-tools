@@ -69,7 +69,8 @@ def build(bld):
     #
     # The list of defines
     #
-    defines = ['RTEMS_VERSION=\"%s\"' % (bld.env.RTEMS_VERSION),
+    defines = ['HAVE_CONFIG_H',
+               'RTEMS_VERSION=\"%s\"' % (bld.env.RTEMS_VERSION),
                'RTEMS_RELEASE=\"%s\"' % (bld.env.RTEMS_RELEASE)]
 
     #
