@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 
 /*
- * Copyright (C) 2018, 2019 embedded brains GmbH (http://www.embedded-brains.de)
+ * Copyright (C) 2018, 2020 embedded brains GmbH (http://www.embedded-brains.de)
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -37,6 +37,7 @@
 #include <csignal>
 #include <cstring>
 #include <iostream>
+#include <list>
 #include <map>
 #include <stdexcept>
 #include <string>
@@ -98,6 +99,19 @@ class ConfigFile {
                         const char* value);
 };
 
+class Filter {
+ public:
+  Filter() = default;
+
+  Filter(const Filter&) = default;
+
+  Filter& operator=(const Filter&) = default;
+
+  virtual ~Filter() = default;
+
+  virtual bool Run(void** buf, size_t* n) = 0;
+};
+
 class Client {
  public:
   Client() = default;
@@ -114,6 +128,8 @@ class Client {
 
   void RequestStop() { stop_ = 1; }
 
+  void AddFilter(Filter* filter) { filters_.push_back(filter); }
+
   void Destroy();
 
   void set_limit(uint64_t limit) { limit_ = limit; }
@@ -127,9 +143,12 @@ class Client {
 
  private:
   rtems_record_client_context base_;
+  std::list<Filter*> filters_;
   FileDescriptor input_;
   sig_atomic_t stop_ = 0;
   uint64_t limit_ = 0;
+
+  void Flush();
 };
 
 #endif  // RTEMS_TOOLS_TRACE_RECORD_CLIENT_H_

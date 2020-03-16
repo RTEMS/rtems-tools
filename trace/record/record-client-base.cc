@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 
 /*
- * Copyright (C) 2018, 2019 embedded brains GmbH (http://www.embedded-brains.de)
+ * Copyright (C) 2018, 2020 embedded brains GmbH (http://www.embedded-brains.de)
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -144,6 +144,24 @@ int ConfigFile::INIHandler(void* user,
   return 0;
 }
 
+void Client::Flush() {
+  while (true) {
+    void* p = nullptr;
+    size_t n = 0;
+    for (auto filter : filters_) {
+      if (!filter->Run(&p, &n)) {
+        break;
+      }
+    }
+
+    if (n > 0) {
+      rtems_record_client_run(&base_, p, n);
+    } else {
+      break;
+    }
+  }
+}
+
 void Client::Run() {
   uint64_t todo = UINT64_MAX;
 
@@ -159,9 +177,20 @@ void Client::Run() {
       break;
     }
 
-    rtems_record_client_run(&base_, buf, static_cast<size_t>(n));
+    void* p = &buf[0];
+    size_t k = static_cast<size_t>(n);
+    for (auto filter : filters_) {
+      if (!filter->Run(&p, &k)) {
+        std::cerr << "error: input filter failure" << std::endl;
+        return;
+      }
+    }
+
+    rtems_record_client_run(&base_, p, k);
     todo -= static_cast<size_t>(n);
   }
+
+  Flush();
 }
 
 void Client::Destroy() {
