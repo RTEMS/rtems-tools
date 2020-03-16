@@ -759,11 +759,11 @@ static void SignalHandler(int s) {
 }
 
 static const struct option kLongOpts[] = {
-    {"elf", 1, NULL, 'e'},    {"help", 0, NULL, 'h'},
-    {"host", 1, NULL, 'H'},   {"port", 1, NULL, 'p'},
-    {"limit", 1, NULL, 'l'},  {"base64", 0, NULL, 'b'},
-    {"config", 1, NULL, 'c'}, {"defaults", 0, NULL, 'd'},
-    {NULL, 0, NULL, 0}};
+    {"elf", 1, NULL, 'e'},      {"help", 0, NULL, 'h'},
+    {"host", 1, NULL, 'H'},     {"port", 1, NULL, 'p'},
+    {"limit", 1, NULL, 'l'},    {"base64", 0, NULL, 'b'},
+    {"zlib", 0, NULL, 'z'},     {"config", 1, NULL, 'c'},
+    {"defaults", 0, NULL, 'd'}, {NULL, 0, NULL, 0}};
 
 static void Usage(char** argv) {
   std::cout << argv[0] << " [OPTION]... [INPUT-FILE]" << std::endl
@@ -780,6 +780,8 @@ static void Usage(char** argv) {
             << "  -l, --limit=LIMIT          limit in bytes to process"
             << std::endl
             << "  -b, --base64               input is base64 encoded"
+            << std::endl
+            << "  -z, --zlib                 input is zlib compressed"
             << std::endl
             << "  -e, --elf=ELF              the ELF executable file"
             << std::endl
@@ -805,13 +807,14 @@ int main(int argc, char** argv) {
   const char* host = "127.0.0.1";
   uint16_t port = 1234;
   bool is_base64_encoded = false;
+  bool is_zlib_compressed = false;
   const char* elf_file = nullptr;
   const char* input_file = nullptr;
   const char* config_file = nullptr;
   int opt;
   int longindex;
 
-  while ((opt = getopt_long(argc, argv, "hH:p:l:be:c:d", &kLongOpts[0],
+  while ((opt = getopt_long(argc, argv, "hH:p:l:bze:c:d", &kLongOpts[0],
                             &longindex)) != -1) {
     switch (opt) {
       case 'h':
@@ -828,6 +831,9 @@ int main(int argc, char** argv) {
         break;
       case 'b':
         is_base64_encoded = true;
+        break;
+      case 'z':
+        is_zlib_compressed = true;
         break;
       case 'e':
         elf_file = optarg;
@@ -860,6 +866,12 @@ int main(int argc, char** argv) {
   try {
     if (is_base64_encoded) {
       client.AddFilter(new Base64Filter());
+    }
+
+    if (is_zlib_compressed) {
+#ifdef HAVE_ZLIB_H
+      client.AddFilter(new ZlibFilter());
+#endif
     }
 
     client.ParseConfigFile(config_file);
