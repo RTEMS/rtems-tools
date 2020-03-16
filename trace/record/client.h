@@ -42,6 +42,11 @@
 #include <stdexcept>
 #include <string>
 #include <utility>
+#include <vector>
+
+#ifdef HAVE_ZLIB_H
+#include <zlib.h>
+#endif
 
 class ErrnoException : public std::runtime_error {
  public:
@@ -131,6 +136,25 @@ class Base64Filter : public Filter {
 
   bool DecodeChar(int c, char **target);
 };
+
+#ifdef HAVE_ZLIB_H
+class ZlibFilter : public Filter {
+ public:
+  ZlibFilter();
+
+  ZlibFilter(const ZlibFilter&) = default;
+
+  ZlibFilter& operator=(const ZlibFilter&) = default;
+
+  virtual ~ZlibFilter();
+
+  virtual bool Run(void** buf, size_t* n);
+
+ private:
+  z_stream stream_;
+  std::vector<Bytef> buffer_;
+};
+#endif
 
 class Client {
  public:

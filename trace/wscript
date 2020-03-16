@@ -42,6 +42,8 @@ def configure(conf):
         pass
     if conf.check_cxx(lib = 'LLVM', mandatory=False):
         conf.check(header_name='llvm/DebugInfo/Symbolize/Symbolize.h', features='cxx', mandatory=False)
+    if conf.check(header_name='zlib.h', features='cxx', mandatory=False):
+        conf.check_cxx(lib = 'z')
     conf.check_cxx(lib = 'ws2_32', mandatory=False)
     conf.write_config_header('config.h')
 
@@ -65,6 +67,8 @@ def build(bld):
         conf['lib'].extend(bld.env.LIB_WS2_32)
     if bld.env.LIB_LLVM:
         conf['lib'].extend(bld.env.LIB_LLVM)
+    if bld.env.LIB_Z:
+        conf['lib'].extend(bld.env.LIB_Z)
 
     #
     # The list of defines
@@ -81,6 +85,7 @@ def build(bld):
                           'record/record-text.c',
                           'record/record-client-base.cc',
                           'record/record-filter-base64.cc',
+                          'record/record-filter-zlib.cc',
                           'record/record-main-lttng.cc',
                           'record/inih/ini.c'],
                 includes = conf['includes'],
