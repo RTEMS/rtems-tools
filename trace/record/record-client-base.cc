@@ -170,7 +170,7 @@ void Client::Run() {
   }
 
   while (stop_ == 0 && todo > 0) {
-    int buf[8192];
+    long buf[8192];
     size_t m = std::min(static_cast<uint64_t>(sizeof(buf)), todo);
     ssize_t n = input_.Read(buf, m);
     if (n <= 0) {
