@@ -112,6 +112,26 @@ class Filter {
   virtual bool Run(void** buf, size_t* n) = 0;
 };
 
+class Base64Filter : public Filter {
+ public:
+  Base64Filter() = default;
+
+  Base64Filter(const Base64Filter&) = default;
+
+  Base64Filter& operator=(const Base64Filter&) = default;
+
+  virtual ~Base64Filter() = default;
+
+  virtual bool Run(void** buf, size_t* n);
+
+ private:
+  int digits_ = 0;
+  bool seen_end_ = false;
+  int val_[4];
+
+  bool DecodeChar(int c, char **target);
+};
+
 class Client {
  public:
   Client() = default;

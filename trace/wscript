@@ -80,6 +80,7 @@ def build(bld):
                 source = ['record/record-client.c',
                           'record/record-text.c',
                           'record/record-client-base.cc',
+                          'record/record-filter-base64.cc',
                           'record/record-main-lttng.cc',
                           'record/inih/ini.c'],
                 includes = conf['includes'],
