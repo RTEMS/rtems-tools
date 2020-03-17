@@ -284,7 +284,7 @@ class warnings_errors:
         common = warnings['common']
         for build in builds:
             build_warnings = warnings[build]
-            if build is not 'common':
+            if build != 'common':
                 build_warnings = [w for w in build_warnings if w not in common]
             s += textbox.row(cols_1,
                              [' %s : %d warning(s)' % (build,

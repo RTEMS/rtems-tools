@@ -135,7 +135,7 @@ def check_options(ctx, host):
         ctx.env.CXX = '%s-g++' % (host)
         ctx.env.AR = '%s-ar' % (host)
         ctx.env.PYTHON = 'python'
-    elif host is not 'native':
+    elif host != 'native':
         ctx.fatal('unknown host: %s' % (host));
 
 #
