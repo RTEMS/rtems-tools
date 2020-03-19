@@ -576,8 +576,10 @@ if __name__ == "__main__":
     def capture_output(text):
         print(text, end = '')
 
-    cmd_shell_test = 'if "%OS%" == "Windows_NT" (echo It is WinNT) else echo Is is not WinNT'
-    sh_shell_test = 'x="me"; if [ $x = "me" ]; then echo "It was me"; else "It was him"; fi'
+    cmd_shell_test = ('if "%OS%" == "Windows_NT" (echo It is WinNT) '
+                      'else echo It is not WinNT')
+    sh_shell_test = ('x="me"; if [ $x = "me" ]; then echo "It was me"; '
+                     'else "It was him"; fi')
 
     commands = {}
     commands['windows'] = {}
