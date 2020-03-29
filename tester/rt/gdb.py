@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2013-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2013,2014,2020 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -34,6 +34,7 @@
 
 from __future__ import print_function
 
+import datetime
 import os
 try:
     import Queue
@@ -59,6 +60,7 @@ class gdb(object):
         self.trace = trace
         self.mi_trace = mi_trace
         self.lock_trace = False
+        self.lock_locked = None
         self.lock = threading.RLock()
         self.script = None
         self.script_line = 0
@@ -79,11 +81,13 @@ class gdb(object):
     def _lock(self, msg):
         if self.lock_trace:
             print('|[   LOCK:%s ]|' % (msg))
+            self.lock_locked = datetime.datetime.now()
         self.lock.acquire()
 
     def _unlock(self, msg):
         if self.lock_trace:
-            print('|] UNLOCK:%s [|' % (msg))
+            period = datetime.datetime.now() - self.lock_locked
+            print('|] UNLOCK:%s [| : %s' % (msg, period))
         self.lock.release()
 
     def _put(self, text):
@@ -228,7 +232,6 @@ class gdb(object):
             else:
                 if self.script_line == 0:
                     self._put('-gdb-set confirm no')
-                    self._put('-data-list-register-names')
                 line = self.script[self.script_line]
                 self.script_line += 1
                 self._put(line)
