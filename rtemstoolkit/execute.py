@@ -139,12 +139,20 @@ class execute(object):
                 tmp = bytes('temp', sys.stdin.encoding)
             except:
                 encoding = False
+            input_types = [str, bytes]
+            try:
+                # Unicode is not valid in python3, not added to the list
+                input_types += [unicode]
+            except:
+                pass
             try:
                 while True:
                     if trace_threads:
                         print('execute:_writethread: call input', input)
                     lines = input()
-                    if type(lines) == str or type(lines) == bytes:
+                    if trace_threads:
+                        print('execute:_writethread: input returned:', type(lines))
+                    if type(lines) in input_types:
                         try:
                             if encoding:
                                 lines = bytes(lines, sys.stdin.encoding)
@@ -216,6 +224,9 @@ class execute(object):
                     sd = sd[:-1]
                     if len(sd) > 0:
                         for l in sd:
+                            if trace_threads:
+                                print('execute:_readthread: output-line:',
+                                      count, type(l))
                             _output_line(l + '\n', exe, prefix, out, count)
                             count += 1
                         if count > 10:
