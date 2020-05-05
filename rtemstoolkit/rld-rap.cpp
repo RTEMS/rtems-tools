@@ -924,7 +924,7 @@ namespace rld
     {
       uint32_t relocs = 0;
       for (int s = 0; s < rap_secs; ++s)
-        relocs += secs[s].relocs.size ();
+        relocs += get_relocations (s);
       return relocs;
     }
 
@@ -1355,6 +1355,8 @@ namespace rld
     void
     image::write_relocations (compress::compressor& comp)
     {
+      uint32_t rr = 0;
+
       for (int s = 0; s < rap_secs; ++s)
       {
         uint32_t count = get_relocations (s);
@@ -1390,7 +1392,7 @@ namespace rld
 
           for (relocations::const_iterator ri = relocs.begin ();
                ri != relocs.end ();
-               ++ri, ++sr, ++rc)
+               ++ri)
           {
             const relocation& reloc = *ri;
             uint32_t          info = GELF_R_TYPE (reloc.info);
@@ -1398,12 +1400,6 @@ namespace rld
             uint32_t          addend = reloc.addend;
             bool              write_addend = sec.rela;
             bool              write_symname = false;
-
-            /*
-             * Ignore section index 0
-             */
-            if (reloc.symsect == 0)
-              continue;
 
             offset = sec.offset + reloc.offset;
 
@@ -1504,6 +1500,10 @@ namespace rld
 
             if (write_symname)
               comp << reloc.symname;
+
+            ++rc;
+            ++sr;
+            ++rr;
           }
         }
       }
@@ -1723,7 +1723,8 @@ namespace rld
                        compressor.transferred ()) % 10;
         std::cout << "rap: objects: " << app_objects.size ()
                   << ", size: " << compressor.compressed ()
-                  << ", compression: " << pcent << '.' << premand << '%'
+                  << ", expanded: " << compressor.transferred ()
+                  << ", compressed: " << pcent << '.' << premand << '%'
                   << std::endl;
       }
     }
