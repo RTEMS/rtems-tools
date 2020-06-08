@@ -45,6 +45,7 @@ def configure(conf):
     if conf.check(header_name='zlib.h', features='cxx', mandatory=False):
         conf.check_cxx(lib = 'z')
     conf.check_cxx(lib = 'ws2_32', mandatory=False)
+    conf.check_cxx(cxxflags='-std=c++14', mandatory=False, define_name="HAVE_STD_CXX14")
     conf.write_config_header('config.h')
 
 def build(bld):
@@ -60,7 +61,10 @@ def build(bld):
     conf['warningflags'] = ['-Wall', '-Wextra', '-pedantic']
     conf['optflags'] = bld.env.C_OPTS
     conf['cflags'] = ['-pipe', '-g'] + conf['optflags']
-    conf['cxxflags'] = ['-std=c++11'] + conf['cflags']
+    cxxstd = '-std=c++11'
+    if bld.env.HAVE_STD_CXX14:
+        cxxstd = '-std=c++14'
+    conf['cxxflags'] = [cxxstd] + conf['cflags']
     conf['linkflags'] = ['-g']
     conf['lib'] = []
     if bld.env.LIB_WS2_32:
