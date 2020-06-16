@@ -162,6 +162,8 @@ class tftp(object):
         self.console = console
         self.port = port
         self.exe = executable
+        if self.console:
+            self.console('tftp: exe: %s' % (executable))
         self.timeout = timeout[1]
         self.listener = threading.Thread(target = self._runner,
                                          name = 'tftp-listener')

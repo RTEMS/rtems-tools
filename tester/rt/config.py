@@ -178,6 +178,7 @@ class file(config.file):
                         else:
                             pat += c
                 raise error.general('invalid exe filter: %s' % (f))
+        return exe
 
     def _output_length(self):
         self._lock()
