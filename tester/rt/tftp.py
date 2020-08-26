@@ -43,7 +43,7 @@ import sys
 from rtemstoolkit import error
 from rtemstoolkit import reraise
 
-import tftpy
+import tftpserver
 
 class tftp(object):
     '''RTEMS Testing TFTP base.'''
@@ -88,7 +88,8 @@ class tftp(object):
     def _stop(self):
         try:
             if self.server:
-                self.server.stop(now = True)
+                self.server.stop()
+            self.finished = True
         except:
             pass
 
@@ -101,6 +102,10 @@ class tftp(object):
 
     def _timeout(self):
         self._stop()
+        while self.running or not self.finished:
+            self._unlock('_timeout')
+            time.sleep(0.1)
+            self._lock('_timeout')
         if self.timeout is not None:
             self.timeout()
 
@@ -119,22 +124,21 @@ class tftp(object):
         return None
 
     def _listener(self):
-        tftpy_log = logging.getLogger('tftpy')
-        tftpy_log.setLevel(100)
+        self._lock('_listener')
+        exe = self.exe
+        self.exe = None
+        self._unlock('_listener')
+        self.server = tftpserver.tftp_server(host = 'all',
+                                             port = self.port,
+                                             timeout = 1,
+                                             forced_file = exe,
+                                             sessions = 1)
         try:
-            self.server = tftpy.TftpServer(tftproot = '.',
-                                           dyn_file_func = self._exe_handle)
-        except tftpy.TftpException as te:
-            raise error.general('tftp: %s' % (str(te)))
-        if self.server is not None:
-            try:
-                self.server.listen('0.0.0.0', self.port, 0.5)
-            except tftpy.TftpException as te:
-                raise error.general('tftp: %s' % (str(te)))
-            except IOError as ie:
-                if ie.errno == errno.EACCES:
-                    raise error.general('tftp: permissions error: check tftp server port')
-                raise error.general('tftp: io error: %s' % (str(ie)))
+            self.server.start()
+            self.server.run()
+        except:
+            self.server.stop()
+            raise
 
     def _runner(self):
         self._lock('_runner')
@@ -146,9 +150,7 @@ class tftp(object):
         except:
             caught = sys.exc_info()
         self._lock('_runner')
-        self._init()
         self.running = False
-        self.finished = True
         self.caught = caught
         self._unlock('_runner')
 
@@ -187,6 +189,7 @@ class tftp(object):
             self._timeout()
         caught = self.caught
         self.caught = None
+        self._init()
         self._unlock('_open')
         if caught is not None:
             reraise.reraise(*caught)
