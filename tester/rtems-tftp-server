@@ -34,8 +34,10 @@ import os
 import sys
 
 base = os.path.dirname(os.path.abspath(sys.argv[0]))
-rtems = os.path.dirname(base)
-sys.path = [rtems] + sys.path
+prefix = os.path.dirname(base)
+rtems = os.path.join(prefix, 'share', 'rtems')
+tester = os.path.join(rtems, 'tester')
+sys.path = [prefix, rtems, tester] + sys.path
 
 try:
     import rt.tftpserver

@@ -67,7 +67,8 @@ def build(bld):
                   'rt/stty.py',
                   'rt/telnet.py',
                   'rt/test.py',
-                  'rt/tftp.py'],
+                  'rt/tftp.py',
+                  'rt/tftpserver.py'],
         install_from = '.',
         install_path = '${PREFIX}/share/rtems/tester')
     bld(features = 'py',
@@ -76,21 +77,11 @@ def build(bld):
                   'rt/pygdb/spark.py'],
         install_from = '.',
         install_path = '${PREFIX}/share/rtems/tester')
-    bld(features = 'py',
-        source = ['rt/tftpy/__init__.py',
-                  'rt/tftpy/TftpClient.py',
-                  'rt/tftpy/TftpContexts.py',
-                  'rt/tftpy/TftpPacketFactory.py',
-                  'rt/tftpy/TftpPacketTypes.py',
-                  'rt/tftpy/TftpServer.py',
-                  'rt/tftpy/TftpShared.py',
-                  'rt/tftpy/TftpStates.py'],
-        install_from = '.',
-        install_path = '${PREFIX}/share/rtems/tester')
     bld.install_files('${PREFIX}/bin',
                       ['rtems-run',
                        'rtems-test',
-                       'rtems-bsp-builder'],
+                       'rtems-bsp-builder',
+                       'rtems-tftp-server'],
                       chmod = 0o755)
 
     #
