@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2013-2017 Chris Johns (chrisj@rtems.org)
+# Copyright 2013-2020 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -49,6 +49,7 @@ from rtemstoolkit import path
 from rtemstoolkit import stacktraces
 
 import console
+import exe
 import gdb
 import tftp
 
@@ -78,6 +79,7 @@ class file(config.file):
         self.report = report
         self.name = name
         self.timedout = False
+        self.test_too_long = False
         self.test_started = False
         self.kill_good = False
         self.kill_on_end = False
@@ -101,6 +103,12 @@ class file(config.file):
         self.timedout = True
         self._unlock()
         self.capture('*** TIMEOUT TIMEOUT')
+
+    def _test_too_long(self):
+        self._lock()
+        self.test_too_long = True
+        self._unlock()
+        self.capture('*** TEST TOO LONG')
 
     def _ok_kill(self):
         self._lock()
@@ -219,22 +227,20 @@ class file(config.file):
             else:
                 raise error.general(self._name_line_msg('invalid console type'))
 
-    def _dir_execute(self, data, total, index, exe, bsp_arch, bsp):
-        self.process = execute.execute(output = self.capture)
-        if self.console:
-            self.console.open()
+    def _dir_execute(self, data, total, index, rexe, bsp_arch, bsp):
+        self.process = exe.exe(bsp_arch, bsp, trace = self.exe_trace('exe'))
         if not self.in_error:
-            self.capture_console('run: %s' % (' '.join(data)))
+            if self.console:
+                self.console.open()
             if not self.opts.dry_run():
-                ec, proc = self.process.open(data,
-                                             timeout = (int(self.expand('%{timeout}')),
-                                                        self._timeout))
-                self._lock()
-                if not (self.kill_good or self.defined('exe_ignore_ret')) and ec > 0:
-                    self._error('execute failed: %s: exit-code:%d' % (' '.join(data), ec))
-                elif self.timedout:
-                    self.process.kill()
-                self._unlock()
+                self.process.open(data,
+                                  ignore_exit_code = self.defined('exe_ignore_ret'),
+                                  output = self.capture,
+                                  console = self.capture_console,
+                                  timeout = (int(self.expand('%{timeout}')),
+                                             int(self.expand('%{max_test_period}')),
+                                             self._timeout,
+                                             self._test_too_long))
             if self.console:
                 self.console.close()
 
@@ -255,7 +261,10 @@ class file(config.file):
                                   script = script,
                                   output = self.capture,
                                   gdb_console = self.capture_console,
-                                  timeout = int(self.expand('%{timeout}')))
+                                  timeout = (int(self.expand('%{timeout}')),
+                                             int(self.expand('%{max_test_period}')),
+                                             self._timeout,
+                                             self._test_too_long))
             if self.console:
                 self.console.close()
 
@@ -278,7 +287,9 @@ class file(config.file):
                                   output_length = self._output_length,
                                   console = self.capture_console,
                                   timeout = (int(self.expand('%{timeout}')),
-                                             self._timeout))
+                                             int(self.expand('%{max_test_period}')),
+                                             self._timeout,
+                                             self._test_too_long))
                 if self.console:
                     self.console.close()
 

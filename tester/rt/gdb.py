@@ -43,6 +43,7 @@ except ImportError:
     import queue
 import sys
 import threading
+import time
 
 from rtemstoolkit import error
 from rtemstoolkit import execute
@@ -67,15 +68,19 @@ class gdb(object):
         self.bsp = bsp
         self.bsp_arch = bsp_arch
         self.output = None
+        self.output_length = 0
         self.gdb_console = None
         self.input = queue.Queue()
         self.commands = queue.Queue()
         self.process = None
+        self.ecode = None
         self.state = {}
         self.running = False
         self.breakpoints = {}
         self.output = None
         self.output_buffer = ''
+        self.timeout = None
+        self.test_too_long = None
         self.lc = 0
 
     def _lock(self, msg):
@@ -153,13 +158,14 @@ class gdb(object):
         return False
 
     def _timeout(self):
-        self._lock('_timeout')
-        try:
-            if self.output:
-                self.output('*** TIMEOUT TIMEOUT')
-                self._gdb_quit(backtrace = True)
-        finally:
-            self._unlock('_timeout')
+        self._stop()
+        if self.timeout is not None:
+            self.timeout()
+
+    def _test_too_long(self):
+        self._stop()
+        if self.test_too_long is not None:
+            self.test_too_long()
 
     def _cleanup(self, proc):
         self._lock('_cleanup')
@@ -181,10 +187,73 @@ class gdb(object):
         finally:
             self._unlock('_gdb_quit')
 
+    def _stop(self):
+        self._gdb_quit(backtrace=True)
+        seconds = 5
+        step = 0.1
+        while self.process and seconds > 0:
+            if seconds > step:
+                seconds -= step
+            else:
+                seconds = 0
+            self._unlock('_stop')
+            time.sleep(step)
+            self._lock('_stop')
+        if self.process and seconds == 0:
+            self._kill()
+
+    def _kill(self):
+        if self.process:
+            self.process.kill()
+        self.process = None
+
+    def _execute_gdb(self, args):
+        '''Thread to execute GDB and to wait for it to finish.'''
+        cmds = args
+        self.gdb_console('gdb: %s' % (' '.join(cmds)))
+        ecode, proc = self.process.open(cmds)
+        if self.trace:
+            print('gdb done', ecode)
+        self._lock('_execute_gdb')
+        self.ecode = ecode
+        self.process = None
+        self.running = False
+        self._unlock('_execute_gdb')
+
+    def _monitor(self, timeout):
+        output_length = self.output_length
+        step = 0.25
+        period = timeout[0]
+        seconds = timeout[1]
+        while self.process and period > 0 and seconds > 0:
+            current_length = self.output_length
+            if output_length != current_length:
+                period = timeout[0]
+            output_length = current_length
+            if seconds < step:
+                seconds = 0
+            else:
+                seconds -= step
+            if period < step:
+                step = period
+                period = 0
+            else:
+                period -= step
+            self._unlock('_monitor')
+            time.sleep(step)
+            self._lock('_monitor')
+        if self.process is not None:
+            if period == 0:
+                self._timeout()
+            elif seconds == 0:
+                self._test_too_long()
+
     def open(self, command, executable,
-             output, gdb_console, script = None, tty = None,
-             timeout = 300):
+             output, gdb_console, timeout,
+             script = None, tty = None):
         self._lock('_open')
+        self.timeout = timeout[2]
+        self.test_too_long = timeout[3]
         try:
             cmds = execute.arg_list(command) + ['-i=mi',
                                                 '--nx',
@@ -196,32 +265,25 @@ class gdb(object):
             self.output = output
             self.gdb_console = gdb_console
             self.script = script
-            self.running = False
             self.process = execute.execute(output = self._reader,
                                            input = self._writer,
                                            cleanup = self._cleanup)
-        finally:
-            self._unlock('_open')
-        self.gdb_console('gdb: %s' % (' '.join(cmds)))
-        ec, proc = self.process.open(cmds, timeout = (timeout, self._timeout))
-        if self.trace:
-            print('gdb done', ec)
-        if ec > 0:
-            raise error.general('gdb exec: %s: %s' % (cmds[0], os.strerror(ec)))
-        self._lock('_open')
-        try:
-            self.process = None
+            exec_thread = threading.Thread(target=self._execute_gdb,
+                                           args=[cmds])
+            exec_thread.start()
+            self._monitor(timeout)
+            if self.ecode is not None and self.ecode > 0:
+                raise error.general('gdb exec: %s: %s' % (cmds[0],
+                                                          os.strerror(self.ecode)))
         finally:
             self._unlock('_open')
 
     def kill(self):
-        self._lock('_open')
+        self._lock('_kill')
         try:
-            if self.process:
-                self.process.kill()
-            self.process = None
+            self._kill()
         finally:
-            self._unlock('_open')
+            self._unlock('_kill')
 
     def gdb_expect(self):
         if self.trace:
@@ -282,8 +344,9 @@ class gdb(object):
                     if last_lf >= 0:
                         lines = self.output_buffer[:last_lf]
                         if self.trace:
-                            print('/// console output')
+                            print('/// console output: ', len(lines))
                         for line in lines.splitlines():
+                            self.output_length += len(line)
                             self.output(line)
                         self.output_buffer = self.output_buffer[last_lf + 1:]
         except:

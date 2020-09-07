@@ -66,6 +66,7 @@ class tftp(object):
         self.port = 0
         self.exe = None
         self.timeout = None
+        self.test_too_long = None
         self.timer = None
         self.running = False
         self.finished = False
@@ -108,6 +109,15 @@ class tftp(object):
             self._lock('_timeout')
         if self.timeout is not None:
             self.timeout()
+
+    def _test_too_long(self):
+        self._stop()
+        while self.running or not self.finished:
+            self._unlock('_test_too_long')
+            time.sleep(0.1)
+            self._lock('_test_too_long')
+        if self.test_too_long is not None:
+            self.test_too_long()
 
     def _exe_handle(self, req_file, raddress, rport):
         self._lock('_exe_handle')
@@ -166,29 +176,40 @@ class tftp(object):
         self.exe = executable
         if self.console:
             self.console('tftp: exe: %s' % (executable))
-        self.timeout = timeout[1]
+        self.timeout = timeout[2]
+        self.test_too_long = timeout[3]
         self.listener = threading.Thread(target = self._runner,
                                          name = 'tftp-listener')
         self.listener.start()
-        step = 0.5
+        step = 0.25
         period = timeout[0]
+        seconds = timeout[1]
         output_len = self.output_length()
-        while not self.finished and period > 0:
+        while not self.finished and period > 0 and seconds > 0:
+            if not self.running and self.caught:
+                break
             current_length = self.output_length()
             if output_length != current_length:
                 period = timeout[0]
             output_length = current_length
+            if seconds < step:
+                seconds = 0
+            else:
+                seconds -= step
             if period < step:
+                step = period
                 period = 0
             else:
                 period -= step
             self._unlock('_open')
             time.sleep(step)
             self._lock('_open')
-        if not self.finished and period == 0:
-            self._timeout()
+        if not self.finished:
+            if period == 0:
+                self._timeout()
+            elif seconds == 0:
+                self._test_too_long()
         caught = self.caught
-        self.caught = None
         self._init()
         self._unlock('_open')
         if caught is not None:

@@ -63,6 +63,7 @@ class report(object):
         self.indeterminate = 0
         self.benchmark = 0
         self.timeouts = 0
+        self.test_too_long = 0
         self.invalids = 0
         self.wrong_version = 0
         self.wrong_build = 0
@@ -79,6 +80,7 @@ class report(object):
         msg += 'Indeterminate: %*d%s' % (self.total_len, self.self.indeterminate, os.linesep)
         msg += 'Benchmark:     %*d%s' % (self.total_len, self.self.benchmark, os.linesep)
         msg += 'Timeout:       %*d%s' % (self.total_len, self.timeouts, os.linesep)
+        msg += 'Test too long: %*d%s' % (self.total_len, self.test_too_long, os.linesep)
         msg += 'Invalid:       %*d%s' % (self.total_len, self.invalids, os.linesep)
         msg += 'Wrong Version  %*d%s' % (self.total_len, self.wrong_version, os.linesep)
         msg += 'Wrong Build    %*d%s' % (self.total_len, self.wrong_build, os.linesep)
@@ -87,7 +89,7 @@ class report(object):
 
     def start(self, index, total, name, executable, bsp_arch, bsp, show_header):
         header = '[%*d/%*d] p:%-*d f:%-*d u:%-*d e:%-*d I:%-*d B:%-*d ' \
-                 't:%-*d i:%-*d W:%-*d | %s/%s: %s' % \
+                 't:%-*d L:%-*d i:%-*d W:%-*d | %s/%s: %s' % \
                  (len(str(total)), index,
                   len(str(total)), total,
                   len(str(total)), self.passed,
@@ -97,6 +99,7 @@ class report(object):
                   len(str(total)), self.indeterminate,
                   len(str(total)), self.benchmark,
                   len(str(total)), self.timeouts,
+                  len(str(total)), self.test_too_long,
                   len(str(total)), self.invalids,
                   len(str(total)), self.wrong_version + self.wrong_build + self.wrong_tools,
                   bsp_arch,
@@ -123,11 +126,13 @@ class report(object):
     def end(self, name, output, output_prefix):
         start = False
         end = False
+        fatal = False
         state = None
         version = None
         build = None
         tools = None
         timeout = False
+        test_too_long = False
         prefixed_output = []
         for line in output:
             if line[0] == output_prefix:
@@ -137,8 +142,12 @@ class report(object):
                         start = True
                     elif line[1][4:].startswith('END OF '):
                         end = True
+                    elif line[1][4:].startswith('FATAL'):
+                        fatal = True
                     elif banner.startswith('TIMEOUT TIMEOUT'):
                         timeout = True
+                    elif banner.startswith('TEST TOO LONG'):
+                        test_too_long = True
                     elif banner.startswith('TEST VERSION:'):
                         version = banner[13:].strip()
                     elif banner.startswith('TEST STATE:'):
@@ -184,9 +193,15 @@ class report(object):
                     if state is None or state == 'EXPECTED_PASS':
                         status = 'passed'
                         self.passed += 1
+                elif fatal:
+                    status = 'fatal error'
+                    self.failed += 1
                 elif timeout:
                     status = 'timeout'
                     self.timeouts += 1
+                elif test_too_long:
+                    status = 'test-too-long'
+                    self.test_too_long += 1
                 elif start:
                     if not end:
                         status = 'failed'
@@ -240,7 +255,7 @@ class report(object):
         return status
 
     def log(self, name, mode):
-        status_fails = ['failed', 'timeout', 'invalid',
+        status_fails = ['failed', 'timeout', 'test-too-long', 'invalid',
                         'wrong-version', 'wrong-build', 'wrong-tools']
         if mode != 'none':
             self.lock.acquire()
@@ -273,8 +288,9 @@ class report(object):
     def score_card(self, mode = 'full'):
         if mode == 'short':
             wrongs = self.wrong_version + self.wrong_build + self.wrong_tools
-            return 'Passed:%d Failed:%d Timeout:%d Invalid:%d Wrong:%d' % \
-                (self.passed, self.failed, self.timeouts, self.invalids, wrongs)
+            return 'Passed:%d Failed:%d Timeout:%d Test-Too-long:%d Invalid:%d Wrong:%d' % \
+                (self.passed, self.failed, self.timeouts, self.test_too_long,
+                 self.invalids, wrongs)
         elif mode == 'full':
             l = []
             l += ['Passed:        %*d' % (self.total_len, self.passed)]
@@ -284,6 +300,7 @@ class report(object):
             l += ['Indeterminate: %*d' % (self.total_len, self.indeterminate)]
             l += ['Benchmark:     %*d' % (self.total_len, self.benchmark)]
             l += ['Timeout:       %*d' % (self.total_len, self.timeouts)]
+            l += ['Test too long: %*d' % (self.total_len, self.test_too_long)]
             l += ['Invalid:       %*d' % (self.total_len, self.invalids)]
             l += ['Wrong Version: %*d' % (self.total_len, self.wrong_version)]
             l += ['Wrong Build:   %*d' % (self.total_len, self.wrong_build)]
@@ -319,6 +336,9 @@ class report(object):
         if self.timeouts:
             l += ['Timeouts:']
             l += show_state(self.results, 'timeout', self.name_max_len)
+        if self.test_too_long:
+            l += ['Test too long:']
+            l += show_state(self.results, 'test-too-long', self.name_max_len)
         if self.invalids:
             l += ['Invalid:']
             l += show_state(self.results, 'invalid', self.name_max_len)

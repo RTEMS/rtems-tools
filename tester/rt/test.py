@@ -235,6 +235,7 @@ def generate_json_report(args, reports, start_time, end_time,
     json_log['summary']['indeterminate_count'] = reports.indeterminate
     json_log['summary']['benchmark_count'] = reports.benchmark
     json_log['summary']['timeout_count'] = reports.timeouts
+    json_log['summary']['too_long_count'] = reports.too_long
     json_log['summary']['invalid_count'] = reports.invalids
     json_log['summary']['wrong-version_count'] = reports.wrong_version
     json_log['summary']['wrong-build_count'] = reports.wrong_build
@@ -246,8 +247,8 @@ def generate_json_report(args, reports, start_time, end_time,
 
     result_types = [
             'failed', 'user-input', 'expected-fail', 'indeterminate',
-            'benchmark', 'timeout', 'invalid', 'wrong-version', 'wrong-build',
-            'wrong-tools'
+            'benchmark', 'timeout', 'too-long', 'invalid', 'wrong-version',
+            'wrong-build', 'wrong-tools'
     ]
     json_results = {}
     for result_type in result_types:
@@ -304,6 +305,7 @@ def generate_junit_report(args, reports, start_time, end_time,
     junit_prop['indeterminate_count'] = reports.indeterminate
     junit_prop['benchmark_count'] = reports.benchmark
     junit_prop['timeout_count'] = reports.timeouts
+    junit_prop['too_long_count'] = reports.too_long
     junit_prop['invalid_count'] = reports.invalids
     junit_prop['wrong-version_count'] = reports.wrong_version
     junit_prop['wrong-build_count'] = reports.wrong_build
