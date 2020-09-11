@@ -176,6 +176,11 @@ namespace rld
       void output_init_fini (const char* label, const char** names);
 
       /*
+       * Output the TLS data.
+       */
+      void output_tls ();
+
+      /*
        * Output the inlined functions.
        */
       void output_inlined ();
@@ -612,6 +617,78 @@ namespace rld
       std::cout << std::endl;
     }
 
+    void image::output_tls ()
+    {
+      symbols::symbol* tls_data_begin = symbols.find_global("_TLS_Data_begin");
+      symbols::symbol* tls_data_end = symbols.find_global("_TLS_Data_end");
+      symbols::symbol* tls_data_size = symbols.find_global("_TLS_Data_size");
+      symbols::symbol* tls_bss_begin = symbols.find_global("_TLS_BSS_begin");
+      symbols::symbol* tls_bss_end = symbols.find_global("_TLS_BSS_end");
+      symbols::symbol* tls_bss_size = symbols.find_global("_TLS_BSS_size");
+      symbols::symbol* tls_size = symbols.find_global("_TLS_Size");
+      symbols::symbol* tls_alignment = symbols.find_global("_TLS_Alignment");
+
+      if (tls_data_begin == nullptr ||
+          tls_data_end == nullptr ||
+          tls_data_size == nullptr ||
+          tls_bss_begin == nullptr ||
+          tls_bss_end == nullptr ||
+          tls_bss_size == nullptr ||
+          tls_size == nullptr ||
+          tls_alignment == nullptr)
+      {
+        if (tls_data_begin == nullptr &&
+            tls_data_end == nullptr &&
+            tls_data_size == nullptr &&
+            tls_bss_begin == nullptr &&
+            tls_bss_end == nullptr &&
+            tls_bss_size == nullptr &&
+            tls_size == nullptr &&
+            tls_alignment == nullptr)
+        {
+            std::cout << "No TLS data found" << std::endl;
+            return;
+        }
+        std::cout << "TLS environment is INVALID (please report):" << std::endl
+                  << " _TLS_Data_begin : "
+                  << (char*) (tls_data_begin == nullptr ? "not-found" : "found")
+                  << std::endl
+                  << " _TLS_Data_end   : "
+                  << (char*) (tls_data_end == nullptr ? "not-found" : "found")
+                  << std::endl
+                  << " _TLS_Data_size  : "
+                  << (char*) (tls_data_size == nullptr ? "not-found" : "found")
+                  << std::endl
+                  << " _TLS_BSS_begin  : "
+                  << (char*) (tls_bss_begin == nullptr ? "not-found" : "found")
+                  << std::endl
+                  << " _TLS_BSS_end    : "
+                  << (char*) (tls_bss_end == nullptr ? "not-found" : "found")
+                  << std::endl
+                  << " _TLS_BSS_Size   : "
+                  << (char*) (tls_bss_size == nullptr ? "not-found" : "found")
+                  << std::endl
+                  << " _TLS_Size       : "
+                  << (char*) (tls_size == nullptr ? "not-found" : "found")
+                  << std::endl
+                  << " _TLS_Alignment  : "
+                  << (char*) (tls_alignment == nullptr ? "not-found" : "found")
+                  << std::endl
+                  << std::endl;
+        return;
+      }
+
+      std::cout << "TLS size      : " << tls_size->value () << std::endl
+                << "    data size : " << tls_data_size->value () << std::endl
+                << "     bss size : " << tls_bss_size->value () << std::endl
+                << "    alignment : " << tls_alignment->value () << std::endl
+                << std::right << std::hex << std::setfill ('0')
+                << "    data addr : 0x" << std::setw (8) << tls_data_begin->value ()
+                << std::endl
+                << std::dec << std::setfill (' ')
+                << std::endl;
+    }
+
     struct func_count
     {
       std::string name;
@@ -758,6 +835,7 @@ static struct option rld_opts[] = {
   { "init",        no_argument,            NULL,           'I' },
   { "fini",        no_argument,            NULL,           'F' },
   { "objects",     no_argument,            NULL,           'O' },
+  { "tls",         no_argument,            NULL,           'T' },
   { "inlined",     no_argument,            NULL,           'i' },
   { "dwarf",       no_argument,            NULL,           'D' },
   { NULL,          0,                      NULL,            0 }
@@ -778,6 +856,7 @@ usage (int exit_code)
             << " -I        : show init section tables (also --init)" << std::endl
             << " -F        : show fini section tables (also --fini)" << std::endl
             << " -O        : show object files (also --objects)" << std::endl
+            << " -T        : show thread local storage data (also --tls)" << std::endl
             << " -i        : show inlined code (also --inlined)" << std::endl
             << " -D        : dump the DWARF data (also --dwarf)" << std::endl;
   ::exit (exit_code);
@@ -842,6 +921,7 @@ main (int argc, char* argv[])
     bool        init = false;
     bool        fini = false;
     bool        objects = false;
+    bool        tls = false;
     bool        inlined = false;
     bool        dwarf_data = false;
 
@@ -849,7 +929,7 @@ main (int argc, char* argv[])
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvVMaSIFOiD", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvVMaSIFOTiD", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -890,6 +970,10 @@ main (int argc, char* argv[])
           objects = true;
           break;
 
+        case 'T':
+          tls = true;
+          break;
+
         case 'i':
           inlined = true;
           break;
@@ -928,6 +1012,7 @@ main (int argc, char* argv[])
       init = true;
       fini = true;
       objects = true;
+      tls = true;
       inlined = true;
     }
 
@@ -965,6 +1050,8 @@ main (int argc, char* argv[])
       exe.output_init ();
     if (fini)
       exe.output_fini ();
+    if (tls)
+      exe.output_tls ();
     if (inlined)
       exe.output_inlined ();
     if (dwarf_data)
