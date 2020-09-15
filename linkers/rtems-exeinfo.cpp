@@ -153,7 +153,7 @@ namespace rld
       /*
        * Check the compiler and flags match.
        */
-      void output_compilation_unit (bool objects);
+      void output_compilation_unit (bool objects, bool full_flags);
 
       /*
        * Output the sections.
@@ -176,6 +176,11 @@ namespace rld
       void output_init_fini (const char* label, const char** names);
 
       /*
+       * Output the configuration.
+       */
+      void output_config ();
+
+      /*
        * Output the TLS data.
        */
       void output_tls ();
@@ -189,6 +194,10 @@ namespace rld
        * Output the DWARF data.
        */
       void output_dwarf ();
+
+    private:
+
+      void config (const std::string name);
     };
 
     section::section (const files::section& sec, files::byteorder byteorder)
@@ -309,6 +318,7 @@ namespace rld
       exe.load_symbols (symbols, true);
       debug.load_debug ();
       debug.load_types ();
+      debug.load_variables ();
       debug.load_functions ();
       symbols.globals (addresses);
       symbols.weaks (addresses);
@@ -321,7 +331,7 @@ namespace rld
     }
 
     void
-    image::output_compilation_unit (bool objects)
+    image::output_compilation_unit (bool objects, bool full_flags)
     {
       dwarf::compilation_units& cus = debug.get_cus ();
 
@@ -474,12 +484,15 @@ namespace rld
               for (auto& f : s.flags)
               {
                 bool present = false;
-                for (auto& ff : filter_flags)
+                if (!full_flags)
                 {
-                  if (rld::starts_with(f, ff))
+                  for (auto& ff : filter_flags)
                   {
-                    present = true;
-                    break;
+                    if (rld::starts_with(f, ff))
+                    {
+                      present = true;
+                      break;
+                    }
                   }
                 }
                 if (!present)
@@ -627,6 +640,7 @@ namespace rld
       symbols::symbol* tls_bss_size = symbols.find_global("_TLS_BSS_size");
       symbols::symbol* tls_size = symbols.find_global("_TLS_Size");
       symbols::symbol* tls_alignment = symbols.find_global("_TLS_Alignment");
+      symbols::symbol* tls_max_size = symbols.find_global("_Thread_Maximum_TLS_size");
 
       if (tls_data_begin == nullptr ||
           tls_data_end == nullptr ||
@@ -650,36 +664,44 @@ namespace rld
             return;
         }
         std::cout << "TLS environment is INVALID (please report):" << std::endl
-                  << " _TLS_Data_begin : "
+                  << " _TLS_Data_begin          : "
                   << (char*) (tls_data_begin == nullptr ? "not-found" : "found")
                   << std::endl
-                  << " _TLS_Data_end   : "
+                  << " _TLS_Data_end            : "
                   << (char*) (tls_data_end == nullptr ? "not-found" : "found")
                   << std::endl
-                  << " _TLS_Data_size  : "
+                  << " _TLS_Data_size           : "
                   << (char*) (tls_data_size == nullptr ? "not-found" : "found")
                   << std::endl
-                  << " _TLS_BSS_begin  : "
+                  << " _TLS_BSS_begin           : "
                   << (char*) (tls_bss_begin == nullptr ? "not-found" : "found")
                   << std::endl
-                  << " _TLS_BSS_end    : "
+                  << " _TLS_BSS_end             : "
                   << (char*) (tls_bss_end == nullptr ? "not-found" : "found")
                   << std::endl
-                  << " _TLS_BSS_Size   : "
+                  << " _TLS_BSS_Size            : "
                   << (char*) (tls_bss_size == nullptr ? "not-found" : "found")
                   << std::endl
-                  << " _TLS_Size       : "
+                  << " _TLS_Size                : "
                   << (char*) (tls_size == nullptr ? "not-found" : "found")
                   << std::endl
-                  << " _TLS_Alignment  : "
+                  << " _TLS_Alignment           : "
                   << (char*) (tls_alignment == nullptr ? "not-found" : "found")
+                  << std::endl
+                  << " _Thread_Maximum_TLS_size : "
+                  << (char*) (tls_max_size == nullptr ? "not-found" : "found")
                   << std::endl
                   << std::endl;
         return;
       }
 
       std::cout << "TLS size      : " << tls_size->value () << std::endl
-                << "    data size : " << tls_data_size->value () << std::endl
+                << "     max size : ";
+      if (tls_max_size == nullptr)
+          std::cout << "not found" << std::endl;
+      else
+          std::cout << tls_max_size->value () << std::endl;
+      std::cout << "    data size : " << tls_data_size->value () << std::endl
                 << "     bss size : " << tls_bss_size->value () << std::endl
                 << "    alignment : " << tls_alignment->value () << std::endl
                 << std::right << std::hex << std::setfill ('0')
@@ -687,6 +709,31 @@ namespace rld
                 << std::endl
                 << std::dec << std::setfill (' ')
                 << std::endl;
+    }
+
+    void image::config(const std::string name)
+    {
+      std::string table_name = "_" + name + "_Information";
+      symbols::symbol* table = symbols.find_global(table_name);
+
+      if (table != nullptr)
+        std::cout << " " << name << std::endl;
+    }
+
+    void image::output_config()
+    {
+      std::cout << "Configurations:" << std::endl;
+      config("Thread");
+      config("Barrier");
+      config("Extension");
+      config("Message_queue");
+      config("Partition");
+      config("Rate_monotonic");
+      config("Dual_ported_memory");
+      config("Region");
+      config("Semaphore");
+      config("Timer");
+      config("RTEMS_tasks");
     }
 
     struct func_count
@@ -835,6 +882,8 @@ static struct option rld_opts[] = {
   { "init",        no_argument,            NULL,           'I' },
   { "fini",        no_argument,            NULL,           'F' },
   { "objects",     no_argument,            NULL,           'O' },
+  { "full-flags",  no_argument,            NULL,           'A' },
+  { "config",      no_argument,            NULL,           'C' },
   { "tls",         no_argument,            NULL,           'T' },
   { "inlined",     no_argument,            NULL,           'i' },
   { "dwarf",       no_argument,            NULL,           'D' },
@@ -856,6 +905,8 @@ usage (int exit_code)
             << " -I        : show init section tables (also --init)" << std::endl
             << " -F        : show fini section tables (also --fini)" << std::endl
             << " -O        : show object files (also --objects)" << std::endl
+            << "           :  add --full-flags for compiler options" << std::endl
+            << " -C        : show configuration (also --config)" << std::endl
             << " -T        : show thread local storage data (also --tls)" << std::endl
             << " -i        : show inlined code (also --inlined)" << std::endl
             << " -D        : dump the DWARF data (also --dwarf)" << std::endl;
@@ -921,6 +972,8 @@ main (int argc, char* argv[])
     bool        init = false;
     bool        fini = false;
     bool        objects = false;
+    bool        full_flags = false;
+    bool        config = false;
     bool        tls = false;
     bool        inlined = false;
     bool        dwarf_data = false;
@@ -929,7 +982,7 @@ main (int argc, char* argv[])
 
     while (true)
     {
-      int opt = ::getopt_long (argc, argv, "hvVMaSIFOTiD", rld_opts, NULL);
+      int opt = ::getopt_long (argc, argv, "hvVMaSIFOCTiD", rld_opts, NULL);
       if (opt < 0)
         break;
 
@@ -968,6 +1021,14 @@ main (int argc, char* argv[])
 
         case 'O':
           objects = true;
+          break;
+
+        case 'A':
+          full_flags = true;
+          break;
+
+        case 'C':
+          config = true;
           break;
 
         case 'T':
@@ -1012,6 +1073,7 @@ main (int argc, char* argv[])
       init = true;
       fini = true;
       objects = true;
+      config = true;
       tls = true;
       inlined = true;
     }
@@ -1043,13 +1105,15 @@ main (int argc, char* argv[])
     /*
      * Generate the output.
      */
-    exe.output_compilation_unit (objects);
+    exe.output_compilation_unit (objects, full_flags);
     if (sections)
       exe.output_sections ();
     if (init)
       exe.output_init ();
     if (fini)
       exe.output_fini ();
+    if (config)
+      exe.output_config ();
     if (tls)
       exe.output_tls ();
     if (inlined)

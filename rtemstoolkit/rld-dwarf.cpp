@@ -575,6 +575,104 @@ namespace rld
       return *this;
     }
 
+    variable::variable (file& debug, debug_info_entry& die)
+      : debug (debug),
+        external_ (false),
+        declaration_ (false)
+    {
+      dwarf_bool db;
+
+      if (die.attribute (DW_AT_external, db, false))
+        external_ = db ? true : false;
+
+      if (die.attribute (DW_AT_declaration, db, false))
+        declaration_ = db ? true : false;
+
+      /*
+       * Get the name attribute. (if present)
+       */
+      die.attribute (DW_AT_name, name_);
+      die.attribute (DW_AT_decl_file, decl_file_);
+      die.attribute (DW_AT_decl_line, decl_line_);
+
+      if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
+      {
+        std::cout << "dwarf::variable: ";
+        dump (std::cout);
+        std::cout << std::endl;
+      }
+    }
+
+    variable::variable (const variable& orig)
+      : debug (orig.debug),
+        external_ (orig.external_),
+        declaration_ (orig.declaration_),
+        name_ (orig.name_),
+        decl_file_ (orig.decl_file_),
+        decl_line_ (orig. decl_line_)
+    {
+    }
+
+    variable::~variable ()
+    {
+    }
+
+    std::string
+    variable::name () const
+    {
+      return name_;
+    }
+
+    bool
+    variable::is_external () const
+    {
+      return external_;
+    }
+
+    bool
+    variable::is_declaration () const
+    {
+      return declaration_;
+    }
+
+    size_t
+    variable::size () const
+    {
+      size_t s = 0;
+      return s;
+    }
+
+    variable&
+    variable::operator = (const variable& rhs)
+    {
+      if (this != &rhs)
+      {
+        debug = rhs.debug;
+        external_ = rhs.external_;
+        declaration_ = rhs.declaration_;
+        name_ = rhs.name_;
+        decl_file_ = rhs.decl_file_;
+        decl_line_ = rhs.decl_line_;
+      }
+      return *this;
+    }
+
+    void
+    variable::dump (std::ostream& out) const
+    {
+      if (name_.empty ())
+        out << "NO-NAME";
+      else
+        out << name_;
+      out << " ["
+          << (char) (external_ ? 'E' : '-')
+          << (char) (declaration_ ? 'D' : '-')
+          << "] size=" << size ()
+          << std::hex << std::setfill ('0')
+          << " (0x" << size () << ')'
+          << std::dec << std::setfill (' ');
+    }
+
 
     function::function (file& debug, debug_info_entry& die)
       : debug (debug),
@@ -1513,7 +1611,6 @@ namespace rld
         source_ (debug, die_offset)
     {
       die.attribute (DW_AT_name, name_);
-      name_ = name_;
 
       die.attribute (DW_AT_producer, producer_);
 
@@ -1671,6 +1768,38 @@ namespace rld
     compilation_unit::load_types ()
     {
       //dump_die ();
+    }
+
+    void
+    compilation_unit::load_variables ()
+    {
+      debug_info_entry die (debug, die_offset);
+      debug_info_entry child (debug);
+      if (die.get_child (child))
+        load_variables (child);
+    }
+
+    void
+    compilation_unit::load_variables (debug_info_entry& die)
+    {
+      while (true)
+      {
+        if (die.tag () == DW_TAG_variable)
+        {
+          function func (debug, die);
+          functions_.push_back (func);
+        }
+
+        debug_info_entry next (die.get_debug ());
+
+        if (die.get_child (next))
+          load_functions (next);
+
+        if (!die.get_sibling (next))
+          break;
+
+        die = next;
+      }
     }
 
     void
@@ -1990,6 +2119,13 @@ namespace rld
     {
       for (auto& cu : cus)
         cu.load_types ();
+    }
+
+    void
+    file::load_variables ()
+    {
+      for (auto& cu : cus)
+        cu.load_variables ();
     }
 
     void

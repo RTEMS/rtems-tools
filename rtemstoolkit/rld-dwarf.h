@@ -277,6 +277,59 @@ namespace rld
     };
 
     /**
+     * Variable.
+     */
+    class variable
+    {
+    public:
+
+      variable (file& debug, debug_info_entry& die);
+      variable (const variable& orig);
+      ~variable ();
+
+      /**
+       * Get the name of the variable.
+       */
+      std::string name () const;
+
+      /**
+       * Is the variable external?
+       */
+      bool is_external () const;
+
+      /**
+       * Is this just a declaration?
+       */
+      bool is_declaration () const;
+
+      /**
+       * Size of the variable.
+       */
+      size_t size () const;
+
+      /**
+       * Assigment operator.
+       */
+      variable& operator = (const variable& rhs);
+
+      /**
+       * Dump the variable.
+       */
+      void dump (std::ostream& out) const;
+
+    private:
+
+      file&          debug;
+      bool           external_;
+      bool           declaration_;
+      std::string    name_;
+      std::string    decl_file_;
+      dwarf_unsigned decl_line_;
+    };
+
+    typedef std::vector < variable > variables;
+
+    /**
      * Function.
      */
     class function
@@ -620,6 +673,11 @@ namespace rld
       void load_types ();
 
       /**
+       * Load the variables.
+       */
+      void load_variables ();
+
+      /**
        * Load the functions.
        */
       void load_functions ();
@@ -677,6 +735,7 @@ namespace rld
 
     private:
 
+      void load_variables (debug_info_entry& die);
       void load_functions (debug_info_entry& die);
 
       file&          debug;       ///< The DWARF debug handle.
@@ -781,6 +840,11 @@ namespace rld
       void load_functions ();
 
       /**
+       * Load the DWARF variables information.
+       */
+      void load_variables ();
+
+      /**
        * Get the source location given an address.
        */
       bool get_source (const unsigned int address,
@@ -791,6 +855,11 @@ namespace rld
        * Get the producer sources from the compilation units.
        */
       void get_producer_sources (producer_sources& producers);
+
+      /**
+       * Get the variable given a name. Raises an exception if not found.
+       */
+      variable& get_variable (std::string& name);
 
       /**
        * Does the function exist.
