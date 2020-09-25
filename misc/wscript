@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2014-2016 Chris Johns (chrisj@rtems.org)
+# Copyright 2014, 2020 Chris Johns (chrisj@rtems.org)
 # Copyright 2018 embedded brains GmbH
 # All rights reserved.
 #
@@ -74,9 +74,9 @@ def build(bld):
     # Install the boot image code.
     #
     bld(features = 'py',
-        source = ['tools/boot.py',
-                  'tools/cmd-boot-image.py',
-                  'tools/cmd-tftpproxy.py',
+        source = ['__init__.py',
+                  'tools/__init__.py',
+                  'tools/boot.py',
                   'tools/tftpproxy.py',
                   'tools/getmac/__init__.py',
                   'tools/getmac/getmac.py'],

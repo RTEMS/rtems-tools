@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2013-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2013-2020 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -41,13 +41,13 @@ import time
 
 from rtemstoolkit import path
 
-import telnet
+import tester.rt.telnet
 
 #
 # Not available on Windows. Not sure what this means.
 #
 if os.name != 'nt':
-    import stty
+    import tester.rt.stty as stty
 else:
     stty = None
 
@@ -127,7 +127,7 @@ class tty(console):
         if stty and path.exists(self.dev):
             self.tty = stty.tty(self.dev)
         else:
-            self.tty = telnet.tty(self.dev)
+            self.tty = tester.rt.telnet.tty(self.dev)
         self.tty.set(self.setup)
         self.tty.on()
         self.read_thread = threading.Thread(target = _readthread,

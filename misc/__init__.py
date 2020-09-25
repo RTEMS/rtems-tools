@@ -1,7 +1,5 @@
-#! /usr/bin/env python
-#
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2013, 2015 Chris Johns (chrisj@rtems.org)
+# Copyright 2020 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -29,17 +27,4 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-from __future__ import print_function
-
-import sys, os
-
-base = os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))
-rtems = os.path.dirname(base)
-sys.path = [rtems] + sys.path
-
-try:
-    import test
-    test.run(sys.argv[1:], command_path = base)
-except ImportError:
-    print("Incorrect RTEMS Tools installation", file = sys.stderr)
-    sys.exit(1)
+all = []

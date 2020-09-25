@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2013-2017 Chris Johns (chrisj@rtems.org)
+# Copyright 2013, 2020 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -43,7 +43,7 @@ import sys
 from rtemstoolkit import error
 from rtemstoolkit import reraise
 
-import tftpserver
+import tester.rt.tftpserver
 
 class tftp(object):
     '''RTEMS Testing TFTP base.'''
@@ -138,11 +138,11 @@ class tftp(object):
         exe = self.exe
         self.exe = None
         self._unlock('_listener')
-        self.server = tftpserver.tftp_server(host = 'all',
-                                             port = self.port,
-                                             timeout = 1,
-                                             forced_file = exe,
-                                             sessions = 1)
+        self.server = tester.rt.tftpserver.tftp_server(host = 'all',
+                                                       port = self.port,
+                                                       timeout = 1,
+                                                       forced_file = exe,
+                                                       sessions = 1)
         try:
             self.server.start()
             self.server.run()

@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2013-2018 Chris Johns (chrisj@rtems.org)
+# Copyright 2013, 2020 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -50,12 +50,12 @@ from rtemstoolkit import stacktraces
 from rtemstoolkit import version
 from rtemstoolkit import check
 
-import bsps
-import config
-import console
-import options
-import report
-import coverage
+import tester.rt.bsps
+import tester.rt.config
+import tester.rt.console
+import tester.rt.options
+import tester.rt.report
+import tester.rt.coverage
 
 class log_capture(object):
     def __init__(self):
@@ -108,7 +108,7 @@ class test(object):
             if not path.isdir(rtems_tools_bin):
                 raise error.general('cannot find RTEMS tools path: %s' % (rtems_tools_bin))
             self.opts.defaults['rtems_tools'] = rtems_tools_bin
-        self.config = config.file(index, total, self.report, self.bsp_config, self.opts)
+        self.config = tester.rt.config.file(index, total, self.report, self.bsp_config, self.opts)
 
     def run(self):
         if self.config:
@@ -351,10 +351,10 @@ def check_report_formats(report_formats, report_location):
                                 % report_format)
 
 
-def run(args, command_path = None):
+def run(args):
     import sys
     tests = []
-    stdtty = console.save()
+    stdtty = tester.rt.console.save()
     opts = None
     default_exefilter = '*.exe'
     try:
@@ -371,9 +371,7 @@ def run(args, command_path = None):
                     '--stacktrace':     'Dump a stack trace on a user termination (^C)',
                     '--coverage':       'Perform coverage analysis of test executables.'}
         mailer.append_options(optargs)
-        opts = options.load(args,
-                            optargs = optargs,
-                            command_path = command_path)
+        opts = tester.rt.options.load(args, optargs = optargs)
         mail = None
         output = None
         if opts.find_arg('--mail'):
@@ -401,7 +399,7 @@ def run(args, command_path = None):
             report_formats = []
         log.notice('RTEMS Testing - Tester, %s' % (version.string()))
         if opts.find_arg('--list-bsps'):
-            bsps.list(opts)
+            tester.rt.bsps.list(opts)
         exe_filter = opts.find_arg('--filter')
         if exe_filter:
             exe_filter = exe_filter[1]
@@ -430,22 +428,22 @@ def run(args, command_path = None):
         bsp = opts.find_arg('--rtems-bsp')
         if bsp is None or len(bsp) != 2:
             raise error.general('RTEMS BSP not provided or an invalid option')
-        bsp = config.load(bsp[1], opts)
+        bsp = tester.rt.config.load(bsp[1], opts)
         bsp_config = opts.defaults.expand(opts.defaults['tester'])
         coverage_enabled = opts.find_arg('--coverage')
         if coverage_enabled:
             cov_trace = 'cov' in debug_trace.split(',')
             if len(coverage_enabled) == 2:
-                coverage_runner = coverage.coverage_run(opts.defaults,
-                                                        executables,
-                                                        rtems_tools,
-                                                        symbol_set = coverage_enabled[1],
-                                                        trace = cov_trace)
+                coverage_runner = tester.rt.coverage.coverage_run(opts.defaults,
+                                                           executables,
+                                                           rtems_tools,
+                                                           symbol_set = coverage_enabled[1],
+                                                           trace = cov_trace)
             else:
-                coverage_runner = coverage.coverage_run(opts.defaults,
-                                                        executables,
-                                                        rtems_tools,
-                                                        trace = cov_trace)
+                coverage_runner = tester.rt.coverage.coverage_run(opts.defaults,
+                                                           executables,
+                                                           rtems_tools,
+                                                           trace = cov_trace)
         log_mode = opts.find_arg('--log-mode')
         if log_mode:
             if log_mode[1] != 'failures' and \
@@ -459,7 +457,7 @@ def run(args, command_path = None):
             raise error.general('no executables supplied')
         start_time = datetime.datetime.now()
         total = len(executables)
-        reports = report.report(total)
+        reports = tester.rt.report.report(total)
         reporting = 1
         jobs = int(opts.jobs(opts.defaults['_ncpus']))
         exe = 0
@@ -556,7 +554,7 @@ def run(args, command_path = None):
         killall(tests)
         sys.exit(1)
     finally:
-        console.restore(stdtty)
+        tester.rt.console.restore(stdtty)
     sys.exit(0)
 
 if __name__ == "__main__":

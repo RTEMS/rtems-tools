@@ -48,8 +48,6 @@ from rtemstoolkit import macros
 from rtemstoolkit import version
 
 
-import options
-
 class summary:
     def __init__(self, p_summary_dir):
         self.summary_file_path = path.join(p_summary_dir, 'summary.txt')

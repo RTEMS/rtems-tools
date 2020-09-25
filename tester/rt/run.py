@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2013-2017 Chris Johns (chrisj@rtems.org)
+# Copyright 2013, 2020 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -42,11 +42,11 @@ from rtemstoolkit import path
 from rtemstoolkit import stacktraces
 from rtemstoolkit import version
 
-import bsps
-import config
-import console
-import options
-import report
+import tester.rt.bsps
+import tester.rt.config
+import tester.rt.console
+import tester.rt.options
+import tester.rt.report
 
 class test(object):
     def __init__(self, index, total, report, executable, rtems_tools, bsp, bsp_config, opts):
@@ -68,7 +68,7 @@ class test(object):
             if not path.isdir(rtems_tools_bin):
                 raise error.general('cannot find RTEMS tools path: %s' % (rtems_tools_bin))
             self.opts.defaults['rtems_tools'] = rtems_tools_bin
-        self.config = config.file(index, total, self.report, self.bsp_config, self.opts, '')
+        self.config = tester.rt.config.file(index, total, self.report, self.bsp_config, self.opts, '')
 
     def run(self):
         if self.config:
@@ -94,9 +94,9 @@ def list_bsps(opts):
         log.notice('  %s' % (path.basename(bsp[:-3])))
     raise error.exit()
 
-def run(args, command_path = None):
+def run(args):
     tests = []
-    stdtty = console.save()
+    stdtty = tester.rt.console.save()
     opts = None
     default_exefilter = '*.exe'
     try:
@@ -106,12 +106,10 @@ def run(args, command_path = None):
                     '--list-bsps':   'List the supported BSPs',
                     '--debug-trace': 'Debug trace based on specific flags',
                     '--stacktrace':  'Dump a stack trace on a user termination (^C)' }
-        opts = options.load(args,
-                            optargs = optargs,
-                            command_path = command_path)
+        opts = tester.rt.options.load(args, optargs = optargs)
         log.notice('RTEMS Testing - Run, %s' % (version.string()))
         if opts.find_arg('--list-bsps'):
-            bsps.list(opts)
+            tester.rt.bsps.list(opts)
         opts.log_info()
         log.output('Host: ' + host.label(mode = 'all'))
         debug_trace = opts.find_arg('--debug-trace')
@@ -133,13 +131,13 @@ def run(args, command_path = None):
         bsp = opts.find_arg('--rtems-bsp')
         if bsp is None or len(bsp) != 2:
             raise error.general('RTEMS BSP not provided or an invalid option')
-        bsp = config.load(bsp[1], opts)
+        bsp = tester.rt.config.load(bsp[1], opts)
         bsp_config = opts.defaults.expand(opts.defaults['tester'])
         executables = find_executables(opts.params())
         if len(executables) != 1:
             raise error.general('one executable required, found %d' % (len(executables)))
         opts.defaults['test_disable_header'] = '1'
-        reports = report.report(1)
+        reports = tester.rt.report.report(1)
         start_time = datetime.datetime.now()
         opts.defaults['exe_trace'] = debug_trace
         tst = test(1, 1, reports, executables[0], rtems_tools, bsp, bsp_config, opts)
@@ -165,7 +163,7 @@ def run(args, command_path = None):
         log.notice('abort: user terminated')
         sys.exit(1)
     finally:
-        console.restore(stdtty)
+        tester.rt.console.restore(stdtty)
     sys.exit(0)
 
 if __name__ == "__main__":

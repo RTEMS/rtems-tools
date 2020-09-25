@@ -1,5 +1,5 @@
 #
-# Copyright 2019 Chris Johns (chris@contemporary.software)
+# Copyright 2019, 2020 Chris Johns (chris@contemporary.software)
 # All rights reserved.
 #
 # Permission to use, copy, modify, and/or distribute this software for any
@@ -39,7 +39,7 @@ from rtemstoolkit import error
 from rtemstoolkit import log
 from rtemstoolkit import version
 
-import getmac
+import misc.tools.getmac
 
 def host_port_split(ip_port):
     ips = ip_port.split(':')
@@ -226,7 +226,7 @@ class udp_handler(socketserver.BaseRequestHandler):
                                                                client,
                                                                host))
             else:
-                mac = getmac.get_mac_address(ip = client_ip)
+                mac = misc.tools.getmac.get_mac_address(ip = client_ip)
                 log.trace(' . request: host not found: %s (%s)' % (client, mac))
 
 class udp_server(socketserver.ThreadingMixIn, socketserver.UDPServer):

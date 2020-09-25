@@ -71,10 +71,7 @@ def configuration_path(prog = None):
      2. Ok to directly call os.path.
     '''
     if prog is None:
-        if len(sys.argv) == 1:
-            exec_name = sys.argv[0]
-        else:
-            exec_name = sys.argv[1]
+        exec_name = sys.argv[0]
     else:
         exec_name = prog
     exec_name = os.path.abspath(exec_name)
@@ -157,8 +154,10 @@ class configuration:
             for arch in profile['archs']:
                 bsps = 'bsps_%s' % (arch)
                 profile[bsps] = self.config.comma_list(profile['name'], bsps)
-            self.profiles[profile['name']] = profile
+            self.profiles[profile['name']] = dict(profile)
+            profile = None
         invalid_chars = re.compile(r'[^a-zA-Z0-9_-]')
+        archs = sorted(list(set(archs)))
         for a in set(archs):
             if len(invalid_chars.findall(a)) != 0:
                 raise error.general('invalid character(s) in arch name: %s' % (a))

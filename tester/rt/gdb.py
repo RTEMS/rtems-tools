@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2013,2014,2020 Chris Johns (chrisj@rtems.org)
+# Copyright 2013, 2020 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -50,14 +50,13 @@ from rtemstoolkit import execute
 from rtemstoolkit import options
 from rtemstoolkit import path
 
-import console
-import pygdb
+import tester.rt.pygdb
 
 class gdb(object):
     '''RTEMS Testing GDB base.'''
 
     def __init__(self, bsp_arch, bsp, trace = False, mi_trace = False):
-        self.session = pygdb.mi_parser.session()
+        self.session = tester.rt.pygdb.mi_parser.session()
         self.trace = trace
         self.mi_trace = mi_trace
         self.lock_trace = False
@@ -356,7 +355,8 @@ class gdb(object):
                 self.output(line)
 
 if __name__ == "__main__":
-    stdtty = console.save()
+    import tester.rt.console
+    stdtty = tester.rt.console.save()
     try:
         def output(text):
             print(']', text)
@@ -376,7 +376,7 @@ if __name__ == "__main__":
         g = gdb('sparc', 'sis', mi_trace = True)
         g.open('sparc-rtems4.11-gdb', executable, output, gdb_console, script)
     except:
-        console.restore(stdtty)
+        tester.rt.console.restore(stdtty)
         raise
     finally:
-        console.restore(stdtty)
+        tester.rt.console.restore(stdtty)

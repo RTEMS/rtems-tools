@@ -48,10 +48,10 @@ from rtemstoolkit import path
 
 from rtemstoolkit import stacktraces
 
-import console
-import exe
-import gdb
-import tftp
+import tester.rt.console
+import tester.rt.exe
+import tester.rt.gdb
+import tester.rt.tftp
 
 timeout = 15
 
@@ -212,7 +212,7 @@ class file(config.file):
         console_trace = trace = self.exe_trace('console')
         if not self.opts.dry_run():
             if data[0] == 'stdio':
-                self.console = console.stdio(trace = console_trace)
+                self.console = tester.rt.console.stdio(trace = console_trace)
             elif data[0] == 'tty':
                 if len(data) < 2 or len(data) >3:
                     raise error.general(self._name_line_msg('no tty configuration provided'))
@@ -220,15 +220,15 @@ class file(config.file):
                     settings = data[2]
                 else:
                     settings = None
-                self.console = console.tty(data[1],
-                                           output = self.capture,
-                                           setup = settings,
-                                           trace = console_trace)
+                self.console = tester.rt.console.tty(data[1],
+                                                     output = self.capture,
+                                                     setup = settings,
+                                                     trace = console_trace)
             else:
                 raise error.general(self._name_line_msg('invalid console type'))
 
     def _dir_execute(self, data, total, index, rexe, bsp_arch, bsp):
-        self.process = exe.exe(bsp_arch, bsp, trace = self.exe_trace('exe'))
+        self.process = tester.rt.exe.exe(bsp_arch, bsp, trace = self.exe_trace('exe'))
         if not self.in_error:
             if self.console:
                 self.console.open()
@@ -247,9 +247,9 @@ class file(config.file):
     def _dir_gdb(self, data, total, index, exe, bsp_arch, bsp):
         if len(data) < 3 or len(data) > 4:
             raise error.general('invalid %gdb arguments')
-        self.process = gdb.gdb(bsp_arch, bsp,
-                               trace = self.exe_trace('gdb'),
-                               mi_trace = self.exe_trace('gdb-mi'))
+        self.process = tester.rt.gdb.gdb(bsp_arch, bsp,
+                                         trace = self.exe_trace('gdb'),
+                                         mi_trace = self.exe_trace('gdb-mi'))
         script = self.expand('%%{%s}' % data[2])
         if script:
             script = [l.strip() for l in script.splitlines()]
@@ -277,8 +277,8 @@ class file(config.file):
             raise error.general('invalid %tftp port')
         self.kill_on_end = True
         if not self.opts.dry_run():
-            self.process = tftp.tftp(bsp_arch, bsp,
-                                     trace = self.exe_trace('tftp'))
+            self.process = tester.rt.tftp.tftp(bsp_arch, bsp,
+                                               trace = self.exe_trace('tftp'))
             if not self.in_error:
                 if self.console:
                     self.console.open()

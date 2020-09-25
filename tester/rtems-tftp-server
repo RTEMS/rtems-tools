@@ -33,15 +33,13 @@ from __future__ import print_function
 import os
 import sys
 
-base = os.path.dirname(os.path.abspath(sys.argv[0]))
-prefix = os.path.dirname(base)
-rtems = os.path.join(prefix, 'share', 'rtems')
-tester = os.path.join(rtems, 'tester')
-sys.path = [prefix, rtems, tester] + sys.path
+base = os.path.dirname(os.path.dirname(os.path.abspath(sys.argv[0])))
+rtems = os.path.join(base, 'share', 'rtems')
+sys.path = sys.path[0:1] + [rtems, base] + sys.path[1:]
 
 try:
-    import rt.tftpserver
-    rt.tftpserver.run(sys.argv)
+    import tester.rt.tftpserver
+    tester.rt.tftpserver.run(sys.argv)
 except ImportError:
     print("Incorrect RTEMS Tools installation", file=sys.stderr)
     sys.exit(1)
