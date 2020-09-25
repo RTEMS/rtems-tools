@@ -140,7 +140,7 @@ class configuration:
 
     def comma_list(self, section, label, err = True):
         items = self.get_item(section, label, err)
-        if items is None:
+        if items is None or len(items) == 0:
             return []
         return sorted(set([a.strip() for a in items.split(',')]))
 
