@@ -1429,7 +1429,11 @@ namespace rld
       const char* s;
       ::dwarf_get_TAG_name (tag (), &s);
       out << level_prefix.substr (0, level_prefix.length () - 1)
-          << "+- " << s << std::endl;
+          << "+- " << s << " ("
+          << std::hex << std::setfill ('0')
+          << std::setw (8) << offset_
+          << std::dec << std::setfill (' ')
+          << ')' << std::endl;
 
       dwarf_attribute* attributes;
       dwarf_signed     attr_count;
