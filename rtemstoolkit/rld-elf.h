@@ -185,6 +185,11 @@ namespace rld
       section ();
 
       /**
+       * Default assignment operator.
+       */
+      section& operator=(const rld::elf::section&) = default;
+
+      /**
        * Add a data segment descriptor to the section if the file is writable.
        *
        * These are following data types (from elf(3)):
