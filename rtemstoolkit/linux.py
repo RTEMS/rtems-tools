@@ -33,6 +33,7 @@
 # RTEMS project's spec files.
 #
 
+import multiprocessing
 import pprint
 import os
 import platform
@@ -42,28 +43,14 @@ import platform
 # If there is a better way to let us know.
 #
 try:
-    from . import execute
     from . import path
 except (ValueError, SystemError):
-    import execute
     import path
 
 def load():
     uname = os.uname()
     smp_mflags = ''
-    processors = '/bin/grep processor /proc/cpuinfo'
-    e = execute.capture_execution()
-    exit_code, proc, output = e.shell(processors)
-    ncpus = 0
-    if exit_code == 0:
-        try:
-            for l in output.split('\n'):
-                count = l.split(':')[1].strip()
-                if int(count) > ncpus:
-                    ncpus = int(count)
-        except:
-            pass
-    ncpus = str(ncpus + 1)
+    ncpus = str(multiprocessing.cpu_count())
     if uname[4].startswith('arm'):
         cpu = 'arm'
     else:
@@ -89,8 +76,9 @@ def load():
     try:
         distro = platform.dist()[0]
         distro_ver = float(platform.dist()[1])
-    except ValueError:
+    except (AttributeError, ValueError):
         # Non LSB distro found, use failover"
+        distro = ''
         pass
 
     # Non LSB - fail over to issue
