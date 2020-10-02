@@ -726,7 +726,7 @@ rap_show (rld::path::paths& raps,
     {
       r.load ();
     }
-    catch (rld::error re)
+    catch (rld::error& re)
     {
       std::cout << " error: "
                 << re.where << ": " << re.what
@@ -1280,14 +1280,14 @@ main (int argc, char* argv[])
     if (expand)
       rap_expander (raps, warnings);
   }
-  catch (rld::error re)
+  catch (rld::error& re)
   {
     std::cerr << "error: "
               << re.where << ": " << re.what
               << std::endl;
     ec = 10;
   }
-  catch (std::exception e)
+  catch (std::exception& e)
   {
     int   status;
     char* realname;

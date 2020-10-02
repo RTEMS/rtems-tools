@@ -586,14 +586,14 @@ main (int argc, char* argv[])
       }
     }
   }
-  catch (rld::error re)
+  catch (rld::error& re)
   {
     std::cerr << "error: "
               << re.where << ": " << re.what
               << std::endl;
     ec = 10;
   }
-  catch (std::exception e)
+  catch (std::exception& e)
   {
     int   status;
     char* realname;
