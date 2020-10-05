@@ -194,7 +194,7 @@ class report(object):
                         status = 'passed'
                         self.passed += 1
                 elif fatal:
-                    status = 'fatal error'
+                    status = 'fatal-error'
                     self.failed += 1
                 elif timeout:
                     status = 'timeout'

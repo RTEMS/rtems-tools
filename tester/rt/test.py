@@ -235,7 +235,7 @@ def generate_json_report(args, reports, start_time, end_time,
     json_log['summary']['indeterminate_count'] = reports.indeterminate
     json_log['summary']['benchmark_count'] = reports.benchmark
     json_log['summary']['timeout_count'] = reports.timeouts
-    json_log['summary']['too_long_count'] = reports.too_long
+    json_log['summary']['test-too-long_count'] = reports.test_too_long
     json_log['summary']['invalid_count'] = reports.invalids
     json_log['summary']['wrong-version_count'] = reports.wrong_version
     json_log['summary']['wrong-build_count'] = reports.wrong_build
@@ -247,7 +247,7 @@ def generate_json_report(args, reports, start_time, end_time,
 
     result_types = [
             'failed', 'user-input', 'expected-fail', 'indeterminate',
-            'benchmark', 'timeout', 'too-long', 'invalid', 'wrong-version',
+            'benchmark', 'timeout', 'test-too-long', 'invalid', 'wrong-version',
             'wrong-build', 'wrong-tools'
     ]
     json_results = {}
@@ -257,6 +257,9 @@ def generate_json_report(args, reports, start_time, end_time,
     # collate results for JSON log
     for name in reports.results:
         result_type = reports.results[name]['result']
+        # map fatal-error on to failed since the report adds both to the failed count
+        if result_type == "fatal-error":
+            result_type = "failed"
         test_parts = name.split("/")
         test_category = test_parts[-2]
         test_name = test_parts[-1]
@@ -305,7 +308,7 @@ def generate_junit_report(args, reports, start_time, end_time,
     junit_prop['indeterminate_count'] = reports.indeterminate
     junit_prop['benchmark_count'] = reports.benchmark
     junit_prop['timeout_count'] = reports.timeouts
-    junit_prop['too_long_count'] = reports.too_long
+    junit_prop['test-too-long_count'] = reports.test_too_long
     junit_prop['invalid_count'] = reports.invalids
     junit_prop['wrong-version_count'] = reports.wrong_version
     junit_prop['wrong-build_count'] = reports.wrong_build
