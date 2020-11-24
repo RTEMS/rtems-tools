@@ -321,6 +321,7 @@ class report(object):
         if self.failed:
             l += ['Failures:']
             l += show_state(self.results, 'failed', self.name_max_len)
+            l += show_state(self.results, 'fatal-error', self.name_max_len)
         if self.user_input:
             l += ['User Input:']
             l += show_state(self.results, 'user-input', self.name_max_len)
