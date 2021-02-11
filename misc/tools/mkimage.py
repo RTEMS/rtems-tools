@@ -121,6 +121,16 @@ outputfile.seek(struct.size);
 
 inputcrc = 0;
 
+if options.type in 'script':
+
+    filler_struct = Struct("!II")
+    inputblock = filler_struct.pack(inputsize, 0)
+
+    inputcrc = binascii.crc32(inputblock, inputcrc)
+    outputfile.write(inputblock)
+
+    inputsize = inputsize + 8
+
 while True:
         inputblock = inputfile.read(4096)
         if not inputblock: break
