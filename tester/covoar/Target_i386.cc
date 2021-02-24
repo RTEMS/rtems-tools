@@ -16,39 +16,39 @@ namespace Target {
   Target_i386::Target_i386( std::string targetName ):
     TargetBase( targetName )
   {
-    branchInstructions.push_back("ja");
-    branchInstructions.push_back("jb");
-    branchInstructions.push_back("jc");
-    branchInstructions.push_back("je");
-    branchInstructions.push_back("jg");
-    branchInstructions.push_back("jl");
-    branchInstructions.push_back("jo");
-    branchInstructions.push_back("jp");
-    branchInstructions.push_back("js");
-    branchInstructions.push_back("jz");
-    branchInstructions.push_back("jae");
-    branchInstructions.push_back("jbe");
-    branchInstructions.push_back("jge");
-    branchInstructions.push_back("jle");
-    branchInstructions.push_back("jne");
-    branchInstructions.push_back("jna");
-    branchInstructions.push_back("jnb");
-    branchInstructions.push_back("jnc");
-    branchInstructions.push_back("jne");
-    branchInstructions.push_back("jng");
-    branchInstructions.push_back("jnl");
-    branchInstructions.push_back("jno");
-    branchInstructions.push_back("jnp");
-    branchInstructions.push_back("jns");
-    branchInstructions.push_back("jnz");
-    branchInstructions.push_back("jpe");
-    branchInstructions.push_back("jpo");
-    branchInstructions.push_back("jnbe");
-    branchInstructions.push_back("jnae");
-    branchInstructions.push_back("jnle");
-    branchInstructions.push_back("jnge");
+    conditionalBranchInstructions.push_back("ja");
+    conditionalBranchInstructions.push_back("jb");
+    conditionalBranchInstructions.push_back("jc");
+    conditionalBranchInstructions.push_back("je");
+    conditionalBranchInstructions.push_back("jg");
+    conditionalBranchInstructions.push_back("jl");
+    conditionalBranchInstructions.push_back("jo");
+    conditionalBranchInstructions.push_back("jp");
+    conditionalBranchInstructions.push_back("js");
+    conditionalBranchInstructions.push_back("jz");
+    conditionalBranchInstructions.push_back("jae");
+    conditionalBranchInstructions.push_back("jbe");
+    conditionalBranchInstructions.push_back("jge");
+    conditionalBranchInstructions.push_back("jle");
+    conditionalBranchInstructions.push_back("jne");
+    conditionalBranchInstructions.push_back("jna");
+    conditionalBranchInstructions.push_back("jnb");
+    conditionalBranchInstructions.push_back("jnc");
+    conditionalBranchInstructions.push_back("jne");
+    conditionalBranchInstructions.push_back("jng");
+    conditionalBranchInstructions.push_back("jnl");
+    conditionalBranchInstructions.push_back("jno");
+    conditionalBranchInstructions.push_back("jnp");
+    conditionalBranchInstructions.push_back("jns");
+    conditionalBranchInstructions.push_back("jnz");
+    conditionalBranchInstructions.push_back("jpe");
+    conditionalBranchInstructions.push_back("jpo");
+    conditionalBranchInstructions.push_back("jnbe");
+    conditionalBranchInstructions.push_back("jnae");
+    conditionalBranchInstructions.push_back("jnle");
+    conditionalBranchInstructions.push_back("jnge");
 
-    branchInstructions.sort();
+    conditionalBranchInstructions.sort();
 
   }
 

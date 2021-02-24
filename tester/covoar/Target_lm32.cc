@@ -17,12 +17,12 @@ namespace Target {
   Target_lm32::Target_lm32( std::string targetName ):
     TargetBase( targetName )
   {
-    branchInstructions.push_back("be");
-    branchInstructions.push_back("bge");
-    branchInstructions.push_back("bgeu");
-    branchInstructions.push_back("bg");
-    branchInstructions.push_back("bgu");
-    branchInstructions.push_back("bne");
+    conditionalBranchInstructions.push_back("be");
+    conditionalBranchInstructions.push_back("bge");
+    conditionalBranchInstructions.push_back("bgeu");
+    conditionalBranchInstructions.push_back("bg");
+    conditionalBranchInstructions.push_back("bgu");
+    conditionalBranchInstructions.push_back("bne");
   }
 
   Target_lm32::~Target_lm32()

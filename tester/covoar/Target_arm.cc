@@ -19,24 +19,24 @@ namespace Target {
   Target_arm::Target_arm( std::string targetName ):
     TargetBase( targetName )
   {
-    branchInstructions.push_back("bcc");
-    branchInstructions.push_back("bcs");
-    branchInstructions.push_back("beq");
-    branchInstructions.push_back("bge");
-    branchInstructions.push_back("bgt");
-    branchInstructions.push_back("bhi");
-    branchInstructions.push_back("bl-hi");
-    branchInstructions.push_back("bl-lo");
-    branchInstructions.push_back("ble");
-    branchInstructions.push_back("bls");
-    branchInstructions.push_back("blt");
-    branchInstructions.push_back("bmi");
-    branchInstructions.push_back("bne");
-    branchInstructions.push_back("bpl");
-    branchInstructions.push_back("bvc");
-    branchInstructions.push_back("bvs");
+    conditionalBranchInstructions.push_back("bcc");
+    conditionalBranchInstructions.push_back("bcs");
+    conditionalBranchInstructions.push_back("beq");
+    conditionalBranchInstructions.push_back("bge");
+    conditionalBranchInstructions.push_back("bgt");
+    conditionalBranchInstructions.push_back("bhi");
+    conditionalBranchInstructions.push_back("bl-hi");
+    conditionalBranchInstructions.push_back("bl-lo");
+    conditionalBranchInstructions.push_back("ble");
+    conditionalBranchInstructions.push_back("bls");
+    conditionalBranchInstructions.push_back("blt");
+    conditionalBranchInstructions.push_back("bmi");
+    conditionalBranchInstructions.push_back("bne");
+    conditionalBranchInstructions.push_back("bpl");
+    conditionalBranchInstructions.push_back("bvc");
+    conditionalBranchInstructions.push_back("bvs");
 
-    branchInstructions.sort();
+    conditionalBranchInstructions.sort();
 
   }
 

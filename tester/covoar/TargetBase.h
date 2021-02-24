@@ -135,10 +135,10 @@ namespace Target {
     bool objdumpHasTabs;
 
     /*!
-     * This member variable is an array of all branch instructions
+     * This member variable is an array of all conditional branch instructions
      * for this target.
      */
-    std::list <std::string> branchInstructions;
+    std::list <std::string> conditionalBranchInstructions;
 
   private:
 

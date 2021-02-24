@@ -15,40 +15,40 @@ namespace Target {
   Target_sparc::Target_sparc( std::string targetName ):
     TargetBase( targetName )
   {
-    branchInstructions.push_back("bn");
-    branchInstructions.push_back("bn,a");
-    branchInstructions.push_back("be");
-    branchInstructions.push_back("be,a");
-    branchInstructions.push_back("ble");
-    branchInstructions.push_back("ble,a");
-    branchInstructions.push_back("bl");
-    branchInstructions.push_back("bl,a");
-    branchInstructions.push_back("bleu");
-    branchInstructions.push_back("bleu,a");
-    branchInstructions.push_back("bcs");
-    branchInstructions.push_back("bcs,a");
-    branchInstructions.push_back("bneg");
-    branchInstructions.push_back("bneg,a");
-    branchInstructions.push_back("bvs");
-    branchInstructions.push_back("bvs,a");
-    branchInstructions.push_back("ba");
-    branchInstructions.push_back("ba,a");
-    branchInstructions.push_back("bne");
-    branchInstructions.push_back("bne,a");
-    branchInstructions.push_back("bg");
-    branchInstructions.push_back("bg,a");
-    branchInstructions.push_back("bge");
-    branchInstructions.push_back("bge,a");
-    branchInstructions.push_back("bgu");
-    branchInstructions.push_back("bgu,a");
-    branchInstructions.push_back("bcc");
-    branchInstructions.push_back("bcc,a");
-    branchInstructions.push_back("bpos");
-    branchInstructions.push_back("bpos,a");
-    branchInstructions.push_back("bvc");
-    branchInstructions.push_back("bvc,a");
+    conditionalBranchInstructions.push_back("bn");
+    conditionalBranchInstructions.push_back("bn,a");
+    conditionalBranchInstructions.push_back("be");
+    conditionalBranchInstructions.push_back("be,a");
+    conditionalBranchInstructions.push_back("ble");
+    conditionalBranchInstructions.push_back("ble,a");
+    conditionalBranchInstructions.push_back("bl");
+    conditionalBranchInstructions.push_back("bl,a");
+    conditionalBranchInstructions.push_back("bleu");
+    conditionalBranchInstructions.push_back("bleu,a");
+    conditionalBranchInstructions.push_back("bcs");
+    conditionalBranchInstructions.push_back("bcs,a");
+    conditionalBranchInstructions.push_back("bneg");
+    conditionalBranchInstructions.push_back("bneg,a");
+    conditionalBranchInstructions.push_back("bvs");
+    conditionalBranchInstructions.push_back("bvs,a");
+    conditionalBranchInstructions.push_back("ba");
+    conditionalBranchInstructions.push_back("ba,a");
+    conditionalBranchInstructions.push_back("bne");
+    conditionalBranchInstructions.push_back("bne,a");
+    conditionalBranchInstructions.push_back("bg");
+    conditionalBranchInstructions.push_back("bg,a");
+    conditionalBranchInstructions.push_back("bge");
+    conditionalBranchInstructions.push_back("bge,a");
+    conditionalBranchInstructions.push_back("bgu");
+    conditionalBranchInstructions.push_back("bgu,a");
+    conditionalBranchInstructions.push_back("bcc");
+    conditionalBranchInstructions.push_back("bcc,a");
+    conditionalBranchInstructions.push_back("bpos");
+    conditionalBranchInstructions.push_back("bpos,a");
+    conditionalBranchInstructions.push_back("bvc");
+    conditionalBranchInstructions.push_back("bvc,a");
   
-    branchInstructions.sort();    
+    conditionalBranchInstructions.sort();
   }
 
   Target_sparc::~Target_sparc()

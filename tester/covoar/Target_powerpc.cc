@@ -21,36 +21,36 @@ namespace Target {
     // bl is actually branch and link which is a call
     // branchInstructions.push_back("b");
     // branchInstructions.push_back("ba");
-    branchInstructions.push_back("beq");
-    branchInstructions.push_back("beq+");
-    branchInstructions.push_back("beq-");
-    branchInstructions.push_back("bne");
-    branchInstructions.push_back("bne+");
-    branchInstructions.push_back("bne-");
-    branchInstructions.push_back("bge");
-    branchInstructions.push_back("bge+");
-    branchInstructions.push_back("bge-");
-    branchInstructions.push_back("bgt");
-    branchInstructions.push_back("bgt+");
-    branchInstructions.push_back("bgt-");
-    branchInstructions.push_back("ble");
-    branchInstructions.push_back("ble+");
-    branchInstructions.push_back("ble-");
-    branchInstructions.push_back("blt");
-    branchInstructions.push_back("blt+");
-    branchInstructions.push_back("blt-");
-    branchInstructions.push_back("bla");
-    branchInstructions.push_back("bc");
-    branchInstructions.push_back("bca");
-    branchInstructions.push_back("bcl");
-    branchInstructions.push_back("bcla");
-    branchInstructions.push_back("bcctr");
-    branchInstructions.push_back("bcctrl");
-    branchInstructions.push_back("bclr");
-    branchInstructions.push_back("bclrl");
+    conditionalBranchInstructions.push_back("beq");
+    conditionalBranchInstructions.push_back("beq+");
+    conditionalBranchInstructions.push_back("beq-");
+    conditionalBranchInstructions.push_back("bne");
+    conditionalBranchInstructions.push_back("bne+");
+    conditionalBranchInstructions.push_back("bne-");
+    conditionalBranchInstructions.push_back("bge");
+    conditionalBranchInstructions.push_back("bge+");
+    conditionalBranchInstructions.push_back("bge-");
+    conditionalBranchInstructions.push_back("bgt");
+    conditionalBranchInstructions.push_back("bgt+");
+    conditionalBranchInstructions.push_back("bgt-");
+    conditionalBranchInstructions.push_back("ble");
+    conditionalBranchInstructions.push_back("ble+");
+    conditionalBranchInstructions.push_back("ble-");
+    conditionalBranchInstructions.push_back("blt");
+    conditionalBranchInstructions.push_back("blt+");
+    conditionalBranchInstructions.push_back("blt-");
+    conditionalBranchInstructions.push_back("bla");
+    conditionalBranchInstructions.push_back("bc");
+    conditionalBranchInstructions.push_back("bca");
+    conditionalBranchInstructions.push_back("bcl");
+    conditionalBranchInstructions.push_back("bcla");
+    conditionalBranchInstructions.push_back("bcctr");
+    conditionalBranchInstructions.push_back("bcctrl");
+    conditionalBranchInstructions.push_back("bclr");
+    conditionalBranchInstructions.push_back("bclrl");
 
 
-    branchInstructions.sort();
+    conditionalBranchInstructions.sort();
   }
 
   Target_powerpc::~Target_powerpc()

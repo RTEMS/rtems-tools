@@ -66,15 +66,19 @@ namespace Target {
   {
     std::list <std::string>::iterator i;
 
-    if (branchInstructions.empty()) {
+    if (conditionalBranchInstructions.empty()) {
       throw rld::error(
         "DETERMINE BRANCH INSTRUCTIONS FOR THIS ARCHITECTURE! -- fix me",
         "TargetBase::isBranch"
       );
     }
 
-    i = find(branchInstructions.begin(), branchInstructions.end(), instruction);
-    if ( i  == branchInstructions.end() )
+    i = find(
+      conditionalBranchInstructions.begin(),
+      conditionalBranchInstructions.end(),
+      instruction
+    );
+    if ( i  == conditionalBranchInstructions.end() )
       return false;
 
     return true;

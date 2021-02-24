@@ -43,18 +43,18 @@ namespace Target {
   Target_riscv::Target_riscv( std::string targetName ):
     TargetBase( targetName )
   {
-    branchInstructions.push_back("beqz");
-    branchInstructions.push_back("bnez");
-    branchInstructions.push_back("blez");
-    branchInstructions.push_back("bgez");
-    branchInstructions.push_back("bltz");
-    branchInstructions.push_back("bgt");
-    branchInstructions.push_back("bgtz");
-    branchInstructions.push_back("ble");
-    branchInstructions.push_back("bgtu");
-    branchInstructions.push_back("bleu");
+    conditionalBranchInstructions.push_back("beqz");
+    conditionalBranchInstructions.push_back("bnez");
+    conditionalBranchInstructions.push_back("blez");
+    conditionalBranchInstructions.push_back("bgez");
+    conditionalBranchInstructions.push_back("bltz");
+    conditionalBranchInstructions.push_back("bgt");
+    conditionalBranchInstructions.push_back("bgtz");
+    conditionalBranchInstructions.push_back("ble");
+    conditionalBranchInstructions.push_back("bgtu");
+    conditionalBranchInstructions.push_back("bleu");
 
-    branchInstructions.sort();
+    conditionalBranchInstructions.sort();
    }
 
   Target_riscv::~Target_riscv()
