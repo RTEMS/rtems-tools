@@ -36,6 +36,40 @@ namespace Target {
     conditionalBranchInstructions.push_back("bvc");
     conditionalBranchInstructions.push_back("bvs");
 
+    conditionalBranchInstructions.push_back("beq.n");
+    conditionalBranchInstructions.push_back("bne.n");
+    conditionalBranchInstructions.push_back("bcs.n");
+    conditionalBranchInstructions.push_back("bhs.n");
+    conditionalBranchInstructions.push_back("bcc.n");
+    conditionalBranchInstructions.push_back("blo.n");
+    conditionalBranchInstructions.push_back("bmi.n");
+    conditionalBranchInstructions.push_back("bpl.n");
+    conditionalBranchInstructions.push_back("bvs.n");
+    conditionalBranchInstructions.push_back("bvc.n");
+    conditionalBranchInstructions.push_back("bhi.n");
+    conditionalBranchInstructions.push_back("bls.n");
+    conditionalBranchInstructions.push_back("bge.n");
+    conditionalBranchInstructions.push_back("blt.n");
+    conditionalBranchInstructions.push_back("bgt.n");
+    conditionalBranchInstructions.push_back("ble.n");
+
+    conditionalBranchInstructions.push_back("beq.w");
+    conditionalBranchInstructions.push_back("bne.w");
+    conditionalBranchInstructions.push_back("bcs.w");
+    conditionalBranchInstructions.push_back("bhs.w");
+    conditionalBranchInstructions.push_back("bcc.w");
+    conditionalBranchInstructions.push_back("blo.w");
+    conditionalBranchInstructions.push_back("bmi.w");
+    conditionalBranchInstructions.push_back("bpl.w");
+    conditionalBranchInstructions.push_back("bvs.w");
+    conditionalBranchInstructions.push_back("bvc.w");
+    conditionalBranchInstructions.push_back("bhi.w");
+    conditionalBranchInstructions.push_back("bls.w");
+    conditionalBranchInstructions.push_back("bge.w");
+    conditionalBranchInstructions.push_back("blt.w");
+    conditionalBranchInstructions.push_back("bgt.w");
+    conditionalBranchInstructions.push_back("ble.w");
+
     conditionalBranchInstructions.sort();
 
   }
