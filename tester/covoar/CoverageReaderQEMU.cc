@@ -118,8 +118,15 @@ namespace Coverage {
         // Determine if additional branch information is available.
         if ( (entry->op & branchInfo) != 0 ) {
           uint32_t  a = entry->pc + entry->size - 1;
-            while (!aCoverageMap->isStartOfInstruction(a))
+            while (a > entry->pc && !aCoverageMap->isStartOfInstruction(a))
               a--;
+            if (a == entry->pc && !aCoverageMap->isStartOfInstruction(a)) {
+              // Something went wrong parsing the objdump.
+              std::ostringstream what;
+              what << "Reached beginning of range in " << file
+                << " at " << entry->pc << " with no start of instruction.";
+              throw rld::error( what, "CoverageReaderQEMU::processFile" );
+            }
             if (entry->op & taken) {
               aCoverageMap->setWasTaken( a );
             } else if (entry->op & notTaken) {
