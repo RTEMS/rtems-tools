@@ -87,6 +87,15 @@ namespace Target {
       size = 3;
       return true;
     }
+    if (!strncmp( &line[strlen(line)-28], "lea    0x0(%esi,%eiz,1),%esi", 28)) {
+      // Could be 4 or 7 bytes of padding.
+      if (!strncmp( &line[strlen(line)-32], "00", 2)) {
+        size = 7;
+      } else {
+        size = 4;
+      }
+      return true;
+    }
 
     return false;
   }
