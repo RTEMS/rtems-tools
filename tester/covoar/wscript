@@ -106,6 +106,7 @@ def build(bld):
                         'ReportsText.cc',
                         'ReportsHtml.cc',
                         'SymbolTable.cc',
+                        'Target_aarch64.cc',
                         'Target_arm.cc',
                         'TargetBase.cc',
                         'TargetFactory.cc',

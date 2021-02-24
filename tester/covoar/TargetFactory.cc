@@ -17,6 +17,7 @@
 
 #include "TargetFactory.h"
 
+#include "Target_aarch64.h"
 #include "Target_arm.h"
 #include "Target_i386.h"
 #include "Target_m68k.h"
@@ -51,6 +52,7 @@ namespace Target {
   //! All must be derived from TargetBase.
   //!
   static FactoryEntry_t FactoryTable[] = {
+    { "aarch64", Target_aarch64_Constructor },
     { "arm",     Target_arm_Constructor },
     { "i386",    Target_i386_Constructor },
     { "lm32",    Target_lm32_Constructor },
