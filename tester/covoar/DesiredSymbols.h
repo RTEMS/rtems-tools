@@ -57,7 +57,12 @@ namespace Coverage {
     uint32_t sizeInBytes;
 
     /*!
-     *  This member contains the size in Bytes.
+     *  This member contains the size in Bytes not accounting for NOPs.
+     */
+    uint32_t sizeInBytesWithoutNops;
+
+    /*!
+     *  This member contains the size in instructions.
      */
     uint32_t sizeInInstructions;
 
@@ -100,6 +105,7 @@ namespace Coverage {
        branchesNeverTaken(0),
        branchesNotExecuted(0),
        sizeInBytes(0),
+       sizeInBytesWithoutNops(0),
        sizeInInstructions(0),
        uncoveredBytes(0),
        uncoveredInstructions(0),
@@ -227,7 +233,8 @@ namespace Coverage {
     void createCoverageMap(
       const std::string& exefileName,
       const std::string& symbolName,
-      uint32_t           size
+      uint32_t           size,
+      uint32_t           sizeWithoutNops
     );
 
     /*!

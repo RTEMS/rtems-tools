@@ -127,7 +127,7 @@ namespace Coverage {
   {
     CoverageMaps::iterator cmi = coverageMaps.find( symbolName );
     if ( cmi == coverageMaps.end() )
-      throw rld::error (symbolName, "ExecutableInfo::findCoverageMap");
+      throw CoverageMapNotFoundError(symbolName);
     return *(cmi->second);
   }
 

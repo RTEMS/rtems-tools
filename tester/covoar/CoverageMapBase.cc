@@ -142,6 +142,11 @@ namespace Coverage {
     return size;
   }
 
+  uint32_t CoverageMapBase::getSizeOfRange( size_t index ) const
+  {
+    return Ranges.at(index).size();
+  }
+
   bool CoverageMapBase::getBeginningOfInstruction(
     uint32_t  address,
     uint32_t* beginning
@@ -176,6 +181,11 @@ namespace Coverage {
      * This is broken, do not trust it.
      */
     return Ranges.front().lowAddress;
+  }
+
+  uint32_t CoverageMapBase::getLowAddressOfRange( size_t index ) const
+  {
+    return Ranges.at(index).lowAddress;
   }
 
   bool CoverageMapBase::getRange( uint32_t address, AddressRange& range ) const

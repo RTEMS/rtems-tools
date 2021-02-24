@@ -156,6 +156,8 @@ namespace Coverage {
      */
     int32_t getFirstLowAddress() const;
 
+    uint32_t getLowAddressOfRange( size_t index ) const;
+
     /*!
      *  This method returns true and sets the address range if
      *  the address falls with the bounds of an address range
@@ -176,6 +178,8 @@ namespace Coverage {
      *  @return Returns Size of the address range.
      */
     uint32_t getSize() const;
+
+    uint32_t getSizeOfRange( size_t index ) const;
 
     /*!
      *  This method returns the address of the beginning of the

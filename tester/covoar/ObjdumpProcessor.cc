@@ -32,35 +32,88 @@ namespace Coverage {
     ObjdumpProcessor::objdumpLines_t instructions
   ) {
     // Find the symbol's coverage map.
-    CoverageMapBase& coverageMap = executableInfo->findCoverageMap( symbolName );
+    try {
+      CoverageMapBase& coverageMap = executableInfo->findCoverageMap(symbolName);
 
-    uint32_t lowAddress = coverageMap.getFirstLowAddress();
-    uint32_t size = coverageMap.getSize();
-    uint32_t highAddress = lowAddress + size - 1;
+      uint32_t firstInstructionAddress = UINT32_MAX;
 
-    // If there are NOT already saved instructions, save them.
-    SymbolInformation* symbolInfo = SymbolsToAnalyze->find( symbolName );
-    if (symbolInfo->instructions.empty()) {
-      symbolInfo->sourceFile = executableInfo;
-      symbolInfo->baseAddress = lowAddress;
-      symbolInfo->instructions = instructions;
+      // Find the address of the first instruction.
+      for (auto& line : instructions) {
+        if (line.isInstruction) {
+          firstInstructionAddress = line.address;
+          break;
+        }
+      }
+
+      if (firstInstructionAddress == UINT32_MAX) {
+        std::ostringstream what;
+        what << "Could not find first instruction address for symbol "
+          << symbolName << " in " << executableInfo->getFileName();
+        throw rld::error( what, "Coverage::finalizeSymbol" );
+      }
+
+      int rangeIndex;
+      uint32_t lowAddress = UINT32_MAX;
+      for (rangeIndex = 0;
+           firstInstructionAddress != lowAddress;
+           rangeIndex++) {
+        lowAddress = coverageMap.getLowAddressOfRange(rangeIndex);
+      }
+
+      uint32_t sizeWithoutNops = coverageMap.getSizeOfRange(rangeIndex);
+      uint32_t size = sizeWithoutNops;
+      uint32_t highAddress = lowAddress + size - 1;
+      uint32_t computedHighAddress = highAddress;
+
+      // Find the high address as reported by the address of the last NOP
+      // instruction. This ensures that NOPs get marked as executed later.
+      for (auto instruction = instructions.rbegin();
+          instruction != instructions.rend();
+          instruction++) {
+        if (instruction->isInstruction) {
+          if (instruction->isNop) {
+            computedHighAddress = instruction->address + instruction->nopSize;
+          }
+          break;
+        }
+      }
+
+      if (highAddress != computedHighAddress) {
+        std::cerr << "Function's high address differs between DWARF and objdump: "
+          << symbolName << " (0x" << std::hex << highAddress << " and 0x"
+          << computedHighAddress - 1 << ")" << std::dec << std::endl;
+        size = computedHighAddress - lowAddress;
+      }
+
+      // If there are NOT already saved instructions, save them.
+      SymbolInformation* symbolInfo = SymbolsToAnalyze->find( symbolName );
+      if (symbolInfo->instructions.empty()) {
+        symbolInfo->sourceFile = executableInfo;
+        symbolInfo->baseAddress = lowAddress;
+        symbolInfo->instructions = instructions;
+      }
+
+      // Add the symbol to this executable's symbol table.
+      SymbolTable* theSymbolTable = executableInfo->getSymbolTable();
+      theSymbolTable->addSymbol(
+        symbolName, lowAddress, highAddress - lowAddress + 1
+      );
+
+      // Mark the start of each instruction in the coverage map.
+      for (auto& instruction : instructions) {
+        coverageMap.setIsStartOfInstruction( instruction.address );
+      }
+
+      // Create a unified coverage map for the symbol.
+      SymbolsToAnalyze->createCoverageMap(
+        executableInfo->getFileName().c_str(), symbolName, size, sizeWithoutNops
+      );
+    } catch (const ExecutableInfo::CoverageMapNotFoundError& e) {
+      // Allow execution to continue even if a coverage map could not be
+      // found.
+      std::cerr << "Coverage map not found for symbol " << e.what()
+        << std::endl;
     }
-
-    // Add the symbol to this executable's symbol table.
-    SymbolTable* theSymbolTable = executableInfo->getSymbolTable();
-    theSymbolTable->addSymbol(
-      symbolName, lowAddress, highAddress - lowAddress + 1
-    );
-
-    // Mark the start of each instruction in the coverage map.
-    for (auto& instruction : instructions) {
-      coverageMap.setIsStartOfInstruction( instruction.address );
-    }
-
-    // Create a unified coverage map for the symbol.
-    SymbolsToAnalyze->createCoverageMap(
-      executableInfo->getFileName().c_str(), symbolName, size
-    );
   }
 
   ObjdumpProcessor::ObjdumpProcessor()

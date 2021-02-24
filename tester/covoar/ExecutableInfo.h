@@ -29,6 +29,11 @@ namespace Coverage {
 
   public:
 
+    class CoverageMapNotFoundError : public std::runtime_error {
+      /* Use the base class constructors. */
+      using std::runtime_error::runtime_error;
+    };
+
     /*!
      *  This method constructs an ExecutableInfo instance.
      *

@@ -142,7 +142,7 @@ namespace Coverage {
       CoverageMapBase* theCoverageMap = s.second.unifiedCoverageMap;
       if (theCoverageMap)
       {
-        // Increment the total sizeInBytes byt the bytes in the symbol
+        // Increment the total sizeInBytes by the bytes in the symbol
         stats.sizeInBytes += s.second.stats.sizeInBytes;
 
         // Now scan through the coverage map of this symbol.
@@ -202,6 +202,26 @@ namespace Coverage {
         uint32_t count;
 
         // Mark NOPs as executed
+        a = s.second.stats.sizeInBytes - 1;
+        count = 0;
+        while (a > 0) {
+          if (theCoverageMap->isStartOfInstruction( a )) {
+            break;
+          }
+
+          count++;
+
+          if (theCoverageMap->isNop( a )) {
+            for (la = a; la < (a + count); la++) {
+              theCoverageMap->setWasExecuted( la );
+            }
+
+            count = 0;
+          }
+
+          a--;
+        }
+
         endAddress = s.second.stats.sizeInBytes - 1;
         a = 0;
         while (a < endAddress) {
@@ -223,12 +243,13 @@ namespace Coverage {
               ha++;
               if ( ha >= endAddress )
                 break;
-            } while ( !theCoverageMap->isStartOfInstruction( ha ) );
+            } while ( !theCoverageMap->isStartOfInstruction( ha ) ||
+                      theCoverageMap->isNop( ha ) );
           a = ha;
         }
 
         // Now scan through the coverage map of this symbol.
-        endAddress = s.second.stats.sizeInBytes - 1;
+        endAddress = s.second.stats.sizeInBytesWithoutNops - 1;
         a = 0;
         while (a <= endAddress) {
           // If an address was NOT executed, find consecutive unexecuted
@@ -316,7 +337,8 @@ namespace Coverage {
   void DesiredSymbols::createCoverageMap(
     const std::string& exefileName,
     const std::string& symbolName,
-    uint32_t           size
+    uint32_t           size,
+    uint32_t           sizeWithoutNops
   )
   {
     CoverageMapBase* aCoverageMap;
@@ -354,9 +376,10 @@ namespace Coverage {
                   << '/' << size << ')'
                   << std::endl;
 
-        if ( itr->second.stats.sizeInBytes < size )
+        if ( itr->second.stats.sizeInBytes < size ) {
           itr->second.stats.sizeInBytes = size;
-        else
+          itr->second.stats.sizeInBytesWithoutNops = sizeWithoutNops;
+        } else
           size = itr->second.stats.sizeInBytes;
       }
     }
@@ -376,6 +399,7 @@ namespace Coverage {
         );
       itr->second.unifiedCoverageMap = aCoverageMap;
       itr->second.stats.sizeInBytes = size;
+      itr->second.stats.sizeInBytesWithoutNops = sizeWithoutNops;
     }
   }
 
@@ -479,7 +503,7 @@ namespace Coverage {
     // are the same size.
     // Changed from ERROR msg to INFO, because size mismatch is not
     // treated as error anymore. 2015-07-20
-    uint32_t dMapSize = sinfo.stats.sizeInBytes;
+    uint32_t dMapSize = sinfo.stats.sizeInBytesWithoutNops;
     uint32_t sBaseAddress = sourceCoverageMap->getFirstLowAddress();
     uint32_t sMapSize = sourceCoverageMap->getSize();
     if (dMapSize != 0 && dMapSize != sMapSize) {
