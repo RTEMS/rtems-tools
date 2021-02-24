@@ -2167,12 +2167,11 @@ namespace rld
         r = cu.get_source (addr, line);
         if (r)
         {
-          if (match.valid () &&
-              (match.is_an_end_sequence () || !!line.is_an_end_sequence ()))
+          if (!match.valid ())
           {
             match = line;
           }
-          else
+          else if (match.is_an_end_sequence () || !line.is_an_end_sequence ())
           {
             match = line;
           }
