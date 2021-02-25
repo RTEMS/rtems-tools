@@ -161,6 +161,24 @@ void  ReportsBase::CloseSymbolSummaryFile(
   CloseFile( aFile );
 }
 
+std::string expand_tabs(const std::string& in) {
+  std::string expanded = "";
+  int i = 0;
+
+  for (char c : in) {
+    if (c == '\t') {
+      int num_tabs = 4 - (i % 4);
+      expanded.append(num_tabs, ' ');
+      i += num_tabs;
+    } else {
+      expanded += c;
+      i++;
+    }
+  }
+
+  return expanded;
+}
+
 /*
  *  Write annotated report
  */
@@ -237,7 +255,8 @@ void ReportsBase::WriteAnnotatedReport(
         }
       }
 
-      snprintf( textLine, LINE_LENGTH, "%-70s", itr->line.c_str() );
+      std::string textLineWithoutTabs = expand_tabs(itr->line);
+      snprintf( textLine, LINE_LENGTH, "%-90s", textLineWithoutTabs.c_str() );
       line = textLine + annotation;
 
       PutAnnotatedLine( aFile, state, line, id);

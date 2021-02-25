@@ -370,6 +370,11 @@ namespace Coverage {
         break;
       }
 
+      // Remove any extra line break
+      if (line.back() == '\n') {
+        line.erase(line.end() - 1);
+      }
+
       lineInfo.line          = line;
       lineInfo.address       = 0xffffffff;
       lineInfo.isInstruction = false;

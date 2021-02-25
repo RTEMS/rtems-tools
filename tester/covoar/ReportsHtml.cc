@@ -89,7 +89,7 @@ namespace Coverage {
     PRINT_ITEM( "Branch Report",        "branch" );
     PRINT_ITEM( "Annotated Assembly",   "annotated" );
     PRINT_ITEM( "Symbol Summary",       "symbolSummary" );
-    PRINT_ITEM( "Size Report",          "sizes" );
+    PRINT_ITEM( "Uncovered Range Size Report",          "sizes" );
 
     PRINT_TEXT_ITEM( "Explanations Not Found", "ExplanationsNotFound.txt" );
 
@@ -176,7 +176,7 @@ namespace Coverage {
       // Put header information into the file
       fprintf(
         aFile,
-        "<title>Branch Report</title\n"
+        "<title>Branch Report</title>\n"
         "<div class=\"heading-title\">"
       );
 
@@ -321,7 +321,7 @@ namespace Coverage {
     // Put header information into the file
     fprintf(
       aFile,
-      "<title>Size Report</title>\n"
+      "<title>Uncovered Range Size Report</title>\n"
         "<div class=\"heading-title\">"
     );
 
@@ -334,7 +334,7 @@ namespace Coverage {
 
     fprintf(
       aFile,
-      "Size Report</div>\n"
+      "Uncovered Range Size Report</div>\n"
        "<div class =\"datetime\">%s</div>\n"
       "<body>\n"
       "<table class=\"covoar table-autosort:0 table-autofilter table-stripeclass:covoar-tr-odd"
@@ -490,7 +490,7 @@ namespace Coverage {
     FILE* report
   )
   {
-    if ( BranchInfoAvailable )
+    if (BranchInfoAvailable && SymbolsToAnalyze->getNumberBranchesFound() != 0)
       fprintf( report, "All branch paths taken.\n" );
     else
       fprintf( report, "No branch information found.\n" );
@@ -861,89 +861,106 @@ namespace Coverage {
       symbol->first.c_str()
     );
 
-    // Total Size in Bytes
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-      symbol->second.stats.sizeInBytes
-    );
-
-    // Total Size in Instructions
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-      symbol->second.stats.sizeInInstructions
-    );
-
-    // Total Uncovered Ranges
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-      symbol->second.stats.uncoveredRanges
-    );
-
-    // Uncovered Size in Bytes
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-      symbol->second.stats.uncoveredBytes
-    );
-
-    // Uncovered Size in Instructions
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-       symbol->second.stats.uncoveredInstructions
-    );
-
-    // Total number of branches
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-      symbol->second.stats.branchesNotExecuted +  symbol->second.stats.branchesExecuted
-    );
-
-    // Total Always Taken
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-      symbol->second.stats.branchesAlwaysTaken
-    );
-
-    // Total Never Taken
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-      symbol->second.stats.branchesNeverTaken
-     );
-
-    // % Uncovered Instructions
-    if ( symbol->second.stats.sizeInInstructions == 0 )
+    if (symbol->second.stats.sizeInBytes == 0) {
+      // The symbol has never been seen. Write "unknown" for all columns.
       fprintf(
         report,
-        "<td class=\"covoar-td\" align=\"center\">100.00</td>\n"
+        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
+        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
+        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
+        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
+        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
+        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
+        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
+        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
+        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
+        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
       );
-    else
+    } else {
+      // Total Size in Bytes
       fprintf(
         report,
-        "<td class=\"covoar-td\" align=\"center\">%.2f</td>\n",
-        (symbol->second.stats.uncoveredInstructions*100.0)/
-         symbol->second.stats.sizeInInstructions
+        "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
+        symbol->second.stats.sizeInBytes
       );
 
-    // % Uncovered Bytes
-    if ( symbol->second.stats.sizeInBytes == 0 )
+      // Total Size in Instructions
       fprintf(
         report,
-        "<td class=\"covoar-td\" align=\"center\">100.00</td>\n"
+        "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
+        symbol->second.stats.sizeInInstructions
       );
-    else
+
+      // Total Uncovered Ranges
       fprintf(
         report,
-        "<td class=\"covoar-td\" align=\"center\">%.2f</td>\n",
-        (symbol->second.stats.uncoveredBytes*100.0)/
-         symbol->second.stats.sizeInBytes
+        "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
+        symbol->second.stats.uncoveredRanges
       );
+
+      // Uncovered Size in Bytes
+      fprintf(
+        report,
+        "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
+        symbol->second.stats.uncoveredBytes
+      );
+
+      // Uncovered Size in Instructions
+      fprintf(
+        report,
+        "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
+        symbol->second.stats.uncoveredInstructions
+      );
+
+      // Total number of branches
+      fprintf(
+        report,
+        "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
+        symbol->second.stats.branchesNotExecuted +  symbol->second.stats.branchesExecuted
+      );
+
+      // Total Always Taken
+      fprintf(
+        report,
+        "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
+        symbol->second.stats.branchesAlwaysTaken
+      );
+
+      // Total Never Taken
+      fprintf(
+        report,
+        "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
+        symbol->second.stats.branchesNeverTaken
+      );
+
+      // % Uncovered Instructions
+      if ( symbol->second.stats.sizeInInstructions == 0 )
+        fprintf(
+          report,
+          "<td class=\"covoar-td\" align=\"center\">100.00</td>\n"
+        );
+      else
+        fprintf(
+          report,
+          "<td class=\"covoar-td\" align=\"center\">%.2f</td>\n",
+          (symbol->second.stats.uncoveredInstructions*100.0)/
+           symbol->second.stats.sizeInInstructions
+        );
+
+      // % Uncovered Bytes
+      if ( symbol->second.stats.sizeInBytes == 0 )
+        fprintf(
+          report,
+          "<td class=\"covoar-td\" align=\"center\">100.00</td>\n"
+        );
+      else
+        fprintf(
+          report,
+          "<td class=\"covoar-td\" align=\"center\">%.2f</td>\n",
+          (symbol->second.stats.uncoveredBytes*100.0)/
+           symbol->second.stats.sizeInBytes
+        );
+    }
 
     fprintf( report, "</tr>\n");
     return true;

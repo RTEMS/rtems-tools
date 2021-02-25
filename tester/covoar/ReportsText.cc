@@ -52,7 +52,7 @@ bool ReportsText::PutNoBranchInfo(
   FILE*           report
 )
 {
-  if ( BranchInfoAvailable )
+  if ( BranchInfoAvailable && SymbolsToAnalyze->getNumberBranchesFound() != 0 )
     fprintf( report, "All branch paths taken.\n" );
   else
     fprintf( report, "No branch information found.\n" );
@@ -235,38 +235,52 @@ bool  ReportsText::PutSymbolSummaryLine(
   float uncoveredBytes;
   float uncoveredInstructions;
 
-  if ( symbol->second.stats.sizeInInstructions == 0 )
-    uncoveredInstructions = 0;
-  else
-    uncoveredInstructions = (symbol->second.stats.uncoveredInstructions*100.0)/
-                            symbol->second.stats.sizeInInstructions;
+  if (symbol->second.stats.sizeInBytes == 0) {
+    fprintf(
+      report,
+      "============================================\n"
+      "Symbol                            : %s\n"
+      "          *** NEVER REFERENCED ***\n\n"
+      "This symbol was never referenced by an analyzed executable.\n"
+      "Therefore there is no size or disassembly for this symbol.\n"
+      "This could be due to symbol misspelling or lack of a test for\n"
+      "this symbol.\n",
+      symbol->first.c_str()
+    );
+  } else {
+    if ( symbol->second.stats.sizeInInstructions == 0 )
+      uncoveredInstructions = 0;
+    else
+      uncoveredInstructions = (symbol->second.stats.uncoveredInstructions*100.0)/
+                              symbol->second.stats.sizeInInstructions;
 
-  if ( symbol->second.stats.sizeInBytes == 0 )
-    uncoveredBytes = 0;
-  else
-    uncoveredBytes = (symbol->second.stats.uncoveredBytes*100.0)/
-                     symbol->second.stats.sizeInBytes;
+    if ( symbol->second.stats.sizeInBytes == 0 )
+      uncoveredBytes = 0;
+    else
+      uncoveredBytes = (symbol->second.stats.uncoveredBytes*100.0)/
+                       symbol->second.stats.sizeInBytes;
 
-  fprintf(
-    report,
-    "============================================\n"
-    "Symbol                            : %s\n"
-    "Total Size in Bytes               : %d\n"
-    "Total Size in Instructions        : %d\n"
-    "Total number Branches             : %d\n"
-    "Total Always Taken                : %d\n"
-    "Total Never Taken                 : %d\n"
-    "Percentage Uncovered Instructions : %.2f\n"
-    "Percentage Uncovered Bytes        : %.2f\n",
-    symbol->first.c_str(),
-    symbol->second.stats.sizeInBytes,
-    symbol->second.stats.sizeInInstructions,
-    symbol->second.stats.branchesNotExecuted +  symbol->second.stats.branchesExecuted,
-    symbol->second.stats.branchesAlwaysTaken,
-    symbol->second.stats.branchesNeverTaken,
-    uncoveredInstructions,
-    uncoveredBytes
-  );
+    fprintf(
+      report,
+      "============================================\n"
+      "Symbol                            : %s\n"
+      "Total Size in Bytes               : %d\n"
+      "Total Size in Instructions        : %d\n"
+      "Total number Branches             : %d\n"
+      "Total Always Taken                : %d\n"
+      "Total Never Taken                 : %d\n"
+      "Percentage Uncovered Instructions : %.2f\n"
+      "Percentage Uncovered Bytes        : %.2f\n",
+      symbol->first.c_str(),
+      symbol->second.stats.sizeInBytes,
+      symbol->second.stats.sizeInInstructions,
+      symbol->second.stats.branchesNotExecuted +  symbol->second.stats.branchesExecuted,
+      symbol->second.stats.branchesAlwaysTaken,
+      symbol->second.stats.branchesNeverTaken,
+      uncoveredInstructions,
+      uncoveredBytes
+    );
+  }
 
   fprintf(report, "============================================\n");
   return true;

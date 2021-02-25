@@ -121,7 +121,7 @@ class report_gen_html:
 
     def _prepare_head_section(self):
         head_section = '<head>' + os.linesep
-        head_section += ' <title>RTEMS coverage report</title>' + os.linesep
+        head_section += ' <title>RTEMS Coverage Report</title>' + os.linesep
         head_section += ' <style type="text/css">' + os.linesep
         head_section += '  progress[value] {' + os.linesep
         head_section += '    -webkit-appearance: none;' + os.linesep
@@ -129,17 +129,28 @@ class report_gen_html:
         head_section += '    width: 150px;' + os.linesep
         head_section += '    height: 15px;' + os.linesep
         head_section += '  }' + os.linesep
+        head_section += '  table, th, td {' + os.linesep
+        head_section += '    border: 1px solid black;' + os.linesep
+        head_section += '    border-collapse: collapse;' + os.linesep
+        head_section += '  }' + os.linesep
+        head_section += '  td {' + os.linesep
+        head_section += '    text-align:center;' + os.linesep
+        head_section += '  }' + os.linesep
         head_section += ' </style>' + os.linesep
         head_section += '</head>' + os.linesep
         return head_section
 
     def _prepare_index_content(self, partial_reports):
-        header = "<h1> RTEMS coverage analysis report </h1>" + os.linesep
+        header = "<h1> RTEMS Coverage Analysis Report </h1>" + os.linesep
         header += "<h3>Coverage reports by symbols sets:</h3>" + os.linesep
-        table = "<table>" + os.linesep
+        table = "<table class=\"covoar table-autosort:0 table-autofilter table-stripeclass:covoar-tr-odd\">" + os.linesep
+        table += "<thead>" + os.linesep
         table += self._header_row()
-        for symbol_set in partial_reports:
+        table += "</thead>" + os.linesep
+        table += "<tbody>" + os.linesep
+        for symbol_set in sorted(partial_reports.keys()):
             table += self._row(symbol_set, partial_reports[symbol_set])
+        table += "</tbody>" + os.linesep
         table += "</table> </br>"
         timestamp = "Analysis performed on " + datetime.datetime.now().ctime()
         return "<body>\n" + header + table + timestamp + "\n</body>"
