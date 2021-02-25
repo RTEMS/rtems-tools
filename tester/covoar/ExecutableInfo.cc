@@ -82,13 +82,16 @@ namespace Coverage {
       throw;
     }
 
-    debug.end();
-    executable.end();
-    executable.close();
+    // Can't cleanup handles until the destructor because the information is
+    // referenced elsewhere. NOTE: This could cause problems from too many open
+    // file descriptors.
   }
 
   ExecutableInfo::~ExecutableInfo()
   {
+    debug.end();
+    executable.end();
+    executable.close();
   }
 
   void ExecutableInfo::dumpCoverageMaps( void ) {
