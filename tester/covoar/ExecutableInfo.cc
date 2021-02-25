@@ -167,6 +167,16 @@ namespace Coverage {
     CoverageMapBase        *theMap;
     CoverageMaps::iterator  itr;
 
+    if ( lowAddress > highAddress ) {
+      std::ostringstream what;
+      what << "Low address is greater than high address for symbol "
+            << symbolName
+            << " (" << lowAddress
+            << " and " << highAddress
+            << ")";
+      throw rld::error( what, "ExecutableInfo::createCoverageMap" );
+    }
+
     itr = coverageMaps.find( symbolName );
     if ( itr == coverageMaps.end() ) {
       theMap = new CoverageMap( fileName, lowAddress, highAddress );
