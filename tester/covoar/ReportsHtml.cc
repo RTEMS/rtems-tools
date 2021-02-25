@@ -121,8 +121,8 @@ namespace Coverage {
       "<html>\n"
       "<meta http-equiv=\"Content-Language\" content=\"English\" >\n"
       "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=us-ascii\" >\n"
-      "<link rel=\"stylesheet\" type=\"text/css\" href=\"covoar.css\" media=\"screen\" >\n"
-      "<script type=\"text/javascript\" src=\"table.js\"></script>\n"
+      "<link rel=\"stylesheet\" type=\"text/css\" href=\"../covoar.css\" media=\"screen\" >\n"
+      "<script type=\"text/javascript\" src=\"../table.js\"></script>\n"
     );
 
     return aFile;

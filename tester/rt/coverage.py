@@ -137,6 +137,8 @@ class report_gen_html:
         head_section += '    text-align:center;' + os.linesep
         head_section += '  }' + os.linesep
         head_section += ' </style>' + os.linesep
+        head_section += ' <link rel="stylesheet" href="' + self.bsp + '-coverage/covoar.css">' + os.linesep
+        head_section += ' <script type="text/javascript" src="' + self.bsp + '-coverage/table.js"></script>' + os.linesep
         head_section += '</head>' + os.linesep
         return head_section
 
@@ -221,11 +223,10 @@ class report_gen_html:
     def add_covoar_css(self):
         table_js_path = path.join(self.covoar_src_path, 'table.js')
         covoar_css_path = path.join(self.covoar_src_path, 'covoar.css')
-        for symbol_set in self.symbol_sets:
-            symbol_set_dir = path.join(self.build_dir,
-                                       self.bsp + '-coverage', symbol_set)
-            path.copy_tree(covoar_css_path, symbol_set_dir)
-            path.copy_tree(table_js_path, symbol_set_dir)
+        coverage_directory = path.join(self.build_dir,
+                                    self.bsp + '-coverage')
+        path.copy_tree(covoar_css_path, coverage_directory)
+        path.copy_tree(table_js_path, coverage_directory)
 
     def add_dir_name(self):
         for symbol_set in self.symbol_sets:
