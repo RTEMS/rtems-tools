@@ -83,6 +83,11 @@ namespace Coverage {
     int uncoveredRanges;
 
     /*!
+     *  This member variable contains the total number of unreferenced symbols.
+     */
+    int unreferencedSymbols;
+
+    /*!
      *  This method returns the percentage of uncovered instructions.
      *
      *  @return Returns the percent uncovered instructions
@@ -109,7 +114,8 @@ namespace Coverage {
        sizeInInstructions(0),
        uncoveredBytes(0),
        uncoveredInstructions(0),
-       uncoveredRanges(0)
+       uncoveredRanges(0),
+       unreferencedSymbols(0)
      {
      }
 
@@ -279,12 +285,28 @@ namespace Coverage {
     uint32_t getNumberBranchesNeverTaken( void ) const;
 
     /*!
+     *  This method returns the total number of branches not executed
+     *  for all analyzed symbols.
+     *
+     *  @return Returns the total number of branches not executed
+     */
+    uint32_t getNumberBranchesNotExecuted( void ) const;
+
+    /*!
      *  This method returns the total number of uncovered ranges
      *  for all analyzed symbols.
      *
      *  @return Returns the total number of uncovered ranges
      */
     uint32_t getNumberUncoveredRanges( void ) const;
+
+    /*!
+     *  This method returns the total number of unreferenced symbols
+     *  for all analyzed symbols.
+     *
+     *  @return Returns the total number of unreferenced symbols
+     */
+    uint32_t getNumberUnreferencedSymbols( void ) const;
 
     /*!
      *  This method returns an indication of whether or not the specified

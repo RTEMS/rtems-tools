@@ -56,6 +56,7 @@ class summary:
         self.bytes_not_executed = 0
         self.percentage_executed = 0.0
         self.percentage_not_executed = 100.0
+        self.unreferenced_symbols = 0
         self.ranges_uncovered = 0
         self.branches_uncovered = 0
         self.branches_total = 0
@@ -74,7 +75,10 @@ class summary:
            self.bytes_not_executed = self._get_next_with_colon(summary_file)
            self.percentage_executed = self._get_next_with_colon(summary_file)
            self.percentage_not_executed = self._get_next_with_colon(summary_file)
+           self.unreferenced_symbols = self._get_next_with_colon(summary_file)
            self.ranges_uncovered = self._get_next_with_colon(summary_file)
+           summary_file.readline()
+           summary_file.readline()
            self.branches_total = self._get_next_with_colon(summary_file)
            self.branches_uncovered = self._get_next_with_colon(summary_file)
            self.branches_always_taken = self._get_next_without_colon(summary_file)
@@ -153,6 +157,7 @@ class report_gen_html:
                    + '</td>' + os.linesep
             row += ' <td>' + summary.bytes_analyzed + '</td>' + os.linesep
             row += ' <td>' + summary.bytes_not_executed + '</td>' + os.linesep
+            row += ' <td>' + summary.unreferenced_symbols + '</td>' + os.linesep
             row += ' <td>' + summary.ranges_uncovered + '</td>' + os.linesep
             row += ' <td>' + summary.percentage_executed + '%</td>' + os.linesep
             row += ' <td>' + summary.percentage_not_executed + '%</td>' + os.linesep
@@ -168,19 +173,21 @@ class report_gen_html:
 
     def _header_row(self):
         row = "<tr>" + os.linesep
-        row += " <th> Symbols set name </th>" + os.linesep
-        row += " <th> Index file </th>" + os.linesep
-        row += " <th> Summary file </th>" + os.linesep
-        row += " <th> Bytes analyzed </th>" + os.linesep
-        row += " <th> Bytes not executed </th>" + os.linesep
-        row += " <th> Uncovered ranges </th>" + os.linesep
-        row += " <th> Percentage covered </th>" + os.linesep
-        row += " <th> Percentage uncovered </th>" + os.linesep
-        row += " <th> Instruction coverage </th>" + os.linesep
-        row += " <th> Branches uncovered </th>" + os.linesep
-        row += " <th> Branches total </th>" + os.linesep
-        row += " <th> Branches covered percentage </th>" + os.linesep
-        row += " <th> Branches coverage </th>" + os.linesep
+        rowAttributes = "class=\"table-sortable:default table-sortable\" title=\"Click to sort\""
+        row += " <th " + rowAttributes + "> Symbols set name </th>" + os.linesep
+        row += " <th " + rowAttributes + "> Index file </th>" + os.linesep
+        row += " <th " + rowAttributes + "> Summary file </th>" + os.linesep
+        row += " <th " + rowAttributes + "> Bytes analyzed </th>" + os.linesep
+        row += " <th " + rowAttributes + "> Bytes not executed </th>" + os.linesep
+        row += " <th " + rowAttributes + "> Unreferenced symbols </th>" + os.linesep
+        row += " <th " + rowAttributes + "> Uncovered ranges </th>" + os.linesep
+        row += " <th " + rowAttributes + "> Percentage covered </th>" + os.linesep
+        row += " <th " + rowAttributes + "> Percentage uncovered </th>" + os.linesep
+        row += " <th " + rowAttributes + "> Instruction coverage </th>" + os.linesep
+        row += " <th " + rowAttributes + "> Branches uncovered </th>" + os.linesep
+        row += " <th " + rowAttributes + "> Branches total </th>" + os.linesep
+        row += " <th " + rowAttributes + "> Branches covered percentage </th>" + os.linesep
+        row += " <th " + rowAttributes + "> Branch coverage </th>" + os.linesep
         row += "</tr>"
         self.number_of_columns = row.count('<th>')
         return row

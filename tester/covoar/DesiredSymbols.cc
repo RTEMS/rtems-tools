@@ -175,6 +175,8 @@ namespace Coverage {
             s.second.stats.uncoveredBytes++;
           }
         }
+      } else {
+        stats.unreferencedSymbols++;
       }
     }
   }
@@ -470,8 +472,16 @@ namespace Coverage {
     return stats.branchesNeverTaken;
   };
 
+  uint32_t DesiredSymbols::getNumberBranchesNotExecuted( void ) const {
+    return stats.branchesNotExecuted;
+  };
+
   uint32_t DesiredSymbols::getNumberUncoveredRanges( void ) const {
     return stats.uncoveredRanges;
+  };
+
+  uint32_t DesiredSymbols::getNumberUnreferencedSymbols( void ) const {
+    return stats.unreferencedSymbols;
   };
 
   bool DesiredSymbols::isDesired (

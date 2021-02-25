@@ -441,6 +441,7 @@ void  ReportsBase::WriteSummaryReport(
   Coverage::DesiredSymbols::symbolSet_t::iterator itr;
   uint32_t                                        notExecuted = 0;
   double                                          percentage;
+  double                                          percentageBranches;
   Coverage::CoverageMapBase*                      theCoverageMap;
   uint32_t                                        totalBytes = 0;
   FILE*                                           report;
@@ -475,13 +476,26 @@ void  ReportsBase::WriteSummaryReport(
   percentage /= (double) totalBytes;
   percentage *= 100.0;
 
-  fprintf( report, "Bytes Analyzed           : %d\n", totalBytes );
-  fprintf( report, "Bytes Not Executed       : %d\n", notExecuted );
-  fprintf( report, "Percentage Executed      : %5.4g\n", 100.0 - percentage  );
-  fprintf( report, "Percentage Not Executed  : %5.4g\n", percentage  );
+  percentageBranches = (double) (
+    SymbolsToAnalyze->getNumberBranchesAlwaysTaken() +
+      SymbolsToAnalyze->getNumberBranchesNeverTaken() +
+      (SymbolsToAnalyze->getNumberBranchesNotExecuted() * 2)
+  );
+  percentageBranches /= (double) SymbolsToAnalyze->getNumberBranchesFound() * 2;
+  percentageBranches *= 100.0;
+
+  fprintf( report, "Bytes Analyzed                   : %d\n", totalBytes );
+  fprintf( report, "Bytes Not Executed               : %d\n", notExecuted );
+  fprintf( report, "Percentage Executed              : %5.4g\n", 100.0 - percentage  );
+  fprintf( report, "Percentage Not Executed          : %5.4g\n", percentage  );
   fprintf(
     report,
-    "Uncovered ranges found   : %d\n",
+    "Unreferenced Symbols             : %d\n",
+    SymbolsToAnalyze->getNumberUnreferencedSymbols()
+  );
+  fprintf(
+    report,
+    "Uncovered ranges found           : %d\n\n",
     SymbolsToAnalyze->getNumberUncoveredRanges()
   );
   if ((SymbolsToAnalyze->getNumberBranchesFound() == 0) ||
@@ -490,14 +504,20 @@ void  ReportsBase::WriteSummaryReport(
   } else {
     fprintf(
       report,
-      "Total branches found     : %d\n",
+      "Total conditional branches found : %d\n",
       SymbolsToAnalyze->getNumberBranchesFound()
     );
     fprintf(
       report,
-      "Uncovered branches found : %d\n",
+      "Total branch paths found         : %d\n",
+      SymbolsToAnalyze->getNumberBranchesFound() * 2
+    );
+    fprintf(
+      report,
+      "Uncovered branch paths found     : %d\n",
       SymbolsToAnalyze->getNumberBranchesAlwaysTaken() +
-       SymbolsToAnalyze->getNumberBranchesNeverTaken()
+       SymbolsToAnalyze->getNumberBranchesNeverTaken() +
+       (SymbolsToAnalyze->getNumberBranchesNotExecuted() * 2)
     );
     fprintf(
       report,
@@ -508,6 +528,16 @@ void  ReportsBase::WriteSummaryReport(
       report,
       "   %d branches never taken\n",
       SymbolsToAnalyze->getNumberBranchesNeverTaken()
+    );
+    fprintf(
+      report,
+      "   %d branch paths not executed\n",
+      SymbolsToAnalyze->getNumberBranchesNotExecuted() * 2
+    );
+    fprintf(
+      report,
+      "Percentage branch paths covered  : %4.4g\n",
+      100.0 - percentageBranches
     );
   }
 }
