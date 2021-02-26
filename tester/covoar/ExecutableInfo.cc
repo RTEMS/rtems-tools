@@ -71,6 +71,11 @@ namespace Coverage {
             }
           }
 
+          // We can't process a zero size function.
+          if (func.pc_high() == 0) {
+            continue;
+          }
+
           createCoverageMap (cu.name(), func.name(),
                               func.pc_low(), func.pc_high() - 1);
         }
