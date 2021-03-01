@@ -290,15 +290,9 @@ void ReportsBase::WriteBranchReport(
   if (!report)
     return;
 
-  // If no branches were found of branch coverage is not supported
-  if ((SymbolsToAnalyze->getNumberBranchesFound() == 0) ||
-      (BranchInfoAvailable == false) ) {
-
-    PutNoBranchInfo(report);
-
-    // If branches were found, ...
-  } else {
-
+  // If no branches were found then branch coverage is not supported
+  if ((SymbolsToAnalyze->getNumberBranchesFound() != 0) &&
+      (BranchInfoAvailable == true) ) {
     // Process uncovered branches for each symbol.
     count = 0;
     for (ditr = SymbolsToAnalyze->set.begin();

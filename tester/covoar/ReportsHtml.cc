@@ -172,45 +172,43 @@ namespace Coverage {
     // Open the file
     aFile = OpenFile(fileName);
 
-    if ( hasBranches ) {
-      // Put header information into the file
+    // Put header information into the file
+    fprintf(
+      aFile,
+      "<title>Branch Report</title>\n"
+      "<div class=\"heading-title\">"
+    );
+
+    if (projectName)
       fprintf(
         aFile,
-        "<title>Branch Report</title>\n"
-        "<div class=\"heading-title\">"
+        "%s<br>",
+        projectName
       );
 
-      if (projectName)
-        fprintf(
-          aFile,
-          "%s<br>",
-          projectName
-        );
-
-      fprintf(
-        aFile,
-        "Branch Report</div>\n"
-        "<div class =\"datetime\">%s</div>\n"
-        "<body>\n"
-        "<table class=\"covoar table-autosort:0 table-autofilter table-stripeclass:covoar-tr-odd"
-           TABLE_HEADER_CLASS "\">\n"
-        "<thead>\n"
-        "<tr>\n"
-        "<th class=\"table-sortable:default\" align=\"left\">Symbol</th>\n"
-        "<th class=\"table-sortable:default\" align=\"left\">Line</th>\n"
-        "<th class=\"table-filterable table-sortable:default\" align=\"left\">File</th>\n"
-        "<th class=\"table-sortable:numeric\" align=\"left\">Size <br>Bytes</th>\n"
-        "<th class=\"table-sortable:default\" align=\"left\">Reason</th>\n"
-        "<th class=\"table-filterable table-sortable:default\" align=\"left\">Taken</th>\n"
-	"<th class=\"table-filterable table-sortable:default\" align=\"left\">Not Taken</th>\n"
-        "<th class=\"table-filterable table-sortable:default\" align=\"left\">Classification</th>\n"
-        "<th class=\"table-sortable:default\" align=\"left\">Explanation</th>\n"
-        "</tr>\n"
-        "</thead>\n"
-        "<tbody>\n",
-        asctime( localtime(&timestamp_m) )
-      );
-    }
+    fprintf(
+      aFile,
+      "Branch Report</div>\n"
+      "<div class =\"datetime\">%s</div>\n"
+      "<body>\n"
+      "<table class=\"covoar table-autosort:0 table-autofilter table-stripeclass:covoar-tr-odd"
+          TABLE_HEADER_CLASS "\">\n"
+      "<thead>\n"
+      "<tr>\n"
+      "<th class=\"table-sortable:default\" align=\"left\">Symbol</th>\n"
+      "<th class=\"table-sortable:default\" align=\"left\">Line</th>\n"
+      "<th class=\"table-filterable table-sortable:default\" align=\"left\">File</th>\n"
+      "<th class=\"table-sortable:numeric\" align=\"left\">Size <br>Bytes</th>\n"
+      "<th class=\"table-sortable:default\" align=\"left\">Reason</th>\n"
+      "<th class=\"table-filterable table-sortable:default\" align=\"left\">Taken</th>\n"
+      "<th class=\"table-filterable table-sortable:default\" align=\"left\">Not Taken</th>\n"
+      "<th class=\"table-filterable table-sortable:default\" align=\"left\">Classification</th>\n"
+      "<th class=\"table-sortable:default\" align=\"left\">Explanation</th>\n"
+      "</tr>\n"
+      "</thead>\n"
+      "<tbody>\n",
+      asctime( localtime(&timestamp_m) )
+    );
 
     return aFile;
   }
@@ -985,19 +983,11 @@ namespace Coverage {
     bool   hasBranches
   )
   {
-    if ( hasBranches ) {
-      fprintf(
-        aFile,
-        TABLE_FOOTER
-        "</tbody>\n"
-        "</table>\n"
-      );
-    }
     fprintf(
       aFile,
-      "</pre>\n"
-      "</body>\n"
-      "</html>"
+      TABLE_FOOTER
+      "</tbody>\n"
+      "</table>\n"
     );
 
     CloseFile(aFile);
