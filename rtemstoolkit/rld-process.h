@@ -115,6 +115,13 @@ namespace rld
       tempfile (const std::string& suffix = ".rldxx", bool keep = false);
 
       /**
+       * Get a temporary file given a name and a suffix.
+       */
+      tempfile (const std::string& name,
+                const std::string& suffix,
+                bool               _keep = false);
+
+      /**
        * Clean up the temporary file.
        */
       ~tempfile ();
