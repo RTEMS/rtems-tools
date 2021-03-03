@@ -222,6 +222,61 @@ int covoar(
   if ( !projectName )
     throw option_error( "project name -p" );
 
+  //
+  // Find the top of the BSP's build tree and if we have found the top
+  // check the executable is under the same path and BSP.
+  //
+  std::string buildPath;
+  std::string buildTarget;
+  std::string buildBSP;
+  createBuildPath(executablesToAnalyze,
+                  buildPath,
+                  buildTarget,
+                  buildBSP);
+
+  //
+  // Use a command line target if provided.
+  //
+  if (!target.empty()) {
+    buildTarget = target;
+  }
+
+  if (Verbose) {
+    if (singleExecutable) {
+      std::cerr << "Processing a single executable and multiple coverage files"
+                << std::endl;
+    } else {
+      std::cerr << "Processing multiple executable/coverage file pairs" << std::endl;
+    }
+    std::cerr << "Coverage Format : " << format << std::endl
+              << "Target          : " << buildTarget.c_str() << std::endl
+              << std::endl;
+
+    // Process each executable/coverage file pair.
+    Executables::iterator eitr = executablesToAnalyze.begin();
+    for (const auto& cname : coverageFileNames) {
+      std::cerr << "Coverage file " << cname
+                << " for executable: " << (*eitr)->getFileName() << std::endl;
+      if (!singleExecutable)
+        eitr++;
+    }
+  }
+
+  //
+  // Create data to support analysis.
+  //
+
+  // Create data based on target.
+  TargetInfo = Target::TargetFactory( buildTarget );
+
+  // Create the set of desired symbols.
+  SymbolsToAnalyze = new Coverage::DesiredSymbols();
+
+  //
+  // Read symbol configuration file and load needed symbols.
+  //
+  SymbolsToAnalyze->load( symbolSet, buildTarget, buildBSP, Verbose );
+
   // If a single executable was specified, process the remaining
   // arguments as coverage file names.
   if (singleExecutable) {
@@ -293,61 +348,6 @@ int covoar(
   // check and make sure.
   if (executablesToAnalyze.size() != coverageFileNames.size())
     throw rld::error( "executables and coverage name size mismatch", "covoar" );
-
-  //
-  // Find the top of the BSP's build tree and if we have found the top
-  // check the executable is under the same path and BSP.
-  //
-  std::string buildPath;
-  std::string buildTarget;
-  std::string buildBSP;
-  createBuildPath(executablesToAnalyze,
-                  buildPath,
-                  buildTarget,
-                  buildBSP);
-
-  //
-  // Use a command line target if provided.
-  //
-  if (!target.empty()) {
-    buildTarget = target;
-  }
-
-  if (Verbose) {
-    if (singleExecutable) {
-      std::cerr << "Processing a single executable and multiple coverage files"
-                << std::endl;
-    } else {
-      std::cerr << "Processing multiple executable/coverage file pairs" << std::endl;
-    }
-    std::cerr << "Coverage Format : " << format << std::endl
-              << "Target          : " << buildTarget.c_str() << std::endl
-              << std::endl;
-
-    // Process each executable/coverage file pair.
-    Executables::iterator eitr = executablesToAnalyze.begin();
-    for (const auto& cname : coverageFileNames) {
-      std::cerr << "Coverage file " << cname
-                << " for executable: " << (*eitr)->getFileName() << std::endl;
-      if (!singleExecutable)
-        eitr++;
-    }
-  }
-
-  //
-  // Create data to support analysis.
-  //
-
-  // Create data based on target.
-  TargetInfo = Target::TargetFactory( buildTarget );
-
-  // Create the set of desired symbols.
-  SymbolsToAnalyze = new Coverage::DesiredSymbols();
-
-  //
-  // Read symbol configuration file and load needed symbols.
-  //
-  SymbolsToAnalyze->load( symbolSet, buildTarget, buildBSP, Verbose );
 
   if ( Verbose )
     std::cerr << "Analyzing " << SymbolsToAnalyze->set.size()

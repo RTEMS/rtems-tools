@@ -45,10 +45,34 @@ namespace Coverage {
     try {
       for (auto& cu : debug.get_cus()) {
         for (auto& func : cu.get_functions()) {
-          if (func.has_machine_code() && (!func.is_inlined() || func.is_external())) {
-            createCoverageMap (cu.name(), func.name(),
-                               func.pc_low(), func.pc_high() - 1);
+          if (!func.has_machine_code()) {
+            continue;
           }
+
+          if (!SymbolsToAnalyze->isDesired(func.name())) {
+            continue;
+          }
+
+          if (func.is_inlined()) {
+            if (func.is_external()) {
+              // Flag it
+              std::cerr << "Function is both external and inlined: "
+                        << func.name() << std::endl;
+            }
+
+            if (func.has_entry_pc()) {
+              continue;
+            }
+
+            // If the low PC address is zero, the symbol does not appear in
+            // this executable.
+            if (func.pc_low() == 0) {
+              continue;
+            }
+          }
+
+          createCoverageMap (cu.name(), func.name(),
+                              func.pc_low(), func.pc_high() - 1);
         }
       }
     } catch (...) {
