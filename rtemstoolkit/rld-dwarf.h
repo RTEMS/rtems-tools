@@ -377,6 +377,11 @@ namespace rld
       dwarf_unsigned pc_high () const;
 
       /**
+       * Does the function have an entry PC?
+       */
+      bool has_entry_pc () const;
+
+      /**
        * Does the function have machine code in the image?
        */
       bool has_machine_code () const;

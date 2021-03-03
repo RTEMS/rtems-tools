@@ -885,6 +885,12 @@ namespace rld
     }
 
     bool
+    function::has_entry_pc () const
+    {
+      return has_entry_pc_;
+    }
+
+    bool
     function::has_machine_code () const
     {
       return machine_code_;
@@ -1702,7 +1708,7 @@ namespace rld
         if (daddr.is_an_end_sequence ())
           seq_base = 0;
         address addr (daddr, loc);
-        if (loc >= pc_low_ && loc < pc_high_)
+        if (loc >= pc_low_ && loc <= pc_high_)
         {
           pc = loc;
           addr_lines_.push_back (addr);
