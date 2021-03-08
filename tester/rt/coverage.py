@@ -129,6 +129,9 @@ class report_gen_html:
         head_section += '    width: 150px;' + os.linesep
         head_section += '    height: 15px;' + os.linesep
         head_section += '  }' + os.linesep
+        head_section += '  progress::-webkit-progress-bar {' + os.linesep
+        head_section += '    background: red;' + os.linesep
+        head_section += '  }' + os.linesep
         head_section += '  table, th, td {' + os.linesep
         head_section += '    border: 1px solid black;' + os.linesep
         head_section += '    border-collapse: collapse;' + os.linesep
