@@ -359,10 +359,13 @@ class covoar(object):
         if not path.exists(symbol_file):
             raise error.general('coverage: no symbol set file: %s'% (symbol_file))
         exe = self._find_covoar()
+        # The order of these arguments matters. Command line options must come
+        # before the executable path arguments because covoar uses getopt() to
+        # process the command line options.
         command = exe + ' -O ' + covoar_result_dir + \
                   ' -p ' + self.project_name + \
-                  ' ' + self.executables + ' '
-        command += self.covoar_cmd
+                  ' ' + self.covoar_cmd + ' '
+        command += self.executables
 
         log.notice()
         log.notice('Running coverage analysis: %s (%s)' % (set_name, covoar_result_dir))
