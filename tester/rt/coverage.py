@@ -380,11 +380,12 @@ class coverage_run(object):
         self.no_clean = int(self.macros['_no_clean'])
         self.report_format = self.macros['cov_report_format']
         self.symbol_set = symbol_set
-        self.target = self.macros['target']
+        self.target = self.macros['arch']
         self.bsp_name = self.macros['bsp'].split('-')[0]
         self.prefix = prefix
         self.macros.define('coverage')
         self.covoar_cmd = self.macros.expand(self.macros['bsp_covoar_cmd'])
+        self.covoar_cmd += ' -T ' + self.macros['arch'] + '-rtems' + str(version.version())
 
     def run(self):
         try:
