@@ -181,7 +181,7 @@ class report_gen_html:
                     + '" max="100"></progress></td>' + os.linesep
             row += ' <td>' + summary.branches_uncovered + '</td>' + os.linesep
             row += ' <td>' + summary.branches_total + '</td>' + os.linesep
-            row += ' <td> {:.3%} </td>'.format(summary.percentage_branches_covered)
+            row += ' <td> {:.2%} </td>'.format(summary.percentage_branches_covered)
             spbc = 100 * summary.percentage_branches_covered
             row += ' <td><progress value="{:.3}" max="100"></progress></td>'.format(spbc)
             row += '</tr>' + os.linesep
