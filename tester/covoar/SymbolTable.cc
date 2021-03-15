@@ -46,12 +46,18 @@ namespace Coverage {
     symbolData.startingAddress = start;
     symbolData.length = length;
 
-    if ( info[ symbol ].empty() == false ) {
-      if ( info[ symbol ].front().length != length ) {
+    for (auto& symData : info[ symbol ]) {
+      // The starting address could differ since we strip any suffixes beginning
+      // with a '.'
+      if (symData.startingAddress != start) {
+        continue;
+      }
+
+      if (symData.length != length) {
         std::ostringstream what;
         what << "Different lengths for the symbol "
              << symbol
-             << " (" << info[ symbol ].front().length
+             << " (" << symData.length
              << " and " << length
              << ")";
         throw rld::error( what, "SymbolTable::addSymbol" );

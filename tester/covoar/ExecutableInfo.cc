@@ -118,8 +118,7 @@ namespace Coverage {
     // Obtain the coverage map containing the specified address.
     itsSymbol = theSymbolTable.getSymbol( address );
     if (itsSymbol != "") {
-      it = coverageMaps.find( itsSymbol );
-      aCoverageMap = (*it).second;
+      aCoverageMap = &findCoverageMap(itsSymbol);
     }
 
     return aCoverageMap;

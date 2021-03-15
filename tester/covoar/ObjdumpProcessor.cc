@@ -413,6 +413,21 @@ namespace Coverage {
         processSymbol = false;
         theInstructions.clear();
 
+        // Look for a '.' character and strip everything after it.
+        // There is a chance that the compiler splits function bodies to improve
+        // inlining. If there exists some inlinable function that contains a
+        // branch where one path is more expensive and less likely to be taken
+        // than the other, inlining only the branch instruction and the less
+        // expensive path results in smaller code size while preserving most of
+        // the performance improvement.
+        // When this happens, the compiler will generate a function with a
+        // ".part.n" suffix. For our purposes, this generated function part is
+        // equivalent to the original function and should be treated as such.
+        char *periodIndex = strstr(symbol, ".");
+        if (periodIndex != NULL) {
+          *periodIndex = 0;
+        }
+
         // See if the new symbol is one that we care about.
         if (SymbolsToAnalyze->isDesired( symbol )) {
           currentSymbol = symbol;
