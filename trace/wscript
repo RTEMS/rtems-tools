@@ -60,11 +60,12 @@ def build(bld):
     conf['includes'] = ['.', 'record', 'record/inih']
     conf['warningflags'] = ['-Wall', '-Wextra', '-pedantic']
     conf['optflags'] = bld.env.C_OPTS
-    conf['cflags'] = ['-pipe', '-g'] + conf['optflags']
+    cstd = '-std=c99'
+    conf['cflags'] = [cstd] + ['-pipe', '-g'] + conf['optflags']
     cxxstd = '-std=c++11'
     if bld.env.HAVE_STD_CXX14:
         cxxstd = '-std=c++14'
-    conf['cxxflags'] = [cxxstd] + conf['cflags']
+    conf['cxxflags'] = [cxxstd] + ['-pipe', '-g'] + conf['optflags']
     conf['linkflags'] = ['-g']
     conf['lib'] = []
     if bld.env.LIB_WS2_32:
