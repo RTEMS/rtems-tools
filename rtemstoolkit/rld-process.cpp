@@ -169,17 +169,6 @@ namespace rld
       _name = temporaries.get (suffix, _keep);
     }
 
-    tempfile::tempfile (const std::string& name,
-                        const std::string& suffix,
-                        bool               _keep)
-      : _name(name + suffix),
-        suffix(suffix),
-        overridden (false),
-        fd (-1),
-        level (0)
-    {
-    }
-
     tempfile::~tempfile ()
     {
       try
