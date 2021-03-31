@@ -52,13 +52,12 @@ namespace Coverage {
         throw rld::error( what, "Coverage::finalizeSymbol" );
       }
 
-      int rangeIndex;
+      int rangeIndex = -1;
       uint32_t lowAddress = UINT32_MAX;
-      for (rangeIndex = 0;
-           firstInstructionAddress != lowAddress;
-           rangeIndex++) {
+      do {
+        rangeIndex++;
         lowAddress = coverageMap.getLowAddressOfRange(rangeIndex);
-      }
+      } while (firstInstructionAddress != lowAddress);
 
       uint32_t sizeWithoutNops = coverageMap.getSizeOfRange(rangeIndex);
       uint32_t size = sizeWithoutNops;
