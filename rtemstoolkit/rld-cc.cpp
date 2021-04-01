@@ -110,6 +110,7 @@ namespace rld
           { fg_include, "-I",       2, true,  0 },
           { fg_include, "-isystem", 2, true,  0 },
           { fg_include, "-sysroot", 2, true,  0 },
+          { fg_machine, "-target" , 2, false, 0 },
           { fg_machine, "-O",       1, false, 0 },
           { fg_machine, "-m",       1, false, 0 },
           { fg_machine, "-f",       1, false, 0 },
