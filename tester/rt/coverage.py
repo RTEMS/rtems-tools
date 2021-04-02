@@ -304,22 +304,26 @@ class symbol_parser(object):
         except:
             raise error.general('Symbol set parsing failed for %s' % (sset))
 
-    def write_ini(self, symbol_set):
+    def write_ini(self, symbol_sets):
         config = configparser.ConfigParser()
-        try:
-            sset = symbol_set
-            config.add_section('symbol-sets')
-            config.set('symbol-sets', 'sets', sset)
-            config.add_section(sset)
-            object_files = [o for o in path.listdir(self.symbol_sets[sset]) if o[-1] == 'o']
-            object_paths = []
-            for o in object_files:
-                object_paths.append(path.join(self.symbol_sets[sset], o))
-            config.set(sset, 'libraries', ','.join(object_paths))
-            with open(self.symbol_select_file, 'w') as conf:
-                    config.write(conf)
-        except:
-            raise error.general('symbol parser write failed for %s' % (sset))
+        config.add_section('symbol-sets')
+
+        for sset in symbol_sets:
+            try:
+                config.add_section(sset)
+                object_paths = [
+                    path.join(self.symbol_sets[sset], o)
+                    for o in path.listdir(self.symbol_sets[sset])
+                    if path.splitext(o)[1] == '.o'
+                ]
+                config.set(sset, 'libraries', ','.join(object_paths))
+            except:
+                raise error.general('symbol parser write failed for %s' % (sset))
+
+        config.set('symbol-sets', 'sets', ','.join(symbol_sets))
+
+        with open(self.symbol_select_file, 'w') as conf:
+            config.write(conf)
 
 class covoar(object):
     '''
@@ -352,23 +356,20 @@ class covoar(object):
             return exe
         raise error.general('coverage: %s not found'% (covoar_exe))
 
-    def run(self, set_name, symbol_file):
-        covoar_result_dir = path.join(self.base_result_dir, set_name)
-        if not path.exists(covoar_result_dir):
-            path.mkdir(covoar_result_dir)
+    def run(self, symbol_file):
         if not path.exists(symbol_file):
             raise error.general('coverage: no symbol set file: %s'% (symbol_file))
         exe = self._find_covoar()
         # The order of these arguments matters. Command line options must come
         # before the executable path arguments because covoar uses getopt() to
         # process the command line options.
-        command = exe + ' -O ' + covoar_result_dir + \
+        command = exe + ' -O ' + self.base_result_dir + \
                   ' -p ' + self.project_name + \
                   ' ' + self.covoar_cmd + ' '
         command += self.executables
 
         log.notice()
-        log.notice('Running coverage analysis: %s (%s)' % (set_name, covoar_result_dir))
+        log.notice('Running coverage analysis (%s)' % (self.base_result_dir))
         start_time = datetime.datetime.now()
         executor = execute.execute(verbose = self.trace, output = self.output_handler)
         exit_code = executor.shell(command, cwd=os.getcwd())
@@ -424,15 +425,14 @@ class coverage_run(object):
                                    self.bsp_name,
                                    self.target)
             symbol_sets = parser.parse()
-            for sset in symbol_sets:
-                parser.write_ini(sset)
-                covoar_runner = covoar(self.test_dir,
-                                       self.symbol_select_path,
-                                       self.executables,
-                                       self.trace,
-                                       self.prefix,
-                                       self.covoar_cmd)
-                covoar_runner.run(sset, self.symbol_select_path)
+            parser.write_ini(symbol_sets)
+            covoar_runner = covoar(self.test_dir,
+                                   self.symbol_select_path,
+                                   self.executables,
+                                   self.trace,
+                                   self.prefix,
+                                   self.covoar_cmd)
+            covoar_runner.run(self.symbol_select_path)
             self._generate_reports(symbol_sets);
             self._summarize();
         finally:
