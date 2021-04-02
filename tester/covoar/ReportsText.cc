@@ -11,8 +11,8 @@
 
 namespace Coverage {
 
-ReportsText::ReportsText( time_t timestamp ):
-  ReportsBase( timestamp )
+ReportsText::ReportsText( time_t timestamp, std::string symbolSetName ):
+  ReportsBase( timestamp, symbolSetName )
 {
   reportExtension_m = ".txt";
 }
@@ -52,7 +52,8 @@ bool ReportsText::PutNoBranchInfo(
   FILE*           report
 )
 {
-  if ( BranchInfoAvailable && SymbolsToAnalyze->getNumberBranchesFound() != 0 )
+  if ( BranchInfoAvailable &&
+    SymbolsToAnalyze->getNumberBranchesFound(symbolSetName_m) != 0 )
     fprintf( report, "All branch paths taken.\n" );
   else
     fprintf( report, "No branch information found.\n" );
@@ -61,9 +62,10 @@ bool ReportsText::PutNoBranchInfo(
 
 
 bool ReportsText::PutBranchEntry(
-  FILE*   report,
+  FILE*                                            report,
   unsigned int                                     number,
-  Coverage::DesiredSymbols::symbolSet_t::iterator  symbolPtr,
+  const std::string&                               symbolName,
+  const SymbolInformation&                         symbolInfo,
   Coverage::CoverageRanges::ranges_t::iterator     rangePtr
 )
 {
@@ -76,8 +78,8 @@ bool ReportsText::PutBranchEntry(
     "Symbol        : %s (0x%x)\n"
     "Line          : %s (0x%x)\n"
     "Size in Bytes : %d\n",
-    symbolPtr->first.c_str(),
-    symbolPtr->second.baseAddress,
+    symbolName.c_str(),
+    symbolInfo.baseAddress,
     rangePtr->lowSourceLine.c_str(),
     rangePtr->lowAddress,
     rangePtr->highAddress - rangePtr->lowAddress + 1
@@ -153,9 +155,10 @@ void ReportsText::putCoverageNoRange(
 }
 
 bool ReportsText::PutCoverageLine(
-  FILE*                                       report,
-  unsigned int                                     number,
-  Coverage::DesiredSymbols::symbolSet_t::iterator ditr,
+  FILE*                                           report,
+  unsigned int                                    number,
+  const std::string&                              symbolName,
+  const SymbolInformation&                        symbolInfo,
   Coverage::CoverageRanges::ranges_t::iterator    ritr
 )
 {
@@ -171,8 +174,8 @@ bool ReportsText::PutCoverageLine(
     "Size in Bytes        : %d\n"
     "Size in Instructions : %d\n\n",
     ritr->id,
-    ditr->first.c_str(),
-    ditr->second.baseAddress,
+    symbolName.c_str(),
+    symbolInfo.baseAddress,
     ritr->lowSourceLine.c_str(),
     ritr->lowAddress,
     ritr->highSourceLine.c_str(),
@@ -210,9 +213,9 @@ bool ReportsText::PutCoverageLine(
 }
 
 bool  ReportsText::PutSizeLine(
-  FILE*                                      report,
-  unsigned int                                     number,
-  Coverage::DesiredSymbols::symbolSet_t::iterator symbol,
+  FILE*                                           report,
+  unsigned int                                    number,
+  const std::string&                              symbolName,
   Coverage::CoverageRanges::ranges_t::iterator    range
 )
 {
@@ -220,7 +223,7 @@ bool  ReportsText::PutSizeLine(
     report,
     "%d\t%s\t%s\n",
     range->highAddress - range->lowAddress + 1,
-    symbol->first.c_str(),
+    symbolName.c_str(),
     range->lowSourceLine.c_str()
   );
   return true;
@@ -229,13 +232,14 @@ bool  ReportsText::PutSizeLine(
 bool  ReportsText::PutSymbolSummaryLine(
   FILE*                                           report,
   unsigned int                                    number,
-  Coverage::DesiredSymbols::symbolSet_t::iterator symbol
+  const std::string&                              symbolName,
+  const SymbolInformation&                        symbolInfo
 )
 {
   float uncoveredBytes;
   float uncoveredInstructions;
 
-  if (symbol->second.stats.sizeInBytes == 0) {
+  if (symbolInfo.stats.sizeInBytes == 0) {
     fprintf(
       report,
       "============================================\n"
@@ -245,20 +249,20 @@ bool  ReportsText::PutSymbolSummaryLine(
       "Therefore there is no size or disassembly for this symbol.\n"
       "This could be due to symbol misspelling or lack of a test for\n"
       "this symbol.\n",
-      symbol->first.c_str()
+      symbolName.c_str()
     );
   } else {
-    if ( symbol->second.stats.sizeInInstructions == 0 )
+    if ( symbolInfo.stats.sizeInInstructions == 0 )
       uncoveredInstructions = 0;
     else
-      uncoveredInstructions = (symbol->second.stats.uncoveredInstructions*100.0)/
-                              symbol->second.stats.sizeInInstructions;
+      uncoveredInstructions = (symbolInfo.stats.uncoveredInstructions*100.0)/
+                              symbolInfo.stats.sizeInInstructions;
 
-    if ( symbol->second.stats.sizeInBytes == 0 )
+    if ( symbolInfo.stats.sizeInBytes == 0 )
       uncoveredBytes = 0;
     else
-      uncoveredBytes = (symbol->second.stats.uncoveredBytes*100.0)/
-                       symbol->second.stats.sizeInBytes;
+      uncoveredBytes = (symbolInfo.stats.uncoveredBytes*100.0)/
+                       symbolInfo.stats.sizeInBytes;
 
     fprintf(
       report,
@@ -271,12 +275,12 @@ bool  ReportsText::PutSymbolSummaryLine(
       "Total Never Taken                 : %d\n"
       "Percentage Uncovered Instructions : %.2f\n"
       "Percentage Uncovered Bytes        : %.2f\n",
-      symbol->first.c_str(),
-      symbol->second.stats.sizeInBytes,
-      symbol->second.stats.sizeInInstructions,
-      symbol->second.stats.branchesNotExecuted +  symbol->second.stats.branchesExecuted,
-      symbol->second.stats.branchesAlwaysTaken,
-      symbol->second.stats.branchesNeverTaken,
+      symbolName.c_str(),
+      symbolInfo.stats.sizeInBytes,
+      symbolInfo.stats.sizeInInstructions,
+      symbolInfo.stats.branchesNotExecuted +  symbolInfo.stats.branchesExecuted,
+      symbolInfo.stats.branchesAlwaysTaken,
+      symbolInfo.stats.branchesNeverTaken,
       uncoveredInstructions,
       uncoveredBytes
     );

@@ -31,8 +31,8 @@
 
 namespace Coverage {
 
-  ReportsHtml::ReportsHtml( time_t timestamp ):
-    ReportsBase( timestamp )
+  ReportsHtml::ReportsHtml( time_t timestamp, std::string symbolSetName ):
+    ReportsBase( timestamp, symbolSetName )
   {
     reportExtension_m = ".html";
   }
@@ -113,7 +113,7 @@ namespace Coverage {
     FILE*  aFile;
 
     // Open the file
-    aFile = ReportsBase::OpenFile( fileName );
+    aFile = ReportsBase::OpenFile( fileName, symbolSetName_m.c_str() );
 
     // Put Header information on the file
     fprintf(
@@ -488,7 +488,8 @@ namespace Coverage {
     FILE* report
   )
   {
-    if (BranchInfoAvailable && SymbolsToAnalyze->getNumberBranchesFound() != 0)
+    if (BranchInfoAvailable &&
+      SymbolsToAnalyze->getNumberBranchesFound(symbolSetName_m) != 0)
       fprintf( report, "All branch paths taken.\n" );
     else
       fprintf( report, "No branch information found.\n" );
@@ -498,7 +499,8 @@ namespace Coverage {
   bool ReportsHtml::PutBranchEntry(
     FILE*                                            report,
     unsigned int                                     count,
-    Coverage::DesiredSymbols::symbolSet_t::iterator  symbolPtr,
+    const std::string&                               symbolName,
+    const SymbolInformation&                         symbolInfo,
     Coverage::CoverageRanges::ranges_t::iterator     rangePtr
   )
   {
@@ -519,7 +521,7 @@ namespace Coverage {
     fprintf(
       report,
       "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
-      symbolPtr->first.c_str()
+      symbolName.c_str()
     );
 
     // line
@@ -562,8 +564,8 @@ namespace Coverage {
 
     // Taken / Not taken counts
     lowAddress = rangePtr->lowAddress;
-    bAddress = symbolPtr->second.baseAddress;
-    theCoverageMap = symbolPtr->second.unifiedCoverageMap;
+    bAddress = symbolInfo.baseAddress;
+    theCoverageMap = symbolInfo.unifiedCoverageMap;
     fprintf(
       report,
       "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
@@ -703,7 +705,8 @@ namespace Coverage {
   bool ReportsHtml::PutCoverageLine(
     FILE*                                            report,
     unsigned int                                     count,
-    Coverage::DesiredSymbols::symbolSet_t::iterator  symbolPtr,
+    const std::string&                               symbolName,
+    const SymbolInformation&                         symbolInfo,
     Coverage::CoverageRanges::ranges_t::iterator     rangePtr
   )
   {
@@ -721,7 +724,7 @@ namespace Coverage {
     fprintf(
       report,
       "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
-      symbolPtr->first.c_str()
+      symbolName.c_str()
     );
 
     // Range
@@ -790,7 +793,7 @@ namespace Coverage {
   bool  ReportsHtml::PutSizeLine(
     FILE*                                           report,
     unsigned int                                    count,
-    Coverage::DesiredSymbols::symbolSet_t::iterator symbol,
+    const std::string&                              symbolName,
     Coverage::CoverageRanges::ranges_t::iterator    range
   )
   {
@@ -814,7 +817,7 @@ namespace Coverage {
     fprintf(
       report,
       "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
-      symbol->first.c_str()
+      symbolName.c_str()
     );
 
     // line
@@ -842,7 +845,8 @@ namespace Coverage {
   bool  ReportsHtml::PutSymbolSummaryLine(
     FILE*                                           report,
     unsigned int                                    count,
-    Coverage::DesiredSymbols::symbolSet_t::iterator symbol
+    const std::string&                              symbolName,
+    const SymbolInformation&                        symbolInfo
   )
   {
 
@@ -856,10 +860,10 @@ namespace Coverage {
     fprintf(
       report,
       "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
-      symbol->first.c_str()
+      symbolName.c_str()
     );
 
-    if (symbol->second.stats.sizeInBytes == 0) {
+    if (symbolInfo.stats.sizeInBytes == 0) {
       // The symbol has never been seen. Write "unknown" for all columns.
       fprintf(
         report,
@@ -879,60 +883,60 @@ namespace Coverage {
       fprintf(
         report,
         "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-        symbol->second.stats.sizeInBytes
+        symbolInfo.stats.sizeInBytes
       );
 
       // Total Size in Instructions
       fprintf(
         report,
         "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-        symbol->second.stats.sizeInInstructions
+        symbolInfo.stats.sizeInInstructions
       );
 
       // Total Uncovered Ranges
       fprintf(
         report,
         "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-        symbol->second.stats.uncoveredRanges
+        symbolInfo.stats.uncoveredRanges
       );
 
       // Uncovered Size in Bytes
       fprintf(
         report,
         "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-        symbol->second.stats.uncoveredBytes
+        symbolInfo.stats.uncoveredBytes
       );
 
       // Uncovered Size in Instructions
       fprintf(
         report,
         "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-        symbol->second.stats.uncoveredInstructions
+        symbolInfo.stats.uncoveredInstructions
       );
 
       // Total number of branches
       fprintf(
         report,
         "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-        symbol->second.stats.branchesNotExecuted +  symbol->second.stats.branchesExecuted
+        symbolInfo.stats.branchesNotExecuted + symbolInfo.stats.branchesExecuted
       );
 
       // Total Always Taken
       fprintf(
         report,
         "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-        symbol->second.stats.branchesAlwaysTaken
+        symbolInfo.stats.branchesAlwaysTaken
       );
 
       // Total Never Taken
       fprintf(
         report,
         "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-        symbol->second.stats.branchesNeverTaken
+        symbolInfo.stats.branchesNeverTaken
       );
 
       // % Uncovered Instructions
-      if ( symbol->second.stats.sizeInInstructions == 0 )
+      if ( symbolInfo.stats.sizeInInstructions == 0 )
         fprintf(
           report,
           "<td class=\"covoar-td\" align=\"center\">100.00</td>\n"
@@ -941,12 +945,12 @@ namespace Coverage {
         fprintf(
           report,
           "<td class=\"covoar-td\" align=\"center\">%.2f</td>\n",
-          (symbol->second.stats.uncoveredInstructions*100.0)/
-           symbol->second.stats.sizeInInstructions
+          (symbolInfo.stats.uncoveredInstructions*100.0)/
+           symbolInfo.stats.sizeInInstructions
         );
 
       // % Uncovered Bytes
-      if ( symbol->second.stats.sizeInBytes == 0 )
+      if ( symbolInfo.stats.sizeInBytes == 0 )
         fprintf(
           report,
           "<td class=\"covoar-td\" align=\"center\">100.00</td>\n"
@@ -955,8 +959,8 @@ namespace Coverage {
         fprintf(
           report,
           "<td class=\"covoar-td\" align=\"center\">%.2f</td>\n",
-          (symbol->second.stats.uncoveredBytes*100.0)/
-           symbol->second.stats.sizeInBytes
+          (symbolInfo.stats.uncoveredBytes*100.0)/
+           symbolInfo.stats.sizeInBytes
         );
     }
 

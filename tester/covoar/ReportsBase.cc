@@ -20,8 +20,9 @@
 
 namespace Coverage {
 
-ReportsBase::ReportsBase( time_t timestamp ):
+ReportsBase::ReportsBase( time_t timestamp, std::string symbolSetName ):
   reportExtension_m(""),
+  symbolSetName_m(symbolSetName),
   timestamp_m( timestamp )
 {
 }
@@ -31,27 +32,38 @@ ReportsBase::~ReportsBase()
 }
 
 FILE* ReportsBase::OpenFile(
-  const char* const fileName
+  const char* const fileName,
+  const char* const symbolSetName
 )
 {
   int          sc;
   FILE        *aFile;
   std::string  file;
 
+  std::string symbolSetOutputDirectory;
+  rld::path::path_join(
+    outputDirectory,
+    symbolSetName,
+    symbolSetOutputDirectory
+  );
+
   // Create the output directory if it does not already exist
 #ifdef _WIN32
-  sc = _mkdir( outputDirectory );
+  sc = _mkdir( symbolSetOutputDirectory );
 #else
-  sc = mkdir( outputDirectory,0755 );
+  sc = mkdir( symbolSetOutputDirectory.c_str(),0755 );
 #endif
   if ( (sc == -1) && (errno != EEXIST) ) {
-    fprintf(stderr, "Unable to create output directory %s\n", outputDirectory);
+    fprintf(
+      stderr,
+      "Unable to create output directory %s\n",
+      symbolSetOutputDirectory.c_str()
+    );
     return NULL;
   }
 
-  file = outputDirectory;
-  file += "/";
-  file += fileName;
+  file = symbolSetOutputDirectory;
+  rld::path::path_join(file, fileName, file);
 
   // Open the file.
   aFile = fopen( file.c_str(), "w" );
@@ -71,7 +83,7 @@ FILE* ReportsBase::OpenAnnotatedFile(
   const char* const fileName
 )
 {
-  return OpenFile(fileName);
+  return OpenFile(fileName, symbolSetName_m.c_str());
 }
 
 FILE* ReportsBase::OpenBranchFile(
@@ -79,21 +91,21 @@ FILE* ReportsBase::OpenBranchFile(
   bool              hasBranches
 )
 {
-  return OpenFile(fileName);
+  return OpenFile(fileName, symbolSetName_m.c_str());
 }
 
 FILE* ReportsBase::OpenCoverageFile(
   const char* const fileName
 )
 {
-  return OpenFile(fileName);
+  return OpenFile(fileName, symbolSetName_m.c_str());
 }
 
 FILE* ReportsBase::OpenNoRangeFile(
   const char* const fileName
 )
 {
-  return OpenFile(fileName);
+  return OpenFile(fileName, symbolSetName_m.c_str());
 }
 
 
@@ -101,14 +113,14 @@ FILE* ReportsBase::OpenSizeFile(
   const char* const fileName
 )
 {
-  return OpenFile(fileName);
+  return OpenFile(fileName, symbolSetName_m.c_str());
 }
 
 FILE* ReportsBase::OpenSymbolSummaryFile(
   const char* const fileName
 )
 {
-  return OpenFile(fileName);
+  return OpenFile(fileName, symbolSetName_m.c_str());
 }
 
 void ReportsBase::CloseFile(
@@ -186,41 +198,42 @@ void ReportsBase::WriteAnnotatedReport(
   const char* const fileName
 ) {
   FILE*                                                          aFile = NULL;
-  Coverage::DesiredSymbols::symbolSet_t::iterator                ditr;
   Coverage::CoverageRanges*                                      theBranches;
   Coverage::CoverageRanges*                                      theRanges;
   Coverage::CoverageMapBase*                                     theCoverageMap = NULL;
   uint32_t                                                       bAddress = 0;
   AnnotatedLineState_t                                           state;
-  std::list<Coverage::ObjdumpProcessor::objdumpLine_t>*          theInstructions;
-  std::list<Coverage::ObjdumpProcessor::objdumpLine_t>::iterator itr;
+  const std::list<Coverage::ObjdumpProcessor::objdumpLine_t>*    theInstructions;
+  std::list<
+    Coverage::ObjdumpProcessor::objdumpLine_t>::const_iterator   itr;
 
   aFile = OpenAnnotatedFile(fileName);
   if (!aFile)
     return;
 
   // Process uncovered branches for each symbol.
-  for (ditr = SymbolsToAnalyze->set.begin();
-       ditr != SymbolsToAnalyze->set.end();
-       ditr++) {
+  const std::vector<std::string>& symbols = SymbolsToAnalyze->getSymbolsForSet(symbolSetName_m);
+
+  for (const auto& symbol : symbols) {
+    const SymbolInformation& info = SymbolsToAnalyze->allSymbols().at(symbol);
 
     // If uncoveredRanges and uncoveredBranches don't exist, then the
     // symbol was never referenced by any executable.  Just skip it.
-    if ((ditr->second.uncoveredRanges == NULL) &&
-        (ditr->second.uncoveredBranches == NULL))
+    if ((info.uncoveredRanges == NULL) &&
+        (info.uncoveredBranches == NULL))
       continue;
 
     // If uncoveredRanges and uncoveredBranches are empty, then everything
     // must have been covered for this symbol.  Just skip it.
-    if ((ditr->second.uncoveredRanges->set.empty()) &&
-        (ditr->second.uncoveredBranches->set.empty()))
+    if ((info.uncoveredRanges->set.empty()) &&
+        (info.uncoveredBranches->set.empty()))
       continue;
 
-    theCoverageMap = ditr->second.unifiedCoverageMap;
-    bAddress = ditr->second.baseAddress;
-    theInstructions = &(ditr->second.instructions);
-    theRanges = ditr->second.uncoveredRanges;
-    theBranches = ditr->second.uncoveredBranches;
+    theCoverageMap = info.unifiedCoverageMap;
+    bAddress = info.baseAddress;
+    theInstructions = &(info.instructions);
+    theRanges = info.uncoveredRanges;
+    theBranches = info.uncoveredBranches;
 
     // Add annotations to each line where necessary
     AnnotatedStart( aFile );
@@ -274,14 +287,13 @@ void ReportsBase::WriteAnnotatedReport(
 void ReportsBase::WriteBranchReport(
   const char* const fileName
 ) {
-  Coverage::DesiredSymbols::symbolSet_t::iterator ditr;
   FILE*                                           report = NULL;
   Coverage::CoverageRanges::ranges_t::iterator    ritr;
   Coverage::CoverageRanges*                       theBranches;
   unsigned int                                    count;
   bool                                            hasBranches = true;
 
-  if ((SymbolsToAnalyze->getNumberBranchesFound() == 0) ||
+  if ((SymbolsToAnalyze->getNumberBranchesFound(symbolSetName_m) == 0) ||
       (BranchInfoAvailable == false) )
      hasBranches = false;
 
@@ -291,15 +303,16 @@ void ReportsBase::WriteBranchReport(
     return;
 
   // If no branches were found then branch coverage is not supported
-  if ((SymbolsToAnalyze->getNumberBranchesFound() != 0) &&
+  if ((SymbolsToAnalyze->getNumberBranchesFound(symbolSetName_m) != 0) &&
       (BranchInfoAvailable == true) ) {
-    // Process uncovered branches for each symbol.
-    count = 0;
-    for (ditr = SymbolsToAnalyze->set.begin();
-         ditr != SymbolsToAnalyze->set.end();
-         ditr++) {
+    // Process uncovered branches for each symbol in the set.
+    const std::vector<std::string>& symbols = SymbolsToAnalyze->getSymbolsForSet(symbolSetName_m);
 
-      theBranches = ditr->second.uncoveredBranches;
+    count = 0;
+    for (const auto& symbol : symbols) {
+      const SymbolInformation& info = SymbolsToAnalyze->allSymbols().at(symbol);
+
+      theBranches = info.uncoveredBranches;
 
       if (theBranches && !theBranches->set.empty()) {
 
@@ -307,7 +320,7 @@ void ReportsBase::WriteBranchReport(
              ritr != theBranches->set.end() ;
              ritr++ ) {
           count++;
-          PutBranchEntry( report, count, ditr, ritr );
+          PutBranchEntry( report, count, symbol, info, ritr );
         }
       }
     }
@@ -323,7 +336,6 @@ void ReportsBase::WriteCoverageReport(
   const char* const fileName
 )
 {
-  Coverage::DesiredSymbols::symbolSet_t::iterator ditr;
   FILE*                                           report;
   Coverage::CoverageRanges::ranges_t::iterator    ritr;
   Coverage::CoverageRanges*                       theRanges;
@@ -346,26 +358,27 @@ void ReportsBase::WriteCoverageReport(
   }
 
   // Process uncovered ranges for each symbol.
-  count = 0;
-  for (ditr = SymbolsToAnalyze->set.begin();
-       ditr != SymbolsToAnalyze->set.end();
-       ditr++) {
+  const std::vector<std::string>& symbols = SymbolsToAnalyze->getSymbolsForSet(symbolSetName_m);
 
-    theRanges = ditr->second.uncoveredRanges;
+  count = 0;
+  for (const auto& symbol : symbols) {
+    const SymbolInformation& info = SymbolsToAnalyze->allSymbols().at(symbol);
+
+    theRanges = info.uncoveredRanges;
 
     // If uncoveredRanges doesn't exist, then the symbol was never
     // referenced by any executable.  There may be a problem with the
     // desired symbols list or with the executables so put something
     // in the report.
     if (theRanges == NULL) {
-      putCoverageNoRange( report, NoRangeFile, count, ditr->first );
+      putCoverageNoRange( report, NoRangeFile, count, symbol );
       count++;
     }  else if (!theRanges->set.empty()) {
 
       for (ritr =  theRanges->set.begin() ;
            ritr != theRanges->set.end() ;
            ritr++ ) {
-        PutCoverageLine( report, count, ditr, ritr );
+        PutCoverageLine( report, count, symbol, info, ritr );
         count++;
       }
     }
@@ -383,7 +396,6 @@ void ReportsBase::WriteSizeReport(
   const char* const fileName
 )
 {
-  Coverage::DesiredSymbols::symbolSet_t::iterator ditr;
   FILE*                                           report;
   Coverage::CoverageRanges::ranges_t::iterator    ritr;
   Coverage::CoverageRanges*                       theRanges;
@@ -396,19 +408,20 @@ void ReportsBase::WriteSizeReport(
   }
 
   // Process uncovered ranges for each symbol.
-  count = 0;
-  for (ditr = SymbolsToAnalyze->set.begin();
-       ditr != SymbolsToAnalyze->set.end();
-       ditr++) {
+  const std::vector<std::string>& symbols = SymbolsToAnalyze->getSymbolsForSet(symbolSetName_m);
 
-    theRanges = ditr->second.uncoveredRanges;
+  count = 0;
+  for (const auto& symbol : symbols) {
+    const SymbolInformation& info = SymbolsToAnalyze->allSymbols().at(symbol);
+
+    theRanges = info.uncoveredRanges;
 
     if (theRanges && !theRanges->set.empty()) {
 
       for (ritr =  theRanges->set.begin() ;
            ritr != theRanges->set.end() ;
            ritr++ ) {
-        PutSizeLine( report, count, ditr, ritr );
+        PutSizeLine( report, count, symbol, ritr );
         count++;
       }
     }
@@ -421,7 +434,6 @@ void ReportsBase::WriteSymbolSummaryReport(
   const char* const fileName
 )
 {
-  Coverage::DesiredSymbols::symbolSet_t::iterator ditr;
   FILE*                                           report;
   unsigned int                                    count;
 
@@ -432,12 +444,13 @@ void ReportsBase::WriteSymbolSummaryReport(
   }
 
   // Process each symbol.
-  count = 0;
-  for (ditr = SymbolsToAnalyze->set.begin();
-       ditr != SymbolsToAnalyze->set.end();
-       ditr++) {
+  const std::vector<std::string>& symbols = SymbolsToAnalyze->getSymbolsForSet(symbolSetName_m);
 
-    PutSymbolSummaryLine( report, count, ditr );
+  count = 0;
+  for (const auto& symbol : symbols) {
+    const SymbolInformation& info = SymbolsToAnalyze->allSymbols().at(symbol);
+
+    PutSymbolSummaryLine( report, count, symbol, info );
     count++;
   }
 
@@ -445,13 +458,13 @@ void ReportsBase::WriteSymbolSummaryReport(
 }
 
 void  ReportsBase::WriteSummaryReport(
-  const char* const fileName
+  const char* const fileName,
+  const char* const symbolSetName
 )
 {
     // Calculate coverage statistics and output results.
   uint32_t                                        a;
   uint32_t                                        endAddress;
-  Coverage::DesiredSymbols::symbolSet_t::iterator itr;
   uint32_t                                        notExecuted = 0;
   double                                          percentage;
   double                                          percentageBranches;
@@ -460,22 +473,23 @@ void  ReportsBase::WriteSummaryReport(
   FILE*                                           report;
 
   // Open the report file.
-  report = OpenFile( fileName );
+  report = OpenFile( fileName, symbolSetName );
   if ( !report ) {
     return;
   }
 
   // Look at each symbol.
-  for (itr = SymbolsToAnalyze->set.begin();
-       itr != SymbolsToAnalyze->set.end();
-       itr++) {
+  const std::vector<std::string>& symbols = SymbolsToAnalyze->getSymbolsForSet(symbolSetName);
+
+  for (const auto& symbol : symbols) {
+    SymbolInformation info = SymbolsToAnalyze->allSymbols().at(symbol);
 
     // If the symbol's unified coverage map exists, scan through it
     // and count bytes.
-    theCoverageMap = itr->second.unifiedCoverageMap;
+    theCoverageMap = info.unifiedCoverageMap;
     if (theCoverageMap) {
 
-      endAddress = itr->second.stats.sizeInBytes - 1;
+      endAddress = info.stats.sizeInBytes - 1;
 
       for (a = 0; a <= endAddress; a++) {
         totalBytes++;
@@ -490,11 +504,12 @@ void  ReportsBase::WriteSummaryReport(
   percentage *= 100.0;
 
   percentageBranches = (double) (
-    SymbolsToAnalyze->getNumberBranchesAlwaysTaken() +
-      SymbolsToAnalyze->getNumberBranchesNeverTaken() +
-      (SymbolsToAnalyze->getNumberBranchesNotExecuted() * 2)
+    SymbolsToAnalyze->getNumberBranchesAlwaysTaken(symbolSetName) +
+      SymbolsToAnalyze->getNumberBranchesNeverTaken(symbolSetName) +
+      (SymbolsToAnalyze->getNumberBranchesNotExecuted(symbolSetName) * 2)
   );
-  percentageBranches /= (double) SymbolsToAnalyze->getNumberBranchesFound() * 2;
+  percentageBranches /=
+    (double) SymbolsToAnalyze->getNumberBranchesFound(symbolSetName) * 2;
   percentageBranches *= 100.0;
 
   fprintf( report, "Bytes Analyzed                   : %d\n", totalBytes );
@@ -504,48 +519,48 @@ void  ReportsBase::WriteSummaryReport(
   fprintf(
     report,
     "Unreferenced Symbols             : %d\n",
-    SymbolsToAnalyze->getNumberUnreferencedSymbols()
+    SymbolsToAnalyze->getNumberUnreferencedSymbols(symbolSetName)
   );
   fprintf(
     report,
     "Uncovered ranges found           : %d\n\n",
-    SymbolsToAnalyze->getNumberUncoveredRanges()
+    SymbolsToAnalyze->getNumberUncoveredRanges(symbolSetName)
   );
-  if ((SymbolsToAnalyze->getNumberBranchesFound() == 0) ||
+  if ((SymbolsToAnalyze->getNumberBranchesFound(symbolSetName) == 0) ||
       (BranchInfoAvailable == false) ) {
     fprintf( report, "No branch information available\n" );
   } else {
     fprintf(
       report,
       "Total conditional branches found : %d\n",
-      SymbolsToAnalyze->getNumberBranchesFound()
+      SymbolsToAnalyze->getNumberBranchesFound(symbolSetName)
     );
     fprintf(
       report,
       "Total branch paths found         : %d\n",
-      SymbolsToAnalyze->getNumberBranchesFound() * 2
+      SymbolsToAnalyze->getNumberBranchesFound(symbolSetName) * 2
     );
     fprintf(
       report,
       "Uncovered branch paths found     : %d\n",
-      SymbolsToAnalyze->getNumberBranchesAlwaysTaken() +
-       SymbolsToAnalyze->getNumberBranchesNeverTaken() +
-       (SymbolsToAnalyze->getNumberBranchesNotExecuted() * 2)
+      SymbolsToAnalyze->getNumberBranchesAlwaysTaken(symbolSetName) +
+       SymbolsToAnalyze->getNumberBranchesNeverTaken(symbolSetName) +
+       (SymbolsToAnalyze->getNumberBranchesNotExecuted(symbolSetName) * 2)
     );
     fprintf(
       report,
       "   %d branches always taken\n",
-      SymbolsToAnalyze->getNumberBranchesAlwaysTaken()
+      SymbolsToAnalyze->getNumberBranchesAlwaysTaken(symbolSetName)
     );
     fprintf(
       report,
       "   %d branches never taken\n",
-      SymbolsToAnalyze->getNumberBranchesNeverTaken()
+      SymbolsToAnalyze->getNumberBranchesNeverTaken(symbolSetName)
     );
     fprintf(
       report,
       "   %d branch paths not executed\n",
-      SymbolsToAnalyze->getNumberBranchesNotExecuted() * 2
+      SymbolsToAnalyze->getNumberBranchesNotExecuted(symbolSetName) * 2
     );
     fprintf(
       report,
@@ -555,7 +570,7 @@ void  ReportsBase::WriteSummaryReport(
   }
 }
 
-void GenerateReports()
+void GenerateReports(const std::string& symbolSetName)
 {
   typedef std::list<ReportsBase *> reportList_t;
 
@@ -568,9 +583,9 @@ void GenerateReports()
 
 
   timestamp = time(NULL); /* get current cal time */
-  reports = new ReportsText(timestamp);
+  reports = new ReportsText(timestamp, symbolSetName);
   reportList.push_back(reports);
-  reports = new ReportsHtml(timestamp);
+  reports = new ReportsHtml(timestamp, symbolSetName);
   reportList.push_back(reports);
 
   for (ritr = reportList.begin(); ritr != reportList.end(); ritr++ ) {
@@ -624,7 +639,7 @@ void GenerateReports()
     delete reports;
   }
 
-  ReportsBase::WriteSummaryReport( "summary.txt" );
+  ReportsBase::WriteSummaryReport( "summary.txt", symbolSetName.c_str() );
 }
 
 }

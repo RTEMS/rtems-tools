@@ -350,7 +350,7 @@ int covoar(
     throw rld::error( "executables and coverage name size mismatch", "covoar" );
 
   if ( Verbose )
-    std::cerr << "Analyzing " << SymbolsToAnalyze->set.size()
+    std::cerr << "Analyzing " << SymbolsToAnalyze->allSymbols().size()
               << " symbols" << std::endl;
 
   // Create explanations.
@@ -473,7 +473,9 @@ int covoar(
   if (Verbose)
     std::cerr << "Generate Reports" << std::endl;
 
-  Coverage::GenerateReports();
+  for (const auto& setName : SymbolsToAnalyze->getSetNames()) {
+    Coverage::GenerateReports(setName);
+  }
 
   // Write explanations that were not found.
   if ( explanations ) {

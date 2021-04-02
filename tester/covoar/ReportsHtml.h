@@ -22,7 +22,7 @@ namespace Coverage {
 class ReportsHtml: public ReportsBase {
 
   public:
-    ReportsHtml( time_t timestamp );
+    ReportsHtml( time_t timestamp, std::string symbolSetName );
    ~ReportsHtml();
 
    /*!
@@ -163,7 +163,8 @@ class ReportsHtml: public ReportsBase {
     virtual bool PutBranchEntry(
       FILE*                                            report,
       unsigned int                                     number,
-      Coverage::DesiredSymbols::symbolSet_t::iterator  symbolPtr,
+      const std::string&                               symbolName,
+      const SymbolInformation&                         symbolInfo,
       Coverage::CoverageRanges::ranges_t::iterator     rangePtr
     );
 
@@ -179,7 +180,8 @@ class ReportsHtml: public ReportsBase {
     virtual bool PutCoverageLine(
       FILE*                                           report,
       unsigned int                                    number,
-      Coverage::DesiredSymbols::symbolSet_t::iterator ditr,
+      const std::string&                              symbolName,
+      const SymbolInformation&                        symbolInfo,
       Coverage::CoverageRanges::ranges_t::iterator    ritr
     );
 
@@ -187,7 +189,7 @@ class ReportsHtml: public ReportsBase {
     virtual bool PutSizeLine(
       FILE*                                           report,
       unsigned int                                    number,
-      Coverage::DesiredSymbols::symbolSet_t::iterator symbol,
+      const std::string&                              symbolName,
       Coverage::CoverageRanges::ranges_t::iterator    range
     );
 
@@ -195,7 +197,8 @@ class ReportsHtml: public ReportsBase {
     virtual bool PutSymbolSummaryLine(
       FILE*                                           report,
       unsigned int                                    number,
-      Coverage::DesiredSymbols::symbolSet_t::iterator symbol
+      const std::string&                              symbolName,
+      const SymbolInformation&                        symbolInfo
     );
 
     /* Inherit documentation from base class. */ 

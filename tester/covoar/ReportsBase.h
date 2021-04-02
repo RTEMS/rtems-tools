@@ -24,7 +24,7 @@ namespace Coverage {
 class ReportsBase {
 
   public:
-    ReportsBase( time_t timestamp );
+    ReportsBase( time_t timestamp, std::string symbolSetName );
     virtual ~ReportsBase();
 
     /*!
@@ -90,7 +90,8 @@ class ReportsBase {
      *  This method produces a sumary report for the overall test run.
      */
     static void  WriteSummaryReport(
-      const char* const fileName
+      const char* const fileName,
+      const char* const symbolSetName
     );
 
     /*!
@@ -119,6 +120,11 @@ class ReportsBase {
     std::string reportExtension_m;
 
     /*!
+     *  This member variable contains the name of the symbol set for the report.
+     */
+    std::string symbolSetName_m;
+
+    /*!
      *  This member variable contains the timestamp for the report.
      */
     time_t timestamp_m;
@@ -128,9 +134,11 @@ class ReportsBase {
      *  correctly.  Upon failure NULL is returned.
      *
      *  @param[in] fileName identifies the report file name
+     *  @param[in] symbolSetName identifies the name of the report's symbol set
      */
      static FILE* OpenFile(
-      const char* const fileName
+      const char* const fileName,
+      const char* const symbolSetName
     );
 
     /*!
@@ -318,13 +326,15 @@ class ReportsBase {
      *
      *  @param[in] report identifies the report file name
      *  @param[in] number identifies the line number.
-     *  @param[in] symbolPtr is a pointer to the symbol information
+     *  @param[in] symbolName is the symbol's name.
+     *  @param[in] symbolInfo is the symbol's information.
      *  @param[in] rangePtr is a pointer to the range information.
      */
     virtual bool PutBranchEntry(
       FILE*                                            report,
       unsigned int                                     number,
-      Coverage::DesiredSymbols::symbolSet_t::iterator  symbolPtr,
+      const std::string&                               symbolName,
+      const SymbolInformation&                         symbolInfo,
       Coverage::CoverageRanges::ranges_t::iterator     rangePtr
     )=0;
 
@@ -348,13 +358,15 @@ class ReportsBase {
      *
      *  @param[in] report identifies the report file name
      *  @param[in] number identifies the line number.
-     *  @param[in] ditr is a iterator to the symbol information
+     *  @param[in] symbolName is the symbol's name.
+     *  @param[in] symbolInfo is the symbol's information.
      *  @param[in] ritr is a iterator to the range information.
      */
     virtual bool PutCoverageLine(
       FILE*                                           report,
       unsigned int                                    number,
-      Coverage::DesiredSymbols::symbolSet_t::iterator ditr,
+      const std::string&                              symbolName,
+      const SymbolInformation&                        symbolInfo,
       Coverage::CoverageRanges::ranges_t::iterator    ritr
     )=0;
 
@@ -363,13 +375,13 @@ class ReportsBase {
      *
      *  @param[in] report identifies the size report file name
      *  @param[in] number identifies the line number.
-     *  @param[in] symbol is a pointer to the symbol information
+     *  @param[in] symbolName is the symbol's name.
      *  @param[in] range is a iterator to the range information.
      */
     virtual bool PutSizeLine(
       FILE*                                           report,
       unsigned int                                    number,
-      Coverage::DesiredSymbols::symbolSet_t::iterator symbol,
+      const std::string&                              symbolName,
       Coverage::CoverageRanges::ranges_t::iterator    range
     )=0;
 
@@ -378,20 +390,24 @@ class ReportsBase {
      *
      *  @param[in] report identifies the report file name
      *  @param[in] number identifies the line number.
-     *  @param[in] symbol is a pointer to the symbol information
+     *  @param[in] symbolName is the symbol's name.
+     *  @param[in] symbolInfo is the symbol's information.
      */
     virtual bool PutSymbolSummaryLine(
       FILE*                                           report,
       unsigned int                                    number,
-      Coverage::DesiredSymbols::symbolSet_t::iterator symbol
+      const std::string&                              symbolName,
+      const SymbolInformation&                        symbolInfo
     )=0;
 };
 
 /*!
  *  This method iterates over all report set types and generates
  *  all reports.
+ *
+ *  @param[in] symbolSetName is the name of the symbol set to report on.
  */
-void GenerateReports();
+void GenerateReports(const std::string& symbolSetName);
 
 }
 

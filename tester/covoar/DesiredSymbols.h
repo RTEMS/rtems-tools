@@ -198,12 +198,6 @@ namespace Coverage {
     typedef std::map<std::string, SymbolInformation> symbolSet_t;
 
     /*!
-     *  This variable contains a map of symbol sets for each
-     *  symbol in the system keyed on the symbol name.
-     */
-    symbolSet_t set;
-
-    /*!
      *  This method constructs a DesiredSymbols instance.
      */
     DesiredSymbols();
@@ -212,6 +206,11 @@ namespace Coverage {
      *  This method destructs a DesiredSymbols instance.
      */
     ~DesiredSymbols();
+
+    /*!
+     *  The set of all symbols.
+     */
+    const symbolSet_t& allSymbols() const;
 
     /*!
      *  This method loops through the coverage map and
@@ -262,51 +261,93 @@ namespace Coverage {
 
     /*!
      *  This method returns the total number of branches always taken
-     *  for all analyzed symbols.
+     *  for all analyzed symbols in a given set.
+     *
+     *  @param[in] symbolSetName specifies the symbol set of interest
      *
      *  @return Returns the total number of branches always taken
      */
-    uint32_t getNumberBranchesAlwaysTaken( void ) const;
+    uint32_t getNumberBranchesAlwaysTaken(
+      const std::string& symbolSetName
+    ) const;
 
     /*!
      *  This method returns the total number of branches found for
-     *  all analyzed symbols.
+     *  all analyzed symbols in a given set.
+     *
+     *  @param[in] symbolSetName specifies the symbol set of interest
      *
      *  @return Returns the total number of branches found
      */
-    uint32_t getNumberBranchesFound( void ) const;
+    uint32_t getNumberBranchesFound(
+      const std::string& symbolSetName
+    ) const;
 
     /*!
      *  This method returns the total number of branches never taken
-     *  for all analyzed symbols.
+     *  for all analyzed symbols in a given set.
+     *
+     *  @param[in] symbolSetName specifies the symbol set of interest
      *
      *  @return Returns the total number of branches never taken
      */
-    uint32_t getNumberBranchesNeverTaken( void ) const;
+    uint32_t getNumberBranchesNeverTaken(
+      const std::string& symbolSetName
+    ) const;
 
     /*!
      *  This method returns the total number of branches not executed
-     *  for all analyzed symbols.
+     *  for all analyzed symbols in a given set.
+     *
+     *  @param[in] symbolSetName specifies the symbol set of interest
      *
      *  @return Returns the total number of branches not executed
      */
-    uint32_t getNumberBranchesNotExecuted( void ) const;
+    uint32_t getNumberBranchesNotExecuted(
+      const std::string& symbolSetName
+    ) const;
 
     /*!
      *  This method returns the total number of uncovered ranges
-     *  for all analyzed symbols.
+     *  for all analyzed symbols in a given set.
+     *
+     *  @param[in] symbolSetName specifies the symbol set of interest
      *
      *  @return Returns the total number of uncovered ranges
      */
-    uint32_t getNumberUncoveredRanges( void ) const;
+    uint32_t getNumberUncoveredRanges(
+      const std::string& symbolSetName
+    ) const;
 
     /*!
      *  This method returns the total number of unreferenced symbols
-     *  for all analyzed symbols.
+     *  for all analyzed symbols in a given set.
+     *
+     *  @param[in] symbolSetName specifies the symbol set of interest
      *
      *  @return Returns the total number of unreferenced symbols
      */
-    uint32_t getNumberUnreferencedSymbols( void ) const;
+    uint32_t getNumberUnreferencedSymbols(
+      const std::string& symbolSetName
+    ) const;
+
+    /*!
+     *  This method returns all symbol set names.
+     *
+     *  @return Returns all symbol set names
+     */
+    std::vector<std::string> getSetNames( void ) const;
+
+    /*!
+     *  This method returns all symbols for a given set.
+     *
+     *  @param[in] symbolSetName specifies the symbol set of interest
+     *
+     *  @return Returns all symbols for the given set
+     */
+    const std::vector<std::string>& getSymbolsForSet(
+      const std::string& symbolSetName
+    ) const;
 
     /*!
      *  This method returns an indication of whether or not the specified
@@ -353,11 +394,6 @@ namespace Coverage {
      */
     void preprocess( void );
 
-    /*!
-     *  This member contains the statistics kept on each symbol.
-     */
-    Statistics stats;
-
   private:
 
     /*!
@@ -368,6 +404,22 @@ namespace Coverage {
       CoverageRanges* const theRanges,
       ExecutableInfo* const theExecutable
     );
+
+    /*!
+     *  This variable contains a map of symbol sets for each
+     *  symbol in the system keyed on the symbol name.
+     */
+    symbolSet_t set;
+
+    /*!
+     *  This variable contains a map of symbol set names to symbol name lists.
+     */
+    std::map<std::string, std::vector<std::string>> setNamesToSymbols;
+
+    /*!
+     *  This member contains a map of symbol set names to statistics.
+     */
+    std::map<std::string, Statistics> stats;
 
   };
 }

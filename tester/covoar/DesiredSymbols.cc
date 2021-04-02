@@ -37,6 +37,11 @@ namespace Coverage {
   {
   }
 
+  const DesiredSymbols::symbolSet_t& DesiredSymbols::allSymbols() const
+  {
+    return set;
+  }
+
   void DesiredSymbols::load(
     const std::string& symbolsSet,
     const std::string& buildTarget,
@@ -44,8 +49,6 @@ namespace Coverage {
     bool               verbose
   )
   {
-    rld::files::cache cache;
-
     //
     // Load the INI file looking for a top level:
     //
@@ -60,61 +63,61 @@ namespace Coverage {
     //  [B]
     //  libraries = @BUILD-PREFIX@/c/@BSP@/B/libB.a
     //
-    try {
+    rld::config::config config;
+
+    if (verbose)
+      std::cerr << "Loading symbol sets: " << symbolsSet << std::endl;
+
+    config.load (symbolsSet);
+
+    const rld::config::section& sym_section = config.get_section("symbol-sets");
+
+    rld::strings sets;
+    rld::config::parse_items (sym_section, "sets", sets, true);
+
+    // Load the symbols for each set specified in the config file.
+    for (const auto& setName : sets) {
+      rld::files::cache cache;
       cache.open();
 
-      rld::config::config config;
-
       if (verbose)
-        std::cerr << "Loading symbol sets: " << symbolsSet << std::endl;
-
-      config.load (symbolsSet);
-
-      const rld::config::section& sym_section = config.get_section("symbol-sets");
-
-      rld::strings sets;
-      rld::config::parse_items (sym_section, "sets", sets, true);
-
-      for (const std::string set : sets) {
+        std::cerr << "Loading symbols for set: " << setName << std::endl;
+      const rld::config::section& set_section = config.get_section(setName);
+      rld::strings libs;
+      rld::config::parse_items (set_section, "libraries", libs, true);
+      for (std::string lib : libs) {
+        lib = rld::find_replace(lib, "@BUILD-TARGET@", buildTarget);
+        lib = rld::find_replace(lib, "@BSP@", buildBSP);
         if (verbose)
-          std::cerr << " Symbol set: " << set << std::endl;
-        const rld::config::section& set_section = config.get_section(set);
-        rld::strings libs;
-        rld::config::parse_items (set_section, "libraries", libs, true);
-        for (std::string lib : libs) {
-          lib = rld::find_replace(lib, "@BUILD-TARGET@", buildTarget);
-          lib = rld::find_replace(lib, "@BSP@", buildBSP);
-          if (verbose)
-            std::cerr << " Loading library: " << lib << std::endl;
-          cache.add(lib);
-        }
+          std::cerr << " Loading library: " << lib << std::endl;
+        cache.add(lib);
       }
 
       rld::symbols::table symbols;
 
       cache.load_symbols (symbols, true);
 
+      // Populate the symbol maps with all global symbols.
       for (auto& kv : symbols.globals()) {
         const rld::symbols::symbol& sym = *(kv.second);
-        if (sym.type() == sym.st_func)
+        if (sym.type() == sym.st_func) {
           set[sym.name()] = *(new SymbolInformation);
+          setNamesToSymbols[setName].push_back(sym.name());
+        }
       }
+      // Populate the symbol maps with all weak symbols.
       for (auto& kv : symbols.weaks()) {
         const rld::symbols::symbol& sym = *(kv.second);
-        if (sym.type() == sym.st_func)
+        if (sym.type() == sym.st_func) {
           set[sym.name()] = *(new SymbolInformation);
+          setNamesToSymbols[setName].push_back(sym.name());
+        }
       }
-    } catch (...) {
-      cache.close();
-      throw;
     }
-
-    cache.close();
   }
 
   void DesiredSymbols::preprocess( void )
   {
-
     // Look at each symbol.
     for (auto& s : SymbolsToAnalyze->set) {
       // If the unified coverage map does not exist, the symbol was
@@ -135,48 +138,52 @@ namespace Coverage {
 
   void DesiredSymbols::calculateStatistics( void )
   {
-    // Look at each symbol.
-    for (auto& s : SymbolsToAnalyze->set) {
-      // If the unified coverage map does not exist, the symbol was
-      // never referenced by any executable.  Just skip it.
-      CoverageMapBase* theCoverageMap = s.second.unifiedCoverageMap;
-      if (theCoverageMap)
-      {
-        // Increment the total sizeInBytes by the bytes in the symbol
-        stats.sizeInBytes += s.second.stats.sizeInBytes;
+    // Look at each symbol set.
+    for (const auto& kv : setNamesToSymbols) {
+      // Look at each symbol.
+      for (const auto& symbol : kv.second) {
+        SymbolInformation& info = set.at(symbol);
 
-        // Now scan through the coverage map of this symbol.
-        uint32_t endAddress = s.second.stats.sizeInBytes - 1;
+        // If the unified coverage map does not exist, the symbol was
+        // never referenced by any executable.  Just skip it.
+        CoverageMapBase* theCoverageMap = info.unifiedCoverageMap;
+        if (theCoverageMap) {
+          // Increment the total sizeInBytes by the bytes in the symbol
+          stats[kv.first].sizeInBytes += info.stats.sizeInBytes;
 
-        for (uint32_t a = 0; a <= endAddress; ++a) {
-          // If we are at the start of instruction increment
-          // instruction type counters as needed.
-          if ( theCoverageMap->isStartOfInstruction( a ) ) {
+          // Now scan through the coverage map of this symbol.
+          uint32_t endAddress = info.stats.sizeInBytes - 1;
 
-            stats.sizeInInstructions++;
-            s.second.stats.sizeInInstructions++;
+          for (uint32_t a = 0; a <= endAddress; ++a) {
+            // If we are at the start of instruction increment
+            // instruction type counters as needed.
+            if ( theCoverageMap->isStartOfInstruction( a ) ) {
 
-            if (!theCoverageMap->wasExecuted( a ) ) {
-              stats.uncoveredInstructions++;
-              s.second.stats.uncoveredInstructions++;
+              stats[kv.first].sizeInInstructions++;
+              info.stats.sizeInInstructions++;
 
-              if ( theCoverageMap->isBranch( a )) {
-                stats.branchesNotExecuted++;
-                s.second.stats.branchesNotExecuted++;
+              if (!theCoverageMap->wasExecuted( a ) ) {
+                stats[kv.first].uncoveredInstructions++;
+                info.stats.uncoveredInstructions++;
+
+                if ( theCoverageMap->isBranch( a )) {
+                  stats[kv.first].branchesNotExecuted++;
+                  info.stats.branchesNotExecuted++;
+                }
+              } else if (theCoverageMap->isBranch( a )) {
+                stats[kv.first].branchesExecuted++;
+                info.stats.branchesExecuted++;
               }
-            } else if (theCoverageMap->isBranch( a )) {
-              stats.branchesExecuted++;
-              s.second.stats.branchesExecuted++;
+            }
+
+            if (!theCoverageMap->wasExecuted( a )) {
+              stats[kv.first].uncoveredBytes++;
+              info.stats.uncoveredBytes++;
             }
           }
-
-          if (!theCoverageMap->wasExecuted( a )) {
-            stats.uncoveredBytes++;
-            s.second.stats.uncoveredBytes++;
-          }
+        } else {
+          stats[kv.first].unreferencedSymbols++;
         }
-      } else {
-        stats.unreferencedSymbols++;
       }
     }
   }
@@ -184,152 +191,155 @@ namespace Coverage {
 
   void DesiredSymbols::computeUncovered( void )
   {
-    // Look at each symbol.
-    for (auto& s : SymbolsToAnalyze->set) {
-      // If the unified coverage map does not exist, the symbol was
-      // never referenced by any executable.  Just skip it.
-      CoverageMapBase* theCoverageMap = s.second.unifiedCoverageMap;
-      if (theCoverageMap)
-      {
-        // Create containers for the symbol's uncovered ranges and branches.
-        CoverageRanges* theRanges = new CoverageRanges();
-        s.second.uncoveredRanges = theRanges;
-        CoverageRanges* theBranches = new CoverageRanges();
-        s.second.uncoveredBranches = theBranches;
+    // Look at each symbol set.
+    for (const auto& kv : setNamesToSymbols) {
+      // Look at each symbol.
+      for (const auto& symbol : kv.second) {
+        SymbolInformation& info = set.at(symbol);
+        // If the unified coverage map does not exist, the symbol was
+        // never referenced by any executable.  Just skip it.
+        CoverageMapBase* theCoverageMap = info.unifiedCoverageMap;
+        if (theCoverageMap) {
+          // Create containers for the symbol's uncovered ranges and branches.
+          CoverageRanges* theRanges = new CoverageRanges();
+          info.uncoveredRanges = theRanges;
+          CoverageRanges* theBranches = new CoverageRanges();
+          info.uncoveredBranches = theBranches;
 
-        uint32_t a;
-        uint32_t la;
-        uint32_t ha;
-        uint32_t endAddress;
-        uint32_t count;
+          uint32_t a;
+          uint32_t la;
+          uint32_t ha;
+          uint32_t endAddress;
+          uint32_t count;
 
-        // Mark NOPs as executed
-        a = s.second.stats.sizeInBytes - 1;
-        count = 0;
-        while (a > 0) {
-          if (theCoverageMap->isStartOfInstruction( a )) {
-            break;
-          }
-
-          count++;
-
-          if (theCoverageMap->isNop( a )) {
-            for (la = a; la < (a + count); la++) {
-              theCoverageMap->setWasExecuted( la );
+          // Mark NOPs as executed
+          a = info.stats.sizeInBytes - 1;
+          count = 0;
+          while (a > 0) {
+            if (theCoverageMap->isStartOfInstruction( a )) {
+              break;
             }
 
-            count = 0;
-          }
+            count++;
 
-          a--;
-        }
+            if (theCoverageMap->isNop( a )) {
+              for (la = a; la < (a + count); la++) {
+                theCoverageMap->setWasExecuted( la );
+              }
 
-        endAddress = s.second.stats.sizeInBytes - 1;
-        a = 0;
-        while (a < endAddress) {
-          if (!theCoverageMap->wasExecuted( a )) {
-            a++;
-            continue;
-          }
-
-          for (ha=a+1;
-               ha <= endAddress && !theCoverageMap->isStartOfInstruction( ha );
-               ha++)
-            ;
-          if ( ha >= endAddress )
-            break;
-
-          if (theCoverageMap->isNop( ha ))
-            do {
-              theCoverageMap->setWasExecuted( ha );
-              ha++;
-              if ( ha >= endAddress )
-                break;
-            } while ( !theCoverageMap->isStartOfInstruction( ha ) ||
-                      theCoverageMap->isNop( ha ) );
-          a = ha;
-        }
-
-        // Now scan through the coverage map of this symbol.
-        endAddress = s.second.stats.sizeInBytesWithoutNops - 1;
-        a = 0;
-        while (a <= endAddress) {
-          // If an address was NOT executed, find consecutive unexecuted
-          // addresses and add them to the uncovered ranges.
-          if (!theCoverageMap->wasExecuted( a )) {
-
-            la = a;
-            count = 1;
-            for (ha = a + 1;
-                 ha <= endAddress && !theCoverageMap->wasExecuted( ha );
-                 ha++)
-            {
-              if ( theCoverageMap->isStartOfInstruction( ha ) )
-                count++;
+              count = 0;
             }
-            ha--;
 
-            stats.uncoveredRanges++;
-            s.second.stats.uncoveredRanges++;
-            theRanges->add(
-              s.second.baseAddress + la,
-              s.second.baseAddress + ha,
-              CoverageRanges::UNCOVERED_REASON_NOT_EXECUTED,
-              count
-            );
-            a = ha + 1;
+            a--;
           }
 
-          // If an address is a branch instruction, add any uncovered branches
-          // to the uncoverd branches.
-          else if (theCoverageMap->isBranch( a )) {
-            la = a;
-            for (ha = a + 1;
-               ha <= endAddress && !theCoverageMap->isStartOfInstruction( ha );
-                 ha++)
+          endAddress = info.stats.sizeInBytes - 1;
+          a = 0;
+          while (a < endAddress) {
+            if (!theCoverageMap->wasExecuted( a )) {
+              a++;
+              continue;
+            }
+
+            for (ha=a+1;
+                ha <= endAddress && !theCoverageMap->isStartOfInstruction( ha );
+                ha++)
               ;
-            ha--;
+            if ( ha >= endAddress )
+              break;
 
-            if (theCoverageMap->wasAlwaysTaken( la )) {
-              stats.branchesAlwaysTaken++;
-              s.second.stats.branchesAlwaysTaken++;
-              theBranches->add(
-                s.second.baseAddress + la,
-                s.second.baseAddress + ha,
-                CoverageRanges::UNCOVERED_REASON_BRANCH_ALWAYS_TAKEN,
-                1
-              );
-              if (Verbose)
-                std::cerr << "Branch always taken found in" << s.first
-                          << std::hex
-                          << " (0x" << s.second.baseAddress + la
-                          << " - 0x" << s.second.baseAddress + ha
-                          << ")"
-                          << std::dec
-                          << std::endl;
-            }
-            else if (theCoverageMap->wasNeverTaken( la )) {
-              stats.branchesNeverTaken++;
-              s.second.stats.branchesNeverTaken++;
-              theBranches->add(
-                s.second.baseAddress + la,
-                s.second.baseAddress + ha,
-                CoverageRanges::UNCOVERED_REASON_BRANCH_NEVER_TAKEN,
-                1
-                );
-              if (Verbose)
-                std::cerr << "Branch never taken found in " << s.first
-                          << std::hex
-                          << " (0x" << s.second.baseAddress + la
-                          << " - 0x" << s.second.baseAddress + ha
-                          << ")"
-                          << std::dec
-                          << std::endl;
-            }
-            a = ha + 1;
+            if (theCoverageMap->isNop( ha ))
+              do {
+                theCoverageMap->setWasExecuted( ha );
+                ha++;
+                if ( ha >= endAddress )
+                  break;
+              } while ( !theCoverageMap->isStartOfInstruction( ha ) ||
+                        theCoverageMap->isNop( ha ) );
+            a = ha;
           }
-          else
-            a++;
+
+          // Now scan through the coverage map of this symbol.
+          endAddress = info.stats.sizeInBytesWithoutNops - 1;
+          a = 0;
+          while (a <= endAddress) {
+            // If an address was NOT executed, find consecutive unexecuted
+            // addresses and add them to the uncovered ranges.
+            if (!theCoverageMap->wasExecuted( a )) {
+
+              la = a;
+              count = 1;
+              for (ha = a + 1;
+                  ha <= endAddress && !theCoverageMap->wasExecuted( ha );
+                  ha++)
+              {
+                if ( theCoverageMap->isStartOfInstruction( ha ) )
+                  count++;
+              }
+              ha--;
+
+              stats[kv.first].uncoveredRanges++;
+              info.stats.uncoveredRanges++;
+              theRanges->add(
+                info.baseAddress + la,
+                info.baseAddress + ha,
+                CoverageRanges::UNCOVERED_REASON_NOT_EXECUTED,
+                count
+              );
+              a = ha + 1;
+            }
+
+            // If an address is a branch instruction, add any uncovered branches
+            // to the uncoverd branches.
+            else if (theCoverageMap->isBranch( a )) {
+              la = a;
+              for (ha = a + 1;
+                ha <= endAddress && !theCoverageMap->isStartOfInstruction( ha );
+                  ha++)
+                ;
+              ha--;
+
+              if (theCoverageMap->wasAlwaysTaken( la )) {
+                stats[kv.first].branchesAlwaysTaken++;
+                info.stats.branchesAlwaysTaken++;
+                theBranches->add(
+                  info.baseAddress + la,
+                  info.baseAddress + ha,
+                  CoverageRanges::UNCOVERED_REASON_BRANCH_ALWAYS_TAKEN,
+                  1
+                );
+                if (Verbose)
+                  std::cerr << "Branch always taken found in" << symbol
+                            << std::hex
+                            << " (0x" << info.baseAddress + la
+                            << " - 0x" << info.baseAddress + ha
+                            << ")"
+                            << std::dec
+                            << std::endl;
+              }
+              else if (theCoverageMap->wasNeverTaken( la )) {
+                stats[kv.first].branchesNeverTaken++;
+                info.stats.branchesNeverTaken++;
+                theBranches->add(
+                  info.baseAddress + la,
+                  info.baseAddress + ha,
+                  CoverageRanges::UNCOVERED_REASON_BRANCH_NEVER_TAKEN,
+                  1
+                  );
+                if (Verbose)
+                  std::cerr << "Branch never taken found in " << symbol
+                            << std::hex
+                            << " (0x" << info.baseAddress + la
+                            << " - 0x" << info.baseAddress + ha
+                            << ")"
+                            << std::dec
+                            << std::endl;
+              }
+              a = ha + 1;
+            }
+            else
+              a++;
+          }
         }
       }
     }
@@ -460,29 +470,60 @@ namespace Coverage {
     }
   }
 
-  uint32_t DesiredSymbols::getNumberBranchesAlwaysTaken( void ) const {
-    return stats.branchesAlwaysTaken;
+  uint32_t DesiredSymbols::getNumberBranchesAlwaysTaken(
+    const std::string& symbolSetName
+  ) const {
+    return stats.at(symbolSetName).branchesAlwaysTaken;
   };
 
-  uint32_t DesiredSymbols::getNumberBranchesFound( void ) const {
-    return (stats.branchesNotExecuted + stats.branchesExecuted);
+  uint32_t DesiredSymbols::getNumberBranchesFound(
+    const std::string& symbolSetName
+  ) const {
+    return (
+      stats.at(symbolSetName).branchesNotExecuted +
+      stats.at(symbolSetName).branchesExecuted
+    );
   };
 
-  uint32_t DesiredSymbols::getNumberBranchesNeverTaken( void ) const {
-    return stats.branchesNeverTaken;
+  uint32_t DesiredSymbols::getNumberBranchesNeverTaken(
+    const std::string& symbolSetName
+  ) const {
+    return stats.at(symbolSetName).branchesNeverTaken;
   };
 
-  uint32_t DesiredSymbols::getNumberBranchesNotExecuted( void ) const {
-    return stats.branchesNotExecuted;
+  uint32_t DesiredSymbols::getNumberBranchesNotExecuted(
+    const std::string& symbolSetName
+  ) const {
+    return stats.at(symbolSetName).branchesNotExecuted;
   };
 
-  uint32_t DesiredSymbols::getNumberUncoveredRanges( void ) const {
-    return stats.uncoveredRanges;
+  uint32_t DesiredSymbols::getNumberUncoveredRanges(
+    const std::string& symbolSetName
+  ) const {
+    return stats.at(symbolSetName).uncoveredRanges;
   };
 
-  uint32_t DesiredSymbols::getNumberUnreferencedSymbols( void ) const {
-    return stats.unreferencedSymbols;
+  uint32_t DesiredSymbols::getNumberUnreferencedSymbols(
+    const std::string& symbolSetName
+  ) const {
+    return stats.at(symbolSetName).unreferencedSymbols;
   };
+
+  std::vector<std::string> DesiredSymbols::getSetNames( void ) const {
+    std::vector<std::string> setNames;
+    for (const auto &kv : setNamesToSymbols) {
+      setNames.push_back(kv.first);
+    }
+
+    return setNames;
+  }
+
+  const std::vector<std::string>& DesiredSymbols::getSymbolsForSet(
+    const std::string& symbolSetName
+  ) const
+  {
+    return setNamesToSymbols.at(symbolSetName);
+  }
 
   bool DesiredSymbols::isDesired (
     const std::string& symbolName
