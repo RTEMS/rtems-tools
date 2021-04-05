@@ -197,15 +197,12 @@ std::string expand_tabs(const std::string& in) {
 void ReportsBase::WriteAnnotatedReport(
   const char* const fileName
 ) {
-  FILE*                                                          aFile = NULL;
-  Coverage::CoverageRanges*                                      theBranches;
-  Coverage::CoverageRanges*                                      theRanges;
-  Coverage::CoverageMapBase*                                     theCoverageMap = NULL;
-  uint32_t                                                       bAddress = 0;
-  AnnotatedLineState_t                                           state;
-  const std::list<Coverage::ObjdumpProcessor::objdumpLine_t>*    theInstructions;
-  std::list<
-    Coverage::ObjdumpProcessor::objdumpLine_t>::const_iterator   itr;
+  FILE*                      aFile = NULL;
+  Coverage::CoverageRanges*  theBranches;
+  Coverage::CoverageRanges*  theRanges;
+  Coverage::CoverageMapBase* theCoverageMap = NULL;
+  uint32_t                   bAddress = 0;
+  AnnotatedLineState_t       state;
 
   aFile = OpenAnnotatedFile(fileName);
   if (!aFile)
@@ -231,16 +228,12 @@ void ReportsBase::WriteAnnotatedReport(
 
     theCoverageMap = info.unifiedCoverageMap;
     bAddress = info.baseAddress;
-    theInstructions = &(info.instructions);
     theRanges = info.uncoveredRanges;
     theBranches = info.uncoveredBranches;
 
     // Add annotations to each line where necessary
     AnnotatedStart( aFile );
-    for (itr = theInstructions->begin();
-         itr != theInstructions->end();
-         itr++ ) {
-
+    for (const auto& instruction : info.instructions) {
       uint32_t           id = 0;
       std::string        annotation = "";
       std::string        line;
@@ -249,17 +242,19 @@ void ReportsBase::WriteAnnotatedReport(
 
       state = A_SOURCE;
 
-      if ( itr->isInstruction ) {
-        if (!theCoverageMap->wasExecuted( itr->address - bAddress )){
+      if ( instruction.isInstruction ) {
+        if (!theCoverageMap->wasExecuted( instruction.address - bAddress )){
           annotation = "<== NOT EXECUTED";
           state = A_NEVER_EXECUTED;
-          id = theRanges->getId( itr->address );
-        } else if (theCoverageMap->isBranch( itr->address - bAddress )) {
-          id = theBranches->getId( itr->address );
-          if (theCoverageMap->wasAlwaysTaken( itr->address - bAddress )){
+          id = theRanges->getId( instruction.address );
+        } else if (theCoverageMap->isBranch( instruction.address - bAddress )) {
+          id = theBranches->getId( instruction.address );
+          if (theCoverageMap->wasAlwaysTaken( instruction.address - bAddress )){
             annotation = "<== ALWAYS TAKEN";
             state = A_BRANCH_TAKEN;
-          } else if (theCoverageMap->wasNeverTaken( itr->address - bAddress )){
+          } else if (
+            theCoverageMap->wasNeverTaken( instruction.address - bAddress )
+          ) {
             annotation = "<== NEVER TAKEN";
             state = A_BRANCH_NOT_TAKEN;
           }
@@ -268,7 +263,7 @@ void ReportsBase::WriteAnnotatedReport(
         }
       }
 
-      std::string textLineWithoutTabs = expand_tabs(itr->line);
+      std::string textLineWithoutTabs = expand_tabs(instruction.line);
       snprintf( textLine, LINE_LENGTH, "%-90s", textLineWithoutTabs.c_str() );
       line = textLine + annotation;
 
@@ -287,11 +282,10 @@ void ReportsBase::WriteAnnotatedReport(
 void ReportsBase::WriteBranchReport(
   const char* const fileName
 ) {
-  FILE*                                           report = NULL;
-  Coverage::CoverageRanges::ranges_t::iterator    ritr;
-  Coverage::CoverageRanges*                       theBranches;
-  unsigned int                                    count;
-  bool                                            hasBranches = true;
+  FILE*                     report = NULL;
+  Coverage::CoverageRanges* theBranches;
+  unsigned int              count;
+  bool                      hasBranches = true;
 
   if ((SymbolsToAnalyze->getNumberBranchesFound(symbolSetName_m) == 0) ||
       (BranchInfoAvailable == false) )
@@ -315,12 +309,9 @@ void ReportsBase::WriteBranchReport(
       theBranches = info.uncoveredBranches;
 
       if (theBranches && !theBranches->set.empty()) {
-
-        for (ritr =  theBranches->set.begin() ;
-             ritr != theBranches->set.end() ;
-             ritr++ ) {
+        for (const auto& range : theBranches->set) {
           count++;
-          PutBranchEntry( report, count, symbol, info, ritr );
+          PutBranchEntry( report, count, symbol, info, range );
         }
       }
     }
@@ -336,12 +327,11 @@ void ReportsBase::WriteCoverageReport(
   const char* const fileName
 )
 {
-  FILE*                                           report;
-  Coverage::CoverageRanges::ranges_t::iterator    ritr;
-  Coverage::CoverageRanges*                       theRanges;
-  unsigned int                                    count;
-  FILE*                                           NoRangeFile;
-  std::string                                     NoRangeName;
+  FILE*                     report;
+  Coverage::CoverageRanges* theRanges;
+  unsigned int              count;
+  FILE*                     NoRangeFile;
+  std::string               NoRangeName;
 
   // Open special file that captures NoRange informaiton
   NoRangeName = "no_range_";
@@ -374,11 +364,8 @@ void ReportsBase::WriteCoverageReport(
       putCoverageNoRange( report, NoRangeFile, count, symbol );
       count++;
     }  else if (!theRanges->set.empty()) {
-
-      for (ritr =  theRanges->set.begin() ;
-           ritr != theRanges->set.end() ;
-           ritr++ ) {
-        PutCoverageLine( report, count, symbol, info, ritr );
+      for (const auto& range : theRanges->set) {
+        PutCoverageLine( report, count, symbol, info, range );
         count++;
       }
     }
@@ -396,10 +383,9 @@ void ReportsBase::WriteSizeReport(
   const char* const fileName
 )
 {
-  FILE*                                           report;
-  Coverage::CoverageRanges::ranges_t::iterator    ritr;
-  Coverage::CoverageRanges*                       theRanges;
-  unsigned int                                    count;
+  FILE*                     report;
+  Coverage::CoverageRanges* theRanges;
+  unsigned int              count;
 
   // Open the report file.
   report = OpenSizeFile( fileName );
@@ -417,11 +403,8 @@ void ReportsBase::WriteSizeReport(
     theRanges = info.uncoveredRanges;
 
     if (theRanges && !theRanges->set.empty()) {
-
-      for (ritr =  theRanges->set.begin() ;
-           ritr != theRanges->set.end() ;
-           ritr++ ) {
-        PutSizeLine( report, count, symbol, ritr );
+      for (const auto& range : theRanges->set) {
+        PutSizeLine( report, count, symbol, range );
         count++;
       }
     }

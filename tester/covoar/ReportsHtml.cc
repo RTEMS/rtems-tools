@@ -501,7 +501,7 @@ namespace Coverage {
     unsigned int                                     count,
     const std::string&                               symbolName,
     const SymbolInformation&                         symbolInfo,
-    Coverage::CoverageRanges::ranges_t::iterator     rangePtr
+    const CoverageRanges::coverageRange_t&           range
   )
   {
     const Coverage::Explanation* explanation;
@@ -528,13 +528,13 @@ namespace Coverage {
     fprintf(
       report,
       "<td class=\"covoar-td\" align=\"center\"><a href =\"annotated.html#range%d\">%s</td>\n",
-      rangePtr->id,
-      rangePtr->lowSourceLine.c_str()
+      range.id,
+      range.lowSourceLine.c_str()
     );
 
     // File
-    i = rangePtr->lowSourceLine.find(":");
-    temp =  rangePtr->lowSourceLine.substr (0, i);
+    i = range.lowSourceLine.find(":");
+    temp =  range.lowSourceLine.substr (0, i);
     fprintf(
       report,
       "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
@@ -545,17 +545,17 @@ namespace Coverage {
     fprintf(
       report,
       "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-      rangePtr->highAddress - rangePtr->lowAddress + 1
+      range.highAddress - range.lowAddress + 1
     );
 
     // Reason Branch was uncovered
-    if (rangePtr->reason ==
+    if (range.reason ==
       Coverage::CoverageRanges::UNCOVERED_REASON_BRANCH_ALWAYS_TAKEN)
       fprintf(
         report,
         "<td class=\"covoar-td\" align=\"center\">Always Taken</td>\n"
       );
-    else if (rangePtr->reason ==
+    else if (range.reason ==
       Coverage::CoverageRanges::UNCOVERED_REASON_BRANCH_NEVER_TAKEN)
       fprintf(
         report,
@@ -563,7 +563,7 @@ namespace Coverage {
       );
 
     // Taken / Not taken counts
-    lowAddress = rangePtr->lowAddress;
+    lowAddress = range.lowAddress;
     bAddress = symbolInfo.baseAddress;
     theCoverageMap = symbolInfo.unifiedCoverageMap;
     fprintf(
@@ -579,7 +579,7 @@ namespace Coverage {
 
     // See if an explanation is available and write the Classification and
     // the Explination Columns.
-    explanation = AllExplanations->lookupExplanation( rangePtr->lowSourceLine );
+    explanation = AllExplanations->lookupExplanation( range.lowSourceLine );
     if ( !explanation ) {
       // Write Classificationditr->second.baseAddress
       fprintf(
@@ -589,7 +589,7 @@ namespace Coverage {
       );
     } else {
       char explanationFile[48];
-      sprintf( explanationFile, "explanation%d.html", rangePtr->id );
+      sprintf( explanationFile, "explanation%d.html", range.id );
       fprintf(
         report,
         "<td class=\"covoar-td\" align=\"center\">%s</td>\n"
@@ -707,7 +707,7 @@ namespace Coverage {
     unsigned int                                     count,
     const std::string&                               symbolName,
     const SymbolInformation&                         symbolInfo,
-    Coverage::CoverageRanges::ranges_t::iterator     rangePtr
+    const CoverageRanges::coverageRange_t&           range
   )
   {
     const Coverage::Explanation*   explanation;
@@ -731,14 +731,14 @@ namespace Coverage {
     fprintf(
       report,
       "<td class=\"covoar-td\" align=\"center\"><a href =\"annotated.html#range%d\">%s <br>%s</td>\n",
-      rangePtr->id,
-      rangePtr->lowSourceLine.c_str(),
-      rangePtr->highSourceLine.c_str()
+      range.id,
+      range.lowSourceLine.c_str(),
+      range.highSourceLine.c_str()
      );
 
     // File
-    i = rangePtr->lowSourceLine.find(":");
-    temp =  rangePtr->lowSourceLine.substr (0, i);
+    i = range.lowSourceLine.find(":");
+    temp =  range.lowSourceLine.substr (0, i);
     fprintf(
       report,
       "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
@@ -749,18 +749,18 @@ namespace Coverage {
     fprintf(
       report,
       "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-      rangePtr->highAddress - rangePtr->lowAddress + 1
+      range.highAddress - range.lowAddress + 1
     );
 
     // Size in instructions
     fprintf(
       report,
       "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-      rangePtr->instructionCount
+      range.instructionCount
     );
 
     // See if an explanation is available
-    explanation = AllExplanations->lookupExplanation( rangePtr->lowSourceLine );
+    explanation = AllExplanations->lookupExplanation( range.lowSourceLine );
     if ( !explanation ) {
       fprintf(
         report,
@@ -773,7 +773,7 @@ namespace Coverage {
     } else {
       char explanationFile[48];
 
-      sprintf( explanationFile, "explanation%d.html", rangePtr->id );
+      sprintf( explanationFile, "explanation%d.html", range.id );
       fprintf(
         report,
         "<td class=\"covoar-td\" align=\"center\">%s</td>\n"
@@ -794,7 +794,7 @@ namespace Coverage {
     FILE*                                           report,
     unsigned int                                    count,
     const std::string&                              symbolName,
-    Coverage::CoverageRanges::ranges_t::iterator    range
+    const CoverageRanges::coverageRange_t&          range
   )
   {
     std::string  temp;
@@ -810,7 +810,7 @@ namespace Coverage {
     fprintf(
       report,
       "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-      range->highAddress - range->lowAddress + 1
+      range.highAddress - range.lowAddress + 1
     );
 
     // symbol
@@ -824,13 +824,13 @@ namespace Coverage {
     fprintf(
       report,
       "<td class=\"covoar-td\" align=\"center\"><a href =\"annotated.html#range%d\">%s</td>\n",
-      range->id,
-      range->lowSourceLine.c_str()
+      range.id,
+      range.lowSourceLine.c_str()
     );
 
     // File
-    i = range->lowSourceLine.find(":");
-    temp =  range->lowSourceLine.substr (0, i);
+    i = range.lowSourceLine.find(":");
+    temp =  range.lowSourceLine.substr (0, i);
     fprintf(
       report,
       "<td class=\"covoar-td\" align=\"center\">%s</td>\n",

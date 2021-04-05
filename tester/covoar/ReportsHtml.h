@@ -165,7 +165,7 @@ class ReportsHtml: public ReportsBase {
       unsigned int                                     number,
       const std::string&                               symbolName,
       const SymbolInformation&                         symbolInfo,
-      Coverage::CoverageRanges::ranges_t::iterator     rangePtr
+      const CoverageRanges::coverageRange_t&           range
     );
 
     /* Inherit documentation from base class. */
@@ -182,7 +182,7 @@ class ReportsHtml: public ReportsBase {
       unsigned int                                    number,
       const std::string&                              symbolName,
       const SymbolInformation&                        symbolInfo,
-      Coverage::CoverageRanges::ranges_t::iterator    ritr
+      const CoverageRanges::coverageRange_t&          range
     );
 
     /* Inherit documentation from base class. */
@@ -190,7 +190,7 @@ class ReportsHtml: public ReportsBase {
       FILE*                                           report,
       unsigned int                                    number,
       const std::string&                              symbolName,
-      Coverage::CoverageRanges::ranges_t::iterator    range
+      const CoverageRanges::coverageRange_t&          range
     );
 
     /* Inherit documentation from base class. */

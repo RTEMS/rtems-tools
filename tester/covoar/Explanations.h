@@ -99,7 +99,7 @@ namespace Coverage {
      *             which to search
      */
     const Explanation *lookupExplanation(
-      std::string& start
+      const std::string& start
     );
 
     /*!

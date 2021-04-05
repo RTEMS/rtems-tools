@@ -66,7 +66,7 @@ bool ReportsText::PutBranchEntry(
   unsigned int                                     number,
   const std::string&                               symbolName,
   const SymbolInformation&                         symbolInfo,
-  Coverage::CoverageRanges::ranges_t::iterator     rangePtr
+  const CoverageRanges::coverageRange_t&           range
 )
 {
   const Coverage::Explanation* explanation;
@@ -80,22 +80,22 @@ bool ReportsText::PutBranchEntry(
     "Size in Bytes : %d\n",
     symbolName.c_str(),
     symbolInfo.baseAddress,
-    rangePtr->lowSourceLine.c_str(),
-    rangePtr->lowAddress,
-    rangePtr->highAddress - rangePtr->lowAddress + 1
+    range.lowSourceLine.c_str(),
+    range.lowAddress,
+    range.highAddress - range.lowAddress + 1
   );
 
-  if (rangePtr->reason ==
+  if (range.reason ==
     Coverage::CoverageRanges::UNCOVERED_REASON_BRANCH_ALWAYS_TAKEN)
     fprintf(
       report, "Reason        : %s\n\n", "ALWAYS TAKEN"
     );
-  else if (rangePtr->reason ==
+  else if (range.reason ==
     Coverage::CoverageRanges::UNCOVERED_REASON_BRANCH_NEVER_TAKEN)
     fprintf( report, "Reason        : %s\n\n", "NEVER TAKEN" );
 
   // See if an explanation is available
-  explanation = AllExplanations->lookupExplanation( rangePtr->lowSourceLine );
+  explanation = AllExplanations->lookupExplanation( range.lowSourceLine );
 
   if ( !explanation ) {
     fprintf(
@@ -159,7 +159,7 @@ bool ReportsText::PutCoverageLine(
   unsigned int                                    number,
   const std::string&                              symbolName,
   const SymbolInformation&                        symbolInfo,
-  Coverage::CoverageRanges::ranges_t::iterator    ritr
+  const CoverageRanges::coverageRange_t&          range
 )
 {
   const Coverage::Explanation*   explanation;
@@ -173,18 +173,18 @@ bool ReportsText::PutCoverageLine(
     "Ending Line          : %s (0x%x)\n"
     "Size in Bytes        : %d\n"
     "Size in Instructions : %d\n\n",
-    ritr->id,
+    range.id,
     symbolName.c_str(),
     symbolInfo.baseAddress,
-    ritr->lowSourceLine.c_str(),
-    ritr->lowAddress,
-    ritr->highSourceLine.c_str(),
-    ritr->highAddress,
-    ritr->highAddress - ritr->lowAddress + 1,
-    ritr->instructionCount
+    range.lowSourceLine.c_str(),
+    range.lowAddress,
+    range.highSourceLine.c_str(),
+    range.highAddress,
+    range.highAddress - range.lowAddress + 1,
+    range.instructionCount
   );
 
-  explanation = AllExplanations->lookupExplanation( ritr->lowSourceLine );
+  explanation = AllExplanations->lookupExplanation( range.lowSourceLine );
 
   if ( !explanation ) {
     fprintf(
@@ -216,15 +216,15 @@ bool  ReportsText::PutSizeLine(
   FILE*                                           report,
   unsigned int                                    number,
   const std::string&                              symbolName,
-  Coverage::CoverageRanges::ranges_t::iterator    range
+  const CoverageRanges::coverageRange_t&          range
 )
 {
   fprintf(
     report,
     "%d\t%s\t%s\n",
-    range->highAddress - range->lowAddress + 1,
+    range.highAddress - range.lowAddress + 1,
     symbolName.c_str(),
-    range->lowSourceLine.c_str()
+    range.lowSourceLine.c_str()
   );
   return true;
 }

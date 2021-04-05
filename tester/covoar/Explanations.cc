@@ -115,7 +115,7 @@ done:
   }
 
   const Explanation *Explanations::lookupExplanation(
-    std::string& start
+    const std::string& start
   )
   {
     if (set.find( start ) == set.end()) {

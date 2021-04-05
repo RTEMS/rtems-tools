@@ -328,14 +328,14 @@ class ReportsBase {
      *  @param[in] number identifies the line number.
      *  @param[in] symbolName is the symbol's name.
      *  @param[in] symbolInfo is the symbol's information.
-     *  @param[in] rangePtr is a pointer to the range information.
+     *  @param[in] range is the range information.
      */
     virtual bool PutBranchEntry(
       FILE*                                            report,
       unsigned int                                     number,
       const std::string&                               symbolName,
       const SymbolInformation&                         symbolInfo,
-      Coverage::CoverageRanges::ranges_t::iterator     rangePtr
+      const CoverageRanges::coverageRange_t&           range
     )=0;
 
     /*!
@@ -360,14 +360,14 @@ class ReportsBase {
      *  @param[in] number identifies the line number.
      *  @param[in] symbolName is the symbol's name.
      *  @param[in] symbolInfo is the symbol's information.
-     *  @param[in] ritr is a iterator to the range information.
+     *  @param[in] range is the range information.
      */
     virtual bool PutCoverageLine(
       FILE*                                           report,
       unsigned int                                    number,
       const std::string&                              symbolName,
       const SymbolInformation&                        symbolInfo,
-      Coverage::CoverageRanges::ranges_t::iterator    ritr
+      const CoverageRanges::coverageRange_t&          range
     )=0;
 
     /*!
@@ -376,13 +376,13 @@ class ReportsBase {
      *  @param[in] report identifies the size report file name
      *  @param[in] number identifies the line number.
      *  @param[in] symbolName is the symbol's name.
-     *  @param[in] range is a iterator to the range information.
+     *  @param[in] range is the range information.
      */
     virtual bool PutSizeLine(
       FILE*                                           report,
       unsigned int                                    number,
       const std::string&                              symbolName,
-      Coverage::CoverageRanges::ranges_t::iterator    range
+      const CoverageRanges::coverageRange_t&          range
     )=0;
 
     /*!
