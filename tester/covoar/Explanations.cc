@@ -140,10 +140,10 @@ done:
       return;
 
     notFoundFile = fopen( fileName, "w" );
-    if (!fileName) {
+    if (notFoundFile == nullptr) {
       std::ostringstream what;
       what << "Unable to open " << fileName
-           << "out of sync at the explanation";
+           << " out of sync at the explanation";
       throw rld::error( what, "Explanations::writeNotFound" );
     }
 
