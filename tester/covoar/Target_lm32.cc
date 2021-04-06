@@ -1,7 +1,7 @@
 /*! @file Target_lm32.cc
  *  @brief Target_lm32 Implementation
  *
- *  This file contains the implementation of the base class for 
+ *  This file contains the implementation of the base class for
  *  functions supporting target unique functionallity.
  */
 #include "Target_lm32.h"
@@ -35,7 +35,7 @@ namespace Target {
   )
   {
     if (!strcmp( &line[strlen(line)-3], "nop")) {
-      size = 4; 
+      size = 4;
       return true;
     }
 

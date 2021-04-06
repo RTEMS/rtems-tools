@@ -1,7 +1,7 @@
 /*! @file Target_sparc.cc
  *  @brief Target_sparc Implementation
  *
- *  This file contains the implementation of the base class for 
+ *  This file contains the implementation of the base class for
  *  functions supporting target unique functionallity.
  */
 #include "Target_sparc.h"
@@ -47,7 +47,7 @@ namespace Target {
     conditionalBranchInstructions.push_back("bpos,a");
     conditionalBranchInstructions.push_back("bvc");
     conditionalBranchInstructions.push_back("bvc,a");
-  
+
     conditionalBranchInstructions.sort();
   }
 
@@ -66,16 +66,16 @@ namespace Target {
     }
 
     if (!strcmp( &line[strlen(line)-7], "unknown")) {
-      size = 4; 
+      size = 4;
       return true;
-    } 
+    }
     #define GNU_LD_FILLS_ALIGNMENT_WITH_RTS
     #if defined(GNU_LD_FILLS_ALIGNMENT_WITH_RTS)
       // Until binutils 2.20, binutils would fill with rts not nop
       if (!strcmp( &line[strlen(line)-3], "rts")) {
-        size = 4; 
+        size = 4;
         return true;
-      } 
+      }
     #endif
 
     return false;

@@ -20,12 +20,12 @@ namespace Coverage {
 
   public:
 
-    /*! 
+    /*!
      *  This method constructs a CoverageReaderBase instance.
      */
     CoverageReaderBase();
 
-    /*! 
+    /*!
      *  This method destructs a CoverageReaderBase instance.
      */
     virtual ~CoverageReaderBase();

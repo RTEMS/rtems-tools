@@ -51,13 +51,13 @@ bool stringToUint32(
   result = strtoll( s, NULL, base );
 
   if ((result == 0) && errno)
-    return false; 
+    return false;
 
   if ((result == LLONG_MAX) && (errno == ERANGE))
-    return false; 
+    return false;
 
   if ((result == LLONG_MIN) && (errno == ERANGE))
-    return false; 
+    return false;
 
   *n = (uint32_t)result;
   return true;
@@ -113,7 +113,7 @@ int main(
           exit(-1);
         }
         break;
-      case 'h': 
+      case 'h':
         if (!stringToUint32( optarg, 16, &highAddress )) {
           fprintf( stderr, "ERROR: High address is not a hexadecimal number\n" );
           usage();

@@ -1,21 +1,21 @@
 /**
  * Copyright (c)2005-2009 Matt Kruse (javascripttoolbox.com)
- * 
- * Dual licensed under the MIT and GPL licenses. 
+ *
+ * Dual licensed under the MIT and GPL licenses.
  * This basically means you can use this code however you want for
  * free, but don't claim to have written it yourself!
  * Donations always accepted: http://www.JavascriptToolbox.com/donate/
- * 
+ *
  * Please do not link to the .js files on javascripttoolbox.com from
  * your site. Copy the files locally to your server instead.
- * 
+ *
  */
 /**
  * Table.js
  * Functions for interactive Tables
  *
  * Copyright (c) 2007 Matt Kruse (javascripttoolbox.com)
- * Dual licensed under the MIT and GPL licenses. 
+ * Dual licensed under the MIT and GPL licenses.
  *
  * @version 0.981
  *
@@ -167,7 +167,7 @@ var Table = (function(){
 	/**
 	 * Return true if an object is hidden.
 	 * This uses the "russian doll" technique to unwrap itself to the most efficient
-	 * function after the first pass. This avoids repeated feature detection that 
+	 * function after the first pass. This avoids repeated feature detection that
 	 * would always fall into the same block of code.
 	 */
 	 function isHidden(o) {
@@ -260,7 +260,7 @@ var Table = (function(){
 		if (o==null) { return null; }
 		if (!o.id) {
 			var id = null;
-			do { var id = "TABLE_"+(table.uniqueId++); } 
+			do { var id = "TABLE_"+(table.uniqueId++); }
 				while (document.getElementById(id)!=null);
 			o.id = id;
 		}
@@ -273,7 +273,7 @@ var Table = (function(){
 
 
 	/**
-	 * Run a function against each cell in a table header or footer, usually 
+	 * Run a function against each cell in a table header or footer, usually
 	 * to add or remove css classes based on sorting, filtering, etc.
 	 */
 	table.processTableCells = function(t, type, func, arg) {
@@ -294,9 +294,9 @@ var Table = (function(){
 	 */
 	table.processCells = function(section,func,arg) {
 		if (section!=null) {
-			if (section.rows && section.rows.length && section.rows.length>0) { 
+			if (section.rows && section.rows.length && section.rows.length>0) {
 				var rows = section.rows;
-				for (var j=0,L2=rows.length; j<L2; j++) { 
+				for (var j=0,L2=rows.length; j<L2; j++) {
 					var row = rows[j];
 					if (row.cells && row.cells.length && row.cells.length>0) {
 						var cells = row.cells;
@@ -341,7 +341,7 @@ var Table = (function(){
 	 * These are put here so it is extensible.
 	 */
 	table.nodeValue = {
-		'INPUT':function(node) { 
+		'INPUT':function(node) {
 			if (def(node.value) && node.type && ((node.type!="checkbox" && node.type!="radio") || node.checked)) {
 				return node.value;
 			}
@@ -360,15 +360,15 @@ var Table = (function(){
 	};
 
 	/**
-	 * Get the text value of a cell. Only use innerText if explicitly told to, because 
+	 * Get the text value of a cell. Only use innerText if explicitly told to, because
 	 * otherwise we want to be able to handle sorting on inputs and other types
 	 */
 	table.getCellValue = function(td,useInnerText) {
 		if (useInnerText && def(td.innerText)) {
 			return td.innerText;
 		}
-		if (!td.childNodes) { 
-			return ""; 
+		if (!td.childNodes) {
+			return "";
 		}
 		var childNodes=td.childNodes;
 		var ret = "";
@@ -400,7 +400,7 @@ var Table = (function(){
 
 	/**
 	 * Consider colspan and rowspan values in table header cells to calculate the actual cellIndex
-	 * of a given cell. This is necessary because if the first cell in row 0 has a rowspan of 2, 
+	 * of a given cell. This is necessary because if the first cell in row 0 has a rowspan of 2,
 	 * then the first cell in row 1 will have a cellIndex of 0 rather than 1, even though it really
 	 * starts in the second column rather than the first.
 	 * See: http://www.javascripttoolbox.com/temp/table_cellindex.html
@@ -413,8 +413,8 @@ var Table = (function(){
 
 		// If it has already been computed, return the answer from the lookup table
 		if (def(this.tableHeaderIndexes[tableObj.id])) {
-			return this.tableHeaderIndexes[tableObj.id][cellCoordinates];      
-		} 
+			return this.tableHeaderIndexes[tableObj.id][cellCoordinates];
+		}
 
 		var matrix = [];
 		this.tableHeaderIndexes[tableObj.id] = {};
@@ -435,8 +435,8 @@ var Table = (function(){
 				var rowSpan = c.rowSpan || 1;
 				var colSpan = c.colSpan || 1;
 				var firstAvailCol;
-				if(!def(matrix[rowIndex])) { 
-					matrix[rowIndex] = []; 
+				if(!def(matrix[rowIndex])) {
+					matrix[rowIndex] = [];
 				}
 				var m = matrix[rowIndex];
 				// Find first available column in the first row
@@ -448,8 +448,8 @@ var Table = (function(){
 				}
 				this.tableHeaderIndexes[tableObj.id][cellId] = firstAvailCol;
 				for (var k=rowIndex; k<rowIndex+rowSpan; k++) {
-					if(!def(matrix[k])) { 
-						matrix[k] = []; 
+					if(!def(matrix[k])) {
+						matrix[k] = [];
 					}
 					var matrixrow = matrix[k];
 					for (var l=firstAvailCol; l<firstAvailCol+colSpan; l++) {
@@ -474,8 +474,8 @@ var Table = (function(){
 		args = args || {};
 
 		// If no col is specified, deduce it from the object sent in
-		if (!def(args.col)) { 
-			args.col = this.getActualCellIndex(o) || 0; 
+		if (!def(args.col)) {
+			args.col = this.getActualCellIndex(o) || 0;
 		}
 		// If no sort type is specified, default to the default sort
 		args.sorttype = args.sorttype || Sort['default'];
@@ -557,8 +557,8 @@ var Table = (function(){
 				var displayedCount=0;
 				var f=[removeClass,addClass];
 				if (cRow=rows[cRowIndex]){
-					do { 
-						tb.appendChild(cRow[1]); 
+					do {
+						tb.appendChild(cRow[1]);
 					} while (cRow=rows[++cRowIndex])
 				}
 			}
@@ -619,9 +619,9 @@ var Table = (function(){
 						filter.filter = Function(RegExp.$1,RegExp.$2);
 					}
 				}
-				// If some non-table object was passed in rather than a 'col' value, resolve it 
-				// and assign it's column index to the filter if it doesn't have one. This way, 
-				// passing in a cell reference or a select object etc instead of a table object 
+				// If some non-table object was passed in rather than a 'col' value, resolve it
+				// and assign it's column index to the filter if it doesn't have one. This way,
+				// passing in a cell reference or a select object etc instead of a table object
 				// will automatically set the correct column to filter.
 				if (filter && !def(filter.col) && (cell=getParent(o,"TD","TH"))) {
 					filter.col = this.getCellIndex(cell);
@@ -753,7 +753,7 @@ var Table = (function(){
 		}
 
 		if (def(page)) {
-			// Check to see if filtering has put us past the requested page index. If it has, 
+			// Check to see if filtering has put us past the requested page index. If it has,
 			// then go back to the last page and show it.
 			if (pagestart>=unfilteredrowcount) {
 				pagestart = unfilteredrowcount-(unfilteredrowcount%pagesize);
@@ -801,7 +801,7 @@ var Table = (function(){
 	/**
 	 * Shade alternate rows, aka Stripe the table.
 	 */
-	table.stripe = function(t,className,args) { 
+	table.stripe = function(t,className,args) {
 		args = args || {};
 		args.stripeclass = className;
 
@@ -809,8 +809,8 @@ var Table = (function(){
 		var tdata = this.tabledata[t.id];
 
 		var bodies = t.tBodies;
-		if (bodies==null || bodies.length==0) { 
-			return; 
+		if (bodies==null || bodies.length==0) {
+			return;
 		}
 
 		className = tdata.stripeclass;
@@ -917,7 +917,7 @@ var Table = (function(){
 	};
 
 	/**
-	 * Add paging functionality to a table 
+	 * Add paging functionality to a table
 	 */
 	table.autopage = function(t,args) {
 		t = this.resolve(t,args);
@@ -946,7 +946,7 @@ var Table = (function(){
 	 */
 	table.cancelBubble = function(e) {
 		e = e || window.event;
-		if (typeof(e.stopPropagation)=="function") { e.stopPropagation(); } 
+		if (typeof(e.stopPropagation)=="function") { e.stopPropagation(); }
 		if (def(e.cancelBubble)) { e.cancelBubble = true; }
 	};
 

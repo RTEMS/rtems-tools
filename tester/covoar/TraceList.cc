@@ -7,8 +7,8 @@ namespace Trace {
     {
     }
 
-    TraceList::~TraceList() 
-    { 
+    TraceList::~TraceList()
+    {
     }
 
     void TraceList::add(
@@ -23,15 +23,15 @@ namespace Trace {
       t.length = highAddressArg - lowAddressArg;
       t.exitReason = why;
 
-      set.push_back( t );     
+      set.push_back( t );
     }
 
     void TraceList::ShowTrace( traceRange_t *t)
     {
       printf(
-        "Start 0x%x, length 0x%03x Reason %d\n", 
-        t->lowAddress, 
-        t->length, 
+        "Start 0x%x, length 0x%03x Reason %d\n",
+        t->lowAddress,
+        t->length,
         t->exitReason
       );
     }

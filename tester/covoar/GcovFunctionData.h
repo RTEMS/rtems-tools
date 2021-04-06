@@ -90,7 +90,7 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
     );
 
     /*!
-     *  This method stores name of the function and ties it to its 
+     *  This method stores name of the function and ties it to its
      *  unified coverage map.
      *
      *  @param[in] functionName passes name of the the function
@@ -219,8 +219,8 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
      *  @param[in] arc passes iterator identifying arc
      */
     void printArcInfo(
-            FILE * textFile, 
-            arcs_iterator_t arc 
+            FILE * textFile,
+            arcs_iterator_t arc
     );
 
     /*!
@@ -229,7 +229,7 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
      *  @param[in] block passes iterator identifying block
      */
     void printBlockInfo(
-            FILE * textFile, 
+            FILE * textFile,
             blocks_iterator_t block
     );
 
@@ -265,8 +265,8 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
      *  @param[in] notTaken   used to return not taken counts list
      */
     bool processBranches(
-            std::list<uint64_t> * taken , 
-            std::list<uint64_t> * notTaken 
+            std::list<uint64_t> * taken ,
+            std::list<uint64_t> * notTaken
     );
   };
 

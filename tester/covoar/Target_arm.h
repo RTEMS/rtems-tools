@@ -33,7 +33,7 @@ namespace Target {
     virtual ~Target_arm();
 
     /*!
-     *  This method determines whether the specified line from a 
+     *  This method determines whether the specified line from a
      *  objdump file is a nop instruction.
      *
      *  @param[in] line contains the object dump line to check

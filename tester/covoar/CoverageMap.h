@@ -14,13 +14,13 @@ namespace Coverage {
   /*! @class CoverageMap
    *
    *  This class implements a coverage map which supports a single
-   *  range of addresses from low to high. 
+   *  range of addresses from low to high.
    */
   class CoverageMap : public CoverageMapBase {
 
   public:
 
-    /*! 
+    /*!
      *  This method constructs a CoverageMap instance.
      *
      *  @param[in] low specifies the lowest address of the coverage map.

@@ -44,10 +44,10 @@ int dump_file(
     printf( "0x%08x %d 0x%2x\n", entry.pc, entry.size, entry.op );
   }
 
-  
+
   fclose( trace );
   printf( "instructions = %d\n", instructions );
- 
+
   return 0;
 
 }

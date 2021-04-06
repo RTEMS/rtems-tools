@@ -93,7 +93,7 @@ namespace Configuration {
        * all comments and blanks therefore, only
        * an empty string needs to be checked.
        */
-      if (line[0] == '\0') 
+      if (line[0] == '\0')
         continue;
 
       if (sscanf(line, "%s", option) != 1) {
@@ -127,7 +127,7 @@ namespace Configuration {
         i++;
       for (j=0; line[i] != '\0'; i++, j++ )
         value[j] = line[i];
-      value[j] = '\0'; 
+      value[j] = '\0';
       if (value[0] == '\0') {
         fprintf(
           stderr,

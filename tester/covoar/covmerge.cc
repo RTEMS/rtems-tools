@@ -55,7 +55,7 @@ int  UncoveredRanges = 0;
 /*
  *  Set of addresses we need source line number for
  */
-std::list<uint32_t> AddressesNeedingSourceLine; 
+std::list<uint32_t> AddressesNeedingSourceLine;
 
 /*
  *  Convert string to int with status out
@@ -78,13 +78,13 @@ bool stringToUint32(
   result = strtoll( s, NULL, base );
 
   if ( (result == 0) && errno )
-    return false; 
+    return false;
 
   if ( (result == LLONG_MAX) && (errno == ERANGE))
-    return false; 
+    return false;
 
   if ( (result == LLONG_MIN) && (errno == ERANGE))
-    return false; 
+    return false;
 
   *n = (uint32_t)result;
   return true;
@@ -137,8 +137,8 @@ void ComputeUncovered(void)
 
       UncoveredRanges++;
       Ranges->add( la, ha );
-      AddressesNeedingSourceLine.push_back( la ); 
-      AddressesNeedingSourceLine.push_back( ha ); 
+      AddressesNeedingSourceLine.push_back( la );
+      AddressesNeedingSourceLine.push_back( ha );
       a = ha + 1;
     }
 
@@ -153,11 +153,11 @@ void ComputeUncovered(void)
 
       if (CoverageMap->wasAlwaysTaken( la )) {
         BranchesAlwaysTaken++;
-        AddressesNeedingSourceLine.push_back( la ); 
+        AddressesNeedingSourceLine.push_back( la );
       }
       else if (CoverageMap->wasNeverTaken( la )) {
         BranchesNeverTaken++;
-        AddressesNeedingSourceLine.push_back( la ); 
+        AddressesNeedingSourceLine.push_back( la );
       }
       a = ha + 1;
     }
@@ -172,7 +172,7 @@ void ComputeUncovered(void)
 void FindSourceForAddresses(void)
 {
   FILE                          *tmpfile;
-  std::list<uint32_t>::iterator  it; 
+  std::list<uint32_t>::iterator  it;
 
   /*
    *  Write a temporary file with ranges
@@ -281,7 +281,7 @@ int main(
           exit(-1);
         }
         break;
-      case 'h': 
+      case 'h':
         if ( ! stringToUint32( optarg, 16, &highAddress ) ) {
           fprintf( stderr, "High address is not a hexadecimal number\n" );
           usage();
@@ -412,7 +412,7 @@ int main(
   for ( i=optind ; i < argc ; i++ ) {
     //fprintf( stderr, "Processing %s\n", argv[i] );
     CoverageReader->ProcessFile( argv[i], CoverageMap );
-  } 
+  }
 
   /*
    * Now to write some output
@@ -446,12 +446,12 @@ int main(
   /*
    *  Look up the source file and line number for the addresses
    *  of interest.
-   */ 
+   */
   FindSourceForAddresses();
 
   /*
    *  Generate report of ranges not executed
-   */ 
+   */
   if ( coverageReportFile ) {
     if ( verbose )
       fprintf( stderr, "Writing coverage report (%s)\n", coverageReportFile );
@@ -465,7 +465,7 @@ int main(
 
   /*
    *  Generate report of branches taken/not taken
-   */ 
+   */
   if ( branchReportFile ) {
     if ( verbose )
       fprintf( stderr, "Writing branch report (%s)\n", branchReportFile );
@@ -491,8 +491,8 @@ int main(
   }
 
   /*
-   *  Simple formatted report of size of ranges 
-   */ 
+   *  Simple formatted report of size of ranges
+   */
   if ( sizeReportFile ) {
     if ( verbose )
       fprintf( stderr, "Writing size report (%s)\n", sizeReportFile );

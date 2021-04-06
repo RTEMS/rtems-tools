@@ -14,19 +14,19 @@ namespace Coverage {
 
   /*! @class CoverageWriterRTEMS
    *
-   *  This class writes a coverage map in RTEMS format.  The format is 
+   *  This class writes a coverage map in RTEMS format.  The format is
    *  documented in CoverageReaderRTEMS.
    */
   class CoverageWriterRTEMS : public CoverageWriterBase {
 
   public:
 
-    /*! 
+    /*!
      *  This method constructs a CoverageWriterRTEMS instance.
      */
     CoverageWriterRTEMS();
 
-    /*! 
+    /*!
      *  This method destructs a CoverageWriterRTEMS instance.
      */
     virtual ~CoverageWriterRTEMS();

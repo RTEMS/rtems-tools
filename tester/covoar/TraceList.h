@@ -15,7 +15,7 @@ namespace Trace {
 
   /*! @class TraceList
    *
-   *  This class defines XXX 
+   *  This class defines XXX
    */
   class TraceList {
 
@@ -65,12 +65,12 @@ namespace Trace {
      */
     ranges_t set;
 
-    /*! 
+    /*!
      *  This method constructs a TraceList instance.
      */
     TraceList();
 
-    /*! 
+    /*!
      *  This method destructs a TraceList instance.
      */
     ~TraceList();

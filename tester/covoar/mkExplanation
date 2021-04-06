@@ -25,11 +25,11 @@ sourceLine=
 verbose=no
 while getopts c:m:M:r:v OPT
 do
-  case "$OPT" in 
-    c) category=$OPTARG ;; 
-    m) message=$OPTARG ;; 
-    M) messageFile=$OPTARG ;; 
-    r) sourceLine=$OPTARG ;; 
+  case "$OPT" in
+    c) category=$OPTARG ;;
+    m) message=$OPTARG ;;
+    M) messageFile=$OPTARG ;;
+    r) sourceLine=$OPTARG ;;
     v) verbose=`toggle ${verbose}` ;;
     *) usage ;;
   esac

@@ -25,24 +25,24 @@ void ReportsText::AnnotatedStart(
   FILE*                aFile
 )
 {
-  fprintf( 
-    aFile, 
+  fprintf(
+    aFile,
     "========================================"
-    "=======================================\n" 
+    "=======================================\n"
   );
 }
- 
+
 void ReportsText::AnnotatedEnd(
   FILE*                aFile
 )
 {
 }
 
-void ReportsText::PutAnnotatedLine( 
-  FILE*                aFile, 
-  AnnotatedLineState_t state, 
-  std::string          line, 
-  uint32_t             id 
+void ReportsText::PutAnnotatedLine(
+  FILE*                aFile,
+  AnnotatedLineState_t state,
+  std::string          line,
+  uint32_t             id
 )
 {
   fprintf( aFile, "%s\n", line.c_str());

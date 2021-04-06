@@ -14,19 +14,19 @@ namespace Coverage {
 
   /*! @class CoverageWriterTSIM
    *
-   *  This class writes a coverage map in TSIM format.  The format is 
+   *  This class writes a coverage map in TSIM format.  The format is
    *  documented in CoverageReaderTSIM.
    */
   class CoverageWriterTSIM : public CoverageWriterBase {
 
   public:
 
-    /*! 
+    /*!
      *  This method constructs a CoverageWriterTSIM instance.
      */
     CoverageWriterTSIM();
 
-    /*! 
+    /*!
      *  This method destructs a CoverageWriterTSIM instance.
      */
     virtual ~CoverageWriterTSIM();

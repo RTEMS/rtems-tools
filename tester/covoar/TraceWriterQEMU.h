@@ -24,12 +24,12 @@ namespace Trace {
 
   public:
 
-    /*! 
+    /*!
      *  This method constructs a TraceWriterQEMU instance.
      */
     TraceWriterQEMU();
 
-    /*! 
+    /*!
      *  This method destructs a TraceWriterQEMU instance.
      */
     virtual ~TraceWriterQEMU();

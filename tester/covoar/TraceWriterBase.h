@@ -21,12 +21,12 @@ namespace Trace {
 
   public:
 
-    /*! 
+    /*!
      *  This method constructs a TraceWriterBase instance.
      */
     TraceWriterBase();
 
-    /*! 
+    /*!
      *  This method destructs a TraceWriterBase instance.
      */
     virtual ~TraceWriterBase();

@@ -17,7 +17,7 @@
 namespace Coverage {
 
 /*!
- *   This class contains the base information to create a report 
+ *   This class contains the base information to create a report
  *   set.  The report set may be text based, html based or some
  *   other format to be defined at a future time.
  */
@@ -96,7 +96,7 @@ class ReportsBase {
 
     /*!
      *  This method returns the unique extension for the Report
-     *  type.  If the extension is ".txt" files will be 
+     *  type.  If the extension is ".txt" files will be
      *  named "annotated.txt", "branch.txt" ......
      */
     std::string ReportExtension() { return reportExtension_m; }
@@ -172,7 +172,7 @@ class ReportsBase {
     virtual FILE* OpenCoverageFile(
       const char* const fileName
     );
-    
+
     /*!
      *  This method opens a report file and verifies that it opened.
      *  Then appends any necessary header information onto the file.
@@ -204,7 +204,7 @@ class ReportsBase {
     );
 
     /*!
-     *  This method Closes a report file. 
+     *  This method Closes a report file.
      *
      *  @param[in] aFile identifies the report file name
      */
@@ -280,14 +280,14 @@ class ReportsBase {
      *
      *  @param[in] aFile identifies the report file name
      *  @param[in] state identifies the state machine state
-     *  @param[in] line identifies the string to print  
+     *  @param[in] line identifies the string to print
      *  @param[in] id identifies the branch or range id.
      */
-    virtual void PutAnnotatedLine( 
-      FILE*                aFile, 
-      AnnotatedLineState_t state, 
+    virtual void PutAnnotatedLine(
+      FILE*                aFile,
+      AnnotatedLineState_t state,
       std::string          line,
-      uint32_t             id 
+      uint32_t             id
     )=0;
 
     /*!
@@ -299,7 +299,7 @@ class ReportsBase {
      virtual void AnnotatedStart(
       FILE*                aFile
     )=0;
- 
+
     /*!
      *  This method puts any necessary footer information in
      *  front of an annotated section.
@@ -309,7 +309,7 @@ class ReportsBase {
      virtual void AnnotatedEnd(
       FILE*                aFile
     )=0;
- 
+
 
     /*!
      *  This method puts any necessary footer information into
@@ -322,7 +322,7 @@ class ReportsBase {
     ) = 0;
 
     /*!
-     *  This method puts a branch entry into the branch report. 
+     *  This method puts a branch entry into the branch report.
      *
      *  @param[in] report identifies the report file name
      *  @param[in] number identifies the line number.
@@ -339,7 +339,7 @@ class ReportsBase {
     )=0;
 
     /*!
-     *  This method reports when no range is available for 
+     *  This method reports when no range is available for
      *  a symbol in the coverage report.
      *
      *  @param[in] report identifies the report file name

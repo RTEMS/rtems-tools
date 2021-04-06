@@ -70,12 +70,12 @@ namespace Coverage {
      */
     std::map<std::string, Explanation> set;
 
-    /*! 
+    /*!
      *  This method constructs an Explanations instance.
      */
     Explanations();
 
-    /*! 
+    /*!
      *  This method destructs an Explanations instance.
      */
     ~Explanations();
@@ -107,7 +107,7 @@ namespace Coverage {
      *  explanations that were not looked up.
      *
      *  @param[in] fileName specifies the name of the file to write
-     */  
+     */
     void writeNotFound(
       const char* const fileName
     );

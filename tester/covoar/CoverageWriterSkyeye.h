@@ -14,19 +14,19 @@ namespace Coverage {
 
   /*! @class CoverageWriterSkyeye
    *
-   *  This class writes a coverage map in Skyeye format.  The format is 
+   *  This class writes a coverage map in Skyeye format.  The format is
    *  documented in CoverageReaderSkyeye.
    */
   class CoverageWriterSkyeye : public CoverageWriterBase {
 
   public:
 
-    /*! 
+    /*!
      *  This method constructs a CoverageWriterSkyeye instance.
      */
     CoverageWriterSkyeye();
 
-    /*! 
+    /*!
      *  This method destructs a CoverageWriterSkyeye instance.
      */
     virtual ~CoverageWriterSkyeye();

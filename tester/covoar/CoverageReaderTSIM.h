@@ -20,8 +20,8 @@ namespace Coverage {
    *  integer will have the least significant bit if the address
    *  was executed.
 @verbatim
-40000000 : 1 0 0 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 0 0 0 0 0 0 0 0 0 0 0 1 
-40000080 : 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 
+40000000 : 1 0 0 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 2 0 0 0 0 0 0 0 0 0 0 0 1
+40000080 : 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1 0
 @endverbatim
    */
   class CoverageReaderTSIM : public CoverageReaderBase {

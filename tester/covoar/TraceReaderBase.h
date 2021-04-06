@@ -26,12 +26,12 @@ namespace Trace {
     TraceList Trace;
 
 
-    /*! 
+    /*!
      *  This method constructs a TraceReaderBase instance.
      */
     TraceReaderBase();
 
-    /*! 
+    /*!
      *  This method destructs a TraceReaderBase instance.
      */
     virtual ~TraceReaderBase();

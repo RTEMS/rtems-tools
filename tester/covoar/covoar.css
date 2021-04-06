@@ -1,4 +1,4 @@
-body { 
+body {
     background: rgb(253,253,253);
     color: rgb(0,0,0);
     font-family: helvetica, sans-serif;
@@ -8,14 +8,14 @@ body {
     padding: 0;
 }
 
-a:link { 
+a:link {
     color: rgb(180, 50, 50);
     font-family: helvetica, sans-serif;
     font-size: 1.0em;
 }
 
-a:visited { 
-    color: purple; 
+a:visited {
+    color: purple;
     font-family: helvetica, sans-serif;
     font-size: 1.0em;
 }
@@ -27,7 +27,7 @@ a:hover {
 }
 
 a:active {
-    color: red; 
+    color: red;
     font-family: helvetica, sans-serif;
     font-size: 1.0em;
 }

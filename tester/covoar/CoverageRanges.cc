@@ -1,7 +1,7 @@
 /*! @file CoverageRanges.cc
  *  @brief CoverageRanges Implementation
  *
- *  This file contains the implementation of the functions 
+ *  This file contains the implementation of the functions
  *  which provide a base level of functionality of a CoverageRanges.
  */
 

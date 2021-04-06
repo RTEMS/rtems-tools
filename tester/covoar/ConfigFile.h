@@ -12,10 +12,10 @@
 namespace Configuration {
 
   /*!
-   *  
+   *
    *  This structure contains the configuration parameter
    *  name and value pair.
-   */ 
+   */
   typedef struct {
     const char *option;
     const char *value;
@@ -31,7 +31,7 @@ namespace Configuration {
 
   public:
 
-    /*! 
+    /*!
      *  This method constructs a FileReader instance.
      *
      *  @param[in] options is the set of options
@@ -40,7 +40,7 @@ namespace Configuration {
       Options_t *options
     );
 
-    /*! 
+    /*!
      *  This method destructs a FileReader instance.
      */
     virtual ~FileReader();

@@ -56,30 +56,30 @@ class ReportsText: public ReportsBase {
 
   protected:
 
-   /* Inherit documentation from base class. */ 
-    virtual void PutAnnotatedLine( 
-      FILE*                aFile, 
-      AnnotatedLineState_t state, 
-      std::string          line, 
-      uint32_t             id 
+   /* Inherit documentation from base class. */
+    virtual void PutAnnotatedLine(
+      FILE*                aFile,
+      AnnotatedLineState_t state,
+      std::string          line,
+      uint32_t             id
     );
- 
-   /* Inherit documentation from base class. */ 
+
+   /* Inherit documentation from base class. */
      virtual void AnnotatedStart(
       FILE*                aFile
     );
- 
-    /* Inherit documentation from base class. */ 
+
+    /* Inherit documentation from base class. */
      virtual void AnnotatedEnd(
       FILE*                aFile
     );
- 
-   /* Inherit documentation from base class. */ 
+
+   /* Inherit documentation from base class. */
     virtual bool PutNoBranchInfo(
       FILE* report
     );
 
-   /* Inherit documentation from base class. */ 
+   /* Inherit documentation from base class. */
     virtual bool PutBranchEntry(
       FILE*                                            report,
       unsigned int                                     number,
@@ -88,7 +88,7 @@ class ReportsText: public ReportsBase {
       Coverage::CoverageRanges::ranges_t::iterator     rangePtr
     );
 
-   /* Inherit documentation from base class. */ 
+   /* Inherit documentation from base class. */
     virtual void putCoverageNoRange(
       FILE*        report,
       FILE*        noRangeFile,
@@ -96,7 +96,7 @@ class ReportsText: public ReportsBase {
       std::string  symbol
     );
 
-   /* Inherit documentation from base class. */ 
+   /* Inherit documentation from base class. */
     virtual bool PutCoverageLine(
       FILE*                                           report,
       unsigned int                                    number,
@@ -105,7 +105,7 @@ class ReportsText: public ReportsBase {
       Coverage::CoverageRanges::ranges_t::iterator    ritr
     );
 
-   /* Inherit documentation from base class. */ 
+   /* Inherit documentation from base class. */
     virtual bool PutSizeLine(
       FILE*                                           report,
       unsigned int                                    number,
@@ -113,7 +113,7 @@ class ReportsText: public ReportsBase {
       Coverage::CoverageRanges::ranges_t::iterator    range
     );
 
-   /* Inherit documentation from base class. */ 
+   /* Inherit documentation from base class. */
     virtual bool PutSymbolSummaryLine(
       FILE*                                           report,
       unsigned int                                    number,

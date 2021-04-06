@@ -84,7 +84,7 @@ struct gcov_statistics
     bool readGcnoFile( const char* const  fileName );
 
     /*!
-     *  This method writes the *.gcda file. It also produces and stores 
+     *  This method writes the *.gcda file. It also produces and stores
      *  gcda and txt file names for future outputs.
      *
      *  @return Returns TRUE if the method succeeded and FALSE if it failed.
@@ -150,7 +150,7 @@ struct gcov_statistics
      *  @param[in] header stores the header
      *  @param[in] file specifies the name of the file to read
      *
-     *  @return Returns length of words read (word = 32bit) 
+     *  @return Returns length of words read (word = 32bit)
      *  or -1 if error ocurred
      */
     int readFrameHeader(
@@ -165,7 +165,7 @@ struct gcov_statistics
      *  @param[in] gcovFile specifies the name of the file to read
      *  @param[in] desiredMagic stores the expected magic of a file
      *
-     *  @return Returns length of words read (word = 32bit) 
+     *  @return Returns length of words read (word = 32bit)
      *          or -1 if error ocurred
      */
     int readFilePreamble(

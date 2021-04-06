@@ -22,12 +22,12 @@ namespace Coverage {
 
   public:
 
-    /*! 
+    /*!
      *  This method constructs a CoverageWriterBase instance.
      */
     CoverageWriterBase();
 
-    /*! 
+    /*!
      *  This method destructs a CoverageWriterBase instance.
      */
     virtual ~CoverageWriterBase();

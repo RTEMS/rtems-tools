@@ -100,7 +100,7 @@ CoverageFactory.o: CoverageFactory.cc CoverageFactory.h \
   CoverageReaderBase.h CoverageReaderQEMU.h CoverageReaderRTEMS.h \
   CoverageReaderSkyeye.h CoverageReaderTSIM.h  \
   CoverageWriterBase.h CoverageWriterRTEMS.h \
-  CoverageWriterSkyeye.h CoverageWriterTSIM.h 
+  CoverageWriterSkyeye.h CoverageWriterTSIM.h
 CoverageMap.o: CoverageMap.cc CoverageMap.h
 CoverageMapBase.o: CoverageMapBase.cc CoverageMapBase.h
 CoverageRanges.o: CoverageRanges.cc CoverageRanges.h

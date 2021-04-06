@@ -15,7 +15,7 @@ int main(
   Configuration::FileReader *config;
 
   config = new Configuration::FileReader(Options);
-  
+
   config->processFile( "configFile.txt" );
   config->printOptions();
 

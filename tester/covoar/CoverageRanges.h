@@ -39,19 +39,19 @@ namespace Coverage {
      */
     typedef struct {
       /*!
-       *  This member contains an identification number for this 
+       *  This member contains an identification number for this
        *  coverage range.
        */
       uint32_t          id;
 
       /*!
-       *  This member contains the low address of this coverage 
+       *  This member contains the low address of this coverage
        *  range.
        */
       uint32_t          lowAddress;
 
       /*!
-       *  This member contains the source line associated with the 
+       *  This member contains the source line associated with the
        *  low address for this coverage range.
        */
       std::string       lowSourceLine;
@@ -67,7 +67,7 @@ namespace Coverage {
       std::string       highSourceLine;
 
       /*!
-       * This member contains an instruction count for this coverage 
+       * This member contains an instruction count for this coverage
        * address range.
        */
       uint32_t          instructionCount;
@@ -88,12 +88,12 @@ namespace Coverage {
      */
     ranges_t set;
 
-    /*! 
+    /*!
      *  This method constructs a CoverageRanges instance.
      */
     CoverageRanges();
 
-    /*! 
+    /*!
      *  This method destructs a CoverageRanges instance.
      */
     ~CoverageRanges();
@@ -112,14 +112,14 @@ namespace Coverage {
       uncoveredReason_t why,
       uint32_t          numInstructions
     );
- 
+
 
     /*!
      *  This method returns the index of a range given the low address.
      *  Upon failure on finding the adress 0 is returned.
      */
     uint32_t getId( uint32_t lowAddress );
- 
+
     protected:
 
 

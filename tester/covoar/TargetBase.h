@@ -66,7 +66,7 @@ namespace Target {
     const char* getTarget( void ) const;
 
     /*!
-     *  This method determines whether the specified line from a 
+     *  This method determines whether the specified line from a
      *  objdump file is a nop instruction.
      *
      *  @param[in] line contains the object dump line to check
@@ -93,7 +93,7 @@ namespace Target {
       const char* const line
     );
 
-    
+
     /*!
      *  This method determines if the specified line from an
      *  objdump file is a branch instruction.
