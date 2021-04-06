@@ -57,7 +57,7 @@ namespace Coverage {
       for ( i = 0; i < 0x80; i += 4 ) {
         cover = ((coverage->wasExecuted( a + i )) ? 1 : 0);
         status = ::fprintf( coverageFile, "%d ", cover );
-	if ( status == EOF || status == 0 ) {
+        if ( status == EOF || status == 0 ) {
           ::fclose( coverageFile );
           std::ostringstream what;
           what << "write to " << file
@@ -67,7 +67,7 @@ namespace Coverage {
                << std::setfill(' ') << std::dec
                << "failed";
           throw rld::error( what, "CoverageWriterTSIM::writeFile" );
-	}
+        }
       }
       ::fprintf( coverageFile, "\n" );
     }

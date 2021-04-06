@@ -33,9 +33,7 @@ namespace Coverage {
     } symbolInfo_t;
 
    typedef std::list< symbolInfo_t > symbolInfo;
-   typedef std::list< symbolInfo_t >::iterator	symbolInfoIterator_t;
-
-
+   typedef std::list< symbolInfo_t >::iterator  symbolInfoIterator_t;
 
     /*!
      *  This method constructs a SymbolTable instance.

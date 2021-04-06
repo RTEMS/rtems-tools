@@ -64,7 +64,7 @@ namespace Coverage {
       for (i = 0; i < 0x80; i += 4) {
         unsigned int a;
         status = ::fscanf( coverageFile, "%x", &cover );
-	if (status == EOF || status == 0) {
+        if (status == EOF || status == 0) {
           std::cerr << "CoverageReaderTSIM: WARNING! Short line in "
                     << file
                     << " at address 0x"
@@ -73,14 +73,14 @@ namespace Coverage {
                     << std::setfill(' ') << std::dec
                     << std::endl;
           break;
-	}
+        }
 
         //
         // Obtain the coverage map containing the address and
         // mark the address as executed.
         //
-	a = baseAddress + i;
-	aCoverageMap = executableInformation->getCoverageMap( a );
+        a = baseAddress + i;
+        aCoverageMap = executableInformation->getCoverageMap( a );
         if ( !aCoverageMap )
           continue;
         if ( cover & 0x01 ) {
@@ -89,12 +89,12 @@ namespace Coverage {
           aCoverageMap->setWasExecuted( a + 2 );
           aCoverageMap->setWasExecuted( a + 3 );
           if ( cover & 0x08 ) {
-	    aCoverageMap->setWasTaken( a );
-	    BranchInfoAvailable = true;
+            aCoverageMap->setWasTaken( a );
+            BranchInfoAvailable = true;
           }
           if ( cover & 0x10 ) {
-	    aCoverageMap->setWasNotTaken( a );
-	    BranchInfoAvailable = true;
+            aCoverageMap->setWasNotTaken( a );
+            BranchInfoAvailable = true;
           }
         }
       }

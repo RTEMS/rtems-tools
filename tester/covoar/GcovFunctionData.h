@@ -14,35 +14,35 @@
 
 namespace Gcov {
 
-#define FUNCTION_NAME_LENGTH	        64
-#define FILE_NAME_LENGTH		256
+#define FUNCTION_NAME_LENGTH    64
+#define FILE_NAME_LENGTH        256
 
-#define ON_TREE_ARC_FLAG		0x1
-#define FAKE_ARC_FLAG			0x2
-#define FALLTHROUGH_ARC_FLAG		0x4
+#define ON_TREE_ARC_FLAG        0x1
+#define FAKE_ARC_FLAG           0x2
+#define FALLTHROUGH_ARC_FLAG    0x4
 
 struct gcov_arc_info
 {
-    uint32_t	sourceBlock;
-    uint32_t	destinationBlock;
-    uint32_t	flags;
-    uint64_t	counter;
+  uint32_t    sourceBlock;
+  uint32_t    destinationBlock;
+  uint32_t    flags;
+  uint64_t    counter;
 };
 
 struct gcov_block_info
 {
-    uint32_t 			id;
-    uint32_t			flags;
-    uint32_t			numberOfLines;
-    uint64_t 			counter;
-    char			sourceFileName[FILE_NAME_LENGTH];
-    std::list<uint32_t>		lines;
+  uint32_t                    id;
+  uint32_t                    flags;
+  uint32_t                    numberOfLines;
+  uint64_t                    counter;
+  char                        sourceFileName[FILE_NAME_LENGTH];
+  std::list<uint32_t>         lines;
 };
 
-typedef std::list<gcov_arc_info>		arcs_t;
-typedef std::list<gcov_arc_info>::iterator	arcs_iterator_t;
-typedef std::list<gcov_block_info>		blocks_t;
-typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
+typedef std::list<gcov_arc_info>                arcs_t;
+typedef std::list<gcov_arc_info>::iterator      arcs_iterator_t;
+typedef std::list<gcov_block_info>              blocks_t;
+typedef std::list<gcov_block_info>::iterator    blocks_iterator_t;
 
   /*! @class GcovFunctionData
    *
@@ -55,7 +55,7 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
     /*!
      *  This method constructs a GcovFunctionData instance.
      */
-	GcovFunctionData();
+        GcovFunctionData();
 
     /*!
      *  This method destructs a GcovFunctionData instance.
@@ -68,7 +68,7 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
      *  @param[in] chk stores the checksum value
      */
     void setChecksum(
-            const uint32_t		chk
+      const uint32_t              chk
     );
 
     /*!
@@ -77,7 +77,7 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
      *  @param[in] idNumber stores the id value
      */
     void setId(
-            const uint32_t		idNumber
+      const uint32_t              idNumber
     );
 
     /*!
@@ -86,7 +86,7 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
      *  @param[in] lineNo passes number of the line begining the function
      */
     void setFirstLineNumber(
-            const uint32_t		lineNo
+      const uint32_t              lineNo
     );
 
     /*!
@@ -98,7 +98,7 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
      *  @return Returns TRUE if the method succeeded and FALSE if it failed.
      */
     bool setFunctionName(
-            const char*			fcnName
+      const char*                 fcnName
     );
 
     /*!
@@ -109,7 +109,7 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
      *  @return Returns TRUE if the method succeeded and FALSE if it failed.
      */
     bool setFileName(
-            const char*			fileName
+      const char*                 fileName
     );
 
     /*!
@@ -121,8 +121,8 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
      *  @return Returns TRUE if the method succeeded and FALSE if it failed.
      */
     void setBlockFileName(
-            const blocks_iterator_t		block,
-            const char*				fileName
+      const blocks_iterator_t             block,
+      const char*                         fileName
     );
 
     /*!
@@ -153,7 +153,12 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
      *  @param[out] countersSum used to return sum counters values
      *  @param[out] countersMax used to return max counter value
      */
-    void getCounters( uint64_t* counterValues, uint32_t &countersFound, uint64_t &countersSum, uint64_t &countersMax );
+    void getCounters(
+      uint64_t* counterValues,
+      uint32_t &countersFound,
+      uint64_t &countersSum,
+      uint64_t &countersMax
+    );
 
     /*!
      *  This method adds new arc to arc list
@@ -162,9 +167,9 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
      *  @param[in] destination passes destination block number
      */
     void addArc(
-            uint32_t	source,
-            uint32_t	destination,
-            uint32_t	flags
+      uint32_t    source,
+      uint32_t    destination,
+      uint32_t    flags
     );
 
     /*!
@@ -174,8 +179,8 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
      *  @param[in] line passes the line number
      */
     void addBlockLine(
-            const blocks_iterator_t	block,
-            const uint32_t		line
+      const blocks_iterator_t     block,
+      const uint32_t              line
     );
 
     /*!
@@ -186,7 +191,7 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
      *  @return Returns iterator to a matching block or NULL for error.
      */
     blocks_iterator_t findBlockById(
-            const uint32_t		id
+      const uint32_t              id
     );
 
     /*!
@@ -197,9 +202,9 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
      *  @param[in] sourceFileName passes containing file name
      */
     void addBlock(
-            const uint32_t		id,
-            const uint32_t		flags,
-            const char *		sourceFileName
+      const uint32_t              id,
+      const uint32_t              flags,
+      const char *                sourceFileName
     );
 
     /*!
@@ -219,8 +224,8 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
      *  @param[in] arc passes iterator identifying arc
      */
     void printArcInfo(
-            FILE * textFile,
-            arcs_iterator_t arc
+      FILE * textFile,
+      arcs_iterator_t arc
     );
 
     /*!
@@ -229,8 +234,8 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
      *  @param[in] block passes iterator identifying block
      */
     void printBlockInfo(
-            FILE * textFile,
-            blocks_iterator_t block
+      FILE * textFile,
+      blocks_iterator_t block
     );
 
     /*!
@@ -240,22 +245,22 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
 
   private:
 
-    uint32_t		id;
-    uint32_t		checksum;
-    uint32_t		firstLineNumber;
-    uint32_t		numberOfBlocks;
-    uint32_t		numberOfArcs;
-    arcs_t		arcs;
-    blocks_t		blocks;
-    char		functionName[FUNCTION_NAME_LENGTH];
-    char		sourceFileName[FILE_NAME_LENGTH];
+    uint32_t            id;
+    uint32_t            checksum;
+    uint32_t            firstLineNumber;
+    uint32_t            numberOfBlocks;
+    uint32_t            numberOfArcs;
+    arcs_t              arcs;
+    blocks_t            blocks;
+    char                functionName[FUNCTION_NAME_LENGTH];
+    char                sourceFileName[FILE_NAME_LENGTH];
 
     /*!
      *  This member contains the unified or merged coverage map
      *  and symbol info for the symbol.
      */
     Coverage::CoverageMapBase*          coverageMap;
-    Coverage::SymbolInformation* 	symbolInfo;
+    Coverage::SymbolInformation*        symbolInfo;
 
     /*!
      *  This method creates list of taken/not taken values
@@ -265,8 +270,8 @@ typedef std::list<gcov_block_info>::iterator	blocks_iterator_t;
      *  @param[in] notTaken   used to return not taken counts list
      */
     bool processBranches(
-            std::list<uint64_t> * taken ,
-            std::list<uint64_t> * notTaken
+      std::list<uint64_t> * taken,
+      std::list<uint64_t> * notTaken
     );
   };
 

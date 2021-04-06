@@ -68,7 +68,7 @@ namespace Target {
    */
   bool isNopLine(
     const char* const line,
-	int&              size
+    int&              size
   );
 
   /*!
@@ -81,15 +81,15 @@ namespace Target {
 
   bool isBranch(
     const char* const instruction
-	);
+  );
 
- private:
+  private:
 
   };
 
   TargetBase *Target_riscv_Constructor(
     std::string        targetName
-	);
+  );
 
 }
 #endif

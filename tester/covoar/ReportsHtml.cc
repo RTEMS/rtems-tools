@@ -617,9 +617,9 @@ namespace Coverage {
 
     for ( unsigned int i=0 ; i < explanation->explanation.size(); i++) {
       fprintf(
-	report,
-	"%s\n",
-	explanation->explanation[i].c_str()
+        report,
+        "%s\n",
+        explanation->explanation[i].c_str()
       );
     }
     CloseFile( report );
