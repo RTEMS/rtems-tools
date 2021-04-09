@@ -508,7 +508,22 @@ class command_line(object):
         return None
 
     def log_info(self):
-        log.output(log.info(self.argv))
+        # Filter potentially sensitive mail options out.
+        filtered_args = [
+            arg for arg in self.argv
+            if all(
+                smtp_opt not in arg
+                for smtp_opt in [
+                    '--smtp-host',
+                    '--mail-to',
+                    '--mail-from',
+                    '--smtp-user',
+                    '--smtp-password',
+                    '--smtp-port'
+                ]
+            )
+        ]
+        log.output(log.info(filtered_args))
 
 def load(opts):
     """
