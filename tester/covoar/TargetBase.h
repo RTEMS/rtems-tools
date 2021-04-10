@@ -122,19 +122,6 @@ namespace Target {
     std::string    targetName_m;
 
     /*!
-     * This member variable indicates either the column that the instruction
-     * starts in the object dump file, when the objdump has no tabs; or the
-     * number of tabs to find the instruction.
-     */
-    int objdumpInstructionLocation;
-
-    /*!
-     *  This member variable indicates whether or not the objdump has
-     *  tabs as delemeters.
-     */
-    bool objdumpHasTabs;
-
-    /*!
      * This member variable is an array of all conditional branch instructions
      * for this target.
      */
