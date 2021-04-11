@@ -34,9 +34,8 @@
  *  reading the QEMU coverage data files.
  */
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <sys/stat.h>
+#include <cstring>
+#include <cstdio>
 
 #include <iostream>
 #include <iomanip>
@@ -107,7 +106,7 @@ namespace Trace {
     //
     //  Write the Header to the file
     //
-    sprintf( header.magic, "%s", QEMU_TRACE_MAGIC );
+    strncpy( header.magic, QEMU_TRACE_MAGIC, sizeof(header.magic) );
     header.version = QEMU_TRACE_VERSION;
     header.kind    = QEMU_TRACE_KIND_RAW;  // XXX ??
     header.sizeof_target_pc = 32;
@@ -135,14 +134,15 @@ namespace Trace {
     //
     // Loop through log and write each entry.
     //
-    struct trace_entry32  entry;
-    TraceList::ranges_t::iterator   itr;
 
-    for (itr = log->Trace.set.begin(); (itr != log->Trace.set.end()); itr++ ){
-      entry.pc   = itr->lowAddress;
-      entry.size = itr-> length;
-      entry.op   = TRACE_OP_BLOCK;
-      switch (itr->exitReason) {
+    for (const auto & itr : log->Trace.set) {
+      struct trace_entry32  entry;
+
+      entry._pad[0] = 0;
+      entry.pc      = itr.lowAddress;
+      entry.size    = itr.length;
+      entry.op      = TRACE_OP_BLOCK;
+      switch (itr.exitReason) {
         case TraceList::EXIT_REASON_BRANCH_TAKEN:
           entry.op |= taken;
           break;
@@ -164,6 +164,7 @@ namespace Trace {
 
       status = ::fwrite( &entry, sizeof(entry), 1, traceFile );
       if (status != 1) {
+        ::fclose( traceFile );
         std::cerr << "Unable to write entry to " << file << std::endl;
         return false;
       }
