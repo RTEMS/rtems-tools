@@ -43,10 +43,13 @@ from rtemstoolkit import options
 from rtemstoolkit import path
 
 _options = {
-    '--mail'     : 'Send email report or results.',
-    '--smtp-host': 'SMTP host to send via.',
-    '--mail-to'  : 'Email address to send the email too.',
-    '--mail-from': 'Email address the report is from.'
+    '--mail'         : 'Send email report or results.',
+    '--mail-to'      : 'Email address to send the email to.',
+    '--mail-from'    : 'Email address the report is from.',
+    '--smtp-host'    : 'SMTP host to send via.',
+    '--smtp-port'    : 'SMTP port to send via.',
+    '--smtp-user'    : 'User for SMTP authentication.',
+    '--smtp-password': 'Password for SMTP authentication.'
 }
 
 def append_options(opts):
@@ -55,7 +58,7 @@ def append_options(opts):
 
 def add_arguments(argsp):
     argsp.add_argument('--mail', help = _options['--mail'], action = 'store_true')
-    for o in ['--smtp-host', '--mail-to', '--mail-from']:
+    for o in list(_options)[1:]:
         argsp.add_argument(o, help = _options[o], type = str)
 
 class mail:
@@ -130,12 +133,38 @@ class mail:
             return host
         return 'localhost'
 
+    def smtp_port(self):
+        port = self._get_arg('--smtp-port')
+        if port is not None:
+            return port
+        if self._args_are_macros():
+            port = self.opts.defaults.get_value('%{_mail_smtp_port}')
+        return port
+
+    def smtp_user(self):
+        return self._get_arg('--smtp-user')
+
+    def smtp_password(self):
+        return self._get_arg('--smtp-password')
+
     def send(self, to_addr, subject, body):
         from_addr = self.from_address()
         msg = "From: %s\r\nTo: %s\r\nSubject: %s\r\n\r\n" % \
             (from_addr, to_addr, subject) + body
+        port = self.smtp_port()
+
         try:
-            s = smtplib.SMTP(self.smtp_host())
+            s = smtplib.SMTP(self.smtp_host(), port, timeout=10)
+
+            password = self.smtp_password()
+            # If a password is provided, assume that authentication is required.
+            if password is not None:
+                user = self.smtp_user()
+                if user is None:
+                    user = from_addr
+                s.starttls()
+                s.login(user, password)
+
             s.sendmail(from_addr, [to_addr], msg)
         except smtplib.SMTPException as se:
             raise error.general('sending mail: %s' % (str(se)))
