@@ -123,7 +123,7 @@ class mail:
     def smtp_host(self):
         host = self._get_arg('--smtp-host')
         if host is not None:
-            return host[1]
+            return host
         if self._args_are_macros():
             host = self.opts.defaults.get_value('%{_mail_smtp_host}')
         if host is not None:
