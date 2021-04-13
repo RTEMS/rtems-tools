@@ -39,11 +39,13 @@ import smtplib
 import socket
 
 from rtemstoolkit import error
+from rtemstoolkit import execute
 from rtemstoolkit import options
 from rtemstoolkit import path
 
 _options = {
     '--mail'         : 'Send email report or results.',
+    '--use-gitconfig': 'Use mail configuration from git config.',
     '--mail-to'      : 'Email address to send the email to.',
     '--mail-from'    : 'Email address the report is from.',
     '--smtp-host'    : 'SMTP host to send via.',
@@ -58,12 +60,22 @@ def append_options(opts):
 
 def add_arguments(argsp):
     argsp.add_argument('--mail', help = _options['--mail'], action = 'store_true')
+    argsp.add_argument('--use-gitconfig', help = _options['--use-gitconfig'], action = 'store_true')
     for o in list(_options)[1:]:
         argsp.add_argument(o, help = _options[o], type = str)
 
 class mail:
     def __init__(self, opts):
         self.opts = opts
+        self.gitconfig_lines = None
+        if opts.find_arg('--use-gitconfig') is not None:
+            # Read the output of `git config --list` instead of reading the
+            # .gitconfig file directly because Python 2 ConfigParser does not
+            # accept tabs at the beginning of lines.
+            e = execute.capture_execution()
+            exit_code, proc, output = e.open('git config --list', shell=True)
+            if exit_code == 0:
+                self.gitconfig_lines = output.split(os.linesep)
 
     def _args_are_macros(self):
         return isinstance(self.opts, options.command_line)
@@ -83,6 +95,16 @@ class mail:
                 value = None
         return value
 
+    def _get_from_gitconfig(self, variable_name):
+        if self.gitconfig_lines is None:
+            return None
+
+        for line in self.gitconfig_lines:
+            if line.startswith(variable_name):
+                ls = line.split('=')
+                if len(ls) >= 2:
+                    return ls[1]
+
     def from_address(self):
 
         def _clean(l):
@@ -96,6 +118,12 @@ class mail:
 
         addr = self._get_arg('--mail-from')
         if addr is not None:
+            return addr
+        addr = self._get_from_gitconfig('user.email')
+        if addr is not None:
+            name = self._get_from_gitconfig('user.name')
+            if name is not None:
+                addr = '%s <%s>' % (name, addr)
             return addr
         mailrc = None
         if 'MAILRC' in os.environ:
@@ -127,6 +155,9 @@ class mail:
         host = self._get_arg('--smtp-host')
         if host is not None:
             return host
+        host = self._get_from_gitconfig('sendemail.smtpserver')
+        if host is not None:
+            return host
         if self._args_are_macros():
             host = self.opts.defaults.get_value('%{_mail_smtp_host}')
         if host is not None:
@@ -137,15 +168,26 @@ class mail:
         port = self._get_arg('--smtp-port')
         if port is not None:
             return port
+        port = self._get_from_gitconfig('sendemail.smtpserverport')
+        if port is not None:
+            return port
         if self._args_are_macros():
             port = self.opts.defaults.get_value('%{_mail_smtp_port}')
         return port
 
     def smtp_user(self):
-        return self._get_arg('--smtp-user')
+        user = self._get_arg('--smtp-user')
+        if user is not None:
+            return user
+        user = self._get_from_gitconfig('sendemail.smtpuser')
+        return user
 
     def smtp_password(self):
-        return self._get_arg('--smtp-password')
+        password = self._get_arg('--smtp-password')
+        if password is not None:
+            return password
+        password = self._get_from_gitconfig('sendemail.smtppass')
+        return password
 
     def send(self, to_addr, subject, body):
         from_addr = self.from_address()
