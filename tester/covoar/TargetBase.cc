@@ -130,12 +130,12 @@ namespace Target {
 
   uint8_t TargetBase::qemuTakenBit(void)
   {
-    return TRACE_OP_BR1;
+    return TRACE_OP_BR0;
   }
 
   uint8_t TargetBase::qemuNotTakenBit(void)
   {
-    return TRACE_OP_BR0;
+    return TRACE_OP_BR1;
   }
 
 }
