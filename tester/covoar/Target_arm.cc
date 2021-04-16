@@ -70,6 +70,9 @@ namespace Target {
     conditionalBranchInstructions.push_back("bgt.w");
     conditionalBranchInstructions.push_back("ble.w");
 
+    conditionalBranchInstructions.push_back("cbz");
+    conditionalBranchInstructions.push_back("cbnz");
+
     conditionalBranchInstructions.sort();
 
   }
