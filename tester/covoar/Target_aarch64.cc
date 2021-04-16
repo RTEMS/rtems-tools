@@ -12,6 +12,7 @@
 
 #include <rld.h>
 
+#include "qemu-traces.h"
 #include "Target_aarch64.h"
 
 namespace Target {
@@ -88,6 +89,16 @@ namespace Target {
       "DETERMINE BRANCH INSTRUCTIONS FOR THIS ARCHITECTURE! -- fix me",
       "Target_aarch64::isBranch"
     );
+  }
+
+  uint8_t Target_aarch64::qemuTakenBit()
+  {
+    return TRACE_OP_BR1;
+  }
+
+  uint8_t Target_aarch64::qemuNotTakenBit()
+  {
+    return TRACE_OP_BR0;
   }
 
   TargetBase *Target_aarch64_Constructor(
