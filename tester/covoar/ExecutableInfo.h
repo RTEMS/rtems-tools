@@ -15,6 +15,7 @@
 #include <rld-files.h>
 #include <rld-symbols.h>
 
+#include "AddressToLineMapper.h"
 #include "CoverageMapBase.h"
 #include "SymbolTable.h"
 
@@ -158,11 +159,6 @@ namespace Coverage {
     );
 
     /*!
-     *  The DWARF data to the ELF executable.
-     */
-    rld::dwarf::file debug;
-
-    /*!
      *  The executable's file name.
      */
     std::string fileName;
@@ -171,6 +167,11 @@ namespace Coverage {
      *  The executable's symbol table.
      */
     rld::symbols::table symbols;
+
+    /*!
+     *  The address-to-line mapper for this executable.
+     */
+    AddressToLineMapper mapper;
 
     /*!
      *  This map associates a symbol with its coverage map.

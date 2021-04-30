@@ -708,6 +708,11 @@ namespace rld
       unsigned int pc_high () const;
 
       /**
+       * The addresses associated with this compilation unit.
+       */
+      const addresses& get_addresses () const;
+
+      /**
        * Get the source and line for an address. If the address does not match
        * false is returned the file is set to 'unknown' and the line is set to
        * 0.

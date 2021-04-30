@@ -40,61 +40,60 @@ namespace Coverage {
     executable.begin();
     executable.load_symbols(symbols);
 
+    rld::dwarf::file debug;
+
     debug.begin(executable.elf());
     debug.load_debug();
     debug.load_functions();
 
-    try {
-      for (auto& cu : debug.get_cus()) {
-        for (auto& func : cu.get_functions()) {
-          if (!func.has_machine_code()) {
-            continue;
-          }
-
-          if (!SymbolsToAnalyze->isDesired(func.name())) {
-            continue;
-          }
-
-          if (func.is_inlined()) {
-            if (func.is_external()) {
-              // Flag it
-              std::cerr << "Function is both external and inlined: "
-                        << func.name() << std::endl;
-            }
-
-            if (func.has_entry_pc()) {
-              continue;
-            }
-
-            // If the low PC address is zero, the symbol does not appear in
-            // this executable.
-            if (func.pc_low() == 0) {
-              continue;
-            }
-          }
-
-          // We can't process a zero size function.
-          if (func.pc_high() == 0) {
-            continue;
-          }
-
-          createCoverageMap (cu.name(), func.name(),
-                              func.pc_low(), func.pc_high() - 1);
-        }
+    for (auto& cu : debug.get_cus()) {
+      AddressLineRange& range = mapper.makeRange(cu.pc_low(), cu.pc_high());
+      // Does not filter on desired symbols under the assumption that the test
+      // code and any support code is small relative to what is being tested.
+      for (const auto &address : cu.get_addresses()) {
+        range.addSourceLine(address);
       }
-    } catch (...) {
-      debug.end();
-      throw;
-    }
 
-    // Can't cleanup handles until the destructor because the information is
-    // referenced elsewhere. NOTE: This could cause problems from too many open
-    // file descriptors.
+      for (auto& func : cu.get_functions()) {
+        if (!func.has_machine_code()) {
+          continue;
+        }
+
+        if (!SymbolsToAnalyze->isDesired(func.name())) {
+          continue;
+        }
+
+        if (func.is_inlined()) {
+          if (func.is_external()) {
+            // Flag it
+            std::cerr << "Function is both external and inlined: "
+                      << func.name() << std::endl;
+          }
+
+          if (func.has_entry_pc()) {
+            continue;
+          }
+
+          // If the low PC address is zero, the symbol does not appear in
+          // this executable.
+          if (func.pc_low() == 0) {
+            continue;
+          }
+        }
+
+        // We can't process a zero size function.
+        if (func.pc_high() == 0) {
+          continue;
+        }
+
+        createCoverageMap (cu.name(), func.name(),
+                            func.pc_low(), func.pc_high() - 1);
+      }
+    }
   }
 
   ExecutableInfo::~ExecutableInfo()
   {
-    debug.end();
   }
 
   void ExecutableInfo::dumpCoverageMaps( void ) {
@@ -197,7 +196,7 @@ namespace Coverage {
   {
     std::string file;
     int         lno;
-    debug.get_source (address, file, lno);
+    mapper.getSource (address, file, lno);
     std::ostringstream ss;
     ss << file << ':' << lno;
     line = ss.str ();

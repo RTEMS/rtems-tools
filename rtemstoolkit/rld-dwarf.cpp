@@ -1893,6 +1893,11 @@ namespace rld
       return false;
     }
 
+    const addresses& compilation_unit::get_addresses () const
+    {
+      return addr_lines_;
+    }
+
     functions&
     compilation_unit::get_functions ()
     {

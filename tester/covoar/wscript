@@ -83,6 +83,7 @@ def build(bld):
 
     bld.stlib(target = 'ccovoar',
               source = ['app_common.cc',
+                        'AddressToLineMapper.cc',
                         'CoverageFactory.cc',
                         'CoverageMap.cc',
                         'CoverageMapBase.cc',
