@@ -77,7 +77,7 @@ namespace Coverage {
      *
      *  @return Returns the executable's file name
      */
-    const std::string getFileName( void ) const;
+    const std::string& getFileName( void ) const;
 
     /*!
      *  This method returns the library name associated with the executable.
@@ -158,14 +158,14 @@ namespace Coverage {
     );
 
     /*!
-     *  The ELF executable.
-     */
-    rld::files::object executable;
-
-    /*!
      *  The DWARF data to the ELF executable.
      */
     rld::dwarf::file debug;
+
+    /*!
+     *  The executable's file name.
+     */
+    std::string fileName;
 
     /*!
      *  The executable's symbol table.

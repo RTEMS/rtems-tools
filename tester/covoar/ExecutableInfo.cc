@@ -21,7 +21,7 @@ namespace Coverage {
     const char* const theExecutableName,
     const char* const theLibraryName,
     bool              verbose
-    ) : executable(theExecutableName),
+    ) : fileName(theExecutableName),
         loadAddress(0)
   {
     if (theLibraryName != nullptr)
@@ -33,6 +33,8 @@ namespace Coverage {
         std::cerr << " (" << theLibraryName << ')';
       std::cerr << std::endl;
     }
+
+    rld::files::object executable(theExecutableName);
 
     executable.open();
     executable.begin();
@@ -82,8 +84,6 @@ namespace Coverage {
       }
     } catch (...) {
       debug.end();
-      executable.end();
-      executable.close();
       throw;
     }
 
@@ -95,8 +95,6 @@ namespace Coverage {
   ExecutableInfo::~ExecutableInfo()
   {
     debug.end();
-    executable.end();
-    executable.close();
   }
 
   void ExecutableInfo::dumpCoverageMaps( void ) {
@@ -132,9 +130,9 @@ namespace Coverage {
     return aCoverageMap;
   }
 
-  const std::string ExecutableInfo::getFileName ( void ) const
+  const std::string& ExecutableInfo::getFileName ( void ) const
   {
-    return executable.name().full();
+    return fileName;
   }
 
   const std::string ExecutableInfo::getLibraryName( void ) const
