@@ -1,6 +1,7 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
 # Copyright 2013-2016 Chris Johns (chrisj@rtems.org)
+# Copyright (C) 2021 On-Line Applications Research Corporation (OAR)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -61,7 +62,8 @@ def append_options(opts):
 def add_arguments(argsp):
     argsp.add_argument('--mail', help = _options['--mail'], action = 'store_true')
     argsp.add_argument('--use-gitconfig', help = _options['--use-gitconfig'], action = 'store_true')
-    for o in list(_options)[1:]:
+    no_add = ['--mail', '--use-gitconfig']
+    for o in [opt for opt in list(_options) if opt not in no_add]:
         argsp.add_argument(o, help = _options[o], type = str)
 
 class mail:
