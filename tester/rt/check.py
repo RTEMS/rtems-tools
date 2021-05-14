@@ -906,7 +906,9 @@ class build_jobs:
             remove += [b for b in self.builds if e in b.split('-')]
         self.builds = [b for b in self.builds if b not in remove]
         self.build_set = { }
-        exclude_options = ' ' + config.exclude_options(self.arch, self.bsp)
+        exclude_options = config.exclude_options(self.arch, self.bsp)
+        if exclude_options != '':
+            exclude_options = ' ' + exclude_options
         for build in self.builds:
             self.build_set[build] = config.build_options(build) + exclude_options
 
@@ -938,9 +940,7 @@ class builder:
                                  'BSP'     : '.*libbsp/.*',
                                  'LibCPU'  : '.*libcpu/.*',
                                  'Shared'  : '.*shared/.*' })
-        if not path.exists(path.join(rtems, 'configure')) or \
-           not path.exists(path.join(rtems, 'Makefile.in')) or \
-           not path.exists(path.join(rtems, 'cpukit')):
+        if not path.exists(path.join(rtems, 'waf')):
             raise error.general('RTEMS source path does not look like RTEMS')
 
     def _bsps(self, arch):
@@ -952,14 +952,29 @@ class builder:
         job_index = 1
         for job in jobs:
             tag = '%*d/%d' % (max_job_size, job_index, len(jobs))
+            commands = self._commands(job, build_job_count)
+            self._create_config(job, commands)
             build_jobs += [arch_bsp_builder(self.results,
                                             job,
-                                            self._commands(job, build_job_count),
+                                            commands,
                                             self.build_dir,
                                             tag)]
             job_index += 1
         set_max_build_label(build_jobs)
         return build_jobs
+
+    def _create_config(self, job, commands):
+        filename = 'config-%s-%s-%s.ini' % (job.arch, job.bsp, job.build)
+        cfg_file = open(path.join(self.rtems, filename),'w+')
+        cfg_file.write('[%s/%s]' + os.linsep() % (job.arch, job.bsp))
+        new_cfg_cmds = []
+        for option in commands['configure'].split():
+            if 'waf' in option or '--' in option or 'configure' in option:
+                new_cfg_cmds += [option]
+            else:
+                cfg_file.write(option + os.linesep())
+        commands['configure'] = ' '.join(new_cfg_cmds)
+        cfg_file.close()
 
     def _commands(self, build, build_jobs):
         commands = { 'dry-run'  : self.options['dry-run'],
@@ -968,16 +983,18 @@ class builder:
                      'build'    : None }
         cmds = build.build_config.split()
         cmds += self.config.bspopts(build.arch, build.bsp)
-        cmd = [path.join(self.rtems, 'configure')]
+        cmd = [path.join(self.rtems, 'waf') + ' configure']
         for c in cmds:
             c = c.replace('@PREFIX@', self.prefix)
-            c = c.replace('@RTEMS_VERSION@', str(self.rtems_version))
             c = c.replace('@ARCH@', build.arch)
             c = c.replace('@BSP@', build.bsp)
+            c = c.replace('@RTEMS@', self.rtems)
+            c = c.replace('@BUILD@', build.build)
             cmd += [c]
         commands['configure'] = ' '.join(cmd)
-        cmd = 'make -j %s' % (build_jobs)
-        commands['build'] = cmd
+        commands['build'] = path.join(self.rtems, 'waf')
+        commands['build'] += ' --top %s' % (self.rtems)
+        commands['build'] += ' -j %s' % (build_jobs)
         return commands
 
     def _update_file_counts(self, counts):
