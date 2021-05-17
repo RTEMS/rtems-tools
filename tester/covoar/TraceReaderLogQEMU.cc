@@ -109,12 +109,12 @@ namespace Trace {
       return false;
     }
 
-
     //
     //  Discard Header section
     //
     if (! ReadUntilFound( logFile, QEMU_LOG_SECTION_END ) ) {
       fprintf( stderr, "Unable to locate end of log file header\n" );
+      fclose( logFile );
       return false;
     }
 
@@ -123,6 +123,7 @@ namespace Trace {
     //
     if (! ReadUntilFound( logFile, QEMU_LOG_IN_KEY )){
       fprintf(stderr,"Error: Unable to locate first IN: Block in Log file \n");
+      fclose( logFile );
       return false;
     }
 
