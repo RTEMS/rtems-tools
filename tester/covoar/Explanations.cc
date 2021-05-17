@@ -32,7 +32,7 @@ namespace Coverage {
     #define MAX_LINE_LENGTH 512
     FILE       *explain;
     char        *cStatus;
-    Explanation *e;
+    Explanation  e;
     int          line = 1;
 
     if (!explanations)
@@ -46,7 +46,6 @@ namespace Coverage {
     }
 
     while ( 1 ) {
-      e = new Explanation;
       // Read the starting line of this explanation and
       // skip blank lines between
       do {
@@ -65,12 +64,13 @@ namespace Coverage {
         what << "line " << line
              << "contains a duplicate explanation ("
              << inputBuffer << ")";
+        fclose( explain );
         throw rld::error( what, "Explanations::load" );
       }
 
       // Add the starting line and file
-      e->startingPoint = std::string(inputBuffer);
-      e->found = false;
+      e.startingPoint = std::string(inputBuffer);
+      e.found = false;
 
       // Get the classification
       cStatus = fgets( inputBuffer, MAX_LINE_LENGTH, explain );
@@ -78,10 +78,11 @@ namespace Coverage {
         std::ostringstream what;
         what << "line " << line
              << "out of sync at the classification";
+        fclose( explain );
         throw rld::error( what, "Explanations::load" );
       }
       inputBuffer[ strlen(inputBuffer) - 1] = '\0';
-      e->classification = inputBuffer;
+      e.classification = inputBuffer;
       line++;
 
       // Get the explanation
@@ -92,6 +93,7 @@ namespace Coverage {
           std::ostringstream what;
           what << "line " << line
                << "out of sync at the explanation";
+          fclose( explain );
           throw rld::error( what, "Explanations::load" );
         }
         inputBuffer[ strlen(inputBuffer) - 1] = '\0';
@@ -102,14 +104,16 @@ namespace Coverage {
           break;
         }
         // XXX only taking last line.  Needs to be a vector
-        e->explanation.push_back( inputBuffer );
+        e.explanation.push_back( inputBuffer );
       }
 
       // Add this to the set of Explanations
-      set[ e->startingPoint ] = *e;
+      set[ e.startingPoint ] = e;
     }
 done:
     ;
+
+    fclose( explain );
 
     #undef MAX_LINE_LENGTH
   }
