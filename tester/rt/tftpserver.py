@@ -418,8 +418,6 @@ class udp_handler(socketserver.BaseRequestHandler):
                             ' < ' +
                             session.decode(client_ip, client_port, response))
                     sock.sendto(response, (client_ip, client_port))
-                    if session.finished:
-                        break
                     try:
                         data, address = sock.recvfrom(2 + 2 +
                                                       session.get_block_size())
@@ -438,6 +436,8 @@ class udp_handler(socketserver.BaseRequestHandler):
                             log.trace('] tftp: %d: receive: %s: error: %s' \
                                       % (index, client, serr))
                         return
+                    if session.finished:
+                        break
                     response = session.process(address[0], address[1], data)
         except error.general as gerr:
             self._notice('] tftp: %dd: error: %s' % (index, gerr))
