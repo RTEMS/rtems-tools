@@ -551,6 +551,8 @@ void  ReportsBase::WriteSummaryReport(
       100.0 - percentageBranches
     );
   }
+
+  fclose( report );
 }
 
 void GenerateReports(const std::string& symbolSetName)
