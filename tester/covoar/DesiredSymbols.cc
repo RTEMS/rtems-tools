@@ -101,7 +101,7 @@ namespace Coverage {
       for (auto& kv : symbols.globals()) {
         const rld::symbols::symbol& sym = *(kv.second);
         if (sym.type() == sym.st_func) {
-          set[sym.name()] = *(new SymbolInformation);
+          set[sym.name()] = SymbolInformation();
           setNamesToSymbols[setName].push_back(sym.name());
         }
       }
@@ -109,7 +109,7 @@ namespace Coverage {
       for (auto& kv : symbols.weaks()) {
         const rld::symbols::symbol& sym = *(kv.second);
         if (sym.type() == sym.st_func) {
-          set[sym.name()] = *(new SymbolInformation);
+          set[sym.name()] = SymbolInformation();
           setNamesToSymbols[setName].push_back(sym.name());
         }
       }
