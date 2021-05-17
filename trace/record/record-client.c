@@ -192,7 +192,8 @@ static void resolve_hold_back(
       const rtems_record_item_64 *item;
 
       item = &per_cpu->items[ index ];
-      visit( ctx, item->event, item->data );
+
+      (void) visit( ctx, item->event, item->data );
     }
   }
 }
