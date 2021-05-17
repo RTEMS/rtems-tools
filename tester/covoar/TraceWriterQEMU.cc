@@ -116,6 +116,7 @@ namespace Trace {
     status = ::fwrite( &header, sizeof(trace_header), 1, traceFile );
     if (status != 1) {
       std::cerr << "Unable to write header to " << file << std::endl;
+      ::fclose( traceFile );
       return false;
     }
 
