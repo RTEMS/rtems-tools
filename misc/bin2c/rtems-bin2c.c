@@ -141,6 +141,19 @@ void process(const char *ifname, const char *ofname, const char *forced_name)
   char *ifbasename;
   ifbasename = basename(ifbasename_to_free);
 
+  /* Ensure length of ifbasename is shorter than length of buf */
+  if (strlen(ifbasename) > PATH_MAX+1) {
+    fprintf(
+      stderr,
+      "error: Base name of %s is too long.\n",
+      ifbasename
+    );
+    fclose(ifile);
+    if ( createC ) { fclose(ocfile); }
+    if ( createH ) { fclose(ohfile); }
+    exit(1);
+  }
+
   strcpy(buf, ifbasename);
   sanitize_file_name(buf);
 
