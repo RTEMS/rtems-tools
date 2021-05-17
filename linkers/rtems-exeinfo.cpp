@@ -755,6 +755,8 @@ namespace rld
       size_t           total = 0;
       size_t           total_size = 0;
       size_t           inlined_size = 0;
+      double           percentage;
+      double           percentage_size;
       dwarf::functions funcs_inlined;
       dwarf::functions funcs_not_inlined;
       func_counts      counts;
@@ -798,14 +800,24 @@ namespace rld
         }
       }
 
+      if ( total == 0 ) {
+        percentage = 0;
+      } else {
+        percentage = (double) ( funcs_inlined.size() * 100 ) / total;
+      }
+
+      if ( total_size == 0 ) {
+        percentage_size = 0;
+      } else {
+        percentage_size = (double) ( inlined_size * 100 ) / total_size;
+      }
+
       std::cout << "inlined funcs   : " << funcs_inlined.size () << std::endl
                 << "    total funcs : " << total << std::endl
-                << " % inline funcs : " << (funcs_inlined.size () * 100) / total << '%'
-                << std::endl
+                << " % inline funcs : " << percentage << '%' << std::endl
                 << "     total size : " << total_size << std::endl
                 << "    inline size : " << inlined_size << std::endl
-                << "  % inline size : " << (inlined_size * 100) / total_size << '%'
-                << std::endl;
+                << "  % inline size : " << percentage_size << '%' << std::endl;
 
       auto count_compare = [](func_count const & a, func_count const & b) {
         return a.size != b.size?  a.size < b.size : a.count > b.count;
