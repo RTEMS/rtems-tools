@@ -482,9 +482,11 @@ void  ReportsBase::WriteSummaryReport(
     }
   }
 
-  percentage = (double) notExecuted;
-  percentage /= (double) totalBytes;
-  percentage *= 100.0;
+  if ( totalBytes == 0 ) {
+    percentage = 0;
+  } else {
+    percentage = 100.0 * (double) notExecuted / totalBytes;
+  }
 
   percentageBranches = (double) (
     SymbolsToAnalyze->getNumberBranchesAlwaysTaken(symbolSetName) +
