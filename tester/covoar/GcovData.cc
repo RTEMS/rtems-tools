@@ -151,13 +151,13 @@ namespace Gcov {
         fprintf( stderr, "Error while writing function announcement to a file %s\n", gcdaFileName );
 
       //Write function id
-      buffer = (*currentFunction)->getId();
+      buffer = (*currentFunction).getId();
       status = fwrite (&buffer, sizeof( buffer ), 1, gcdaFile );
       if ( status != 1 )
         fprintf( stderr, "Error while writing function id to a file %s\n", gcdaFileName );
 
       //Write function checksum
-      buffer = (*currentFunction)->getChecksum();
+      buffer = (*currentFunction).getChecksum();
       status = fwrite (&buffer, sizeof( buffer ), 1, gcdaFile );
       if ( status != 1 )
         fprintf( stderr, "Error while writing function checksum to a file %s\n", gcdaFileName );
@@ -165,7 +165,7 @@ namespace Gcov {
       // Determine how many counters there are
       // and store their counts in buffer
       countersFound = 0;
-      (*currentFunction)->getCounters( llBuffer, countersFound, countersSum, countersMax );
+      (*currentFunction).getCounters( llBuffer, countersFound, countersSum, countersMax );
       countersFoundSum += countersFound;
 
       //Write info about counters
@@ -232,7 +232,6 @@ namespace Gcov {
     uint32_t            tempBlockId;
     blocks_iterator_t   tempBlockIterator;
     int                 status;
-    GcovFunctionData*   newFunction;
 
     status = readFrameHeader( &header, gcovFile);
 
@@ -246,13 +245,18 @@ namespace Gcov {
 
       case GCOV_TAG_FUNCTION:
 
-        numberOfFunctions++;
-        newFunction = new GcovFunctionData;
-        if ( !readFunctionFrame(header, gcovFile, newFunction) ){
-          fprintf( stderr, "Error while reading FUNCTION from gcov file...\n" );
-          return false;
+        {
+          numberOfFunctions++;
+          GcovFunctionData newFunction;
+
+          if ( !readFunctionFrame(header, gcovFile, &newFunction) ){
+            fprintf( stderr, "Error while reading FUNCTION from gcov file...\n" );
+            return false;
+          }
+
+          functions.push_back(newFunction);
         }
-        functions.push_back(newFunction);
+
         break;
 
       case GCOV_TAG_BLOCKS:
@@ -269,7 +273,7 @@ namespace Gcov {
         }
 
         for( uint32_t i = 0; i < header.length; i++ )
-          functions.back()->addBlock(i, intBuffer[i], "");
+          functions.back().addBlock(i, intBuffer[i], "");
 
         break;
 
@@ -281,7 +285,7 @@ namespace Gcov {
         }
 
         for ( int i = 1; i < (int) header.length; i += 2 )
-          functions.back()->addArc(intBuffer[0], intBuffer[i], intBuffer[i+1]);
+          functions.back().addArc(intBuffer[0], intBuffer[i], intBuffer[i+1]);
 
         break;
 
@@ -299,10 +303,10 @@ namespace Gcov {
         header.length -= 2;
 
         // Find the right block
-        tempBlockIterator =functions.back()->findBlockById(tempBlockId);
+        tempBlockIterator =functions.back().findBlockById(tempBlockId);
 
         header.length -= readString(buffer, gcovFile);
-        functions.back()->setBlockFileName( tempBlockIterator, buffer );
+        functions.back().setBlockFileName( tempBlockIterator, buffer );
 
         status = fread( &intBuffer, 4, header.length, gcovFile );
         if (status != (int) header.length){
@@ -312,7 +316,7 @@ namespace Gcov {
 
         else
           for (int i = 0; i < (int) (header.length - 2); i++)
-            functions.back()->addBlockLine( tempBlockIterator, intBuffer[i] );
+            functions.back().addBlockLine( tempBlockIterator, intBuffer[i] );
 
         break;
 
@@ -449,8 +453,8 @@ namespace Gcov {
       currentFunction++
     )
     {
-      (*currentFunction)->printFunctionInfo( textFile, i );
-      (*currentFunction)->printCoverageInfo( textFile, i );
+      (*currentFunction).printFunctionInfo( textFile, i );
+      (*currentFunction).printCoverageInfo( textFile, i );
       i++;
     }
 
@@ -497,7 +501,7 @@ namespace Gcov {
       currentFunction++
     )
     {
-      if ( !(*currentFunction)->processFunctionCounters(  ) )
+      if ( !(*currentFunction).processFunctionCounters(  ) )
         status = false;
     }
 

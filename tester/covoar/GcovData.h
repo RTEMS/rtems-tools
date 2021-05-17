@@ -30,8 +30,8 @@ namespace Gcov {
 #define GCOV_TAG_PROGRAM_SUMMARY        ((uint32_t)0xa3000000)
 
 
-typedef std::list<Gcov::GcovFunctionData*>              functions_t;
-typedef std::list<Gcov::GcovFunctionData*>::iterator    functions_iterator_t;
+typedef std::list<Gcov::GcovFunctionData>              functions_t;
+typedef std::list<Gcov::GcovFunctionData>::iterator    functions_iterator_t;
 
 struct gcov_preamble
 {
