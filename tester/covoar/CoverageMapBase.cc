@@ -121,7 +121,7 @@ namespace Coverage {
 
   bool CoverageMapBase::validAddress( const uint32_t address ) const
   {
-    for ( auto r : Ranges )
+    for ( auto& r : Ranges )
       if (r.inside( address ))
         return true;
     return false;
