@@ -85,24 +85,22 @@ namespace Coverage {
       line++;
 
       // Get the explanation
-      while (1) {
-        explain.getline( inputBuffer, MAX_LINE_LENGTH );
-        // fprintf( stderr, "%d - %s\n", line, inputBuffer );
-        if (explain.fail()) {
-          std::ostringstream what;
-          what << "line " << line
-               << "out of sync at the explanation";
-          throw rld::error( what, "Explanations::load" );
-        }
-        inputBuffer[ strlen(inputBuffer) - 1] = '\0';
+      for (std::string input_line; std::getline( explain, input_line ); ) {
         line++;
 
-        const char delimiter[4] = "+++";
-        if (!strncmp( inputBuffer, delimiter, 3 )) {
+        const std::string delimiter = "+++";
+        if (input_line.compare( delimiter ) == 0) {
           break;
         }
         // XXX only taking last line.  Needs to be a vector
-        e.explanation.push_back( inputBuffer );
+        e.explanation.push_back( input_line );
+      }
+
+      if (explain.fail()) {
+        std::ostringstream what;
+        what << "line " << line
+              << "out of sync at the explanation";
+        throw rld::error( what, "Explanations::load" );
       }
 
       // Add this to the set of Explanations
