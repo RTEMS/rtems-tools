@@ -55,7 +55,6 @@ namespace Coverage {
         if (explain.fail()) {
           return;
         }
-        inputBuffer[ strlen(inputBuffer) - 1] = '\0';
         line++;
       } while ( inputBuffer[0] == '\0' );
 
@@ -80,7 +79,6 @@ namespace Coverage {
              << "out of sync at the classification";
         throw rld::error( what, "Explanations::load" );
       }
-      inputBuffer[ strlen(inputBuffer) - 1] = '\0';
       e.classification = inputBuffer;
       line++;
 
