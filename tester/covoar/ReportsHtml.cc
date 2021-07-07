@@ -2,6 +2,9 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include <sstream>
+#include <iomanip>
+
 #include <rld.h>
 
 #include "ReportsHtml.h"
@@ -25,13 +28,13 @@
    "</tr>\n" \
    "</tfoot>\n"
 #else
-#define TABLE_HEADER_CLASS
-#define TABLE_FOOTER
+#define TABLE_HEADER_CLASS ""
+#define TABLE_FOOTER ""
 #endif
 
 namespace Coverage {
 
-  ReportsHtml::ReportsHtml( time_t timestamp, std::string symbolSetName ):
+  ReportsHtml::ReportsHtml( time_t timestamp, const std::string& symbolSetName ):
     ReportsBase( timestamp, symbolSetName )
   {
     reportExtension_m = ".html";
@@ -42,63 +45,46 @@ namespace Coverage {
   }
 
   void ReportsHtml::WriteIndex(
-    const char* const fileName
+    const std::string& fileName
   )
   {
+    std::ofstream aFile;
     #define PRINT_ITEM( _t, _n ) \
-       fprintf( \
-         aFile, \
-         "<li>%s (<a href=\"%s.html\">html</a> or "\
-         "<a href=\"%s.txt\">text</a>)</li>\n", \
-        _t, _n, _n );
+       aFile << "<li>" \
+             << _t << " (<a href=\"" \
+             << _n << ".html\">html</a> or <a href=\"" \
+             << _n << ".txt\">text</a>)</li>" << std::endl;
     #define PRINT_TEXT_ITEM( _t, _n ) \
-       fprintf( \
-         aFile, \
-         "<li>%s (<a href=\"%s\">text</a>)</li>\n", \
-        _t, _n );
+       aFile << "<li>" \
+             << _t << " (<a href=\"" \
+             << _n << "\">text</a>)</li>" << std::endl;
 
-    FILE*  aFile;
 
     // Open the file
-    aFile = OpenFile( fileName );
+    OpenFile(fileName, aFile);
 
-    fprintf(
-      aFile,
-      "<title>Index</title>\n"
-      "<div class=\"heading-title\">"
-    );
+    aFile << "<title>Index</title>" << std::endl
+          << "<div class=\"heading-title\">";
 
     if (projectName)
-      fprintf(
-        aFile,
-         "%s<br>",
-         projectName
-      );
+      aFile << projectName << "<br>";
 
-    fprintf(
-      aFile,
-      "Coverage Analysis Reports</div>\n"
-      "<div class =\"datetime\">%s</div>\n",
-      asctime( localtime(&timestamp_m) )
-    );
+    aFile << "Coverage Analysis Reports</div>" << std::endl
+          << "<div class =\"datetime\">"
+          <<  asctime( localtime( &timestamp_m ) ) << "</div>" << std::endl
+          << "<ul>" << std::endl;
 
-    fprintf( aFile, "<ul>\n" );
+    PRINT_TEXT_ITEM( "Summary",                     "summary.txt" );
+    PRINT_ITEM(      "Coverage Report",             "uncovered" );
+    PRINT_ITEM(      "Branch Report",               "branch" );
+    PRINT_ITEM(      "Annotated Assembly",          "annotated" );
+    PRINT_ITEM(      "Symbol Summary",              "symbolSummary" );
+    PRINT_ITEM(      "Uncovered Range Size Report", "sizes" );
+    PRINT_TEXT_ITEM( "Explanations Not Found",      "ExplanationsNotFound.txt" );
 
-    PRINT_TEXT_ITEM( "Summary",         "summary.txt" );
-    PRINT_ITEM( "Coverage Report",      "uncovered" );
-    PRINT_ITEM( "Branch Report",        "branch" );
-    PRINT_ITEM( "Annotated Assembly",   "annotated" );
-    PRINT_ITEM( "Symbol Summary",       "symbolSummary" );
-    PRINT_ITEM( "Uncovered Range Size Report",          "sizes" );
-
-    PRINT_TEXT_ITEM( "Explanations Not Found", "ExplanationsNotFound.txt" );
-
-    fprintf(
-      aFile,
-      "</ul>\n"
-      "<!-- INSERT PROJECT SPECIFIC ITEMS HERE -->\n"
-      "</html>\n"
-    );
+    aFile << "</ul>" << std::endl
+          << "<!-- INSERT PROJECT SPECIFIC ITEMS HERE -->" << std::endl
+          << "</html>" << std::endl;
 
     CloseFile( aFile );
 
@@ -106,332 +92,273 @@ namespace Coverage {
     #undef PRINT_TEXT_ITEM
   }
 
-  FILE* ReportsHtml::OpenFile(
-    const char* const fileName
+  void ReportsHtml::OpenFile(
+    const std::string& fileName,
+    std::ofstream&     aFile
   )
   {
-    FILE*  aFile;
-
     // Open the file
-    aFile = ReportsBase::OpenFile( fileName, symbolSetName_m.c_str() );
+    ReportsBase::OpenFile(fileName, symbolSetName_m, aFile);
 
     // Put Header information on the file
-    fprintf(
-      aFile,
-      "<html>\n"
-      "<meta http-equiv=\"Content-Language\" content=\"English\" >\n"
-      "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=us-ascii\" >\n"
-      "<link rel=\"stylesheet\" type=\"text/css\" href=\"../covoar.css\" media=\"screen\" >\n"
-      "<script type=\"text/javascript\" src=\"../table.js\"></script>\n"
-    );
-
-    return aFile;
+    aFile << "<html>" << std::endl
+          << "<meta http-equiv=\"Content-Language\" content=\"English\" >"
+          << std::endl
+          << "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=us-ascii\" >"
+          << std::endl
+          << "<link rel=\"stylesheet\" type=\"text/css\" href=\"../covoar.css\" media=\"screen\" >"
+          << std::endl
+          << "<script type=\"text/javascript\" src=\"../table.js\"></script>"
+          << std::endl;
   }
 
-  FILE* ReportsHtml::OpenAnnotatedFile(
-    const char* const fileName
+  void ReportsHtml::OpenAnnotatedFile(
+    const std::string& fileName,
+    std::ofstream&     aFile
   )
   {
-    FILE *aFile;
-
     // Open the file
-    aFile = OpenFile(fileName);
+    OpenFile(fileName, aFile);
 
-    fprintf(
-      aFile,
-      "<title>Annotated Report</title>\n"
-      "<div class=\"heading-title\">"
-    );
+    aFile << "<title>Annotated Report</title>" << std::endl
+          << "<div class=\"heading-title\">";
 
     if (projectName)
-      fprintf(
-        aFile,
-         "%s<br>",
-         projectName
-      );
+      aFile << projectName << "<br>";
 
-    fprintf(
-      aFile,
-      "Annotated Report</div>\n"
-      "<div class =\"datetime\">%s</div>\n"
-      "<body>\n"
-      "<pre class=\"code\">\n",
-      asctime( localtime(&timestamp_m) )
-    );
-
-    return aFile;
+    aFile << "Annotated Report</div>" << std::endl
+          << "<div class =\"datetime\">"
+          << asctime( localtime( &timestamp_m ) ) << "</div>" << std::endl
+          << "<body>" << std::endl
+          << "<pre class=\"code\">" << std::endl;
   }
 
-  FILE* ReportsHtml::OpenBranchFile(
-    const char* const fileName,
-    bool              hasBranches
+  void ReportsHtml::OpenBranchFile(
+    const std::string& fileName,
+    bool               hasBranches,
+    std::ofstream&     aFile
   )
   {
-    FILE *aFile;
-
     // Open the file
-    aFile = OpenFile(fileName);
+    OpenFile(fileName, aFile);
 
     // Put header information into the file
-    fprintf(
-      aFile,
-      "<title>Branch Report</title>\n"
-      "<div class=\"heading-title\">"
-    );
+    aFile << "<title>Branch Report</title>" << std::endl
+          << "<div class=\"heading-title\">";
 
     if (projectName)
-      fprintf(
-        aFile,
-        "%s<br>",
-        projectName
-      );
+      aFile << projectName << "<br>";
 
-    fprintf(
-      aFile,
-      "Branch Report</div>\n"
-      "<div class =\"datetime\">%s</div>\n"
-      "<body>\n"
-      "<table class=\"covoar table-autosort:0 table-autofilter table-stripeclass:covoar-tr-odd"
-          TABLE_HEADER_CLASS "\">\n"
-      "<thead>\n"
-      "<tr>\n"
-      "<th class=\"table-sortable:default\" align=\"left\">Symbol</th>\n"
-      "<th class=\"table-sortable:default\" align=\"left\">Line</th>\n"
-      "<th class=\"table-filterable table-sortable:default\" align=\"left\">File</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"left\">Size <br>Bytes</th>\n"
-      "<th class=\"table-sortable:default\" align=\"left\">Reason</th>\n"
-      "<th class=\"table-filterable table-sortable:default\" align=\"left\">Taken</th>\n"
-      "<th class=\"table-filterable table-sortable:default\" align=\"left\">Not Taken</th>\n"
-      "<th class=\"table-filterable table-sortable:default\" align=\"left\">Classification</th>\n"
-      "<th class=\"table-sortable:default\" align=\"left\">Explanation</th>\n"
-      "</tr>\n"
-      "</thead>\n"
-      "<tbody>\n",
-      asctime( localtime(&timestamp_m) )
-    );
-
-    return aFile;
+    aFile << "Branch Report</div>" << std::endl
+          << "<div class =\"datetime\">"
+          << asctime( localtime( &timestamp_m ) ) << "</div>" << std::endl
+          << "<body>" << std::endl
+          << "<table class=\"covoar table-autosort:0 table-autofilter table-stripeclass:covoar-tr-odd"
+          << TABLE_HEADER_CLASS << "\">" << std::endl
+          << "<thead>" << std::endl
+          << "<tr>" << std::endl
+          << "<th class=\"table-sortable:default\" align=\"left\">Symbol</th>" << std::endl
+          << "<th class=\"table-sortable:default\" align=\"left\">Line</th>"
+          << std::endl
+          << "<th class=\"table-filterable table-sortable:default\" align=\"left\">File</th>"
+          << std::endl
+          << "<th class=\"table-sortable:numeric\" align=\"left\">Size <br>Bytes</th>"
+          << std::endl
+          << "<th class=\"table-sortable:default\" align=\"left\">Reason</th>"
+          << std::endl
+          << "<th class=\"table-filterable table-sortable:default\" align=\"left\">Taken</th>"
+          << std::endl
+          << "<th class=\"table-filterable table-sortable:default\" align=\"left\">Not Taken</th>"
+          << std::endl
+          << "<th class=\"table-filterable table-sortable:default\" align=\"left\">Classification</th>"
+          << std::endl
+          << "<th class=\"table-sortable:default\" align=\"left\">Explanation</th>"
+          << std::endl
+          << "</tr>" << std::endl
+          << "</thead>" << std::endl
+          << "<tbody>" << std::endl;
   }
 
-  FILE*  ReportsHtml::OpenCoverageFile(
-    const char* const fileName
+  void  ReportsHtml::OpenCoverageFile(
+    const std::string& fileName,
+    std::ofstream&     aFile
   )
   {
-    FILE *aFile;
-
     // Open the file
-    aFile = OpenFile(fileName);
+    OpenFile(fileName, aFile);
 
     // Put header information into the file
-    fprintf(
-      aFile,
-        "<title>Coverage Report</title>\n"
-        "<div class=\"heading-title\">"
-    );
+    aFile << "<title>Coverage Report</title>" << std::endl
+          << "<div class=\"heading-title\">";
 
     if (projectName)
-      fprintf(
-        aFile,
-        "%s<br>",
-        projectName
-      );
+      aFile << projectName << "<br>";
 
-    fprintf(
-      aFile,
-       "Coverage Report</div>\n"
-       "<div class =\"datetime\">%s</div>\n"
-       "<body>\n"
-       "<table class=\"covoar table-autosort:0 table-autofilter table-stripeclass:covoar-tr-odd"
-           TABLE_HEADER_CLASS "\">\n"
-      "<thead>\n"
-      "<tr>\n"
-      "<th class=\"table-sortable:default\" align=\"left\">Symbol</th>\n"
-      "<th class=\"table-sortable:default\" align=\"left\">Range</th>\n"
-      "<th class=\"table-filterable table-sortable:default\" align=\"left\">File</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"left\">Size <br>Bytes</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"left\">Size <br>Instructions</th>\n"
-      "<th class=\"table-filterable table-sortable:default\" align=\"left\">Classification</th>\n"
-      "<th class=\"table-sortable:default\" align=\"left\">Explanation</th>\n"
-      "</tr>\n"
-      "</thead>\n"
-      "<tbody>\n",
-        asctime( localtime(&timestamp_m) )
-
-     );
-
-    return aFile;
+    aFile << "Coverage Report</div>" << std::endl
+          << "<div class =\"datetime\">"
+          << asctime( localtime( &timestamp_m ) ) << "</div>" << std::endl
+          << "<body>" << std::endl
+          << "<table class=\"covoar table-autosort:0 table-autofilter table-stripeclass:covoar-tr-odd"
+          << TABLE_HEADER_CLASS << "\">" << std::endl
+          << "<thead>" << std::endl
+          << "<tr>" << std::endl
+          << "<th class=\"table-sortable:default\" align=\"left\">Symbol</th>"
+          << std::endl
+          << "<th class=\"table-sortable:default\" align=\"left\">Range</th>"
+          << std::endl
+          << "<th class=\"table-filterable table-sortable:default\" align=\"left\">File</th>"
+          << std::endl
+          << "<th class=\"table-sortable:numeric\" align=\"left\">Size <br>Bytes</th>"
+          << std::endl
+          << "<th class=\"table-sortable:numeric\" align=\"left\">Size <br>Instructions</th>"
+          << std::endl
+          << "<th class=\"table-filterable table-sortable:default\" align=\"left\">Classification</th>"
+          << std::endl
+          << "<th class=\"table-sortable:default\" align=\"left\">Explanation</th>"
+          << std::endl
+          << "</tr>" << std::endl
+          << "</thead>" << std::endl
+          << "<tbody>" << std::endl;
   }
 
-  FILE* ReportsHtml::OpenNoRangeFile(
-    const char* const fileName
+  void ReportsHtml::OpenNoRangeFile(
+    const std::string& fileName,
+    std::ofstream&     aFile
   )
   {
-    FILE *aFile;
-
     // Open the file
-    aFile = OpenFile(fileName);
+    OpenFile(fileName, aFile);
 
     // Put header information into the file
-    fprintf(
-      aFile,
-        "<title> Report</title>\n"
-        "<div class=\"heading-title\">"
-    );
+    aFile << "<title> Report</title>" << std::endl
+          << "<div class=\"heading-title\">";
 
     if (projectName)
-      fprintf(
-        aFile,
-        "%s<br>",
-        projectName
-      );
+      aFile << projectName << "<br>";
 
-    fprintf(
-      aFile,
-       "No Range Report</div>\n"
-       "<div class =\"datetime\">%s</div>\n"
-        "<body>\n"
-      "<table class=\"covoar table-autosort:0 table-autofilter table-stripeclass:covoar-tr-odd"
-           TABLE_HEADER_CLASS "\">\n"
-      "<thead>\n"
-      "<tr>\n"
-      "<th class=\"table-sortable:default\" align=\"left\">Symbol</th>\n"
-      "</tr>\n"
-      "</thead>\n"
-      "<tbody>\n",
-        asctime( localtime(&timestamp_m) )
-
-     );
-
-    return aFile;
+    aFile << "No Range Report</div>" << std::endl
+          << "<div class =\"datetime\">"
+          << asctime( localtime( &timestamp_m ) ) << "</div>" << std::endl
+          << "<body>" << std::endl
+          << "<table class=\"covoar table-autosort:0 table-autofilter table-stripeclass:covoar-tr-odd"
+          << TABLE_HEADER_CLASS << "\">" << std::endl
+          << "<thead>" << std::endl
+          << "<tr>" << std::endl
+          << "<th class=\"table-sortable:default\" align=\"left\">Symbol</th>"
+          << std::endl
+          << "</tr>" << std::endl
+          << "</thead>" << std::endl
+          << "<tbody>" << std::endl;
    }
 
 
 
-  FILE*  ReportsHtml::OpenSizeFile(
-    const char* const fileName
+  void ReportsHtml::OpenSizeFile(
+    const std::string& fileName,
+    std::ofstream&     aFile
   )
   {
-    FILE *aFile;
-
     // Open the file
-    aFile = OpenFile(fileName);
+    OpenFile(fileName, aFile);
 
     // Put header information into the file
-    fprintf(
-      aFile,
-      "<title>Uncovered Range Size Report</title>\n"
-        "<div class=\"heading-title\">"
-    );
+    aFile << "<title>Uncovered Range Size Report</title>" << std::endl
+          << "<div class=\"heading-title\">";
 
     if (projectName)
-      fprintf(
-        aFile,
-        "%s<br>",
-        projectName
-      );
+      aFile << projectName << "<br>";
 
-    fprintf(
-      aFile,
-      "Uncovered Range Size Report</div>\n"
-       "<div class =\"datetime\">%s</div>\n"
-      "<body>\n"
-      "<table class=\"covoar table-autosort:0 table-autofilter table-stripeclass:covoar-tr-odd"
-           TABLE_HEADER_CLASS "\">\n"
-      "<thead>\n"
-      "<tr>\n"
-      "<th class=\"table-sortable:numeric\" align=\"left\">Size</th>\n"
-      "<th class=\"table-sortable:default\" align=\"left\">Symbol</th>\n"
-      "<th class=\"table-sortable:default\" align=\"left\">Line</th>\n"
-      "<th class=\"table-filterable table-sortable:default\" align=\"left\">File</th>\n"
-      "</tr>\n"
-      "</thead>\n"
-      "<tbody>\n",
-        asctime( localtime(&timestamp_m) )
-
-    );
-    return aFile;
+    aFile << "Uncovered Range Size Report</div>" << std::endl
+          << "<div class =\"datetime\">"
+          << asctime( localtime( &timestamp_m ) ) << "</div>" << std::endl
+          << "<body>" << std::endl
+          << "<table class=\"covoar table-autosort:0 table-autofilter table-stripeclass:covoar-tr-odd"
+          << TABLE_HEADER_CLASS << "\">" << std::endl
+          << "<thead>" << std::endl
+          << "<tr>" << std::endl
+          << "<th class=\"table-sortable:numeric\" align=\"left\">Size</th>"
+          << std::endl
+          << "<th class=\"table-sortable:default\" align=\"left\">Symbol</th>"
+          << std::endl
+          << "<th class=\"table-sortable:default\" align=\"left\">Line</th>"
+          << std::endl
+          << "<th class=\"table-filterable table-sortable:default\" align=\"left\">File</th>"
+          << std::endl
+          << "</tr>" << std::endl
+          << "</thead>" << std::endl
+          << "<tbody>" << std::endl;
   }
 
-  FILE*  ReportsHtml::OpenSymbolSummaryFile(
-    const char* const fileName
+  void ReportsHtml::OpenSymbolSummaryFile(
+    const std::string& fileName,
+    std::ofstream&     aFile
   )
   {
-    FILE *aFile;
-
     // Open the file
-    aFile = OpenFile(fileName);
+    OpenFile(fileName, aFile);
 
     // Put header information into the file
-    fprintf(
-      aFile,
-      "<title>Symbol Summary Report</title>\n"
-      "<div class=\"heading-title\">"
-    );
+    aFile << "<title>Symbol Summary Report</title>" << std::endl
+          << "<div class=\"heading-title\">";
 
     if (projectName)
-      fprintf(
-        aFile,
-        "%s<br>",
-        projectName
-      );
+      aFile << projectName << "<br>";
 
-    fprintf(
-      aFile,
-      "Symbol Summary Report</div>\n"
-       "<div class =\"datetime\">%s</div>\n"
-      "<body>\n"
-      "<table class=\"covoar table-autosort:0 table-autofilter table-stripeclass:covoar-tr-odd"
-           TABLE_HEADER_CLASS "\">\n"
-      "<thead>\n"
-      "<tr>\n"
-      "<th class=\"table-sortable:default\" align=\"center\">Symbol</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">Total<br>Size<br>Bytes</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">Total<br>Size<br>Instr</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">#<br>Ranges</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">Uncovered<br>Size<br>Bytes</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">Uncovered<br>Size<br>Instr</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">#<br>Branches</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">#<br>Always<br>Taken</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">#<br>Never<br>Taken</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">Percent<br>Uncovered<br>Instructions</th>\n"
-      "<th class=\"table-sortable:numeric\" align=\"center\">Percent<br>Uncovered<br>Bytes</th>\n"
-      "</tr>\n"
-      "</thead>\n"
-      "<tbody>\n",
-        asctime( localtime(&timestamp_m) )
-
-    );
-    return aFile;
+    aFile << "Symbol Summary Report</div>" << std::endl
+          << "<div class =\"datetime\">"
+          << asctime( localtime( &timestamp_m ) ) << "</div>" << std::endl
+          << "<body>" << std::endl
+          << "<table class=\"covoar table-autosort:0 table-autofilter table-stripeclass:covoar-tr-odd"
+          << TABLE_HEADER_CLASS << "\">" << std::endl
+          << "<thead>" << std::endl
+          << "<tr>" << std::endl
+          << "<th class=\"table-sortable:default\" align=\"center\">Symbol</th>"
+          << std::endl
+          << "<th class=\"table-sortable:numeric\" align=\"center\">Total<br>Size<br>Bytes</th>"
+          << std::endl
+          << "<th class=\"table-sortable:numeric\" align=\"center\">Total<br>Size<br>Instr</th>"
+          << std::endl
+          << "<th class=\"table-sortable:numeric\" align=\"center\">#<br>Ranges</th>"
+          << std::endl
+          << "<th class=\"table-sortable:numeric\" align=\"center\">Uncovered<br>Size<br>Bytes</th>"
+          << std::endl
+          << "<th class=\"table-sortable:numeric\" align=\"center\">Uncovered<br>Size<br>Instr</th>"
+          << std::endl
+          << "<th class=\"table-sortable:numeric\" align=\"center\">#<br>Branches</th>"
+          << std::endl
+          << "<th class=\"table-sortable:numeric\" align=\"center\">#<br>Always<br>Taken</th>"
+          << std::endl
+          << "<th class=\"table-sortable:numeric\" align=\"center\">#<br>Never<br>Taken</th>"
+          << std::endl
+          << "<th class=\"table-sortable:numeric\" align=\"center\">Percent<br>Uncovered<br>Instructions</th>"
+          << std::endl
+          << "<th class=\"table-sortable:numeric\" align=\"center\">Percent<br>Uncovered<br>Bytes</th>"
+          << std::endl
+          << "</tr>" << std::endl
+          << "</thead>" << std::endl
+          << "<tbody>" << std::endl;
   }
 
-  void ReportsHtml::AnnotatedStart(
-    FILE*                aFile
-  )
+  void ReportsHtml::AnnotatedStart( std::ofstream& aFile )
   {
-    fprintf(
-      aFile,
-      "<hr>\n"
-    );
+    aFile << "<hr>" << std::endl;
   }
 
-  void ReportsHtml::AnnotatedEnd(
-    FILE*                aFile
-  )
+  void ReportsHtml::AnnotatedEnd( std::ofstream& aFile )
   {
   }
 
   void ReportsHtml::PutAnnotatedLine(
-    FILE*                aFile,
+    std::ofstream&       aFile,
     AnnotatedLineState_t state,
-    std::string          line,
+    const std::string&   line,
     uint32_t             id
   )
   {
     std::string stateText;
-    char        number[10];
+    std::string number;
 
-
-    sprintf(number,"%d", id);
+    number = std::to_string( id );
 
     // Set the stateText based upon the current state.
     switch (state) {
@@ -460,7 +387,7 @@ namespace Coverage {
         stateText += "\"></a><pre class=\"codeNeverTaken\">\n";
         break;
       default:
-        throw rld::error( "Unknown state", "ReportsHtml::PutAnnotatedLine");
+        throw rld::error("Unknown state", "ReportsHtml::PutAnnotatedLine");
         break;
     }
 
@@ -468,7 +395,7 @@ namespace Coverage {
     // format.  If it has changed close out the old format and open up the
     // new format.
     if ( state != lastState_m ) {
-      fprintf( aFile, "%s", stateText.c_str() );
+      aFile << stateText;
       lastState_m = state;
     }
 
@@ -477,27 +404,27 @@ namespace Coverage {
     // is only a '<' symbol.
     for (unsigned int i=0; i<line.size(); i++ ) {
       if ( line[i] == '<' )
-        fprintf( aFile, "&lt;" );
+        aFile << "&lt;";
       else
-        fprintf( aFile, "%c", line[i] );
+        aFile << line[i];
     }
-    fprintf( aFile, "\n");
+    aFile << std::endl;
   }
 
   bool ReportsHtml::PutNoBranchInfo(
-    FILE* report
+    std::ofstream& report
   )
   {
     if (BranchInfoAvailable &&
       SymbolsToAnalyze->getNumberBranchesFound(symbolSetName_m) != 0)
-      fprintf( report, "All branch paths taken.\n" );
+      report << "All branch paths taken." << std::endl;
     else
-      fprintf( report, "No branch information found.\n" );
+      report << "No branch information found." << std::endl;
     return true;
   }
 
   bool ReportsHtml::PutBranchEntry(
-    FILE*                                            report,
+    std::ofstream&                                   report,
     unsigned int                                     count,
     const std::string&                               symbolName,
     const SymbolInformation&                         symbolInfo,
@@ -513,124 +440,99 @@ namespace Coverage {
 
     // Mark the background color different for odd and even lines.
     if ( ( count%2 ) != 0 )
-      fprintf( report, "<tr class=\"covoar-tr-odd\">\n");
+      report << "<tr class=\"covoar-tr-odd\">\n";
     else
-      fprintf( report, "<tr>\n");
+      report << "<tr>" << std::endl;
 
     // symbol
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
-      symbolName.c_str()
-    );
+    report << "<td class=\"covoar-td\" align=\"center\">"
+           << symbolName << "</td>" << std::endl;
 
     // line
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\"><a href =\"annotated.html#range%d\">%s</td>\n",
-      range.id,
-      range.lowSourceLine.c_str()
-    );
+    report << "<td class=\"covoar-td\" align=\"center\"><a href =\"annotated.html#range"
+           << range.id << "\">"
+           << range.lowSourceLine << "</td>" << std::endl;
 
     // File
     i = range.lowSourceLine.find(":");
     temp =  range.lowSourceLine.substr (0, i);
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
-      temp.c_str()
-    );
+    report << "<td class=\"covoar-td\" align=\"center\">"
+           << temp << "</td>" << std::endl;
 
     // Size in bytes
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-      range.highAddress - range.lowAddress + 1
-    );
+    report << "<td class=\"covoar-td\" align=\"center\">"
+           << range.highAddress - range.lowAddress + 1 << "</td>" << std::endl;
 
     // Reason Branch was uncovered
     if (range.reason ==
       Coverage::CoverageRanges::UNCOVERED_REASON_BRANCH_ALWAYS_TAKEN)
-      fprintf(
-        report,
-        "<td class=\"covoar-td\" align=\"center\">Always Taken</td>\n"
-      );
+      report << "<td class=\"covoar-td\" align=\"center\">Always Taken</td>"
+             << std::endl;
     else if (range.reason ==
       Coverage::CoverageRanges::UNCOVERED_REASON_BRANCH_NEVER_TAKEN)
-      fprintf(
-        report,
-        "<td class=\"covoar-td\" align=\"center\">Never Taken</td>\n"
-      );
+      report << "<td class=\"covoar-td\" align=\"center\">Never Taken</td>"
+             << std::endl;
 
     // Taken / Not taken counts
     lowAddress = range.lowAddress;
     bAddress = symbolInfo.baseAddress;
     theCoverageMap = symbolInfo.unifiedCoverageMap;
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-      theCoverageMap->getWasTaken( lowAddress - bAddress )
-    );
-        fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-      theCoverageMap->getWasNotTaken( lowAddress - bAddress )
-    );
+
+    report << "<td class=\"covoar-td\" align=\"center\">"
+           << theCoverageMap->getWasTaken( lowAddress - bAddress )
+           << "</td>" << std::endl
+           << "<td class=\"covoar-td\" align=\"center\">"
+           << theCoverageMap->getWasNotTaken( lowAddress - bAddress )
+           << "</td>" << std::endl;
 
     // See if an explanation is available and write the Classification and
     // the Explination Columns.
     explanation = AllExplanations->lookupExplanation( range.lowSourceLine );
     if ( !explanation ) {
       // Write Classificationditr->second.baseAddress
-      fprintf(
-        report,
-        "<td class=\"covoar-td\" align=\"center\">NONE</td>\n"
-        "<td class=\"covoar-td\" align=\"center\">No Explanation</td>\n"
-      );
+      report << "<td class=\"covoar-td\" align=\"center\">NONE</td>"
+             << std::endl
+             << "<td class=\"covoar-td\" align=\"center\">No Explanation</td>"
+             << std::endl;
     } else {
-      char explanationFile[48];
-      sprintf( explanationFile, "explanation%d.html", range.id );
-      fprintf(
-        report,
-        "<td class=\"covoar-td\" align=\"center\">%s</td>\n"
-        "<td class=\"covoar-td\" align=\"center\">"
-        "<a href=\"%s\">Explanation</a></td>\n",
-        explanation->classification.c_str(),
-        explanationFile
-      );
-      WriteExplationFile( explanationFile, explanation );
+      std::stringstream explanationFile( "explanation" );
+      explanationFile << range.id << ".html";
+
+      report << "<td class=\"covoar-td\" align=\"center\">"
+             << explanation->classification << "</td>" << std::endl
+             << "<td class=\"covoar-td\" align=\"center\">"
+             << "<a href=\"" << explanationFile.str()
+             << "\">Explanation</a></td>" << std::endl;
+
+      WriteExplanationFile( explanationFile.str(), explanation );
     }
 
-    fprintf( report, "</tr>\n");
+    report << "</tr>" << std::endl;
 
     return true;
   }
 
-  bool ReportsHtml::WriteExplationFile(
-    const char*                  fileName,
+  bool ReportsHtml::WriteExplanationFile(
+    const std::string&           fileName,
     const Coverage::Explanation* explanation
   )
   {
-    FILE* report;
+    std::ofstream report;
 
-    report = OpenFile( fileName );
+    OpenFile(fileName, report);
 
     for ( unsigned int i=0 ; i < explanation->explanation.size(); i++) {
-      fprintf(
-        report,
-        "%s\n",
-        explanation->explanation[i].c_str()
-      );
+      report << explanation->explanation[i] << std::endl;
     }
     CloseFile( report );
     return true;
   }
 
   void ReportsHtml::putCoverageNoRange(
-    FILE*         report,
-    FILE*         noRangeFile,
+    std::ofstream&     report,
+    std::ofstream&     noRangeFile,
     unsigned int  count,
-    std::string   symbol
+    const std::string& symbol
   )
   {
     Coverage::Explanation explanation;
@@ -646,64 +548,50 @@ namespace Coverage {
 
     // Mark the background color different for odd and even lines.
     if ( ( count%2 ) != 0 ){
-      fprintf( report, "<tr class=\"covoar-tr-odd\">\n");
-      fprintf( noRangeFile,  "<tr class=\"covoar-tr-odd\">\n");
+      report << "<tr class=\"covoar-tr-odd\">" << std::endl;
+      noRangeFile << "<tr class=\"covoar-tr-odd\">" << std::endl;
     } else {
-      fprintf( report, "<tr>\n");
-      fprintf( noRangeFile,  "<tr>\n");
+      report << "<tr>" << std::endl;
+      noRangeFile << "<tr>" << std::endl;
     }
 
     // symbol
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
-      symbol.c_str()
-    );
-    fprintf(
-      noRangeFile,
-      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
-      symbol.c_str()
-    );
+    report << "<td class=\"covoar-td\" align=\"center\">"
+           << symbol << "</td>" << std::endl;
+    noRangeFile << "<td class=\"covoar-td\" align=\"center\">"
+                << symbol << "</td>" << std::endl;
 
     // starting line
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
-     );
+    report << "<td class=\"covoar-td\" align=\"center\">unknown</td>"
+           << std::endl;
 
     // file
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
-     );
+    report << "<td class=\"covoar-td\" align=\"center\">unknown</td>"
+           << std::endl;
 
      // Size in bytes
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
-    );
+    report << "<td class=\"covoar-td\" align=\"center\">unknown</td>"
+           << std::endl;
 
     // Size in instructions
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
-    );
+    report << "<td class=\"covoar-td\" align=\"center\">unknown</td>"
+           << std::endl;
 
     // See if an explanation is available
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">Unknown</td>\n"
-      "<td class=\"covoar-td\" align=\"center\">"
-      "<a href=\"NotReferenced.html\">No data</a></td>\n"
-    );
-    WriteExplationFile( "NotReferenced.html", &explanation );
+    report << "<td class=\"covoar-td\" align=\"center\">Unknown</td>"
+           << std::endl
+           << "<td class=\"covoar-td\" align=\"center\">"
+           << "<a href=\"NotReferenced.html\">No data</a></td>"
+           << std::endl;
 
-    fprintf( report, "</tr>\n");
-    fprintf( noRangeFile, "</tr>\n");
+    WriteExplanationFile( "NotReferenced.html", &explanation );
+
+    report << "</tr>" << std::endl;
+    noRangeFile << "</tr>" << std::endl;
   }
 
   bool ReportsHtml::PutCoverageLine(
-    FILE*                                            report,
+    std::ofstream&                                   report,
     unsigned int                                     count,
     const std::string&                               symbolName,
     const SymbolInformation&                         symbolInfo,
@@ -715,83 +603,65 @@ namespace Coverage {
     int                            i;
 
     // Mark the background color different for odd and even lines.
-    if ( ( count%2 ) != 0 )
-      fprintf( report, "<tr class=\"covoar-tr-odd\">\n");
+    if ( ( count% 2) != 0 )
+      report << "<tr class=\"covoar-tr-odd\">" << std::endl;
     else
-      fprintf( report, "<tr>\n");
+      report << "<tr>" << std::endl;
 
     // symbol
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
-      symbolName.c_str()
-    );
+    report << "<td class=\"covoar-td\" align=\"center\">"
+           << symbolName << "</td>" << std::endl;
 
     // Range
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\"><a href =\"annotated.html#range%d\">%s <br>%s</td>\n",
-      range.id,
-      range.lowSourceLine.c_str(),
-      range.highSourceLine.c_str()
-     );
+    report << "<td class=\"covoar-td\" align=\"center\"><a href =\"annotated.html#range"
+           << range.id << "\">"
+           << range.lowSourceLine << " <br>"
+           << range.highSourceLine << "</td>" << std::endl;
 
     // File
     i = range.lowSourceLine.find(":");
     temp =  range.lowSourceLine.substr (0, i);
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
-      temp.c_str()
-    );
+
+    report << "<td class=\"covoar-td\" align=\"center\">"
+           << temp << "</td>" << std::endl;
 
     // Size in bytes
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-      range.highAddress - range.lowAddress + 1
-    );
+    report << "<td class=\"covoar-td\" align=\"center\">"
+           << range.highAddress - range.lowAddress + 1 << "</td>" << std::endl;
 
     // Size in instructions
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-      range.instructionCount
-    );
+    report << "<td class=\"covoar-td\" align=\"center\">"
+           << range.instructionCount << "</td>" << std::endl;
 
     // See if an explanation is available
     explanation = AllExplanations->lookupExplanation( range.lowSourceLine );
     if ( !explanation ) {
-      fprintf(
-        report,
-        "<td class=\"covoar-td\" align=\"center\">NONE</td>\n"
-      );
-      fprintf(
-        report,
-        "<td class=\"covoar-td\" align=\"center\">No Explanation</td>\n"
-      );
+      report << "<td class=\"covoar-td\" align=\"center\">NONE</td>"
+             << std::endl
+             << "<td class=\"covoar-td\" align=\"center\">No Explanation</td>"
+             << std::endl;
     } else {
-      char explanationFile[48];
+      std::stringstream explanationFile( "explanation" );
 
-      sprintf( explanationFile, "explanation%d.html", range.id );
-      fprintf(
-        report,
-        "<td class=\"covoar-td\" align=\"center\">%s</td>\n"
-        "<td class=\"covoar-td\" align=\"center\">"
-        "<a href=\"%s\">Explanation</a></td>\n",
-        explanation->classification.c_str(),
-        explanationFile
-      );
-      WriteExplationFile( explanationFile, explanation );
+      explanationFile << range.id << ".html";
+
+      report << "<td class=\"covoar-td\" align=\"center\">"
+             << explanation->classification << "</td>" << std::endl
+             << "<td class=\"covoar-td\" align=\"center\">"
+             << "<a href=\""
+             << explanationFile.str() << "\">Explanation</a></td>"
+             << std::endl;
+
+      WriteExplanationFile( explanationFile.str(), explanation );
     }
 
-    fprintf( report, "</tr>\n");
+    report << "</tr>" << std::endl;
 
     return true;
   }
 
   bool  ReportsHtml::PutSizeLine(
-    FILE*                                           report,
+    std::ofstream&                                  report,
     unsigned int                                    count,
     const std::string&                              symbolName,
     const CoverageRanges::coverageRange_t&          range
@@ -802,48 +672,35 @@ namespace Coverage {
 
     // Mark the background color different for odd and even lines.
     if ( ( count%2 ) != 0 )
-      fprintf( report, "<tr class=\"covoar-tr-odd\">\n");
+      report << "<tr class=\"covoar-tr-odd\">" << std::endl;
     else
-      fprintf( report, "<tr>\n");
+      report << "<tr>" << std::endl;
 
     // size
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-      range.highAddress - range.lowAddress + 1
-    );
+    report << "<td class=\"covoar-td\" align=\"center\">"
+           << range.highAddress - range.lowAddress + 1 << "</td>" << std::endl;
 
     // symbol
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
-      symbolName.c_str()
-    );
+    report << "<td class=\"covoar-td\" align=\"center\">"
+           << symbolName << "</td>" << std::endl;
 
     // line
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\"><a href =\"annotated.html#range%d\">%s</td>\n",
-      range.id,
-      range.lowSourceLine.c_str()
-    );
+    report << "<td class=\"covoar-td\" align=\"center\"><a href =\"annotated.html#range"
+           << range.id << "\">"
+           << range.lowSourceLine << "</td>" << std::endl;
 
     // File
     i = range.lowSourceLine.find(":");
     temp =  range.lowSourceLine.substr (0, i);
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
-      temp.c_str()
-    );
-
-    fprintf( report, "</tr>\n");
+    report << "<td class=\"covoar-td\" align=\"center\">"
+           << temp << "</td>" << std::endl
+           << "</tr>" << std::endl;
 
     return true;
   }
 
   bool  ReportsHtml::PutSymbolSummaryLine(
-    FILE*                                           report,
+    std::ofstream&                                  report,
     unsigned int                                    count,
     const std::string&                              symbolName,
     const SymbolInformation&                        symbolInfo
@@ -852,216 +709,173 @@ namespace Coverage {
 
     // Mark the background color different for odd and even lines.
     if ( ( count%2 ) != 0 )
-      fprintf( report, "<tr class=\"covoar-tr-odd\">\n");
+      report << "<tr class=\"covoar-tr-odd\">" << std::endl;
     else
-      fprintf( report, "<tr>\n");
+      report << "<tr>" << std::endl;
 
     // symbol
-    fprintf(
-      report,
-      "<td class=\"covoar-td\" align=\"center\">%s</td>\n",
-      symbolName.c_str()
-    );
+    report << "<td class=\"covoar-td\" align=\"center\">"
+           << symbolName << "</td>" << std::endl;
 
     if (symbolInfo.stats.sizeInBytes == 0) {
       // The symbol has never been seen. Write "unknown" for all columns.
-      fprintf(
-        report,
-        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
-        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
-        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
-        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
-        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
-        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
-        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
-        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
-        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
-        "<td class=\"covoar-td\" align=\"center\">unknown</td>\n"
-      );
+      report << "<td class=\"covoar-td\" align=\"center\">unknown</td>"
+             << std::endl
+             << "<td class=\"covoar-td\" align=\"center\">unknown</td>"
+             << std::endl
+             << "<td class=\"covoar-td\" align=\"center\">unknown</td>"
+             << std::endl
+             << "<td class=\"covoar-td\" align=\"center\">unknown</td>"
+             << std::endl
+             << "<td class=\"covoar-td\" align=\"center\">unknown</td>"
+             << std::endl
+             << "<td class=\"covoar-td\" align=\"center\">unknown</td>"
+             << std::endl
+             << "<td class=\"covoar-td\" align=\"center\">unknown</td>"
+             << std::endl
+             << "<td class=\"covoar-td\" align=\"center\">unknown</td>"
+             << std::endl
+             << "<td class=\"covoar-td\" align=\"center\">unknown</td>"
+             << std::endl
+             << "<td class=\"covoar-td\" align=\"center\">unknown</td>"
+             << std::endl;
     } else {
       // Total Size in Bytes
-      fprintf(
-        report,
-        "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-        symbolInfo.stats.sizeInBytes
-      );
+      report << "<td class=\"covoar-td\" align=\"center\">"
+             << symbolInfo.stats.sizeInBytes << "</td>" << std::endl;
 
       // Total Size in Instructions
-      fprintf(
-        report,
-        "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-        symbolInfo.stats.sizeInInstructions
-      );
+      report << "<td class=\"covoar-td\" align=\"center\">"
+             << symbolInfo.stats.sizeInInstructions << "</td>" << std::endl;
 
       // Total Uncovered Ranges
-      fprintf(
-        report,
-        "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-        symbolInfo.stats.uncoveredRanges
-      );
+      report << "<td class=\"covoar-td\" align=\"center\">"
+             << symbolInfo.stats.uncoveredRanges << "</td>" << std::endl;
 
       // Uncovered Size in Bytes
-      fprintf(
-        report,
-        "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-        symbolInfo.stats.uncoveredBytes
-      );
+      report << "<td class=\"covoar-td\" align=\"center\">"
+             << symbolInfo.stats.uncoveredBytes << "</td>" << std::endl;
 
       // Uncovered Size in Instructions
-      fprintf(
-        report,
-        "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-        symbolInfo.stats.uncoveredInstructions
-      );
+      report << "<td class=\"covoar-td\" align=\"center\">"
+             << symbolInfo.stats.uncoveredInstructions << "</td>" << std::endl;
 
       // Total number of branches
-      fprintf(
-        report,
-        "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-        symbolInfo.stats.branchesNotExecuted + symbolInfo.stats.branchesExecuted
-      );
+      report << "<td class=\"covoar-td\" align=\"center\">"
+             << symbolInfo.stats.branchesNotExecuted +
+                symbolInfo.stats.branchesExecuted
+             << "</td>" << std::endl;
 
       // Total Always Taken
-      fprintf(
-        report,
-        "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-        symbolInfo.stats.branchesAlwaysTaken
-      );
+      report << "<td class=\"covoar-td\" align=\"center\">"
+             << symbolInfo.stats.branchesAlwaysTaken << "</td>" << std::endl;
 
       // Total Never Taken
-      fprintf(
-        report,
-        "<td class=\"covoar-td\" align=\"center\">%d</td>\n",
-        symbolInfo.stats.branchesNeverTaken
-      );
+      report << "<td class=\"covoar-td\" align=\"center\">"
+             << symbolInfo.stats.branchesNeverTaken << "</td>" << std::endl;
 
       // % Uncovered Instructions
       if ( symbolInfo.stats.sizeInInstructions == 0 )
-        fprintf(
-          report,
-          "<td class=\"covoar-td\" align=\"center\">100.00</td>\n"
-        );
+        report << "<td class=\"covoar-td\" align=\"center\">100.00</td>"
+               << std::endl;
       else
-        fprintf(
-          report,
-          "<td class=\"covoar-td\" align=\"center\">%.2f</td>\n",
-          (symbolInfo.stats.uncoveredInstructions*100.0)/
-           symbolInfo.stats.sizeInInstructions
-        );
+        report << "<td class=\"covoar-td\" align=\"center\">"
+               << std::fixed << std::setprecision( 2 )
+               << ( symbolInfo.stats.uncoveredInstructions * 100.0 ) /
+                    symbolInfo.stats.sizeInInstructions
+               << "</td>" << std::endl;
 
       // % Uncovered Bytes
       if ( symbolInfo.stats.sizeInBytes == 0 )
-        fprintf(
-          report,
-          "<td class=\"covoar-td\" align=\"center\">100.00</td>\n"
-        );
+        report << "<td class=\"covoar-td\" align=\"center\">100.00</td>"
+               << std::endl;
       else
-        fprintf(
-          report,
-          "<td class=\"covoar-td\" align=\"center\">%.2f</td>\n",
-          (symbolInfo.stats.uncoveredBytes*100.0)/
-           symbolInfo.stats.sizeInBytes
-        );
+        report << "<td class=\"covoar-td\" align=\"center\">"
+               << ( symbolInfo.stats.uncoveredBytes * 100.0 ) /
+                    symbolInfo.stats.sizeInBytes
+               << "</td>" << std::endl;
     }
 
-    fprintf( report, "</tr>\n");
+    report << "</tr>" << std::endl;
     return true;
   }
 
   void ReportsHtml::CloseAnnotatedFile(
-    FILE*  aFile
+    std::ofstream& aFile
   )
   {
-    fprintf(
-      aFile,
-      "</pre>\n"
-      "</body>\n"
-      "</html>"
-    );
+    aFile << "</pre>"  << std::endl
+          << "</body>" << std::endl
+          << "</html>" << std::endl;
 
     CloseFile(aFile);
   }
 
   void ReportsHtml::CloseBranchFile(
-    FILE*  aFile,
+    std::ofstream& aFile,
     bool   hasBranches
   )
   {
-    fprintf(
-      aFile,
-      TABLE_FOOTER
-      "</tbody>\n"
-      "</table>\n"
-    );
+    aFile << TABLE_FOOTER
+          << "</tbody>" << std::endl
+          << "</table>" << std::endl;
 
     CloseFile(aFile);
   }
 
   void ReportsHtml::CloseCoverageFile(
-    FILE*  aFile
+    std::ofstream& aFile
   )
   {
-    fprintf(
-      aFile,
-      TABLE_FOOTER
-      "</tbody>\n"
-      "</table>\n"
-      "</pre>\n"
-      "</body>\n"
-      "</html>"
-    );
+    aFile << TABLE_FOOTER
+          << "</tbody>" << std::endl
+          << "</table>" << std::endl
+          << "</pre>"   << std::endl
+          << "</body>"  << std::endl
+          << "</html>";
 
     CloseFile(aFile);
   }
 
   void ReportsHtml::CloseNoRangeFile(
-    FILE*  aFile
+    std::ofstream& aFile
   )
   {
-    fprintf(
-      aFile,
-      TABLE_FOOTER
-      "</tbody>\n"
-      "</table>\n"
-      "</pre>\n"
-      "</body>\n"
-      "</html>"
-    );
+    aFile << TABLE_FOOTER
+          << "</tbody>" << std::endl
+          << "</table>" << std::endl
+          << "</pre>"   << std::endl
+          << "</body>"  << std::endl
+          << "</html>";
 
     CloseFile(aFile);
   }
 
 
   void ReportsHtml::CloseSizeFile(
-    FILE*  aFile
+    std::ofstream& aFile
   )
   {
-    fprintf(
-      aFile,
-      TABLE_FOOTER
-      "</tbody>\n"
-      "</table>\n"
-      "</pre>\n"
-      "</body>\n"
-      "</html>"
-    );
+    aFile << TABLE_FOOTER
+          << "</tbody>" << std::endl
+          << "</table>" << std::endl
+          << "</pre>"   << std::endl
+          << "</body>"  << std::endl
+          << "</html>";
 
-    CloseFile( aFile );
+    CloseFile(aFile);
   }
 
   void ReportsHtml::CloseSymbolSummaryFile(
-    FILE*  aFile
+    std::ofstream& aFile
   )
   {
-    fprintf(
-      aFile,
-      TABLE_FOOTER
-       "</tbody>\n"
-      "</table>\n"
-      "</pre>\n"
-      "</body>\n"
-      "</html>"
-    );
+    aFile << TABLE_FOOTER
+          << "</tbody>" << std::endl
+          << "</table>" << std::endl
+          << "</pre>"   << std::endl
+          << "</body>"  << std::endl
+          << "</html>";
 
      CloseFile( aFile );
   }

@@ -21,7 +21,7 @@ namespace Coverage {
 class ReportsText: public ReportsBase {
 
   public:
-    ReportsText( time_t timestamp, std::string symbolSetName );
+    ReportsText( time_t timestamp, const std::string& symbolSetName );
     virtual ~ReportsText();
 
   /*!
@@ -31,7 +31,7 @@ class ReportsText: public ReportsBase {
    *  @param[in] fileName identifies the branch report file name
    */
   void WriteBranchReport(
-    const char* const fileName
+    const std::string& fileName
   );
 
   /*!
@@ -41,7 +41,7 @@ class ReportsText: public ReportsBase {
    *  @param[in] fileName identifies the coverage report file name
    */
   void WriteCoverageReport(
-    const char* const fileName
+    const std::string& fileName
   );
 
   /*!
@@ -51,37 +51,37 @@ class ReportsText: public ReportsBase {
    *  @param[in] fileName identifies the size report file name
    */
   void WriteSizeReport(
-    const char* const fileName
+    const std::string& fileName
   );
 
   protected:
 
    /* Inherit documentation from base class. */
     virtual void PutAnnotatedLine(
-      FILE*                aFile,
+      std::ofstream&       aFile,
       AnnotatedLineState_t state,
-      std::string          line,
+      const std::string&   line,
       uint32_t             id
     );
 
    /* Inherit documentation from base class. */
      virtual void AnnotatedStart(
-      FILE*                aFile
+       std::ofstream& aFile
     );
 
     /* Inherit documentation from base class. */
      virtual void AnnotatedEnd(
-      FILE*                aFile
+       std::ofstream& aFile
     );
 
    /* Inherit documentation from base class. */
     virtual bool PutNoBranchInfo(
-      FILE* report
+      std::ofstream& report
     );
 
    /* Inherit documentation from base class. */
     virtual bool PutBranchEntry(
-      FILE*                                            report,
+      std::ofstream&                                   report,
       unsigned int                                     number,
       const std::string&                               symbolName,
       const SymbolInformation&                         symbolInfo,
@@ -90,15 +90,15 @@ class ReportsText: public ReportsBase {
 
    /* Inherit documentation from base class. */
     virtual void putCoverageNoRange(
-      FILE*        report,
-      FILE*        noRangeFile,
-      unsigned int number,
-      std::string  symbol
+      std::ofstream&     report,
+      std::ofstream&     noRangeFile,
+      unsigned int       number,
+      const std::string& symbol
     );
 
    /* Inherit documentation from base class. */
     virtual bool PutCoverageLine(
-      FILE*                                           report,
+      std::ofstream&                                  report,
       unsigned int                                    number,
       const std::string&                              symbolName,
       const SymbolInformation&                        symbolInfo,
@@ -107,7 +107,7 @@ class ReportsText: public ReportsBase {
 
    /* Inherit documentation from base class. */
     virtual bool PutSizeLine(
-      FILE*                                           report,
+      std::ofstream&                                  report,
       unsigned int                                    number,
       const std::string&                              symbolName,
       const CoverageRanges::coverageRange_t&          range
@@ -115,7 +115,7 @@ class ReportsText: public ReportsBase {
 
    /* Inherit documentation from base class. */
     virtual bool PutSymbolSummaryLine(
-      FILE*                                           report,
+      std::ofstream&                                  report,
       unsigned int                                    number,
       const std::string&                              symbolName,
       const SymbolInformation&                        symbolInfo

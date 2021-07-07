@@ -11,6 +11,8 @@
 
 #include <stdint.h>
 #include <string>
+#include <iostream>
+#include <fstream>
 #include <time.h>
 #include "DesiredSymbols.h"
 
@@ -24,7 +26,7 @@ namespace Coverage {
 class ReportsBase {
 
   public:
-    ReportsBase( time_t timestamp, std::string symbolSetName );
+    ReportsBase( time_t timestamp, const std::string& symbolSetName );
     virtual ~ReportsBase();
 
     /*!
@@ -33,7 +35,7 @@ class ReportsBase {
      *  @param[in] fileName identifies the report file name
      */
     virtual void WriteIndex(
-      const char* const fileName
+      const std::string& fileName
     );
 
     /*!
@@ -43,7 +45,7 @@ class ReportsBase {
      *  @param[in] fileName identifies the annotated report file name
      */
     void WriteAnnotatedReport(
-      const char* const fileName
+      const std::string& fileName
     );
 
     /*!
@@ -53,7 +55,7 @@ class ReportsBase {
      *  @param[in] fileName identifies the branch report file name
      */
     void WriteBranchReport(
-      const char* const fileName
+      const std::string& fileName
     );
 
     /*!
@@ -63,7 +65,7 @@ class ReportsBase {
      *  @param[in] fileName identifies the coverage report file name
      */
     void WriteCoverageReport(
-      const char* const fileName
+      const std::string& fileName
     );
 
     /*!
@@ -73,7 +75,7 @@ class ReportsBase {
      *  @param[in] fileName identifies the report file name
      */
     void WriteSizeReport(
-      const char* const fileName
+      const std::string& fileName
     );
 
     /*!
@@ -83,15 +85,15 @@ class ReportsBase {
      *  @param[in] fileName identifies the report file name
      */
     void WriteSymbolSummaryReport(
-      const char* const fileName
+      const std::string& fileName
     );
 
     /*!
      *  This method produces a sumary report for the overall test run.
      */
     static void  WriteSummaryReport(
-      const char* const fileName,
-      const char* const symbolSetName
+      const std::string& fileName,
+      const std::string& symbolSetName
     );
 
     /*!
@@ -135,10 +137,12 @@ class ReportsBase {
      *
      *  @param[in] fileName identifies the report file name
      *  @param[in] symbolSetName identifies the name of the report's symbol set
+     *  @param[in] aFile identifies the file to open
      */
-     static FILE* OpenFile(
-      const char* const fileName,
-      const char* const symbolSetName
+    static void OpenFile(
+      const std::string& fileName,
+      const std::string& symbolSetName,
+      std::ofstream&     aFile
     );
 
     /*!
@@ -146,9 +150,11 @@ class ReportsBase {
      *  Then appedns any necessary header information onto the file.
      *
      *  @param[in] fileName identifies the report file name
+     *  @param[in] aFile identifies the file to open
      */
-    virtual FILE* OpenAnnotatedFile(
-      const char* const fileName
+    virtual void OpenAnnotatedFile(
+      const std::string& fileName,
+      std::ofstream&     aFile
     );
 
     /*!
@@ -157,10 +163,12 @@ class ReportsBase {
      *
      *  @param[in] fileName identifies the report file name
      *  @param[in] hasBranches indicates if there are branches to report
+     *  @param[in] aFile identifies the file to open
      */
-    virtual FILE* OpenBranchFile(
-      const char* const fileName,
-      bool              hasBranches
+    virtual void OpenBranchFile(
+      const std::string& fileName,
+      bool               hasBranches,
+      std::ofstream&     aFile
     );
 
     /*!
@@ -168,9 +176,11 @@ class ReportsBase {
      *  Then appedns any necessary header information onto the file.
      *
      *  @param[in] fileName identifies the report file name
+     *  @param[in] aFile identifies the file to open
      */
-    virtual FILE* OpenCoverageFile(
-      const char* const fileName
+    virtual void OpenCoverageFile(
+      const std::string& fileName,
+      std::ofstream&     aFile
     );
 
     /*!
@@ -178,9 +188,11 @@ class ReportsBase {
      *  Then appends any necessary header information onto the file.
      *
      *  @param[in] fileName identifies the report file name
+     *  @param[in] aFile identifies the file to open
      */
-    virtual FILE* OpenNoRangeFile(
-      const char* const fileName
+    virtual void OpenNoRangeFile(
+      const std::string& fileName,
+      std::ofstream&     aFile
     );
 
     /*!
@@ -188,9 +200,11 @@ class ReportsBase {
      *  Then appedns any necessary header information onto the file.
      *
      *  @param[in] fileName identifies the report file name
+     *  @param[in] aFile identifies the file to open
      */
-    virtual FILE* OpenSizeFile(
-      const char* const fileName
+    virtual void OpenSizeFile(
+      const std::string& fileName,
+      std::ofstream&     aFile
     );
 
     /*!
@@ -198,39 +212,41 @@ class ReportsBase {
      *  Then appedns any necessary header information onto the file.
      *
      *  @param[in] fileName identifies the report file name
+     *  @param[in] aFile identifies the file to open
      */
-    virtual FILE* OpenSymbolSummaryFile(
-      const char* const fileName
+    virtual void OpenSymbolSummaryFile(
+      const std::string& fileName,
+      std::ofstream&     aFile
     );
 
     /*!
      *  This method Closes a report file.
      *
-     *  @param[in] aFile identifies the report file name
+     *  @param[in] aFile identifies the file to close
      */
     static void CloseFile(
-      FILE*  aFile
+      std::ofstream& aFile
     );
 
     /*!
      *  This method puts any necessary footer information into
      *  the report then closes the file.
      *
-     *  @param[in] aFile identifies the report file name
+     *  @param[in] aFile identifies the file to close
      */
     virtual void CloseAnnotatedFile(
-      FILE*  aFile
+      std::ofstream& aFile
     );
 
     /*!
      *  This method puts any necessary footer information into
      *  the report then closes the file.
      *
-     *  @param[in] aFile identifies the report file name
+     *  @param[in] aFile identifies the file to close
      *  @param[in] hasBranches indicates if there are branches to report
      */
     virtual void CloseBranchFile(
-      FILE*  aFile,
+      std::ofstream& aFile,
       bool   hasBranches
     );
 
@@ -238,40 +254,40 @@ class ReportsBase {
      *  This method puts any necessary footer information into
      *  the report then closes the file.
      *
-     *  @param[in] aFile identifies the report file name
+     *  @param[in] aFile identifies the file to close
      */
     virtual void CloseCoverageFile(
-      FILE*  aFile
+      std::ofstream& aFile
     );
 
     /*!
      *  This method puts any necessary footer information into
      *  the report then closes the file.
      *
-     *  @param[in] aFile identifies the report file name
+     *  @param[in] aFile identifies the file to close
      */
     void  CloseNoRangeFile(
-      FILE*  aFile
+      std::ofstream& aFile
     );
 
     /*!
      *  This method puts any necessary footer information into
      *  the report then closes the file.
      *
-     *  @param[in] aFile identifies the report file name
+     *  @param[in] aFile identifies the file to close
      */
     virtual void CloseSizeFile(
-      FILE*  aFile
+      std::ofstream& aFile
     );
 
     /*!
      *  This method puts any necessary footer information into
      *  the report then closes the file.
      *
-     *  @param[in] aFile identifies the report file name
+     *  @param[in] aFile identifies the file to close
      */
     virtual void CloseSymbolSummaryFile(
-      FILE*  aFile
+      std::ofstream& aFile
     );
 
     /*!
@@ -284,9 +300,9 @@ class ReportsBase {
      *  @param[in] id identifies the branch or range id.
      */
     virtual void PutAnnotatedLine(
-      FILE*                aFile,
+      std::ofstream&       aFile,
       AnnotatedLineState_t state,
-      std::string          line,
+      const std::string&   line,
       uint32_t             id
     )=0;
 
@@ -297,7 +313,7 @@ class ReportsBase {
      *  @param[in] aFile identifies the report file name
      */
      virtual void AnnotatedStart(
-      FILE*                aFile
+      std::ofstream& aFile
     )=0;
 
     /*!
@@ -307,7 +323,7 @@ class ReportsBase {
      *  @param[in] aFile identifies the report file name
      */
      virtual void AnnotatedEnd(
-      FILE*                aFile
+      std::ofstream& aFile
     )=0;
 
 
@@ -318,7 +334,7 @@ class ReportsBase {
      *  @param[in] report identifies the report file name
      */
     virtual bool PutNoBranchInfo(
-      FILE* report
+      std::ofstream& report
     ) = 0;
 
     /*!
@@ -331,7 +347,7 @@ class ReportsBase {
      *  @param[in] range is the range information.
      */
     virtual bool PutBranchEntry(
-      FILE*                                            report,
+      std::ofstream&                                   report,
       unsigned int                                     number,
       const std::string&                               symbolName,
       const SymbolInformation&                         symbolInfo,
@@ -347,10 +363,10 @@ class ReportsBase {
      *  @param[in] symbol is a pointer to the symbol information
      */
     virtual void putCoverageNoRange(
-      FILE*        report,
-      FILE*        noRangeFile,
+      std::ofstream&     report,
+      std::ofstream&     noRangeFile,
       unsigned int number,
-      std::string  symbol
+      const std::string& symbol
     )=0;
 
     /*!
@@ -363,7 +379,7 @@ class ReportsBase {
      *  @param[in] range is the range information.
      */
     virtual bool PutCoverageLine(
-      FILE*                                           report,
+      std::ofstream&                                  report,
       unsigned int                                    number,
       const std::string&                              symbolName,
       const SymbolInformation&                        symbolInfo,
@@ -379,7 +395,7 @@ class ReportsBase {
      *  @param[in] range is the range information.
      */
     virtual bool PutSizeLine(
-      FILE*                                           report,
+      std::ofstream&                                  report,
       unsigned int                                    number,
       const std::string&                              symbolName,
       const CoverageRanges::coverageRange_t&          range
@@ -394,7 +410,7 @@ class ReportsBase {
      *  @param[in] symbolInfo is the symbol's information.
      */
     virtual bool PutSymbolSummaryLine(
-      FILE*                                           report,
+      std::ofstream&                                  report,
       unsigned int                                    number,
       const std::string&                              symbolName,
       const SymbolInformation&                        symbolInfo

@@ -9,6 +9,9 @@
 #ifndef __REPORTSHTML_H__
 #define __REPORTSHTML_H__
 
+#include <string>
+#include <fstream>
+
 #include <stdint.h>
 #include "ReportsBase.h"
 #include "Explanations.h"
@@ -22,7 +25,7 @@ namespace Coverage {
 class ReportsHtml: public ReportsBase {
 
   public:
-    ReportsHtml( time_t timestamp, std::string symbolSetName );
+    ReportsHtml( time_t timestamp, const std::string& symbolSetName );
    ~ReportsHtml();
 
    /*!
@@ -31,8 +34,8 @@ class ReportsHtml: public ReportsBase {
     *  @param[in] fileName identifies the file name.
     */
    void WriteIndex(
-     const char* const fileName
-   );
+     const std::string& fileName
+   ) override;
 
    /*!
     *  This method produces a report that contains information about each
@@ -41,7 +44,7 @@ class ReportsHtml: public ReportsBase {
     *  @param[in] fileName identifies the branch report file name
     */
    void WriteBranchReport(
-     const char* const fileName
+     const std::string& fileName
    );
 
    /*!
@@ -51,7 +54,7 @@ class ReportsHtml: public ReportsBase {
     *  @param[in] fileName identifies the coverage report file name
     */
    void WriteCoverageReport(
-     const char* const fileName
+     const std::string& fileName
    );
 
    /*!
@@ -61,7 +64,7 @@ class ReportsHtml: public ReportsBase {
     *  @param[in] fileName identifies the size report file name
     */
    void WriteSizeReport(
-     const char* const fileName
+     const std::string& fileName
    );
 
   protected:
@@ -75,93 +78,99 @@ class ReportsHtml: public ReportsBase {
     AnnotatedLineState_t lastState_m;
 
     /* Inherit documentation from base class. */
-    virtual FILE* OpenAnnotatedFile(
-      const char* const fileName
+    virtual void  OpenAnnotatedFile(
+      const std::string& fileName,
+      std::ofstream&     aFile
     );
 
     /* Inherit documentation from base class. */
-    virtual FILE* OpenBranchFile(
-      const char* const fileName,
-      bool              hasBranches
+    virtual void OpenBranchFile(
+      const std::string& fileName,
+      bool               hasBranches,
+      std::ofstream&     aFile
     );
 
     /* Inherit documentation from base class. */
-    virtual FILE* OpenCoverageFile(
-      const char* const fileName
+    virtual void OpenCoverageFile(
+      const std::string& fileName,
+      std::ofstream&     aFile
     );
 
     /* Inherit documentation from base class. */
-    FILE* OpenNoRangeFile(
-      const char* const fileName
+    void OpenNoRangeFile(
+      const std::string& fileName,
+      std::ofstream&     aFile
     );
 
     /* Inherit documentation from base class. */
-    virtual FILE* OpenSizeFile(
-      const char* const fileName
+    virtual void OpenSizeFile(
+      const std::string& fileName,
+      std::ofstream&     aFile
     );
 
     /* Inherit documentation from base class. */
-    virtual FILE* OpenSymbolSummaryFile(
-      const char* const fileName
+    virtual void OpenSymbolSummaryFile(
+      const std::string& fileName,
+      std::ofstream&     aFile
     );
 
     /* Inherit documentation from base class. */
     virtual void CloseAnnotatedFile(
-      FILE*  aFile
+      std::ofstream& aFile
     );
 
     /* Inherit documentation from base class. */
     virtual void CloseBranchFile(
-      FILE*  aFile,
+      std::ofstream& aFile,
       bool   hasBranches
     );
 
     /* Inherit documentation from base class. */
     virtual void CloseCoverageFile(
-      FILE*  aFile
+      std::ofstream& aFile
     );
 
     /* Inherit documentation from base class. */
     void CloseNoRangeFile(
-      FILE*  aFile
+      std::ofstream& aFile
     );
 
     /* Inherit documentation from base class. */
     virtual void CloseSizeFile(
-      FILE*  aFile
+      std::ofstream& aFile
     );
 
     /* Inherit documentation from base class. */
     virtual void CloseSymbolSummaryFile(
-      FILE*  aFile
+      std::ofstream& aFile
     );
 
     /* Inherit documentation from base class. */
     virtual void PutAnnotatedLine(
-      FILE*                aFile,
+      std::ofstream&       aFile,
       AnnotatedLineState_t state,
-      std::string          line,
+      const std::string&   line,
       uint32_t             id
     );
 
     /* Inherit documentation from base class. */
      virtual void AnnotatedStart(
-      FILE*                aFile
+       std::ofstream& aFile
     );
 
     /* Inherit documentation from base class. */
      virtual void AnnotatedEnd(
-      FILE*                aFile
+       std::ofstream& aFile
     );
 
     /* Inherit documentation from base class. */
     virtual bool PutNoBranchInfo(
-      FILE* report
+      std::ofstream& report
     );
 
     /* Inherit documentation from base class. */
     virtual bool PutBranchEntry(
-      FILE*                                            report,
+      std::ofstream&                                   report,
       unsigned int                                     number,
       const std::string&                               symbolName,
       const SymbolInformation&                         symbolInfo,
@@ -170,15 +179,15 @@ class ReportsHtml: public ReportsBase {
 
     /* Inherit documentation from base class. */
     virtual void putCoverageNoRange(
-      FILE*        report,
-      FILE*        noRangeFile,
-      unsigned int number,
-      std::string  symbol
+      std::ofstream&     report,
+      std::ofstream&     noRangeFile,
+      unsigned int       number,
+      const std::string& symbol
     );
 
     /* Inherit documentation from base class. */
     virtual bool PutCoverageLine(
-      FILE*                                           report,
+      std::ofstream&                                  report,
       unsigned int                                    number,
       const std::string&                              symbolName,
       const SymbolInformation&                        symbolInfo,
@@ -187,7 +196,7 @@ class ReportsHtml: public ReportsBase {
 
     /* Inherit documentation from base class. */
     virtual bool PutSizeLine(
-      FILE*                                           report,
+      std::ofstream&                                  report,
       unsigned int                                    number,
       const std::string&                              symbolName,
       const CoverageRanges::coverageRange_t&          range
@@ -195,20 +204,21 @@ class ReportsHtml: public ReportsBase {
 
     /* Inherit documentation from base class. */
     virtual bool PutSymbolSummaryLine(
-      FILE*                                           report,
+      std::ofstream&                                  report,
       unsigned int                                    number,
       const std::string&                              symbolName,
       const SymbolInformation&                        symbolInfo
     );
 
     /* Inherit documentation from base class. */
-    virtual FILE* OpenFile(
-      const char* const fileName
+    virtual void OpenFile(
+      const std::string& fileName,
+      std::ofstream& aFile
     );
 
     /* Inherit documentation from base class. */
-    virtual bool WriteExplationFile(
-      const char*                  fileName,
+    virtual bool WriteExplanationFile(
+      const std::string&           fileName,
       const Coverage::Explanation* explanation
     );
   };

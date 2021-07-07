@@ -1,6 +1,8 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <iomanip>
+
 #include "ReportsText.h"
 #include "app_common.h"
 #include "CoverageRanges.h"
@@ -11,7 +13,7 @@
 
 namespace Coverage {
 
-ReportsText::ReportsText( time_t timestamp, std::string symbolSetName ):
+ReportsText::ReportsText( time_t timestamp, const std::string& symbolSetName ):
   ReportsBase( timestamp, symbolSetName )
 {
   reportExtension_m = ".txt";
@@ -22,47 +24,44 @@ ReportsText::~ReportsText()
 }
 
 void ReportsText::AnnotatedStart(
-  FILE*                aFile
+  std::ofstream& aFile
 )
 {
-  fprintf(
-    aFile,
-    "========================================"
-    "=======================================\n"
-  );
+  aFile << "========================================"
+        << "=======================================" << std::endl;
 }
 
 void ReportsText::AnnotatedEnd(
-  FILE*                aFile
+  std::ofstream& aFile
 )
 {
 }
 
 void ReportsText::PutAnnotatedLine(
-  FILE*                aFile,
+  std::ofstream&       aFile,
   AnnotatedLineState_t state,
-  std::string          line,
+  const std::string&   line,
   uint32_t             id
 )
 {
-  fprintf( aFile, "%s\n", line.c_str());
+  aFile << line << std::endl;
 }
 
 bool ReportsText::PutNoBranchInfo(
-  FILE*           report
+  std::ofstream& report
 )
 {
   if ( BranchInfoAvailable &&
     SymbolsToAnalyze->getNumberBranchesFound(symbolSetName_m) != 0 )
-    fprintf( report, "All branch paths taken.\n" );
+    report << "All branch paths taken." << std::endl;
   else
-    fprintf( report, "No branch information found.\n" );
+    report << "No branch information found." << std::endl;
   return true;
 }
 
 
 bool ReportsText::PutBranchEntry(
-  FILE*                                            report,
+  std::ofstream&                                   report,
   unsigned int                                     number,
   const std::string&                               symbolName,
   const SymbolInformation&                         symbolInfo,
@@ -72,90 +71,71 @@ bool ReportsText::PutBranchEntry(
   const Coverage::Explanation* explanation;
 
   // Add an entry to the report
-  fprintf(
-    report,
-    "============================================\n"
-    "Symbol        : %s (0x%x)\n"
-    "Line          : %s (0x%x)\n"
-    "Size in Bytes : %d\n",
-    symbolName.c_str(),
-    symbolInfo.baseAddress,
-    range.lowSourceLine.c_str(),
-    range.lowAddress,
-    range.highAddress - range.lowAddress + 1
-  );
+  report << "============================================" << std::endl
+         << "Symbol        : " << symbolName
+         << std::hex << " (0x" << symbolInfo.baseAddress << ")" << std::endl
+         << "Line          : " << range.lowSourceLine
+         << " (0x" << range.lowAddress << ")" << std::endl
+         << "Size in Bytes : " << range.highAddress - range.lowAddress + 1
+         << std::dec << std::endl;
 
   if (range.reason ==
     Coverage::CoverageRanges::UNCOVERED_REASON_BRANCH_ALWAYS_TAKEN)
-    fprintf(
-      report, "Reason        : %s\n\n", "ALWAYS TAKEN"
-    );
+    report << "Reason        : ALWAYS TAKEN"
+           << std::endl << std::endl;
   else if (range.reason ==
     Coverage::CoverageRanges::UNCOVERED_REASON_BRANCH_NEVER_TAKEN)
-    fprintf( report, "Reason        : %s\n\n", "NEVER TAKEN" );
+      report << "Reason        : NEVER TAKEN"
+             << std::endl << std::endl;
 
   // See if an explanation is available
   explanation = AllExplanations->lookupExplanation( range.lowSourceLine );
 
   if ( !explanation ) {
-    fprintf(
-      report,
-      "Classification: NONE\n"
-      "\n"
-      "Explanation:\n"
-      "No Explanation\n"
-    );
+    report << "Classification: NONE" << std::endl << std::endl
+           << "Explanation:" << std::endl
+           << "No Explanation" << std::endl;
   } else {
-    fprintf(
-      report,
-      "Classification: %s\n"
-      "\n"
-      "Explanation:\n",
-      explanation->classification.c_str()
-    );
+    report << "Classification: " << explanation->classification
+           << std::endl << std::endl
+           << "Explanation:" << std::endl;
 
-    for ( unsigned int i=0 ;
+    for ( unsigned int i=0;
           i < explanation->explanation.size();
           i++) {
-      fprintf(
-        report,
-        "%s\n",
-        explanation->explanation[i].c_str()
-      );
+      report << explanation->explanation[i] << std::endl;
     }
   }
 
-  fprintf(
-    report, "============================================\n"
-  );
+  report << "============================================" << std::endl;
 
   return true;
 }
 
 void ReportsText::putCoverageNoRange(
-  FILE*         report,
-  FILE*         noRangeFile,
+  std::ofstream&     report,
+  std::ofstream&     noRangeFile,
   unsigned int  number,
-  std::string   symbol
+  const std::string& symbol
 )
 {
-      fprintf(
-        report,
-        "============================================\n"
-        "Symbol        : %s\n\n"
-        "          *** NEVER REFERENCED ***\n\n"
-        "This symbol was never referenced by an analyzed executable.\n"
-        "Therefore there is no size or disassembly for this symbol.\n"
-        "This could be due to symbol misspelling or lack of a test for\n"
-        "this symbol.\n"
-        "============================================\n",
-        symbol.c_str()
-      );
-      fprintf( noRangeFile, "%s\n", symbol.c_str() );
+  report << "============================================" << std::endl
+         << "Symbol        : " << symbol << std::endl << std::endl
+         << "          *** NEVER REFERENCED ***" << std::endl << std::endl
+         << "This symbol was never referenced by an analyzed executable."
+         << std::endl
+         << "Therefore there is no size or disassembly for this symbol."
+         << std::endl
+         << "This could be due to symbol misspelling or lack of a test for"
+         << std::endl
+         << "this symbol." << std::endl
+         << "============================================" << std::endl;
+
+  noRangeFile << symbol << std::endl;
 }
 
 bool ReportsText::PutCoverageLine(
-  FILE*                                           report,
+  std::ofstream&                                  report,
   unsigned int                                    number,
   const std::string&                              symbolName,
   const SymbolInformation&                        symbolInfo,
@@ -164,73 +144,56 @@ bool ReportsText::PutCoverageLine(
 {
   const Coverage::Explanation*   explanation;
 
-  fprintf(
-    report,
-    "============================================\n"
-    "Index                : %d\n"
-    "Symbol               : %s (0x%x)\n"
-    "Starting Line        : %s (0x%x)\n"
-    "Ending Line          : %s (0x%x)\n"
-    "Size in Bytes        : %d\n"
-    "Size in Instructions : %d\n\n",
-    range.id,
-    symbolName.c_str(),
-    symbolInfo.baseAddress,
-    range.lowSourceLine.c_str(),
-    range.lowAddress,
-    range.highSourceLine.c_str(),
-    range.highAddress,
-    range.highAddress - range.lowAddress + 1,
-    range.instructionCount
-  );
+  report << "============================================" << std::endl
+         << "Index                : " << range.id << std::endl
+         << "Symbol               : " << symbolName
+         << std::hex << " (0x" << symbolInfo.baseAddress << ")" << std::endl
+         << "Starting Line        : " << range.lowSourceLine
+         << " (0x" << range.lowAddress << ")" << std::endl
+         << "Ending Line          : " << range.highSourceLine
+         << " (0x" << range.highAddress << ")" << std::endl
+         << std::dec
+         << "Size in Bytes        : "
+         << range.highAddress - range.lowAddress + 1 << std::endl
+         << "Size in Instructions : " << range.instructionCount
+         << std::endl << std::endl;
 
   explanation = AllExplanations->lookupExplanation( range.lowSourceLine );
 
   if ( !explanation ) {
-    fprintf(
-      report,
-      "Classification: NONE\n"
-      "\n"
-      "Explanation:\n"
-      "No Explanation\n"
-    );
+    report << "Classification: NONE" << std::endl << std::endl
+           << "Explanation:" << std::endl
+           << "No Explanation" << std::endl;
   } else {
-    fprintf(
-      report,
-      "Classification: %s\n"
-      "\n"
-      "Explanation:\n",
-      explanation->classification.c_str()
-    );
+    report << "Classification: " << explanation->classification << std::endl
+           << std::endl
+           << "Explanation:" << std::endl;
 
     for ( unsigned int i=0; i < explanation->explanation.size(); i++) {
-      fprintf( report,"%s\n", explanation->explanation[i].c_str() );
+      report << explanation->explanation[i] << std::endl;
     }
   }
 
-  fprintf(report, "============================================\n");
+  report << "============================================" << std::endl;
   return true;
 }
 
 bool  ReportsText::PutSizeLine(
-  FILE*                                           report,
+  std::ofstream&                                  report,
   unsigned int                                    number,
   const std::string&                              symbolName,
   const CoverageRanges::coverageRange_t&          range
 )
 {
-  fprintf(
-    report,
-    "%d\t%s\t%s\n",
-    range.highAddress - range.lowAddress + 1,
-    symbolName.c_str(),
-    range.lowSourceLine.c_str()
-  );
+  report << range.highAddress - range.lowAddress + 1 << '\t'
+         << symbolName << '\t'
+         << range.lowSourceLine << std::endl;
+
   return true;
 }
 
 bool  ReportsText::PutSymbolSummaryLine(
-  FILE*                                           report,
+  std::ofstream&                                  report,
   unsigned int                                    number,
   const std::string&                              symbolName,
   const SymbolInformation&                        symbolInfo
@@ -240,17 +203,18 @@ bool  ReportsText::PutSymbolSummaryLine(
   float uncoveredInstructions;
 
   if (symbolInfo.stats.sizeInBytes == 0) {
-    fprintf(
-      report,
-      "============================================\n"
-      "Symbol                            : %s\n"
-      "          *** NEVER REFERENCED ***\n\n"
-      "This symbol was never referenced by an analyzed executable.\n"
-      "Therefore there is no size or disassembly for this symbol.\n"
-      "This could be due to symbol misspelling or lack of a test for\n"
-      "this symbol.\n",
-      symbolName.c_str()
-    );
+    report << "============================================" << std::endl
+           << "Symbol                            : " << symbolName << std::endl
+           << "          *** NEVER REFERENCED ***"
+           << std::endl << std::endl
+           << "This symbol was never referenced by an analyzed executable."
+           << std::endl
+           << "Therefore there is no size or disassembly for this symbol."
+           << std::endl
+           << "This could be due to symbol misspelling or lack of a test for"
+           << std::endl
+           << "this symbol." << std::endl
+           << "============================================" << std::endl;
   } else {
     if ( symbolInfo.stats.sizeInInstructions == 0 )
       uncoveredInstructions = 0;
@@ -264,29 +228,30 @@ bool  ReportsText::PutSymbolSummaryLine(
       uncoveredBytes = (symbolInfo.stats.uncoveredBytes*100.0)/
                        symbolInfo.stats.sizeInBytes;
 
-    fprintf(
-      report,
-      "============================================\n"
-      "Symbol                            : %s\n"
-      "Total Size in Bytes               : %d\n"
-      "Total Size in Instructions        : %d\n"
-      "Total number Branches             : %d\n"
-      "Total Always Taken                : %d\n"
-      "Total Never Taken                 : %d\n"
-      "Percentage Uncovered Instructions : %.2f\n"
-      "Percentage Uncovered Bytes        : %.2f\n",
-      symbolName.c_str(),
-      symbolInfo.stats.sizeInBytes,
-      symbolInfo.stats.sizeInInstructions,
-      symbolInfo.stats.branchesNotExecuted +  symbolInfo.stats.branchesExecuted,
-      symbolInfo.stats.branchesAlwaysTaken,
-      symbolInfo.stats.branchesNeverTaken,
-      uncoveredInstructions,
-      uncoveredBytes
-    );
+    report << "============================================" << std::endl
+           << "Symbol                            : "
+           << symbolName << std::endl
+           << "Total Size in Bytes               : "
+           << symbolInfo.stats.sizeInBytes << std::endl
+           << "Total Size in Instructions        : "
+           << symbolInfo.stats.sizeInInstructions << std::endl
+           << "Total number Branches             : "
+           << symbolInfo.stats.branchesNotExecuted +
+              symbolInfo.stats.branchesExecuted
+           << std::endl
+           << "Total Always Taken                : "
+           << symbolInfo.stats.branchesAlwaysTaken << std::endl
+           << "Total Never Taken                 : "
+           << symbolInfo.stats.branchesNeverTaken << std::endl
+           << std::fixed << std::setprecision( 2 )
+           << "Percentage Uncovered Instructions : "
+           << uncoveredInstructions << std::endl
+           << "Percentage Uncovered Bytes        : "
+           << uncoveredBytes << std::endl;
+
+  report << "============================================" << std::endl;
   }
 
-  fprintf(report, "============================================\n");
   return true;
 }
 

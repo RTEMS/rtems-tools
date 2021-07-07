@@ -4,6 +4,9 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 
+#include <iomanip>
+#include <sstream>
+
 #include "ReportsBase.h"
 #include "app_common.h"
 #include "CoverageRanges.h"
@@ -20,7 +23,7 @@
 
 namespace Coverage {
 
-ReportsBase::ReportsBase( time_t timestamp, std::string symbolSetName ):
+ReportsBase::ReportsBase( time_t timestamp, const std::string& symbolSetName ):
   reportExtension_m(""),
   symbolSetName_m(symbolSetName),
   timestamp_m( timestamp )
@@ -31,13 +34,13 @@ ReportsBase::~ReportsBase()
 {
 }
 
-FILE* ReportsBase::OpenFile(
-  const char* const fileName,
-  const char* const symbolSetName
+void ReportsBase::OpenFile(
+  const std::string& fileName,
+  const std::string& symbolSetName,
+  std::ofstream&     aFile
 )
 {
   int          sc;
-  FILE        *aFile;
   std::string  file;
 
   std::string symbolSetOutputDirectory;
@@ -54,120 +57,124 @@ FILE* ReportsBase::OpenFile(
   sc = mkdir( symbolSetOutputDirectory.c_str(),0755 );
 #endif
   if ( (sc == -1) && (errno != EEXIST) ) {
-    fprintf(
-      stderr,
-      "Unable to create output directory %s\n",
-      symbolSetOutputDirectory.c_str()
+    throw rld::error(
+      "Unable to create output directory",
+      "ReportsBase::OpenFile"
     );
-    return NULL;
+    return;
   }
 
   file = symbolSetOutputDirectory;
   rld::path::path_join(file, fileName, file);
 
   // Open the file.
-  aFile = fopen( file.c_str(), "w" );
-  if ( !aFile ) {
-    fprintf( stderr, "Unable to open %s\n", file.c_str() );
+  aFile.open( file );
+  if ( !aFile.is_open() ) {
+    std::cerr << "Unable to open " << file << std::endl;
   }
-  return aFile;
 }
 
 void ReportsBase::WriteIndex(
-  const char* const fileName
+  const std::string& fileName
 )
 {
 }
 
-FILE* ReportsBase::OpenAnnotatedFile(
-  const char* const fileName
+void ReportsBase::OpenAnnotatedFile(
+  const std::string& fileName,
+  std::ofstream&     aFile
 )
 {
-  return OpenFile(fileName, symbolSetName_m.c_str());
+  OpenFile(fileName, symbolSetName_m, aFile);
 }
 
-FILE* ReportsBase::OpenBranchFile(
-  const char* const fileName,
-  bool              hasBranches
+void ReportsBase::OpenBranchFile(
+  const std::string& fileName,
+  bool               hasBranches,
+  std::ofstream&     aFile
 )
 {
-  return OpenFile(fileName, symbolSetName_m.c_str());
+  OpenFile(fileName, symbolSetName_m, aFile);
 }
 
-FILE* ReportsBase::OpenCoverageFile(
-  const char* const fileName
+void ReportsBase::OpenCoverageFile(
+  const std::string& fileName,
+  std::ofstream&     aFile
 )
 {
-  return OpenFile(fileName, symbolSetName_m.c_str());
+  OpenFile(fileName, symbolSetName_m, aFile);
 }
 
-FILE* ReportsBase::OpenNoRangeFile(
-  const char* const fileName
+void ReportsBase::OpenNoRangeFile(
+  const std::string& fileName,
+  std::ofstream&     aFile
 )
 {
-  return OpenFile(fileName, symbolSetName_m.c_str());
+  OpenFile(fileName, symbolSetName_m, aFile);
 }
 
 
-FILE* ReportsBase::OpenSizeFile(
-  const char* const fileName
+void ReportsBase::OpenSizeFile(
+  const std::string& fileName,
+  std::ofstream&     aFile
 )
 {
-  return OpenFile(fileName, symbolSetName_m.c_str());
+  OpenFile(fileName, symbolSetName_m, aFile);
 }
 
-FILE* ReportsBase::OpenSymbolSummaryFile(
-  const char* const fileName
+void ReportsBase::OpenSymbolSummaryFile(
+  const std::string& fileName,
+  std::ofstream&     aFile
 )
 {
-  return OpenFile(fileName, symbolSetName_m.c_str());
+  OpenFile(fileName, symbolSetName_m, aFile);
 }
 
 void ReportsBase::CloseFile(
-  FILE*  aFile
+  std::ofstream& aFile
 )
 {
-  fclose( aFile );
+  aFile.close();
 }
 
 void ReportsBase::CloseAnnotatedFile(
-  FILE*  aFile
+  std::ofstream& aFile
 )
 {
   CloseFile( aFile );
 }
 
 void ReportsBase::CloseBranchFile(
-  FILE*  aFile,
-  bool   hasBranches
+  std::ofstream& aFile,
+  bool           hasBranches
 )
 {
   CloseFile( aFile );
 }
 
 void  ReportsBase::CloseCoverageFile(
-  FILE*  aFile
+  std::ofstream& aFile
 )
 {
   CloseFile( aFile );
 }
 
 void  ReportsBase::CloseNoRangeFile(
-  FILE*  aFile
+  std::ofstream& aFile
 )
 {
   CloseFile( aFile );
 }
 
 void  ReportsBase::CloseSizeFile(
-  FILE*  aFile
+  std::ofstream& aFile
 )
 {
   CloseFile( aFile );
 }
 
 void  ReportsBase::CloseSymbolSummaryFile(
-  FILE*  aFile
+  std::ofstream& aFile
 )
 {
   CloseFile( aFile );
@@ -195,18 +202,23 @@ std::string expand_tabs(const std::string& in) {
  *  Write annotated report
  */
 void ReportsBase::WriteAnnotatedReport(
-  const char* const fileName
+  const std::string& fileName
 ) {
-  FILE*                      aFile = NULL;
+  std::ofstream              aFile;
   Coverage::CoverageRanges*  theBranches;
   Coverage::CoverageRanges*  theRanges;
   Coverage::CoverageMapBase* theCoverageMap = NULL;
   uint32_t                   bAddress = 0;
   AnnotatedLineState_t       state;
 
-  aFile = OpenAnnotatedFile(fileName);
-  if (!aFile)
+  OpenAnnotatedFile(fileName, aFile);
+  if (!aFile.is_open()) {
+    throw rld::error(
+      "Unable to open " + fileName,
+      "ReportsBase::WriteAnnotatedReport"
+    );
     return;
+  }
 
   // Process uncovered branches for each symbol.
   const std::vector<std::string>& symbols = SymbolsToAnalyze->getSymbolsForSet(symbolSetName_m);
@@ -238,7 +250,8 @@ void ReportsBase::WriteAnnotatedReport(
       std::string        annotation = "";
       std::string        line;
       const std::size_t  LINE_LENGTH = 150;
-      char               textLine[LINE_LENGTH];
+      std::string        textLine = "";
+      std::stringstream  ss;
 
       state = A_SOURCE;
 
@@ -264,7 +277,12 @@ void ReportsBase::WriteAnnotatedReport(
       }
 
       std::string textLineWithoutTabs = expand_tabs(instruction.line);
-      snprintf( textLine, LINE_LENGTH, "%-90s", textLineWithoutTabs.c_str() );
+
+      ss << std::left << std::setw( 90 )
+         << textLineWithoutTabs.c_str();
+
+      textLine = ss.str().substr( 0, LINE_LENGTH );
+
       line = textLine + annotation;
 
       PutAnnotatedLine( aFile, state, line, id);
@@ -280,9 +298,9 @@ void ReportsBase::WriteAnnotatedReport(
  *  Write branch report
  */
 void ReportsBase::WriteBranchReport(
-  const char* const fileName
+  const std::string& fileName
 ) {
-  FILE*                     report = NULL;
+  std::ofstream             report;
   Coverage::CoverageRanges* theBranches;
   unsigned int              count;
   bool                      hasBranches = true;
@@ -292,8 +310,8 @@ void ReportsBase::WriteBranchReport(
      hasBranches = false;
 
   // Open the branch report file
-  report = OpenBranchFile( fileName, hasBranches );
-  if (!report)
+  OpenBranchFile( fileName, hasBranches, report );
+  if (!report.is_open())
     return;
 
   // If no branches were found then branch coverage is not supported
@@ -324,26 +342,26 @@ void ReportsBase::WriteBranchReport(
  *  Write coverage report
  */
 void ReportsBase::WriteCoverageReport(
-  const char* const fileName
+  const std::string& fileName
 )
 {
-  FILE*                     report;
+  std::ofstream             report;
   Coverage::CoverageRanges* theRanges;
   unsigned int              count;
-  FILE*                     NoRangeFile;
+  std::ofstream             NoRangeFile;
   std::string               NoRangeName;
 
   // Open special file that captures NoRange informaiton
   NoRangeName = "no_range_";
   NoRangeName +=  fileName;
-  NoRangeFile = OpenNoRangeFile ( NoRangeName.c_str() );
-  if (!NoRangeFile) {
+  OpenNoRangeFile( NoRangeName, NoRangeFile );
+  if ( !NoRangeFile.is_open() ) {
     return;
   }
 
   // Open the coverage report file.
-  report = OpenCoverageFile( fileName );
-  if ( !report ) {
+  OpenCoverageFile( fileName, report );
+  if ( !report.is_open() ) {
     return;
   }
 
@@ -380,16 +398,16 @@ void ReportsBase::WriteCoverageReport(
  * Write size report
  */
 void ReportsBase::WriteSizeReport(
-  const char* const fileName
+  const std::string& fileName
 )
 {
-  FILE*                     report;
+  std::ofstream             report;
   Coverage::CoverageRanges* theRanges;
   unsigned int              count;
 
   // Open the report file.
-  report = OpenSizeFile( fileName );
-  if ( !report ) {
+  OpenSizeFile( fileName, report );
+  if ( !report.is_open() ) {
     return;
   }
 
@@ -414,15 +432,15 @@ void ReportsBase::WriteSizeReport(
 }
 
 void ReportsBase::WriteSymbolSummaryReport(
-  const char* const fileName
+  const std::string& fileName
 )
 {
-  FILE*                                           report;
+  std::ofstream                                   report;
   unsigned int                                    count;
 
   // Open the report file.
-  report = OpenSymbolSummaryFile( fileName );
-  if ( !report ) {
+  OpenSymbolSummaryFile( fileName , report );
+  if ( !report.is_open() ) {
     return;
   }
 
@@ -441,8 +459,8 @@ void ReportsBase::WriteSymbolSummaryReport(
 }
 
 void  ReportsBase::WriteSummaryReport(
-  const char* const fileName,
-  const char* const symbolSetName
+  const std::string& fileName,
+  const std::string& symbolSetName
 )
 {
     // Calculate coverage statistics and output results.
@@ -453,11 +471,11 @@ void  ReportsBase::WriteSummaryReport(
   double                                          percentageBranches;
   Coverage::CoverageMapBase*                      theCoverageMap;
   uint32_t                                        totalBytes = 0;
-  FILE*                                           report;
+  std::ofstream                                   report;
 
   // Open the report file.
-  report = OpenFile( fileName, symbolSetName );
-  if ( !report ) {
+  OpenFile( fileName, symbolSetName, report );
+  if ( !report.is_open() ) {
     return;
   }
 
@@ -497,64 +515,45 @@ void  ReportsBase::WriteSummaryReport(
     (double) SymbolsToAnalyze->getNumberBranchesFound(symbolSetName) * 2;
   percentageBranches *= 100.0;
 
-  fprintf( report, "Bytes Analyzed                   : %d\n", totalBytes );
-  fprintf( report, "Bytes Not Executed               : %d\n", notExecuted );
-  fprintf( report, "Percentage Executed              : %5.4g\n", 100.0 - percentage  );
-  fprintf( report, "Percentage Not Executed          : %5.4g\n", percentage  );
-  fprintf(
-    report,
-    "Unreferenced Symbols             : %d\n",
-    SymbolsToAnalyze->getNumberUnreferencedSymbols(symbolSetName)
-  );
-  fprintf(
-    report,
-    "Uncovered ranges found           : %d\n\n",
-    SymbolsToAnalyze->getNumberUncoveredRanges(symbolSetName)
-  );
+  report << "Bytes Analyzed                   : " << totalBytes << std::endl
+         << "Bytes Not Executed               : " << notExecuted << std::endl
+         << "Percentage Executed              : "
+         << std::fixed << std::setprecision( 2 ) << std::setw( 5 )
+         << 100.0 - percentage << std::endl
+         << "Percentage Not Executed          : " << percentage << std::endl
+         << "Unreferenced Symbols             : "
+         << SymbolsToAnalyze->getNumberUnreferencedSymbols( symbolSetName )
+         << std::endl << "Uncovered ranges found           : "
+         << SymbolsToAnalyze->getNumberUncoveredRanges( symbolSetName )
+         << std::endl << std::endl;
+
   if ((SymbolsToAnalyze->getNumberBranchesFound(symbolSetName) == 0) ||
       (BranchInfoAvailable == false) ) {
-    fprintf( report, "No branch information available\n" );
+    report << "No branch information available" << std::endl;
   } else {
-    fprintf(
-      report,
-      "Total conditional branches found : %d\n",
-      SymbolsToAnalyze->getNumberBranchesFound(symbolSetName)
-    );
-    fprintf(
-      report,
-      "Total branch paths found         : %d\n",
-      SymbolsToAnalyze->getNumberBranchesFound(symbolSetName) * 2
-    );
-    fprintf(
-      report,
-      "Uncovered branch paths found     : %d\n",
-      SymbolsToAnalyze->getNumberBranchesAlwaysTaken(symbolSetName) +
-       SymbolsToAnalyze->getNumberBranchesNeverTaken(symbolSetName) +
-       (SymbolsToAnalyze->getNumberBranchesNotExecuted(symbolSetName) * 2)
-    );
-    fprintf(
-      report,
-      "   %d branches always taken\n",
-      SymbolsToAnalyze->getNumberBranchesAlwaysTaken(symbolSetName)
-    );
-    fprintf(
-      report,
-      "   %d branches never taken\n",
-      SymbolsToAnalyze->getNumberBranchesNeverTaken(symbolSetName)
-    );
-    fprintf(
-      report,
-      "   %d branch paths not executed\n",
-      SymbolsToAnalyze->getNumberBranchesNotExecuted(symbolSetName) * 2
-    );
-    fprintf(
-      report,
-      "Percentage branch paths covered  : %4.4g\n",
-      100.0 - percentageBranches
-    );
+
+    report << "Total conditional branches found : "
+           << SymbolsToAnalyze->getNumberBranchesFound( symbolSetName )
+           << std::endl << "Total branch paths found         : "
+           << SymbolsToAnalyze->getNumberBranchesFound( symbolSetName ) * 2
+           << std::endl << "Uncovered branch paths found     : "
+           << SymbolsToAnalyze->getNumberBranchesAlwaysTaken(symbolSetName) +
+              SymbolsToAnalyze->getNumberBranchesNeverTaken(symbolSetName) +
+             (SymbolsToAnalyze->getNumberBranchesNotExecuted(symbolSetName) * 2)
+           << std::endl << "   "
+           << SymbolsToAnalyze->getNumberBranchesAlwaysTaken(symbolSetName)
+           << " branches always taken" << std::endl << "   "
+           << SymbolsToAnalyze->getNumberBranchesNeverTaken(symbolSetName)
+           << " branches never taken" << std::endl << "   "
+           << SymbolsToAnalyze->getNumberBranchesNotExecuted(symbolSetName) * 2
+           << " branch paths not executed" << std::endl
+           << "Percentage branch paths covered  : "
+           << std::fixed << std::setprecision(2) << std::setw(4)
+           << 100.0 - percentageBranches << std::endl;
+
   }
 
-  fclose( report );
+  CloseFile( report );
 }
 
 void GenerateReports(const std::string& symbolSetName)
@@ -580,45 +579,33 @@ void GenerateReports(const std::string& symbolSetName)
 
     reportName = "index" + reports->ReportExtension();
     if (Verbose)
-      fprintf(
-        stderr, "Generate %s\n", reportName.c_str()
-      );
-    reports->WriteIndex( reportName.c_str() );
+      std::cerr << "Generate " << reportName << std::endl;
+    reports->WriteIndex( reportName );
 
     reportName = "annotated" + reports->ReportExtension();
     if (Verbose)
-      fprintf(
-        stderr, "Generate %s\n", reportName.c_str()
-      );
-    reports->WriteAnnotatedReport( reportName.c_str() );
+      std::cerr << "Generate " << reportName << std::endl;
+    reports->WriteAnnotatedReport( reportName );
 
     reportName = "branch" + reports->ReportExtension();
     if (Verbose)
-      fprintf(
-        stderr, "Generate %s\n", reportName.c_str()
-      );
-    reports->WriteBranchReport(reportName.c_str() );
+      std::cerr << "Generate " << reportName << std::endl;
+    reports->WriteBranchReport( reportName );
 
     reportName = "uncovered" + reports->ReportExtension();
     if (Verbose)
-      fprintf(
-        stderr, "Generate %s\n", reportName.c_str()
-      );
-    reports->WriteCoverageReport(reportName.c_str() );
+      std::cerr << "Generate " << reportName << std::endl;
+    reports->WriteCoverageReport( reportName );
 
     reportName = "sizes" + reports->ReportExtension();
     if (Verbose)
-      fprintf(
-        stderr, "Generate %s\n", reportName.c_str()
-      );
-    reports->WriteSizeReport(reportName.c_str() );
+    std::cerr << "Generate " << reportName << std::endl;
+    reports->WriteSizeReport( reportName );
 
     reportName = "symbolSummary" + reports->ReportExtension();
     if (Verbose)
-      fprintf(
-        stderr, "Generate %s\n", reportName.c_str()
-      );
-    reports->WriteSymbolSummaryReport(reportName.c_str() );
+      std::cerr << "Generate " << reportName << std::endl;
+    reports->WriteSymbolSummaryReport( reportName );
   }
 
   for (ritr = reportList.begin(); ritr != reportList.end(); ritr++ ) {
@@ -626,7 +613,7 @@ void GenerateReports(const std::string& symbolSetName)
     delete reports;
   }
 
-  ReportsBase::WriteSummaryReport( "summary.txt", symbolSetName.c_str() );
+  ReportsBase::WriteSummaryReport( "summary.txt", symbolSetName );
 }
 
 }
