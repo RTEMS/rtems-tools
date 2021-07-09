@@ -12,6 +12,7 @@
 #include <string.h>
 
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 
 #include <rld.h>
@@ -30,23 +31,23 @@ namespace Coverage {
   }
 
   void CoverageWriterSkyeye::writeFile(
-    const char* const file,
-    CoverageMapBase*  coverage,
-    uint32_t          lowAddress,
-    uint32_t          highAddress
+    const std::string&  file,
+    CoverageMapBase*    coverage,
+    uint32_t            lowAddress,
+    uint32_t            highAddress
   )
   {
-    uint32_t      a;
-    uint8_t       cover;
-    FILE*         coverageFile;
-    prof_header_t header;
-    int           status;
+    uint32_t                a;
+    uint8_t                 cover;
+    std::ofstream           coverageFile;
+    prof_header_t           header;
+    std::ofstream::pos_type bytes_before;
 
     /*
      *  read the file and update the coverage map passed in
      */
-    coverageFile = ::fopen( file, "w" );
-    if ( !coverageFile ) {
+    coverageFile.open( file );
+    if ( !coverageFile.is_open() ) {
       std::ostringstream what;
       what << "Unable to open " << file;
       throw rld::error( what, "CoverageWriterSkyeye::writeFile" );
@@ -60,9 +61,10 @@ namespace Coverage {
     header.prof_end      = highAddress;
     strcpy( header.desc, "Skyeye Coverage Data" );
 
-    status = ::fwrite(&header, 1, sizeof(header), coverageFile);
-    if (status != sizeof(header)) {
-      ::fclose( coverageFile );
+    bytes_before = coverageFile.tellp();
+
+    coverageFile.write( (char *) &header, sizeof( header ) );
+    if ( coverageFile.tellp() - bytes_before != sizeof( header ) ) {
       std::ostringstream what;
       what << "Unable to write header to " << file;
       throw rld::error( what, "CoverageWriterSkyeye::writeFile" );
@@ -71,9 +73,11 @@ namespace Coverage {
     for ( a = lowAddress; a < highAddress; a += 8 ) {
       cover  = ((coverage->wasExecuted( a ))     ? 0x01 : 0);
       cover |= ((coverage->wasExecuted( a + 4 )) ? 0x10 : 0);
-      status = fwrite(&cover, 1, sizeof(cover), coverageFile);
-      if (status != sizeof(cover)) {
-        ::fclose( coverageFile );
+
+      bytes_before = coverageFile.tellp();
+
+      coverageFile.write( (char *) &cover, sizeof( cover ) );
+      if ( coverageFile.tellp() - bytes_before != sizeof( cover ) ) {
         std::ostringstream what;
         what << "write to " << file
              << " at address 0x"
@@ -85,6 +89,5 @@ namespace Coverage {
       }
     }
 
-    ::fclose( coverageFile );
   }
 }

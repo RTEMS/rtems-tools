@@ -9,6 +9,8 @@
 
 #include <stdint.h>
 
+#include <string>
+
 #include "CoverageMapBase.h"
 
 namespace Coverage {
@@ -46,7 +48,7 @@ namespace Coverage {
      *  @return Returns TRUE if the method succeeded and FALSE if it failed.
      */
     virtual void writeFile(
-      const char* const file,
+      const std::string& file,
       CoverageMapBase*  coverage,
       uint32_t          lowAddress,
       uint32_t          highAddress

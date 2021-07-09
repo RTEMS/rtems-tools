@@ -9,6 +9,7 @@
 #include <stdlib.h>
 
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 
 #include <rld.h>
@@ -27,7 +28,7 @@ namespace Coverage {
 
 
   void CoverageWriterTSIM::writeFile(
-    const char* const file,
+    const std::string& file,
     CoverageMapBase*  coverage,
     uint32_t          lowAddress,
     uint32_t          highAddress
@@ -35,30 +36,29 @@ namespace Coverage {
   {
     uint32_t a;
     int      cover;
-    FILE*    coverageFile;
+    std::ofstream coverageFile;
     int      i;
-    int      status;
 
     /*
      *  read the file and update the coverage map passed in
      */
-    coverageFile = ::fopen( file, "w" );
-    if ( !coverageFile ) {
+    coverageFile.open( file );
+    if ( !coverageFile.is_open() ) {
       std::ostringstream what;
       what << "Unable to open " << file;
       throw rld::error( what, "CoverageWriterTSIM::writeFile" );
     }
 
     for ( a = lowAddress; a < highAddress; a += 0x80 ) {
-      status = fprintf( coverageFile, "%x : ", a );
-      if ( status == EOF || status == 0 ) {
+      coverageFile << std::hex << a << " : " << std::dec;
+      if ( coverageFile.fail() ) {
         break;
       }
       for ( i = 0; i < 0x80; i += 4 ) {
         cover = ((coverage->wasExecuted( a + i )) ? 1 : 0);
-        status = ::fprintf( coverageFile, "%d ", cover );
-        if ( status == EOF || status == 0 ) {
-          ::fclose( coverageFile );
+        coverageFile << cover << " ";
+
+        if ( coverageFile.fail() ) {
           std::ostringstream what;
           what << "write to " << file
                << " at address 0x"
@@ -69,9 +69,8 @@ namespace Coverage {
           throw rld::error( what, "CoverageWriterTSIM::writeFile" );
         }
       }
-      ::fprintf( coverageFile, "\n" );
+      coverageFile << std::endl;
     }
 
-    ::fclose( coverageFile );
   }
 }

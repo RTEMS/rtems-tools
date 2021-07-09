@@ -10,6 +10,7 @@
 #include <string.h>
 
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 
 #include <rld.h>
@@ -28,23 +29,23 @@ namespace Coverage {
   }
 
   void CoverageWriterRTEMS::writeFile(
-    const char* const file,
+    const std::string& file,
     CoverageMapBase*  coverage,
     uint32_t          lowAddress,
     uint32_t          highAddress
   )
   {
-    FILE*                       coverageFile;
+    std::ofstream               coverageFile;
     uint32_t                    a;
-    int                         status;
     uint8_t                     cover;
     rtems_coverage_map_header_t header;
+    std::ofstream::pos_type     bytes_before;
 
     /*
      *  read the file and update the coverage map passed in
      */
-    coverageFile = ::fopen( file, "w" );
-    if ( !coverageFile ) {
+    coverageFile.open( file );
+    if ( !coverageFile.is_open() ) {
       std::ostringstream what;
       what << "Unable to open " << file;
       throw rld::error( what, "CoverageWriterRTEMS::writeFile" );
@@ -58,9 +59,10 @@ namespace Coverage {
     header.end           = highAddress;
     strcpy( header.desc, "RTEMS Coverage Data" );
 
-    status = ::fwrite(&header, 1, sizeof(header), coverageFile);
-    if (status != sizeof(header)) {
-      ::fclose( coverageFile );
+    bytes_before = coverageFile.tellp();
+
+    coverageFile.write( (char *) &header, sizeof( header ) );
+    if ( coverageFile.tellp() - bytes_before != sizeof( header ) ) {
       std::ostringstream what;
       what << "Unable to write header to " << file;
       throw rld::error( what, "CoverageWriterRTEMS::writeFile" );
@@ -68,8 +70,11 @@ namespace Coverage {
 
     for ( a=lowAddress ; a < highAddress ; a++ ) {
       cover  = ((coverage->wasExecuted( a ))     ? 0x01 : 0);
-      status = fwrite(&cover, 1, sizeof(cover), coverageFile);
-      if (status != sizeof(cover)) {
+
+      bytes_before = coverageFile.tellp();
+
+      coverageFile.write( (char *) &cover, sizeof( cover ) );
+      if ( coverageFile.tellp() - bytes_before != sizeof( cover ) ) {
         std::cerr << "CoverageWriterRTEMS::writeFile - write to "
                   << file
                   << " at address 0x%"
@@ -81,6 +86,5 @@ namespace Coverage {
       }
     }
 
-    ::fclose( coverageFile );
   }
 }

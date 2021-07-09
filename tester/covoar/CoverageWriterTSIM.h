@@ -7,6 +7,8 @@
 #ifndef __COVERAGE_WRITER_TSIM_H__
 #define __COVERAGE_WRITER_TSIM_H__
 
+#include <string>
+
 #include "CoverageMapBase.h"
 #include "CoverageWriterBase.h"
 
@@ -33,7 +35,7 @@ namespace Coverage {
 
     /* Inherit documentation from base class. */
     void writeFile(
-      const char* const file,
+      const std::string& file,
       CoverageMapBase*  coverage,
       uint32_t          lowAddress,
       uint32_t          highAddress
