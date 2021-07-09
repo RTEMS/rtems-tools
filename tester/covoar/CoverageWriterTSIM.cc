@@ -29,15 +29,15 @@ namespace Coverage {
 
   void CoverageWriterTSIM::writeFile(
     const std::string& file,
-    CoverageMapBase*  coverage,
-    uint32_t          lowAddress,
-    uint32_t          highAddress
+    CoverageMapBase*   coverage,
+    uint32_t           lowAddress,
+    uint32_t           highAddress
   )
   {
-    uint32_t a;
-    int      cover;
+    uint32_t      a;
+    int           cover;
     std::ofstream coverageFile;
-    int      i;
+    int           i;
 
     /*
      *  read the file and update the coverage map passed in
@@ -54,23 +54,23 @@ namespace Coverage {
       if ( coverageFile.fail() ) {
         break;
       }
+
       for ( i = 0; i < 0x80; i += 4 ) {
-        cover = ((coverage->wasExecuted( a + i )) ? 1 : 0);
+        cover = ( ( coverage->wasExecuted( a + i ) ) ? 1 : 0 );
         coverageFile << cover << " ";
 
         if ( coverageFile.fail() ) {
           std::ostringstream what;
           what << "write to " << file
                << " at address 0x"
-               << std::hex << std::setfill('0')
-               << std::setw(8) << a
-               << std::setfill(' ') << std::dec
+               << std::hex << std::setfill( '0' )
+               << std::setw( 8 ) << a
+               << std::setfill( ' ' ) << std::dec
                << "failed";
           throw rld::error( what, "CoverageWriterTSIM::writeFile" );
         }
       }
       coverageFile << std::endl;
     }
-
   }
 }
