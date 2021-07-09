@@ -54,9 +54,9 @@ namespace Coverage {
     }
 
     /* clear out the header and fill it in */
-    memset( &header, 0, sizeof(header) );
+    memset( &header, 0, sizeof( header ) );
     header.ver           = 0x1;
-    header.header_length = sizeof(header);
+    header.header_length = sizeof( header );
     header.prof_start    = lowAddress;
     header.prof_end      = highAddress;
     strcpy( header.desc, "Skyeye Coverage Data" );
@@ -81,9 +81,9 @@ namespace Coverage {
         std::ostringstream what;
         what << "write to " << file
              << " at address 0x"
-             << std::hex << std::setfill('0')
-             << std::setw(8) << a
-             << std::setfill(' ') << std::dec
+             << std::hex << std::setfill( '0' )
+             << std::setw( 8 ) << a
+             << std::setfill( ' ' ) << std::dec
              << "failed";
         throw rld::error( what, "CoverageWriterSkyeye::writeFile" );
       }
