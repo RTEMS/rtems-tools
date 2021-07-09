@@ -36,9 +36,9 @@ namespace Coverage {
     /* Inherit documentation from base class. */
     void writeFile(
       const std::string& file,
-      CoverageMapBase*  coverage,
-      uint32_t          lowAddress,
-      uint32_t          highAddress
+      CoverageMapBase*   coverage,
+      uint32_t           lowAddress,
+      uint32_t           highAddress
     );
   };
 
