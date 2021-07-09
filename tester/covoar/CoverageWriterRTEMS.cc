@@ -30,9 +30,9 @@ namespace Coverage {
 
   void CoverageWriterRTEMS::writeFile(
     const std::string& file,
-    CoverageMapBase*  coverage,
-    uint32_t          lowAddress,
-    uint32_t          highAddress
+    CoverageMapBase*   coverage,
+    uint32_t           lowAddress,
+    uint32_t           highAddress
   )
   {
     std::ofstream               coverageFile;
@@ -52,9 +52,9 @@ namespace Coverage {
     }
 
     /* clear out the header and fill it in */
-    memset( &header, 0, sizeof(header) );
+    memset( &header, 0, sizeof( header ) );
     header.ver           = 0x1;
-    header.header_length = sizeof(header);
+    header.header_length = sizeof( header );
     header.start         = lowAddress;
     header.end           = highAddress;
     strcpy( header.desc, "RTEMS Coverage Data" );
@@ -68,8 +68,8 @@ namespace Coverage {
       throw rld::error( what, "CoverageWriterRTEMS::writeFile" );
     }
 
-    for ( a=lowAddress ; a < highAddress ; a++ ) {
-      cover  = ((coverage->wasExecuted( a ))     ? 0x01 : 0);
+    for ( a = lowAddress; a < highAddress; a++ ) {
+      cover  = ( ( coverage->wasExecuted( a ) ) ? 0x01 : 0 );
 
       bytes_before = coverageFile.tellp();
 
@@ -78,11 +78,10 @@ namespace Coverage {
         std::cerr << "CoverageWriterRTEMS::writeFile - write to "
                   << file
                   << " at address 0x%"
-                  << std::hex << std::setfill('0')
-                  << std::setw(8) << a
-                  << std::setfill(' ') << std::dec
-                  << " failed"
-                  << std::endl;
+                  << std::hex << std::setfill( '0' )
+                  << std::setw( 8 ) << a
+                  << std::setfill( ' ' ) << std::dec
+                  << " failed\n";
       }
     }
 
