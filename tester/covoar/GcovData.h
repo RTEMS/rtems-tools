@@ -10,6 +10,8 @@
 #include <stdint.h>
 #include <list>
 #include <iostream>
+#include <iomanip>
+#include <fstream>
 #include "GcovFunctionData.h"
 #include "DesiredSymbols.h"
 
@@ -86,7 +88,7 @@ class DesiredSymbols;
      *
      *  @return Returns TRUE if the method succeeded and FALSE if it failed.
      */
-    bool readGcnoFile( const char* const  fileName );
+    bool readGcnoFile( const std::string& fileName );
 
     /*!
      *  This method writes the *.gcda file. It also produces and stores
@@ -118,10 +120,10 @@ class DesiredSymbols;
 
     uint32_t                            numberOfFunctions;
     gcov_preamble                       gcnoPreamble;
-    char                                gcnoFileName[FILE_NAME_LENGTH];
-    char                                gcdaFileName[FILE_NAME_LENGTH];
-    char                                textFileName[FILE_NAME_LENGTH];
-    char                                cFileName[FILE_NAME_LENGTH];
+    std::string                         gcnoFileName;
+    std::string                         gcdaFileName;
+    std::string                         textFileName;
+    std::string                         cFileName;
     functions_t                         functions;
 
 
@@ -132,9 +134,7 @@ class DesiredSymbols;
      *
      *  @return true if read was succesfull, false otherwise
      */
-    bool readFrame(
-      FILE*       gcovFile
-    );
+    bool readFrame( std::ifstream& gcovFile );
 
     /*!
      *  This method reads a string from gcov file
@@ -144,10 +144,7 @@ class DesiredSymbols;
      *
      *  @return Returns length of words read (word = 32bit) or -1 if error ocurred
      */
-    int readString(
-      char*       buffer,
-      FILE*       gcovFile
-    );
+    int readString( char* buffer, std::ifstream& gcovFile );
 
     /*!
      *  This method reads a frame header from gcov file
@@ -158,10 +155,7 @@ class DesiredSymbols;
      *  @return Returns length of words read (word = 32bit)
      *  or -1 if error ocurred
      */
-    int readFrameHeader(
-      gcov_frame_header*  header,
-      FILE*               gcovFile
-    );
+    int readFrameHeader( gcov_frame_header* header, std::ifstream& gcovFile );
 
     /*!
      *  This method reads a frame header from gcov file
@@ -175,7 +169,7 @@ class DesiredSymbols;
      */
     int readFilePreamble(
       gcov_preamble*      preamble,
-      FILE*               gcovFile,
+      std::ifstream&      gcovFile,
       const uint32_t      desiredMagic
     );
 
@@ -190,7 +184,7 @@ class DesiredSymbols;
      */
     bool readFunctionFrame(
       gcov_frame_header   header,
-      FILE*               gcovFile,
+      std::ifstream&      gcovFile,
       GcovFunctionData*   function
     );
 
@@ -198,7 +192,7 @@ class DesiredSymbols;
      *  This method prints info about previously read *.gcno file
      *  to a specified report file
      */
-    void printGcnoFileInfo( FILE * textFile );
+    void printGcnoFileInfo( std::ofstream& textFile );
 
     /*!
      * This member variable contains the symbols to be analyzed

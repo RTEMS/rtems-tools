@@ -9,6 +9,8 @@
 
 #include <stdint.h>
 #include <list>
+#include <fstream>
+#include <iomanip>
 #include "CoverageMapBase.h"
 #include "DesiredSymbols.h"
 
@@ -35,7 +37,7 @@ struct gcov_block_info
   uint32_t                    flags;
   uint32_t                    numberOfLines;
   uint64_t                    counter;
-  char                        sourceFileName[FILE_NAME_LENGTH];
+  std::string                 sourceFileName;
   std::list<uint32_t>         lines;
 };
 
@@ -101,7 +103,7 @@ class DesiredSymbols;
      *  @return Returns TRUE if the method succeeded and FALSE if it failed.
      */
     bool setFunctionName(
-      const char*               fcnName,
+      const std::string&        fcnName,
       Coverage::DesiredSymbols& symbolsToAnalyze
     );
 
@@ -112,9 +114,7 @@ class DesiredSymbols;
      *
      *  @return Returns TRUE if the method succeeded and FALSE if it failed.
      */
-    bool setFileName(
-      const char*                 fileName
-    );
+    bool setFileName( const std::string& fileName );
 
     /*!
      *  This method stores name of the source file where block is located
@@ -126,7 +126,7 @@ class DesiredSymbols;
      */
     void setBlockFileName(
       const blocks_iterator_t             block,
-      const char*                         fileName
+      const std::string&                  fileName
     );
 
     /*!
@@ -194,9 +194,7 @@ class DesiredSymbols;
      *
      *  @return Returns iterator to a matching block or NULL for error.
      */
-    blocks_iterator_t findBlockById(
-      const uint32_t              id
-    );
+    blocks_iterator_t findBlockById( const uint32_t id );
 
     /*!
      *  This method adds new block to block list
@@ -208,18 +206,24 @@ class DesiredSymbols;
     void addBlock(
       const uint32_t              id,
       const uint32_t              flags,
-      const char *                sourceFileName
+      const std::string&          sourceFileName
     );
 
     /*!
      *  This method prints info about function
      */
-    void printFunctionInfo( FILE * textFile, uint32_t function_number );
+    void printFunctionInfo(
+      std::ofstream& textFile,
+      uint32_t       function_number
+    );
 
     /*!
      *  This method prints info about coverage of this function
      */
-    void printCoverageInfo( FILE * textFile, uint32_t function_number );
+    void printCoverageInfo(
+      std::ofstream& textFile,
+      uint32_t       function_number
+    );
 
     /*!
      *  This method prints info about chosen arc in arcs list
@@ -227,20 +231,14 @@ class DesiredSymbols;
      *  @param[in] textFile specifies output file
      *  @param[in] arc passes iterator identifying arc
      */
-    void printArcInfo(
-      FILE * textFile,
-      arcs_iterator_t arc
-    );
+    void printArcInfo( std::ofstream& textFile, arcs_iterator_t arc );
 
     /*!
      *  This method prints info about chosen block in blocks list
      *
      *  @param[in] block passes iterator identifying block
      */
-    void printBlockInfo(
-      FILE * textFile,
-      blocks_iterator_t block
-    );
+    void printBlockInfo( std::ofstream& textFile, blocks_iterator_t block );
 
     /*!
      *  This method calculates values of arc counters
@@ -256,8 +254,8 @@ class DesiredSymbols;
     uint32_t            numberOfArcs;
     arcs_t              arcs;
     blocks_t            blocks;
-    char                functionName[FUNCTION_NAME_LENGTH];
-    char                sourceFileName[FILE_NAME_LENGTH];
+    std::string         functionName;
+    std::string         sourceFileName;
 
     /*!
      *  This member contains the unified or merged coverage map

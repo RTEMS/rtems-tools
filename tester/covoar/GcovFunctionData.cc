@@ -45,7 +45,7 @@ namespace Gcov {
   }
 
   bool GcovFunctionData::setFunctionName(
-    const char*               fcnName,
+    const std::string&        fcnName,
     Coverage::DesiredSymbols& symbolsToAnalyze
   )
   {
@@ -53,16 +53,13 @@ namespace Gcov {
 
     symbolName = fcnName;
 
-    if ( strlen(fcnName) >= FUNCTION_NAME_LENGTH ) {
-      fprintf(
-        stderr,
-        "ERROR: Function name is too long to be correctly stored: %u\n",
-        (unsigned int) strlen(fcnName)
-      );
+    if ( fcnName.length() >= FUNCTION_NAME_LENGTH ) {
+      std::cerr << "ERROR: Function name is too long to be correctly stored: "
+                << fcnName.length() << std::endl;
       return false;
     }
 
-    strcpy (functionName, fcnName);
+    functionName = fcnName;
 
     // Tie function to its coverage map
     symbolInfo = symbolsToAnalyze.find( symbolName );
@@ -70,34 +67,26 @@ namespace Gcov {
       coverageMap = symbolInfo->unifiedCoverageMap;
 
 #if 0
-    if ( coverageMap == NULL) {
-      fprintf(
-        stderr,
-        "ERROR: Could not find coverage map for: %s\n",
-        symbolName.c_str()
-      );
+    if ( coverageMap == NULL ) {
+      std::cerr << "ERROR: Could not find coverage map for: " << symbolName
+                << std::endl;
     } else {
-      fprintf(
-        stderr,
-        "SUCCESS: Hound coverage map for: %s\n",
-        symbolName.c_str()
-      );
-   }
+      std::cerr << "SUCCESS: Found coverage map for: " << symbolName
+                << std::endl;
+    }
 #endif
 
     return true;
   }
 
-  bool GcovFunctionData::setFileName( const char* fileName ) {
-    if ( strlen(fileName) >= FILE_NAME_LENGTH ){
-      fprintf(
-        stderr,
-        "ERROR: File name is too long to be correctly stored: %u\n",
-        (unsigned int) strlen(fileName)
-      );
+  bool GcovFunctionData::setFileName( const std::string& fileName ) {
+    if ( fileName.length() >= FILE_NAME_LENGTH ) {
+      std::cerr << "ERROR: File name is too long to be correctly stored: "
+                << fileName.length() << std::endl;
       return false;
     }
-    strcpy (sourceFileName, fileName);
+
+    sourceFileName = fileName;
     return true;
   }
 
@@ -172,9 +161,9 @@ namespace Gcov {
   }
 
   void GcovFunctionData::addBlock(
-    const uint32_t  id,
-    const uint32_t  flags,
-    const char *    sourceFileName
+    const uint32_t     id,
+    const uint32_t     flags,
+    const std::string& sourceFileName
   )
   {
     gcov_block_info block;
@@ -184,44 +173,35 @@ namespace Gcov {
     block.flags = flags;
     block.numberOfLines = 0;
     block.counter = 0;
-    strcpy (block.sourceFileName, sourceFileName);
+    block.sourceFileName = sourceFileName;
     blocks.push_back(block);
   }
 
   void GcovFunctionData::printFunctionInfo(
-    FILE * textFile,
-    uint32_t function_number
+    std::ofstream& textFile,
+    uint32_t       function_number
   )
   {
     blocks_iterator_t  currentBlock;
     arcs_iterator_t    currentArc;
 
-    fprintf(
-      textFile,
-      "\n\n=========================="
-      "FUNCTION %3d "
-      "==========================\n\n",
-      function_number
-    );
-    fprintf(
-      textFile,
-      "Name:      %s\n"
-      "File:      %s\n"
-      "Line:      %u\n"
-      "Id:        %u\n"
-      "Checksum:  0x%x\n\n",
-      functionName,
-      sourceFileName,
-      firstLineNumber,
-      id,
-      checksum
-    );
+    textFile << std::endl << std::endl
+             << "=========================="
+             << "FUNCTION  " << std::setw( 3 ) << function_number
+             << "=========================="
+             << std::endl << std::endl
+             << "Name:      " << functionName << std::endl
+             << "File:      " << sourceFileName << std::endl
+             << "Line:      " << firstLineNumber << std::endl
+             << "Id:        " << id << std::endl
+             << "Checksum:  0x" << std::hex << checksum << std::dec
+             << std::endl << std::endl;
 
     // Print arcs info
     for ( currentArc = arcs.begin(); currentArc != arcs.end(); currentArc++ ) {
       printArcInfo( textFile, currentArc );
     }
-    fprintf( textFile, "\n");
+    textFile << std::endl;
 
     // Print blocks info
     for ( currentBlock = blocks.begin();
@@ -233,8 +213,8 @@ namespace Gcov {
   }
 
   void GcovFunctionData::printCoverageInfo(
-    FILE     *textFile,
-    uint32_t  function_number
+    std::ofstream& textFile,
+    uint32_t       function_number
   )
   {
     uint32_t        baseAddress = 0;
@@ -254,12 +234,12 @@ namespace Gcov {
       }
       baseSize   = coverageMap->getSize();
 
-      fprintf(
-        textFile,
-        "\nInstructions (Base address: 0x%08x, Size: %4u): \n\n",
-        baseAddress,
-        baseSize
-      );
+      textFile << std::endl << "Instructions (Base address: 0x"
+               << std::setfill( '0' ) << std::setw( 8 )
+               << std::hex << baseAddress << std::dec << std::setfill( ' ' )
+               << ", Size: " << std::setw( 4 ) << baseSize
+               << "):" << std::endl << std::endl;
+
       for ( instruction = symbolInfo->instructions.begin();
             instruction != symbolInfo->instructions.end();
             instruction++
@@ -267,27 +247,30 @@ namespace Gcov {
       {
         if ( instruction->isInstruction ) {
           currentAddress = instruction->address - baseAddress;
-          fprintf( textFile, "0x%-70s ", instruction->line.c_str() );
-          fprintf( textFile, "| 0x%08x ",   currentAddress );
-          fprintf( textFile, "*");
-          fprintf( textFile,
-                    "| exec: %4u ",
-                    coverageMap->getWasExecuted( currentAddress )
-          );
-          fprintf( textFile, "| taken/not: %4u/%4u ",
-                    coverageMap->getWasTaken( currentAddress ),
-                    coverageMap->getWasNotTaken( currentAddress )
-          );
+
+          textFile << std::left << "0x" << std::setw( 70 )
+                   << instruction->line.c_str() << " " << std::right
+                   << "| 0x" << std::hex << std::setfill( '0' )
+                   << std::setw( 8 ) << currentAddress << " "
+                   << std::dec << std::setfill( ' ' )
+                   << "*| exec: " << std::setw( 4 )
+                   << coverageMap->getWasExecuted( currentAddress )
+                   << " | taken/not: " << std::setw( 4 )
+                   << coverageMap->getWasTaken( currentAddress )
+                   << "/" << std::setw( 4 )
+                   << coverageMap->getWasNotTaken( currentAddress )
+                   << " ";
 
           if ( instruction->isBranch )
-            fprintf( textFile, "| Branch " );
+            textFile << "| Branch ";
           else
-            fprintf( textFile, "         " );
+            textFile << "         ";
 
           if ( instruction->isNop )
-            fprintf( textFile, "| NOP(%3u) \n", instruction->nopSize );
+            textFile << "| NOP(" << std::setw( 3 ) << instruction->nopSize
+                     << ") " << std::endl;
           else
-            fprintf( textFile, "           \n" );
+            textFile << "           " << std::endl;
         }
       }
     }
@@ -295,10 +278,10 @@ namespace Gcov {
 
   void GcovFunctionData::setBlockFileName(
     const blocks_iterator_t  block,
-    const char               *fileName
+    const std::string&       fileName
   )
   {
-    strcpy(block->sourceFileName, fileName);
+    block->sourceFileName = fileName;
   }
 
   void GcovFunctionData::addBlockLine(
@@ -310,9 +293,7 @@ namespace Gcov {
     (block->numberOfLines)++;
   }
 
-  blocks_iterator_t GcovFunctionData::findBlockById(
-    const uint32_t    id
-  )
+  blocks_iterator_t GcovFunctionData::findBlockById( const uint32_t id )
   {
     blocks_iterator_t blockIterator;
 
@@ -324,78 +305,70 @@ namespace Gcov {
         blockIterator++;
       }
     } else {
-      fprintf(
-        stderr,
-        "ERROR: GcovFunctionData::findBlockById() failed, no blocks present\n"
-      );
+      std::cerr << "ERROR: GcovFunctionData::findBlockById() failed"
+                << ", no blocks present" << std::endl;
     }
     return blockIterator;
   }
 
   void GcovFunctionData::printArcInfo(
-                FILE * textFile, arcs_iterator_t arc
+    std::ofstream&  textFile,
+    arcs_iterator_t arc
   )
   {
-    fprintf(
-      textFile,
-      " > ARC %3u -> %3u ",
-      arc->sourceBlock,
-      arc->destinationBlock
-    );
+    textFile << " > ARC " << std::setw( 3 ) << arc->sourceBlock
+             << " -> " << arc->destinationBlock << " ";
 
-    fprintf( textFile, "\tFLAGS: ");
-    switch ( arc->flags ){
+    textFile << "\tFLAGS: ";
+    switch ( arc->flags ) {
       case 0:
-        fprintf( textFile, "( ___________ ____ _______ )");
+        textFile << "( ___________ ____ _______ )";
         break;
       case 1:
-        fprintf( textFile, "( ___________ ____ ON_TREE )");
+        textFile << "( ___________ ____ ON_TREE )";
         break;
       case 2:
-        fprintf( textFile, "( ___________ FAKE _______ )");
+        textFile << "( ___________ FAKE _______ )";
         break;
       case 3:
-        fprintf( textFile, "( ___________ FAKE ON_TREE )");
+        textFile << "( ___________ FAKE ON_TREE )";
         break;
       case 4:
-        fprintf( textFile, "( FALLTHROUGH ____ _______ )");
+        textFile << "( FALLTHROUGH ____ _______ )";
         break;
       case 5:
-        fprintf( textFile, "( FALLTHROUGH ____ ON_TREE )");
+        textFile << "( FALLTHROUGH ____ ON_TREE )";
         break;
       default:
-        fprintf( textFile, "( =======FLAGS_ERROR====== )");
-        fprintf( stderr,
-                " ERROR: Unknown arc flag: 0x%x\n",
-                arcs.back().flags
-        );
+        textFile  << "( =======FLAGS_ERROR====== )";
+        std::cerr << " ERROR: Unknown arc flag: 0x"
+                  << std::hex << arcs.back().flags << std::endl
+                  << std::dec;
         break;
     }
-    fprintf( textFile, "\tTaken: %5" PRIu64 "\n", (uint64_t) arc->counter );
+
+    textFile << "\tTaken: " << std::setw( 5 ) << arc->counter << std::endl;
   }
 
   void GcovFunctionData::printBlockInfo(
-    FILE * textFile,
+    std::ofstream&    textFile,
     blocks_iterator_t block
   )
   {
     std::list<uint32_t>::iterator  line;
 
-    fprintf(
-      textFile,
-      " > BLOCK %3u from %s\n"
-      "    -counter: %5" PRIu64 "\n"
-      "    -flags: 0x%" PRIx32 "\n"
-      "    -lines: ",
-      block->id,
-      block->sourceFileName,
-      (uint64_t) block->counter,
-      block->flags
-    );
-    if ( !block->lines.empty( ) )
-      for ( line = block->lines.begin() ; line != block->lines.end(); line++ )
-        fprintf ( textFile, "%u, ", *line);
-    fprintf ( textFile, "\n");
+    textFile << " > BLOCK " << std::setw( 3 ) << block->id
+             << " from " << block->sourceFileName << std::endl
+             << "    -counter: " << std::setw( 5 ) << block->counter << std::endl
+             << "    -flags: 0x" << std::hex << block->flags << std::endl
+             << "    -lines: ";
+
+    if ( !block->lines.empty() )
+      for ( line = block->lines.begin(); line != block->lines.end(); line++ ) {
+        textFile << *line << ", ";
+      }
+
+    textFile << std::endl;
   }
 
   bool GcovFunctionData::processFunctionCounters( void ) {
@@ -410,14 +383,12 @@ namespace Gcov {
     std::list<uint64_t>    taken;       // List of taken counts for branches
     std::list<uint64_t>    notTaken;    // List of not taken counts for branches
 
-    //fprintf( stderr, "DEBUG: Processing counters for file: %s\n", sourceFileName  );
-    if ( blocks.empty() || arcs.empty() || coverageMap == NULL || symbolInfo->instructions.empty())
-    {
-      //fprintf( stderr,
-      //          "DEBUG: sanity check returned false for function: %s from file: %s\n",
-      //          functionName,
-      //          sourceFileName
-      //);
+    //std::cerr << "DEBUG: Processing counters for file: " << sourceFileName
+    //          << std::endl;
+    if ( blocks.empty() || arcs.empty() || coverageMap == NULL || symbolInfo->instructions.empty())     {
+      //std::cerr << "DEBUG: sanity check returned false for function: "
+      //          << functionName << " from file: " << sourceFileName
+      //          << std::endl;
       return false;
     }
 
@@ -433,20 +404,19 @@ namespace Gcov {
     // Find taken/not taken values for branches
     if ( !processBranches( &taken , &notTaken ) )
     {
-      //fprintf( stderr,
-      //          "ERROR: Failed to process branches for function: %s from file: %s\n",
-      //          functionName,
-      //          sourceFileName
-      //);
+      //std::cerr << "ERROR: Failed to process branches for function: "
+      //          << functionName << " from file: " << sourceFileName
+      //          << std::endl;
       return false;
     };
 
     // Process the branching arcs
     while ( blockIterator != blocks.end() ) {
-      //fprintf( stderr, "DEBUG: Processing branches\n" );
+      //std::cerr << "DEBUG: Processing branches" << std::endl;
       while ( arcIterator->sourceBlock != blockIterator->id ) {
         if ( arcIterator == arcs.end() ) {
-          //fprintf( stderr, "ERROR: Unexpectedly runned out of arcs to analyze\n" );
+          //std::cerr << "ERROR: Unexpectedly runned out of arcs to analyze"
+          //          << std::endl;
           return false;
         }
         arcIterator++;
@@ -464,15 +434,16 @@ namespace Gcov {
         !( arcIterator2->flags & FAKE_ARC_FLAG )
       ) {
         if ( taken.empty() || notTaken.empty() ) {
-          fprintf(
-            stderr,
-            "ERROR: Branchess missing for function: %s from file: %s\n",
-            functionName,
-            sourceFileName
-          );
+          std::cerr << "ERROR: Branches missing for function: "
+                    << functionName << " from file: " << sourceFileName
+                    << std::endl;
           return false;
         }
-        //fprintf( stderr, "DEBUG: Found true branching arc %3u -> %3u\n", arcIterator->sourceBlock, arcIterator->destinationBlock );
+
+        //std::cerr << "DEBUG: Found true branching arc "
+        //          << std::setw( 3 ) << arcIterator->sourceBlock << " -> "
+        //          << std::setw( 3 ) << arcIteratior->destinationBlock
+        //          << std::endl;
         if ( arcIterator->flags & FALLTHROUGH_ARC_FLAG ) {
           arcIterator->counter = notTaken.front();
           notTaken.pop_front();
@@ -513,7 +484,8 @@ namespace Gcov {
     while ( blockIterator != blocks.end() ) {
       while ( arcIterator->sourceBlock != blockIterator->id ) {
         if ( arcIterator == arcs.end() ) {
-          fprintf( stderr, "ERROR: Unexpectedly runned out of arcs to analyze\n" );
+          std::cerr << "ERROR: Unexpectedly runned out of arcs to analyze"
+                    << std::endl;
           return false;
         }
         arcIterator++;
@@ -522,11 +494,9 @@ namespace Gcov {
 
       // If this is the last arc, propagate counter and exit
       if ( arcIterator2 == arcs.end() ) {
-        //fprintf( stderr,
-        //        "DEBUG: Found last arc %3u -> %3u\n",
-        //        arcIterator->sourceBlock,
-        //        arcIterator->destinationBlock
-        //);
+        //std::cerr << "DEBUG: Found last arc " << std::setw( 3 )
+        //          << arcIterator->sourceBlock << " -> " << std::setw( 3 )
+        //          << arcIterator->destinationBlock << std::endl;
         arcIterator->counter = blockIterator->counter;
         blockIterator2 =  blocks.begin();
         while ( arcIterator->destinationBlock != blockIterator2->id)  //TODO: ADD FAILSAFE
@@ -537,7 +507,9 @@ namespace Gcov {
 
       // If this is not a branch, propagate counter and continue
       if ( arcIterator->sourceBlock != arcIterator2->sourceBlock ) {
-        //fprintf( stderr, "DEBUG: Found simple arc %3u -> %3u\n", arcIterator->sourceBlock, arcIterator->destinationBlock );
+        //std::cerr << "DEBUG: Found simple arc " << std::setw( 3 )
+        //          << arcIterator->sourceBlock << " -> " << std::setw( 3 )
+        //          << arcIterator->destinationBlock << std::endl;
         arcIterator->counter = blockIterator->counter;
         blockIterator2 =  blocks.begin();;
         while ( arcIterator->destinationBlock != blockIterator2->id) //TODO: ADD FAILSAFE
@@ -548,7 +520,9 @@ namespace Gcov {
       // If this is  a branch with FAKE arc
       else if ( (arcIterator->sourceBlock == arcIterator2->sourceBlock ) && ( arcIterator2->flags & FAKE_ARC_FLAG ))
       {
-        //fprintf( stderr, "DEBUG: Found fake branching arc %3u -> %3u\n", arcIterator->sourceBlock, arcIterator->destinationBlock );
+        //std::cerr << "DEBUG: Found fake branching arc " << std::setw( 3 )
+        //          << arcIterator->sourceBlock << " -> " << std::setw( 3 )
+        //          << arcIterator->destinationBlock << std::endl;
         arcIterator->counter = blockIterator->counter;
         blockIterator2 =  blocks.begin();
         while ( arcIterator->destinationBlock != blockIterator2->id) //TODO: ADD FAILSAFE
@@ -582,7 +556,8 @@ namespace Gcov {
         break;
       }
 
-    //fprintf( stderr, "DEBUG: Processing instructions in search of branches\n" );
+    // std::cerr << "DEBUG: Processing instructions in search of branches"
+    //           << std::endl;
     for (instruction = symbolInfo->instructions.begin(); instruction != symbolInfo->instructions.end(); instruction++)
     {
       if ( instruction->isInstruction) {
@@ -590,11 +565,12 @@ namespace Gcov {
         if ( instruction->isBranch ) {
           taken->push_back ( (uint64_t) coverageMap->getWasTaken( currentAddress  ) );
           notTaken->push_back ( (uint64_t) coverageMap->getWasNotTaken( currentAddress ) );
-          //fprintf( stderr,
-          //          "Added branch to list taken/not: %4u/%4u\n",
-          //          coverageMap->getWasTaken( currentAddress ),
-          //          coverageMap->getWasNotTaken( currentAddress )
-          //);
+
+          //std::cerr << "Added branch to list taken/not: " << std::setw( 4 )
+          //          << coverageMap->getWasTaken( currentAddress )
+          //          << "/" << std::setw( 4 )
+          //          << coverageMap->getWasNotTaken( currentAddress )
+          //          << std::endl;
         }
       }
     }

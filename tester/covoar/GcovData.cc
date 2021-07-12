@@ -1,9 +1,3 @@
-/*
- *  TODO: use strings instead of cstrings for reliability and saving memory
- *  TODO: use global buffers
- *
- */
-
 /*! @file GcovData.cc
  *  @brief GcovData Implementation
  *
@@ -35,62 +29,64 @@ namespace Gcov {
   {
   }
 
-  bool GcovData::readGcnoFile( const char* const  fileName )
+  bool GcovData::readGcnoFile( const std::string& fileName )
   {
-    int        status;
-    FILE*      gcovFile;
-    char*      tempString;
-    char*      tempString2;
-    char*      tempString3;
+    int           status;
+    std::ifstream gcovFile;
+    std::string   tempString;
+    std::string   tempString2;
+    std::string   tempString3;
+    size_t        index;
 
-    if ( strlen(fileName) >= FILE_NAME_LENGTH ){
-      fprintf(
-        stderr,
-        "ERROR: File name is too long to be correctly stored: %u\n",
-        (unsigned int) strlen(fileName)
-      );
+    if ( fileName.length() >= FILE_NAME_LENGTH ) {
+      std::cerr << "ERROR: File name is too long to be correctly stored: "
+                << fileName.length() << std::endl;
       return false;
     }
-    strcpy( gcnoFileName, fileName );
-    strcpy( gcdaFileName, fileName );
-    strcpy( textFileName, fileName );
-    strcpy( cFileName, fileName );
-    tempString = strstr( gcdaFileName,".gcno" );
-    tempString2 = strstr( textFileName,".gcno" );
-    tempString3 = strstr( cFileName,".gcno" );
 
-    if ( (tempString == NULL) && (tempString2 == NULL) ){
-      fprintf(stderr, "ERROR: incorrect name of *.gcno file\n");
-    }
-    else
-    {
-      strcpy( tempString, ".gcda");             // construct gcda file name
-      strcpy( tempString2, ".txt");             // construct report file name
-      strcpy( tempString3, ".c");               // construct source file name
+    gcnoFileName = fileName;
+    gcdaFileName = fileName;
+    textFileName = fileName;
+    cFileName    = fileName;
+    tempString   = gcdaFileName;
+    tempString2  = textFileName;
+    tempString3  = cFileName;
+
+    index = tempString.find( ".gcno" );
+    if ( index == std::string::npos ) {
+      std::cerr << "ERROR: incorrect name of *.gcno file" << std::endl;
+      return false;
+    } else {
+      // construct gcda file name
+      tempString = tempString.replace( index, strlen( ".gcno" ), ".gcda" );
+
+      // construct report file name
+      tempString2 = tempString2.replace( index, strlen( ".gcno" ), ".txt" );
+
+      // construct source file name
+      tempString3 = tempString3.replace( index, strlen( ".gcno" ), ".c" );
     }
 
     // Debug message
-    // fprintf( stderr, "Readning file: %s\n",  gcnoFileName);
+    // std::cerr << "Reading file: " << gcnoFileName << std::endl;
 
     // Open the notes file.
-    gcovFile = fopen( gcnoFileName, "r" );
+    gcovFile.open( gcnoFileName );
     if ( !gcovFile ) {
-      fprintf( stderr, "Unable to open %s\n", gcnoFileName );
+      std::cerr << "Unable to open " << gcnoFileName << std::endl;
       return false;
     }
 
     // Read and validate the gcnoPreamble (magic, version, timestamp) from the file
     status = readFilePreamble( &gcnoPreamble, gcovFile, GCNO_MAGIC );
     if ( status <= 0 ){
-      fprintf( stderr, "Unable to read %s\n", gcnoFileName );
-      fclose( gcovFile );
+      std::cerr << "Unable to read " << gcnoFileName << std::endl;
       return false;
     }
 
     //Read all remaining frames from file
     while( readFrame(gcovFile) ){}
 
-    fclose( gcovFile );
     return true;
   }
 
@@ -99,7 +95,7 @@ namespace Gcov {
   {
     gcov_preamble         preamble;
     gcov_frame_header     header;
-    FILE*                 gcdaFile;
+    std::ofstream         gcdaFile;
     functions_iterator_t  currentFunction;
     arcs_iterator_t       currentArc;
     uint32_t              buffer;
@@ -110,10 +106,10 @@ namespace Gcov {
     uint64_t              llBuffer[4096];    // TODO: Use common buffer
     gcov_statistics       objectStats;
     gcov_statistics       programStats;
-    size_t                status;
+    long int              bytes_before;
 
     // Debug message
-    // fprintf( stderr, "Writing file: %s\n",  gcdaFileName);
+    //std::cerr << "Writing file: " <<  gcdaFileName << std::endl;
 
     // Lets clear counters sumators
     countersSum     = 0;
@@ -121,9 +117,9 @@ namespace Gcov {
     countersFoundSum   = 0;
 
     // Open the data file.
-    gcdaFile = fopen( gcdaFileName, "w" );
+    gcdaFile.open( gcdaFileName );
     if ( !gcdaFile ) {
-      fprintf( stderr, "Unable to create %s\n", gcdaFileName );
+      std::cerr << "Unable to create " << gcdaFileName << std::endl;
       return false;
     }
 
@@ -133,9 +129,11 @@ namespace Gcov {
     preamble.timestamp  = gcnoPreamble.timestamp;
 
     //Write preamble
-    status = fwrite (&preamble , sizeof( preamble ), 1 , gcdaFile );
-    if ( status != 1 )
-      fprintf( stderr, "Error while writing gcda preamble to a file %s\n", gcdaFileName );
+    gcdaFile.write( (char *) &preamble , 4 * sizeof( preamble ) );
+    if ( gcdaFile.fail() ) {
+      std::cerr << "Error while writing gcda preamble to a file "
+                << gcdaFileName << std::endl;
+    }
 
     //Write function info and counter counts
     for (
@@ -147,21 +145,27 @@ namespace Gcov {
       //Write function announcement frame header (length always equals 2)
       header.tag = GCOV_TAG_FUNCTION;
       header.length = 2;
-      status = fwrite (&header, sizeof(header), 1, gcdaFile );
-      if ( status != 1 )
-        fprintf( stderr, "Error while writing function announcement to a file %s\n", gcdaFileName );
+      gcdaFile.write( (char *) &header, sizeof( header ) );
+      if ( gcdaFile.fail() ) {
+        std::cerr << "Error while writing function announcement to a file "
+                  << gcdaFileName << std::endl;
+      }
 
       //Write function id
       buffer = (*currentFunction).getId();
-      status = fwrite (&buffer, sizeof( buffer ), 1, gcdaFile );
-      if ( status != 1 )
-        fprintf( stderr, "Error while writing function id to a file %s\n", gcdaFileName );
+      gcdaFile.write( (char *) &buffer, sizeof( buffer ) );
+      if ( gcdaFile.fail() ) {
+        std::cerr << "Error while writing function id to a file "
+                  << gcdaFileName << std::endl;
+      }
 
       //Write function checksum
       buffer = (*currentFunction).getChecksum();
-      status = fwrite (&buffer, sizeof( buffer ), 1, gcdaFile );
-      if ( status != 1 )
-        fprintf( stderr, "Error while writing function checksum to a file %s\n", gcdaFileName );
+      gcdaFile.write( (char *) &buffer, sizeof( buffer ) );
+      if ( gcdaFile.fail() ) {
+        std::cerr << "Error while writing function checksum to a file "
+                  << gcdaFileName << std::endl;
+      }
 
       // Determine how many counters there are
       // and store their counts in buffer
@@ -172,13 +176,19 @@ namespace Gcov {
       //Write info about counters
       header.tag = GCOV_TAG_COUNTER;
       header.length = countersFound * 2;
-      status = fwrite (&header, sizeof( header ), 1, gcdaFile );
-      if ( status != 1 )
-        fprintf( stderr, "Error while writing counter header to a file %s\n", gcdaFileName );
+      gcdaFile.write( (char *) &header, sizeof( header ) );
+      if ( gcdaFile.fail() ) {
+        std::cerr << "Error while writing counter header to a file "
+                  << gcdaFileName << std::endl;
+      }
 
-      status = fwrite (llBuffer, sizeof( uint64_t ), countersFound , gcdaFile );
-      if ( status != countersFound )
-        fprintf( stderr, "Error while writing counter data to a file %s\n", gcdaFileName );
+      bytes_before = gcdaFile.tellp();
+
+      gcdaFile.write( (char *) llBuffer, sizeof( uint64_t ) * countersFound );
+      if ( gcdaFile.tellp() - bytes_before != countersFound ) {
+        std::cerr << "Error while writing counter data to a file "
+                  << gcdaFileName << std::endl;
+      }
     }
 
     // Prepare frame with object file statistics
@@ -192,12 +202,17 @@ namespace Gcov {
     objectStats.sumMax = countersMax;    // we have no clue
 
     // Write data
-    status = fwrite (&header, sizeof( header ), 1, gcdaFile );
-    if ( status != 1 )
-      fprintf( stderr, "Error while writing stats header to a file %s\n", gcdaFileName );
-    status = fwrite (&objectStats, sizeof( objectStats ), 1, gcdaFile );
-    if ( status != 1 )
-      fprintf( stderr, "Error while writing object stats to a file %s\n", gcdaFileName );
+    gcdaFile.write( (char *) &header, sizeof( header ) );
+    if ( gcdaFile.fail() ) {
+      std::cerr << "Error while writing stats header to a file "
+                << gcdaFileName << std::endl;
+    }
+
+    gcdaFile.write( (char *) &objectStats, sizeof( objectStats ) );
+    if ( gcdaFile.fail() ) {
+      std::cerr << "Error while writing object stats to a file "
+                << gcdaFileName << std::endl;
+    }
 
 
     // Prepare frame with program statistics
@@ -211,25 +226,26 @@ namespace Gcov {
     programStats.sumMax = countersMax;    // we have no clue
 
     // Write data
-    status = fwrite (&header, sizeof( header ), 1, gcdaFile );
-    if ( status != 1 )
-      fprintf( stderr, "Error while writing stats header to a file %s\n", gcdaFileName );
-    status = fwrite (&programStats, sizeof( programStats ), 1, gcdaFile );
-    if ( status != 1 )
-      fprintf( stderr, "Error while writing program stats to a file %s\n", gcdaFileName );
+    gcdaFile.write( (char *) &header, sizeof( header ) );
+    if ( gcdaFile.fail() ) {
+      std::cerr << "Error while writing stats header to a file "
+                << gcdaFileName << std::endl;
+    }
 
-    fclose( gcdaFile );
+    gcdaFile.write( (char *) &programStats, sizeof( programStats ) );
+    if ( gcdaFile.fail() ) {
+      std::cerr << "Error while writing program stats to a file "
+                << gcdaFileName << std::endl;
+    }
 
     return true;
   }
 
-  bool GcovData::readFrame(
-         FILE*         gcovFile
-  )
+  bool GcovData::readFrame( std::ifstream& gcovFile )
   {
     gcov_frame_header   header;
     char                buffer[512];
-    uint32_t            intBuffer[4096];
+    char                intBuffer[16384];
     uint32_t            tempBlockId;
     blocks_iterator_t   tempBlockIterator;
     int                 status;
@@ -251,7 +267,8 @@ namespace Gcov {
           GcovFunctionData newFunction;
 
           if ( !readFunctionFrame(header, gcovFile, &newFunction) ){
-            fprintf( stderr, "Error while reading FUNCTION from gcov file...\n" );
+            std::cerr << "Error while reading FUNCTION from gcov file..."
+                      << std::endl;
             return false;
           }
 
@@ -262,14 +279,13 @@ namespace Gcov {
 
       case GCOV_TAG_BLOCKS:
 
-        status = fread( &intBuffer, 4, header.length, gcovFile );
-        if ( status != (int) header.length){
-          fprintf(
-            stderr, "Error while reading BLOCKS from gcov file...\n"
-            "Header lenght is %u instead of %u\n",
-            header.length,
-            status
-          );
+        gcovFile.read( intBuffer, header.length );
+        if ( gcovFile.gcount() != (int) header.length ) {
+          std::cerr << "Error while reading BLOCKS from gcov file..."
+                    << std::endl
+                    << "Header length is " << header.length
+                    << " instead of " << gcovFile.gcount()
+                    << std::endl;
           return false;
         }
 
@@ -280,8 +296,8 @@ namespace Gcov {
 
       case GCOV_TAG_ARCS:
 
-        status = fread( &intBuffer, 4, header.length, gcovFile );
-        if (status != (int) header.length){
+        gcovFile.read( intBuffer, header.length );
+        if ( gcovFile.gcount() != (int) header.length ) {
           return false;
         }
 
@@ -292,12 +308,10 @@ namespace Gcov {
 
       case GCOV_TAG_LINES:
 
-        status = fread( &intBuffer, 4, 2, gcovFile );
-        if (status != 2 || intBuffer[1] != 0){
-          fprintf(
-            stderr,
-            "Error while reading block id for LINES from gcov file..."
-          );
+        gcovFile.read( intBuffer, 2 );
+        if ( gcovFile.gcount() != 2 || intBuffer[1] != 0 ) {
+          std::cerr << "Error while reading block id for LINES from gcov "
+                    << "file..." << std::endl;
           return false;
         }
         tempBlockId = intBuffer[0];
@@ -309,9 +323,10 @@ namespace Gcov {
         header.length -= readString(buffer, gcovFile);
         functions.back().setBlockFileName( tempBlockIterator, buffer );
 
-        status = fread( &intBuffer, 4, header.length, gcovFile );
-        if (status != (int) header.length){
-          fprintf( stderr, "Error while reading LINES from gcov file..." );
+        gcovFile.read( intBuffer, header.length );
+        if ( gcovFile.gcount() != (int) header.length ) {
+          std::cerr << "Error while reading LINES from gcov file..."
+                    << std::endl;
           return false;
         }
 
@@ -323,30 +338,30 @@ namespace Gcov {
 
       default:
 
-        fprintf( stderr, "\n\nERROR - encountered unknown *.gcno tag : 0x%x\n", header.tag );
+        std::cerr << std::endl << std::endl
+                  << "ERROR - encountered unknown *.gcno tag : 0x"
+                  << std::hex << header.tag << std::dec << std::endl;
         break;
       }
 
       return true;
   }
 
-  int GcovData::readString(
-    char*     buffer,   //TODO: use global buffer here
-    FILE*     gcovFile
-  )
+  int GcovData::readString( char* buffer, std::ifstream& gcovFile )
   {
-    int          status;
     int          length;
 
-    status = fread( &length, sizeof(int), 1, gcovFile );
-    if (status != 1){
-      fprintf( stderr, "ERROR: Unable to read string length from gcov file\n" );
+    gcovFile.read( (char *) &length, sizeof( int ) );
+    if ( gcovFile.gcount() != sizeof( int ) ) {
+      std::cerr << "ERROR: Unable to read string length from gcov file"
+                << std::endl;
       return -1;
     }
 
-    status = fread( buffer, length * 4 , 1, gcovFile );
-    if (status != 1){
-      fprintf( stderr, "ERROR: Unable to read string from gcov file\n" );
+    gcovFile.read( buffer, length * 4 );
+    if ( gcovFile.gcount() != length * 4 ) {
+      std::cerr << "ERROR: Unable to read string from gcov file"
+                << std::endl;
       return -1;
     }
 
@@ -357,16 +372,16 @@ namespace Gcov {
 
   int GcovData::readFrameHeader(
     gcov_frame_header*   header,
-    FILE*             gcovFile
+    std::ifstream&       gcovFile
   )
   {
-    int          status;
     int          length;
 
     length = sizeof(gcov_frame_header);
-    status = fread( header, length, 1, gcovFile );
-    if (status != 1){
-      //fprintf( stderr, "ERROR: Unable to read frame header from gcov file\n" );
+    gcovFile.read( (char *) header, length );
+    if ( gcovFile.gcount() != length ) {
+      std::cerr << "ERROR: Unable to read frame header from gcov file"
+                << std::endl;
       return -1;
     }
 
@@ -375,22 +390,23 @@ namespace Gcov {
 
   int GcovData::readFilePreamble(
      gcov_preamble*       preamble,
-     FILE*             gcovFile,
+     std::ifstream&    gcovFile,
      uint32_t        desiredMagic
   )
   {
-    int          status;
     int          length;
 
     length = sizeof( gcov_preamble );
-    status = fread( preamble, sizeof( gcov_preamble), 1, gcovFile );
-    if (status <= 0) {
-      fprintf( stderr, "Error while reading file preamble\n" );
+    gcovFile.read( (char *) &preamble, 4 * sizeof( gcov_preamble ) );
+    if ( gcovFile.gcount() != 4 * sizeof( gcov_preamble ) ) {
+      std::cerr << "Error while reading file preamble" << std::endl;
       return -1;
     }
 
     if ( preamble->magic != GCNO_MAGIC ) {
-      fprintf( stderr, "File is not a valid *.gcno output (magic: 0x%4x)\n", preamble->magic );
+      std::cerr << "File is not a valid *.gcno output (magic: 0x"
+                << std::hex << std::setw( 4 ) << preamble->magic
+                << ")" << std::endl;
       return -1;
     }
 
@@ -399,17 +415,16 @@ namespace Gcov {
 
   bool GcovData::readFunctionFrame(
     gcov_frame_header   header,
-    FILE*           gcovFile,
+    std::ifstream&     gcovFile,
     GcovFunctionData*  function
   )
   {
     char         buffer[512];    //TODO: use common buffers
-    uint32_t     intBuffer[4096];
-    int          status;
+    char         intBuffer[16384];
 
-    status = fread( &intBuffer, 8, 1, gcovFile );
-    if (status != 1){
-      fprintf( stderr, "ERROR: Unable to read Function ID & checksum\n" );
+    gcovFile.read( (char *) &intBuffer, 8 );
+    if ( gcovFile.gcount() != 8 ) {
+      std::cerr << "ERROR: Unable to read Function ID & checksum" << std::endl;
       return false;
     }
     header.length -= 2;
@@ -420,9 +435,10 @@ namespace Gcov {
     function->setFunctionName( buffer, symbolsToAnalyze_m );
     header.length -= readString( buffer, gcovFile );
     function->setFileName( buffer );
-    status = fread( &intBuffer, 4, header.length, gcovFile );
-    if (status <= 0){
-    fprintf( stderr, "ERROR: Unable to read Function starting line number\n" );
+    gcovFile.read( (char*) &intBuffer, 4 * header.length );
+    if (gcovFile.gcount() != 4 * header.length ) {
+      std::cerr << "ERROR: Unable to read Function starting line number"
+                << std::endl;
       return false;
     }
     function->setFirstLineNumber( intBuffer[0] );
@@ -434,15 +450,15 @@ namespace Gcov {
   {
     functions_iterator_t   currentFunction;
     uint32_t               i = 1;          //iterator
-    FILE*                  textFile;
+    std::ofstream          textFile;
 
     // Debug message
-    // fprintf( stderr, "Writing file: %s\n",  textFileName);
+    // std::cerr << "Writing file: " << textFileName << std::endl;
 
     // Open the data file.
-    textFile = fopen( textFileName, "w" );
-    if ( !textFile ) {
-      fprintf( stderr, "Unable to create %s\n", textFileName );
+    textFile.open( textFileName );
+    if ( !textFile.is_open() ) {
+      std::cerr << "Unable to create " << textFileName << std::endl;
       return false;
     }
 
@@ -459,25 +475,20 @@ namespace Gcov {
       i++;
     }
 
-    fclose ( textFile );
     return true;
   }
 
-  void GcovData::printGcnoFileInfo( FILE * textFile )
+  void GcovData::printGcnoFileInfo( std::ofstream& textFile )
   {
-    fprintf(
-      textFile,
-      "\nFILE:\t\t\t%s\n"
-      "magic:\t\t\t%x\n"
-      "version:\t\t%x\n"
-      "timestamp:\t\t%x\n"
-      "functions found: \t%u\n\n",
-      gcnoFileName,
-      gcnoPreamble.magic,
-      gcnoPreamble.version,
-      gcnoPreamble.timestamp,
-      numberOfFunctions
-    );
+    textFile << std::endl << "FILE:\t\t\t" << gcnoFileName
+             << std::endl << std::hex
+             << "magic:\t\t\t" << gcnoPreamble.magic << std::endl
+             << "version:\t\t" << gcnoPreamble.version << std::endl
+             << "timestamp:\t\t" << gcnoPreamble.timestamp << std::endl
+             << std::dec
+             << "functions found: \t"
+             << std::endl << std::endl << gcnoPreamble.timestamp
+             << std::endl << std::endl;
   }
 
   void GcovData::writeGcovFile( )
