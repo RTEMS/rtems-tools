@@ -143,7 +143,7 @@ namespace Coverage {
      *  an instruction that results in a code branch, otherwise
      *  it returns false.
      */
-    bool IsBranch( const char *instruction );
+    bool IsBranch( const std::string& instruction );
 
     /*!
      *  This method returns true if the instruction from

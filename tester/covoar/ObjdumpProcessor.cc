@@ -188,9 +188,7 @@ namespace Coverage {
     #undef METHOD
   }
 
-  bool ObjdumpProcessor::IsBranch(
-    const char *instruction
-  )
+  bool ObjdumpProcessor::IsBranch( const std::string& instruction )
   {
     if ( !targetInfo_m ) {
       fprintf(

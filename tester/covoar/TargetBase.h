@@ -98,9 +98,7 @@ namespace Target {
      *  This method determines if the specified line from an
      *  objdump file is a branch instruction.
      */
-    bool isBranch(
-      const char* const instruction
-    );
+    bool isBranch( const std::string& instruction );
 
     /*!
      *  This method returns the bit set by Qemu in the trace record

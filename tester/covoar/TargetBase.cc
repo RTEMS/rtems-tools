@@ -60,9 +60,7 @@ namespace Target {
     return targetName_m.c_str();
   }
 
-  bool TargetBase::isBranch(
-      const char* const instruction
-  )
+  bool TargetBase::isBranch( const std::string& instruction )
   {
     std::list <std::string>::iterator i;
 
@@ -76,7 +74,7 @@ namespace Target {
     i = find(
       conditionalBranchInstructions.begin(),
       conditionalBranchInstructions.end(),
-      instruction
+      instruction.c_str()
     );
     if ( i  == conditionalBranchInstructions.end() )
       return false;

@@ -40,6 +40,9 @@
 #include <sys/stat.h>
 #include <string.h>
 
+#include <iostream>
+#include <fstream>
+
 #include "qemu-log.h"
 #include "TraceReaderBase.h"
 #include "TraceReaderLogQEMU.h"
@@ -48,32 +51,27 @@
 
 #include "rld-process.h"
 
-#if HAVE_STAT64
-#define STAT stat64
-#else
-#define STAT stat
-#endif
-
-#if HAVE_OPEN64
-#define OPEN fopen64
-#else
-#define OPEN fopen
-#endif
-
-#define MAX_LINE_LENGTH 512
-
-bool ReadUntilFound( FILE *file, const char *line )
+bool ReadUntilFound( std::ifstream& file, const char* line )
 {
-  char discardBuff[100];
-  size_t  len = strlen( line );
+  char   discardBuff[100] = {};
+  size_t len = strlen( line );
+
+  if ( len > sizeof( discardBuff ) ) {
+    std::cerr << "ReadUntilFound(): parameter 'line' is too long" << std::endl;
+    return false;
+  }
 
   do {
-    if ( !fgets( discardBuff, 99, file ) )
+    file.read( discardBuff, sizeof( discardBuff ) - 2 );
+    if ( file.fail() ) {
       return false;
+    }
 
-    if ( strncmp( discardBuff, line, len ) == 0 )
+    if ( strncmp( discardBuff, line, len ) == 0 ) {
       return true;
-  } while (1);
+    }
+
+  } while( true );
 }
 
 namespace Trace {
@@ -87,7 +85,7 @@ namespace Trace {
   }
 
   bool TraceReaderLogQEMU::processFile(
-    const char* const           file,
+    const std::string&          file,
     Coverage::ObjdumpProcessor& objdumpProcessor
   )
   {
@@ -96,42 +94,41 @@ namespace Trace {
     QEMU_LOG_IN_Block_t last          = { 0, "", "" };
     QEMU_LOG_IN_Block_t nextExecuted  = { 0, "", "" };
     uint32_t            nextlogical;
-    struct STAT         statbuf;
     int                 status;
-    FILE*               logFile;
+    std::ifstream       logFile;
     int                 result;
-    char                inputBuffer[MAX_LINE_LENGTH];
+    int                 fileSize;
+    char                ignore;
 
     //
     // Verify that the log file has a non-zero size.
     //
-    // NOTE: We prefer stat64 because some of the coverage files are HUGE!
-    status = STAT( file, &statbuf );
-    if (status == -1) {
-      fprintf( stderr, "Unable to stat %s\n", file );
+    logFile.open( file, std::ifstream::in | std::ifstream::binary );
+    if ( !logFile.is_open() ) {
+      std::cerr << "Unable to open " << file << std::endl;
       return false;
     }
 
-    if (statbuf.st_size == 0) {
-      fprintf( stderr, "%s is 0 bytes long\n", file );
+    logFile.seekg( 0, std::ios::end );
+    fileSize = logFile.tellg();
+
+    if ( fileSize == 0 ) {
+      std::cerr << file << " is 0 bytes long" << std::endl;
       return false;
     }
+
+    logFile.close();
 
     //
     // Open the coverage file and discard the header.
     //
-    logFile = OPEN( file, "r" );
-    if (!logFile) {
-      fprintf( stderr, "Unable to open %s\n", file );
-      return false;
-    }
+    logFile.open( file );
 
     //
     //  Discard Header section
     //
     if (! ReadUntilFound( logFile, QEMU_LOG_SECTION_END ) ) {
-      fprintf( stderr, "Unable to locate end of log file header\n" );
-      fclose( logFile );
+      std::cerr << "Unable to locate end of log file header" << std::endl;
       return false;
     }
 
@@ -139,25 +136,22 @@ namespace Trace {
     //  Find first IN block
     //
     if (! ReadUntilFound( logFile, QEMU_LOG_IN_KEY )){
-      fprintf(stderr,"Error: Unable to locate first IN: Block in Log file \n");
-      fclose( logFile );
+      std::cerr << "Error: Unable to locate first IN: Block in Log file"
+                << std::endl;
       return false;
     }
 
     //
     //  Read First Start Address
     //
-    fgets(inputBuffer, MAX_LINE_LENGTH, logFile );
-    result = sscanf(
-      inputBuffer,
-      "0x%08lx: %s %s\n",
-      &first.address,
-      first.instruction,
-      first.data
-    );
-    if ( result < 2 )
-    {
-      fprintf(stderr, "Error Unable to Read Initial First Block\n" );
+    logFile >> std::hex >> first.address >> std::dec
+            >> ignore
+            >> first.instruction
+            >> first.data;
+
+    if ( logFile.fail() ) {
+      std::cerr << "Error Unable to Read Initial First Block"
+                << std::endl;
       done = true;
     }
 
@@ -167,15 +161,11 @@ namespace Trace {
 
       // Read until we get to the last instruction in the block.
       do {
-        fgets(inputBuffer, MAX_LINE_LENGTH, logFile );
-        result = sscanf(
-          inputBuffer,
-          "0x%08lx: %s %s\n",
-          &last.address,
-          last.instruction,
-          last.data
-        );
-      } while( result > 1);
+        logFile >> std::hex >> last.address >> std::dec
+                >> ignore
+                >> last.instruction
+                >> last.data;
+      } while( !logFile.fail() );
 
       nextlogical = objdumpProcessor.getAddressAfter(last.address);
 
@@ -183,17 +173,13 @@ namespace Trace {
         done = true;
         nextExecuted = last;
       } else {
-        fgets(inputBuffer, MAX_LINE_LENGTH, logFile );
-        result = sscanf(
-          inputBuffer,
-          "0x%08lx: %s %s\n",
-          &nextExecuted.address,
-          nextExecuted.instruction,
-          nextExecuted.data
-        );
-        if ( result < 2 )
-        {
-          fprintf(stderr, "Error Unable to Read First Block\n" );
+        logFile >> std::hex >> nextExecuted.address >> std::dec
+                >> ignore
+                >> nextExecuted.instruction
+                >> nextExecuted.data;
+
+        if ( logFile.fail() ) {
+          std::cerr << "Error Unable to Read First Block" << std::endl;
         }
       }
 
@@ -213,7 +199,7 @@ namespace Trace {
       }
       first = nextExecuted;
     }
-    fclose( logFile );
+
     return true;
   }
 }

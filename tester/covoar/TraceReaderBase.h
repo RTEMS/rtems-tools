@@ -7,6 +7,8 @@
 #ifndef __TRACE_READER_BASE_H__
 #define __TRACE_READER_BASE_H__
 
+#include <string>
+
 #include "TraceList.h"
 #include "ObjdumpProcessor.h"
 
@@ -47,7 +49,7 @@ namespace Trace {
      *  @return Returns TRUE if the method succeeded and FALSE if it failed.
      */
     virtual bool processFile(
-      const char* const           file,
+      const std::string&          file,
       Coverage::ObjdumpProcessor& objdumpProcessor
     ) = 0;
   };

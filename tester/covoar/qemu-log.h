@@ -15,8 +15,8 @@
  */
 typedef struct {
   unsigned long address;
-  char          instruction[10];
-  char          data[20];
+  std::string   instruction;
+  std::string   data;
 }  QEMU_LOG_IN_Block_t;
 
 
