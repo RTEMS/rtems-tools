@@ -38,6 +38,7 @@
 #include <cstdio>
 
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 
 #include <rld-process.h>
@@ -46,18 +47,6 @@
 #include "ExecutableInfo.h"
 #include "CoverageMap.h"
 #include "qemu-traces.h"
-
-#if HAVE_STAT64
-#define STAT stat64
-#else
-#define STAT stat
-#endif
-
-#if HAVE_OPEN64
-#define OPEN fopen64
-#else
-#define OPEN fopen
-#endif
 
 namespace Trace {
 
@@ -71,14 +60,14 @@ namespace Trace {
   }
 
   bool TraceWriterQEMU::writeFile(
-    const char* const          file,
+    const std::string&         file,
     Trace::TraceReaderBase    *log,
     bool                       verbose
   )
   {
     struct trace_header header;
     int                 status;
-    FILE*               traceFile;
+    std::ofstream       traceFile;
     uint8_t             taken;
     uint8_t             notTaken;
 
@@ -88,16 +77,17 @@ namespace Trace {
     //
     // Verify that the TraceList has a non-zero size.
     //
-    if ( log->Trace.set.begin() == log->Trace.set.end() ){
-      fprintf( stderr, "ERROR: Empty TraceList\n" );
+    if ( log->Trace.set.empty() ) {
+      std::cerr << "ERROR: Empty TraceList" << std::endl;
       return false;
     }
 
     //
     // Open the trace file.
     //
-    traceFile = ::OPEN( file, "w" );
-    if (!traceFile) {
+    traceFile.open( file );
+
+    if ( !traceFile.is_open() ) {
       std::ostringstream what;
       std::cerr << "Unable to open " << file << std::endl;
       return false;
@@ -116,10 +106,10 @@ namespace Trace {
     header.machine[0] = 0; // XXX ??
     header.machine[1] = 0; // XXX ??
     header._pad = 0;
-    status = ::fwrite( &header, sizeof(trace_header), 1, traceFile );
-    if (status != 1) {
+
+    traceFile.write( (char *) &header, sizeof( trace_header ) );
+    if ( traceFile.fail() ) {
       std::cerr << "Unable to write header to " << file << std::endl;
-      ::fclose( traceFile );
       return false;
     }
 
@@ -166,15 +156,13 @@ namespace Trace {
                   << std::dec << std::setfill(' ')
                   << std::endl;
 
-      status = ::fwrite( &entry, sizeof(entry), 1, traceFile );
-      if (status != 1) {
-        ::fclose( traceFile );
+      traceFile.write( (char *) &entry, sizeof( entry ) );
+      if ( traceFile.fail() ) {
         std::cerr << "Unable to write entry to " << file << std::endl;
         return false;
       }
     }
 
-    ::fclose( traceFile );
     return true;
   }
 }

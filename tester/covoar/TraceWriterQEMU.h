@@ -44,7 +44,7 @@ namespace Trace {
      *  @return Returns TRUE if the method succeeded and FALSE if it failed.
      */
      bool writeFile(
-       const char* const          file,
+       const std::string&         file,
        Trace::TraceReaderBase    *log,
        bool                       verbose
      );

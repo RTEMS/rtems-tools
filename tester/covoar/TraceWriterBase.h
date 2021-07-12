@@ -8,6 +8,7 @@
 #define __TRACE_WRITER_BASE_H__
 
 #include <stdint.h>
+#include <string>
 #include "TraceReaderBase.h"
 
 namespace Trace {
@@ -41,7 +42,7 @@ namespace Trace {
      *  @return Returns TRUE if the method succeeded and FALSE if it failed.
      */
      virtual bool writeFile(
-       const char* const          file,
+       const std::string&         file,
        Trace::TraceReaderBase    *log,
        bool                       verbose
      ) =  0;
