@@ -35,13 +35,13 @@ namespace Coverage {
     ExecutableInfo* const executableInformation
   )
   {
-    CoverageMapBase*             aCoverageMap = NULL;
-    uintptr_t                    baseAddress;
-    uint8_t                      cover;
-    std::ifstream                coverageFile;
-    rtems_coverage_map_header_t  header;
-    uintptr_t                    i;
-    uintptr_t                    length;
+    CoverageMapBase*            aCoverageMap = NULL;
+    uintptr_t                   baseAddress;
+    uint8_t                     cover;
+    std::ifstream               coverageFile;
+    rtems_coverage_map_header_t header;
+    uintptr_t                   i;
+    uintptr_t                   length;
 
     //
     // Open the coverage file and read the header.
@@ -66,13 +66,13 @@ namespace Coverage {
     //
     // Read and process each line of the coverage file.
     //
-    for (i = 0; i < length; i++) {
+    for ( i = 0; i < length; i++ ) {
       coverageFile.read( (char *) &cover, sizeof( uint8_t ) );
       if ( coverageFile.fail() ) {
         std::cerr << "breaking after 0x"
-                  << std::hex << std::setfill('0')
-                  << std::setw(8) << i
-                  << std::setfill(' ') << std::dec
+                  << std::hex << std::setfill( '0' )
+                  << std::setw( 8 ) << i
+                  << std::setfill( ' ' ) << std::dec
                   << " in " << file
                   << std::endl;
         break;
@@ -82,9 +82,9 @@ namespace Coverage {
       // Obtain the coverage map containing the address and
       // mark the address as executed.
       //
-      if (cover) {
+      if ( cover ) {
         aCoverageMap = executableInformation->getCoverageMap( baseAddress + i );
-        if (aCoverageMap)
+        if ( aCoverageMap )
           aCoverageMap->setWasExecuted( baseAddress + i );
       }
     }
