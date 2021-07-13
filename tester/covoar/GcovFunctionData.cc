@@ -19,9 +19,9 @@ namespace Gcov {
 
   GcovFunctionData::GcovFunctionData()
   {
-    numberOfArcs = 0;
+    numberOfArcs   = 0;
     numberOfBlocks = 0;
-    coverageMap = NULL;
+    coverageMap    = NULL;
   }
 
   GcovFunctionData::~GcovFunctionData()
@@ -49,7 +49,7 @@ namespace Gcov {
     Coverage::DesiredSymbols& symbolsToAnalyze
   )
   {
-    std::string   symbolName;
+    std::string symbolName;
 
     symbolName = fcnName;
 
@@ -63,8 +63,9 @@ namespace Gcov {
 
     // Tie function to its coverage map
     symbolInfo = symbolsToAnalyze.find( symbolName );
-    if ( symbolInfo != NULL )
+    if ( symbolInfo != NULL ) {
       coverageMap = symbolInfo->unifiedCoverageMap;
+    }
 
 #if 0
     if ( coverageMap == NULL ) {
@@ -107,13 +108,13 @@ namespace Gcov {
 
   void GcovFunctionData::getCounters(
     uint64_t* counterValues,
-    uint32_t &countersFound,
-    uint64_t &countersSum,
-    uint64_t &countersMax
+    uint32_t& countersFound,
+    uint64_t& countersSum,
+    uint64_t& countersMax
   )
   {
-    arcs_iterator_t  currentArc;
-    int              i;
+    arcs_iterator_t currentArc;
+    int             i;
 
     countersFound = 0;
     countersSum   = 0;
@@ -121,19 +122,20 @@ namespace Gcov {
 
     // Locate relevant counters and copy their values
     i = 0;
-    for(
-      currentArc = arcs.begin();
-      currentArc != arcs.end();
-      currentArc++
-    )
-    {
-      if ( currentArc->flags == 0 || currentArc->flags == 2 ||
-           currentArc->flags == 4 ) {
+    for ( currentArc = arcs.begin(); currentArc != arcs.end(); currentArc++ ) {
+      if (
+        currentArc->flags == 0 ||
+        currentArc->flags == 2 ||
+        currentArc->flags == 4
+      ) {
         countersFound++;
         countersSum += currentArc->counter;
         counterValues[i] = currentArc->counter;
-        if ( countersMax <= currentArc->counter)
+
+        if ( countersMax <= currentArc->counter ) {
           countersMax = currentArc->counter;
+        }
+
         i++;
       }
     }
@@ -145,19 +147,19 @@ namespace Gcov {
   }
 
   void GcovFunctionData::addArc(
-    uint32_t  source,
-    uint32_t  destination,
-    uint32_t  flags
+    uint32_t source,
+    uint32_t destination,
+    uint32_t flags
   )
   {
     gcov_arc_info arc;
 
     numberOfArcs++;
-    arc.sourceBlock = source;
+    arc.sourceBlock      = source;
     arc.destinationBlock = destination;
-    arc.flags = flags;
-    arc.counter = 0;
-    arcs.push_back(arc);
+    arc.flags            = flags;
+    arc.counter          = 0;
+    arcs.push_back( arc );
   }
 
   void GcovFunctionData::addBlock(
@@ -169,12 +171,12 @@ namespace Gcov {
     gcov_block_info block;
 
     numberOfBlocks++;
-    block.id    = id;
-    block.flags = flags;
-    block.numberOfLines = 0;
-    block.counter = 0;
+    block.id             = id;
+    block.flags          = flags;
+    block.numberOfLines  = 0;
+    block.counter        = 0;
     block.sourceFileName = sourceFileName;
-    blocks.push_back(block);
+    blocks.push_back( block );
   }
 
   void GcovFunctionData::printFunctionInfo(
@@ -182,8 +184,8 @@ namespace Gcov {
     uint32_t       function_number
   )
   {
-    blocks_iterator_t  currentBlock;
-    arcs_iterator_t    currentArc;
+    blocks_iterator_t currentBlock;
+    arcs_iterator_t   currentArc;
 
     textFile << std::endl << std::endl
              << "=========================="
@@ -204,9 +206,10 @@ namespace Gcov {
     textFile << std::endl;
 
     // Print blocks info
-    for ( currentBlock = blocks.begin();
-          currentBlock != blocks.end();
-          currentBlock++
+    for (
+      currentBlock = blocks.begin();
+      currentBlock != blocks.end();
+      currentBlock++
     ) {
       printBlockInfo( textFile, currentBlock );
     }
@@ -217,21 +220,24 @@ namespace Gcov {
     uint32_t       function_number
   )
   {
-    uint32_t        baseAddress = 0;
-    uint32_t        baseSize;
-    uint32_t        currentAddress;
-    std::list<Coverage::objdumpLine_t>::iterator   instruction;
+    uint32_t baseAddress = 0;
+    uint32_t baseSize;
+    uint32_t currentAddress;
+    std::list<Coverage::objdumpLine_t>::iterator instruction;
 
     if ( coverageMap != NULL ) {
 
-      for (instruction = symbolInfo->instructions.begin();
-           instruction != symbolInfo->instructions.end();
-           instruction++) {
+      for (
+        instruction = symbolInfo->instructions.begin();
+        instruction != symbolInfo->instructions.end();
+        instruction++
+      ) {
         if( instruction->isInstruction ) {
           baseAddress = instruction->address;
           break;
         }
       }
+
       baseSize   = coverageMap->getSize();
 
       textFile << std::endl << "Instructions (Base address: 0x"
@@ -240,9 +246,10 @@ namespace Gcov {
                << ", Size: " << std::setw( 4 ) << baseSize
                << "):" << std::endl << std::endl;
 
-      for ( instruction = symbolInfo->instructions.begin();
-            instruction != symbolInfo->instructions.end();
-            instruction++
+      for (
+        instruction = symbolInfo->instructions.begin();
+        instruction != symbolInfo->instructions.end();
+        instruction++
       )
       {
         if ( instruction->isInstruction ) {
@@ -277,19 +284,19 @@ namespace Gcov {
   }
 
   void GcovFunctionData::setBlockFileName(
-    const blocks_iterator_t  block,
-    const std::string&       fileName
+    const blocks_iterator_t block,
+    const std::string&      fileName
   )
   {
     block->sourceFileName = fileName;
   }
 
   void GcovFunctionData::addBlockLine(
-    const blocks_iterator_t  block,
-    const uint32_t           line
+    const blocks_iterator_t block,
+    const uint32_t          line
   )
   {
-    block->lines.push_back(line);
+    block->lines.push_back( line );
     (block->numberOfLines)++;
   }
 
@@ -299,15 +306,18 @@ namespace Gcov {
 
     if ( !blocks.empty() ) {
       blockIterator = blocks.begin();
-      while ( blockIterator != blocks.end() ){
-        if ( blockIterator->id ==  id)
+      while ( blockIterator != blocks.end() ) {
+        if ( blockIterator->id == id) {
           break;
+        }
+
         blockIterator++;
       }
     } else {
       std::cerr << "ERROR: GcovFunctionData::findBlockById() failed"
                 << ", no blocks present" << std::endl;
     }
+
     return blockIterator;
   }
 
@@ -316,8 +326,8 @@ namespace Gcov {
     arcs_iterator_t arc
   )
   {
-    textFile << " > ARC " << std::setw( 3 ) << arc->sourceBlock
-             << " -> " << arc->destinationBlock << " ";
+    textFile << " > ARC " << std::setw( 3 ) << arc->sourceBlock << " -> "
+             << arc->destinationBlock << " ";
 
     textFile << "\tFLAGS: ";
     switch ( arc->flags ) {
@@ -355,11 +365,12 @@ namespace Gcov {
     blocks_iterator_t block
   )
   {
-    std::list<uint32_t>::iterator  line;
+    std::list<uint32_t>::iterator line;
 
     textFile << " > BLOCK " << std::setw( 3 ) << block->id
              << " from " << block->sourceFileName << std::endl
-             << "    -counter: " << std::setw( 5 ) << block->counter << std::endl
+             << "    -counter: " << std::setw( 5 ) << block->counter
+             << std::endl
              << "    -flags: 0x" << std::hex << block->flags << std::endl
              << "    -lines: ";
 
@@ -371,21 +382,26 @@ namespace Gcov {
     textFile << std::endl;
   }
 
-  bool GcovFunctionData::processFunctionCounters( void ) {
+  bool GcovFunctionData::processFunctionCounters() {
 
-    uint32_t               baseAddress = 0;
-    uint32_t               currentAddress = 0;
-    std::list<Coverage::objdumpLine_t>::iterator  instruction;
-    blocks_iterator_t      blockIterator;
-    blocks_iterator_t      blockIterator2;
-    arcs_iterator_t        arcIterator;
-    arcs_iterator_t        arcIterator2;
-    std::list<uint64_t>    taken;       // List of taken counts for branches
-    std::list<uint64_t>    notTaken;    // List of not taken counts for branches
+    uint32_t            baseAddress = 0;
+    uint32_t            currentAddress = 0;
+    blocks_iterator_t   blockIterator;
+    blocks_iterator_t   blockIterator2;
+    arcs_iterator_t     arcIterator;
+    arcs_iterator_t     arcIterator2;
+    std::list<uint64_t> taken;       // List of taken counts for branches
+    std::list<uint64_t> notTaken;    // List of not taken counts for branches
+    std::list<Coverage::objdumpLine_t>::iterator instruction;
 
     //std::cerr << "DEBUG: Processing counters for file: " << sourceFileName
     //          << std::endl;
-    if ( blocks.empty() || arcs.empty() || coverageMap == NULL || symbolInfo->instructions.empty())     {
+    if (
+      blocks.empty()      ||
+      arcs.empty()        ||
+      coverageMap == NULL ||
+      symbolInfo->instructions.empty()
+    ) {
       //std::cerr << "DEBUG: sanity check returned false for function: "
       //          << functionName << " from file: " << sourceFileName
       //          << std::endl;
@@ -393,12 +409,12 @@ namespace Gcov {
     }
 
     // Reset iterators and variables
-    blockIterator = blocks.begin();
-    arcIterator = arcs.begin();
-    arcIterator2 = arcIterator;
+    blockIterator  = blocks.begin();
+    arcIterator    = arcs.begin();
+    arcIterator2   = arcIterator;
     arcIterator2++;
-    instruction = symbolInfo->instructions.begin();
-    baseAddress = coverageMap->getFirstLowAddress();      //symbolInfo->baseAddress;
+    instruction    = symbolInfo->instructions.begin();
+    baseAddress    = coverageMap->getFirstLowAddress();      //symbolInfo->baseAddress;
     currentAddress = baseAddress;
 
     // Find taken/not taken values for branches
@@ -419,17 +435,19 @@ namespace Gcov {
           //          << std::endl;
           return false;
         }
+
         arcIterator++;
         arcIterator2++;
       }
 
       // If no more branches break;
-      if ( arcIterator2 == arcs.end() )
+      if ( arcIterator2 == arcs.end() ) {
         break;
+      }
 
       // If this is a branch without FAKE arcs process it
       if (
-        (arcIterator->sourceBlock == arcIterator2->sourceBlock ) &&
+         ( arcIterator->sourceBlock == arcIterator2->sourceBlock ) &&
         !( arcIterator->flags & FAKE_ARC_FLAG ) &&
         !( arcIterator2->flags & FAKE_ARC_FLAG )
       ) {
@@ -458,23 +476,28 @@ namespace Gcov {
 
         blockIterator2 = blocks.begin();
         //TODO: ADD FAILSAFE
-        while ( arcIterator->destinationBlock != blockIterator2->id)
+        while ( arcIterator->destinationBlock != blockIterator2->id ) {
           blockIterator2++;
+        }
+
         blockIterator2->counter += arcIterator->counter;
 
         blockIterator2 = blocks.begin();
         //TODO: ADD FAILSAFE
-        while ( arcIterator2->destinationBlock != blockIterator2->id)
+        while ( arcIterator2->destinationBlock != blockIterator2->id ) {
             blockIterator2++;
-          blockIterator2->counter += arcIterator2->counter;
+        }
+
+         blockIterator2->counter += arcIterator2->counter;
       }
+
       blockIterator++;
     }
 
     // Reset iterators and variables
     blockIterator = blocks.begin();
-    arcIterator = arcs.begin();
-    arcIterator2 = arcIterator;
+    arcIterator   = arcs.begin();
+    arcIterator2  = arcIterator;
     arcIterator2++;
 
     // Set the first block
@@ -488,6 +511,7 @@ namespace Gcov {
                     << std::endl;
           return false;
         }
+
         arcIterator++;
         arcIterator2++;
       }
@@ -498,10 +522,13 @@ namespace Gcov {
         //          << arcIterator->sourceBlock << " -> " << std::setw( 3 )
         //          << arcIterator->destinationBlock << std::endl;
         arcIterator->counter = blockIterator->counter;
-        blockIterator2 =  blocks.begin();
-        while ( arcIterator->destinationBlock != blockIterator2->id)  //TODO: ADD FAILSAFE
+        blockIterator2       =  blocks.begin();
+        while ( arcIterator->destinationBlock != blockIterator2->id ) {  //TODO: ADD FAILSAFE
           blockIterator2++;
+        }
+
         blockIterator2->counter += arcIterator->counter;
+
         return true;
       }
 
@@ -511,22 +538,30 @@ namespace Gcov {
         //          << arcIterator->sourceBlock << " -> " << std::setw( 3 )
         //          << arcIterator->destinationBlock << std::endl;
         arcIterator->counter = blockIterator->counter;
-        blockIterator2 =  blocks.begin();;
-        while ( arcIterator->destinationBlock != blockIterator2->id) //TODO: ADD FAILSAFE
+        blockIterator2       =  blocks.begin();
+
+        while ( arcIterator->destinationBlock != blockIterator2->id ) { //TODO: ADD FAILSAFE
           blockIterator2++;
+        }
+
         blockIterator2->counter += arcIterator->counter;
       }
 
       // If this is  a branch with FAKE arc
-      else if ( (arcIterator->sourceBlock == arcIterator2->sourceBlock ) && ( arcIterator2->flags & FAKE_ARC_FLAG ))
-      {
+      else if (
+        ( arcIterator->sourceBlock == arcIterator2->sourceBlock ) &&
+        ( arcIterator2->flags & FAKE_ARC_FLAG )
+      ) {
         //std::cerr << "DEBUG: Found fake branching arc " << std::setw( 3 )
         //          << arcIterator->sourceBlock << " -> " << std::setw( 3 )
         //          << arcIterator->destinationBlock << std::endl;
         arcIterator->counter = blockIterator->counter;
-        blockIterator2 =  blocks.begin();
-        while ( arcIterator->destinationBlock != blockIterator2->id) //TODO: ADD FAILSAFE
+        blockIterator2       = blocks.begin();
+
+        while ( arcIterator->destinationBlock != blockIterator2->id ) { //TODO: ADD FAILSAFE
           blockIterator2++;
+        }
+
         blockIterator2->counter += arcIterator->counter;
       }
 
@@ -538,33 +573,47 @@ namespace Gcov {
   }
 
   bool GcovFunctionData::processBranches(
-            std::list<uint64_t> * taken ,
-            std::list<uint64_t> * notTaken
+    std::list<uint64_t>* taken ,
+    std::list<uint64_t>* notTaken
   )
   {
-    uint32_t        baseAddress = 0;
-    uint32_t        currentAddress;
-    std::list<Coverage::objdumpLine_t>::iterator   instruction;
+    uint32_t baseAddress = 0;
+    uint32_t currentAddress;
+    std::list<Coverage::objdumpLine_t>::iterator instruction;
 
-    if ( coverageMap == NULL )
+    if ( coverageMap == NULL ) {
       return false;
+    }
 
     //baseAddress = coverageMap->getFirstLowAddress();      //symbolInfo->baseAddress;
-    for (instruction = symbolInfo->instructions.begin(); instruction != symbolInfo->instructions.end(); instruction++)
+    for (
+      instruction = symbolInfo->instructions.begin();
+      instruction != symbolInfo->instructions.end();
+      instruction++
+    ) {
       if( instruction->isInstruction ) {
         baseAddress = instruction->address;
         break;
       }
+    }
 
     // std::cerr << "DEBUG: Processing instructions in search of branches"
     //           << std::endl;
-    for (instruction = symbolInfo->instructions.begin(); instruction != symbolInfo->instructions.end(); instruction++)
-    {
-      if ( instruction->isInstruction) {
+    for (
+      instruction = symbolInfo->instructions.begin();
+      instruction != symbolInfo->instructions.end();
+      instruction++
+    ) {
+      if ( instruction->isInstruction ) {
         currentAddress = instruction-> address - baseAddress;
         if ( instruction->isBranch ) {
-          taken->push_back ( (uint64_t) coverageMap->getWasTaken( currentAddress  ) );
-          notTaken->push_back ( (uint64_t) coverageMap->getWasNotTaken( currentAddress ) );
+          taken->push_back(
+            (uint64_t) coverageMap->getWasTaken( currentAddress )
+          );
+
+          notTaken->push_back(
+            (uint64_t) coverageMap->getWasNotTaken( currentAddress )
+          );
 
           //std::cerr << "Added branch to list taken/not: " << std::setw( 4 )
           //          << coverageMap->getWasTaken( currentAddress )
