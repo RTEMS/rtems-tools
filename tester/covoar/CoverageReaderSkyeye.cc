@@ -64,13 +64,13 @@ namespace Coverage {
     //
     // Read and process each line of the coverage file.
     //
-    for (i = 0; i < length; i += 8) {
+    for ( i = 0; i < length; i += 8 ) {
       coverageFile.read( (char *) &cover, sizeof( uint8_t ) );
       if ( coverageFile.gcount() != sizeof( uint8_t ) ) {
         std::cerr << "CoverageReaderSkyeye::ProcessFile - breaking after 0x"
-                  << std::hex << std::setfill('0')
-                  << std::setw(8) << i
-                  << std::setfill(' ') << std::dec
+                  << std::hex << std::setfill( '0' )
+                  << std::setw( 8 ) << i
+                  << std::setfill( ' ' ) << std::dec
                   << " in " << file
                   << std::endl;
         break;
@@ -82,9 +82,12 @@ namespace Coverage {
       //
       // NOTE: This method ONLY works for Skyeye in 32-bit mode.
       //
-      if (cover & 0x01) {
-        aCoverageMap = executableInformation->getCoverageMap( baseAddress + i );
-        if (aCoverageMap) {
+      if ( cover & 0x01 ) {
+        aCoverageMap = executableInformation->getCoverageMap(
+          baseAddress + i
+        );
+
+        if ( aCoverageMap ) {
           aCoverageMap->setWasExecuted( baseAddress + i );
           aCoverageMap->setWasExecuted( baseAddress + i + 1 );
           aCoverageMap->setWasExecuted( baseAddress + i + 2 );
@@ -92,11 +95,11 @@ namespace Coverage {
         }
       }
 
-      if (cover & 0x10) {
+      if ( cover & 0x10 ) {
         aCoverageMap = executableInformation->getCoverageMap(
           baseAddress + i + 4
         );
-        if (aCoverageMap) {
+        if ( aCoverageMap ) {
           aCoverageMap->setWasExecuted( baseAddress + i + 4 );
           aCoverageMap->setWasExecuted( baseAddress + i + 5 );
           aCoverageMap->setWasExecuted( baseAddress + i + 6 );
