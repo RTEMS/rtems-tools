@@ -30,9 +30,7 @@ class ReportsText: public ReportsBase {
    *
    *  @param[in] fileName identifies the branch report file name
    */
-  void WriteBranchReport(
-    const std::string& fileName
-  );
+  void WriteBranchReport( const std::string& fileName );
 
   /*!
    *  This method produces a report that contains information about each
@@ -40,9 +38,7 @@ class ReportsText: public ReportsBase {
    *
    *  @param[in] fileName identifies the coverage report file name
    */
-  void WriteCoverageReport(
-    const std::string& fileName
-  );
+  void WriteCoverageReport( const std::string& fileName );
 
   /*!
    *  This method produces a summary report that lists each uncovered
@@ -50,9 +46,7 @@ class ReportsText: public ReportsBase {
    *
    *  @param[in] fileName identifies the size report file name
    */
-  void WriteSizeReport(
-    const std::string& fileName
-  );
+  void WriteSizeReport( const std::string& fileName );
 
   protected:
 
@@ -65,27 +59,21 @@ class ReportsText: public ReportsBase {
     );
 
    /* Inherit documentation from base class. */
-     virtual void AnnotatedStart(
-       std::ofstream& aFile
-    );
+     virtual void AnnotatedStart( std::ofstream& aFile );
 
     /* Inherit documentation from base class. */
-     virtual void AnnotatedEnd(
-       std::ofstream& aFile
-    );
+     virtual void AnnotatedEnd( std::ofstream& aFile );
 
    /* Inherit documentation from base class. */
-    virtual bool PutNoBranchInfo(
-      std::ofstream& report
-    );
+    virtual bool PutNoBranchInfo( std::ofstream& report );
 
    /* Inherit documentation from base class. */
     virtual bool PutBranchEntry(
-      std::ofstream&                                   report,
-      unsigned int                                     number,
-      const std::string&                               symbolName,
-      const SymbolInformation&                         symbolInfo,
-      const CoverageRanges::coverageRange_t&           range
+      std::ofstream&                         report,
+      unsigned int                           number,
+      const std::string&                     symbolName,
+      const SymbolInformation&               symbolInfo,
+      const CoverageRanges::coverageRange_t& range
     );
 
    /* Inherit documentation from base class. */
@@ -98,27 +86,27 @@ class ReportsText: public ReportsBase {
 
    /* Inherit documentation from base class. */
     virtual bool PutCoverageLine(
-      std::ofstream&                                  report,
-      unsigned int                                    number,
-      const std::string&                              symbolName,
-      const SymbolInformation&                        symbolInfo,
-      const CoverageRanges::coverageRange_t&          range
+      std::ofstream&                         report,
+      unsigned int                           number,
+      const std::string&                     symbolName,
+      const SymbolInformation&               symbolInfo,
+      const CoverageRanges::coverageRange_t& range
     );
 
    /* Inherit documentation from base class. */
     virtual bool PutSizeLine(
-      std::ofstream&                                  report,
-      unsigned int                                    number,
-      const std::string&                              symbolName,
-      const CoverageRanges::coverageRange_t&          range
+      std::ofstream&                         report,
+      unsigned int                           number,
+      const std::string&                     symbolName,
+      const CoverageRanges::coverageRange_t& range
     );
 
    /* Inherit documentation from base class. */
     virtual bool PutSymbolSummaryLine(
-      std::ofstream&                                  report,
-      unsigned int                                    number,
-      const std::string&                              symbolName,
-      const SymbolInformation&                        symbolInfo
+      std::ofstream&           report,
+      unsigned int             number,
+      const std::string&       symbolName,
+      const SymbolInformation& symbolInfo
     );
 };
 
