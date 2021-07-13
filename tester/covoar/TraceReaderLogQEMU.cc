@@ -127,7 +127,7 @@ namespace Trace {
     //
     //  Discard Header section
     //
-    if (! ReadUntilFound( logFile, QEMU_LOG_SECTION_END ) ) {
+    if ( !ReadUntilFound( logFile, QEMU_LOG_SECTION_END ) ) {
       std::cerr << "Unable to locate end of log file header" << std::endl;
       return false;
     }
@@ -135,7 +135,7 @@ namespace Trace {
     //
     //  Find first IN block
     //
-    if (! ReadUntilFound( logFile, QEMU_LOG_IN_KEY )){
+    if ( !ReadUntilFound( logFile, QEMU_LOG_IN_KEY ) ) {
       std::cerr << "Error: Unable to locate first IN: Block in Log file"
                 << std::endl;
       return false;
@@ -150,12 +150,11 @@ namespace Trace {
             >> first.data;
 
     if ( logFile.fail() ) {
-      std::cerr << "Error Unable to Read Initial First Block"
-                << std::endl;
+      std::cerr << "Error Unable to Read Initial First Block" << std::endl;
       done = true;
     }
 
-    while (!done) {
+    while ( !done ) {
 
       last = first;
 
@@ -167,9 +166,9 @@ namespace Trace {
                 >> last.data;
       } while( !logFile.fail() );
 
-      nextlogical = objdumpProcessor.getAddressAfter(last.address);
+      nextlogical = objdumpProcessor.getAddressAfter( last.address );
 
-      if (! ReadUntilFound( logFile, QEMU_LOG_IN_KEY )) {
+      if ( !ReadUntilFound( logFile, QEMU_LOG_IN_KEY ) ) {
         done = true;
         nextExecuted = last;
       } else {
@@ -185,7 +184,7 @@ namespace Trace {
 
       // If the nextlogical was not found we are throwing away
       // the block; otherwise add the block to the trace list.
-      if (nextlogical != 0) {
+      if ( nextlogical != 0 ) {
         TraceList::exitReason_t reason = TraceList::EXIT_REASON_OTHER;
 
         if ( objdumpProcessor.IsBranch( last.instruction ) ) {
