@@ -23,17 +23,13 @@ ReportsText::~ReportsText()
 {
 }
 
-void ReportsText::AnnotatedStart(
-  std::ofstream& aFile
-)
+void ReportsText::AnnotatedStart( std::ofstream& aFile )
 {
   aFile << "========================================"
         << "=======================================" << std::endl;
 }
 
-void ReportsText::AnnotatedEnd(
-  std::ofstream& aFile
-)
+void ReportsText::AnnotatedEnd( std::ofstream& aFile )
 {
 }
 
@@ -47,25 +43,27 @@ void ReportsText::PutAnnotatedLine(
   aFile << line << std::endl;
 }
 
-bool ReportsText::PutNoBranchInfo(
-  std::ofstream& report
-)
+bool ReportsText::PutNoBranchInfo( std::ofstream& report )
 {
-  if ( BranchInfoAvailable &&
-    SymbolsToAnalyze->getNumberBranchesFound(symbolSetName_m) != 0 )
+  if (
+    BranchInfoAvailable &&
+    SymbolsToAnalyze->getNumberBranchesFound( symbolSetName_m ) != 0
+  ) {
     report << "All branch paths taken." << std::endl;
-  else
+  } else {
     report << "No branch information found." << std::endl;
+  }
+
   return true;
 }
 
 
 bool ReportsText::PutBranchEntry(
-  std::ofstream&                                   report,
-  unsigned int                                     number,
-  const std::string&                               symbolName,
-  const SymbolInformation&                         symbolInfo,
-  const CoverageRanges::coverageRange_t&           range
+  std::ofstream&                         report,
+  unsigned int                           number,
+  const std::string&                     symbolName,
+  const SymbolInformation&               symbolInfo,
+  const CoverageRanges::coverageRange_t& range
 )
 {
   const Coverage::Explanation* explanation;
@@ -79,14 +77,19 @@ bool ReportsText::PutBranchEntry(
          << "Size in Bytes : " << range.highAddress - range.lowAddress + 1
          << std::dec << std::endl;
 
-  if (range.reason ==
-    Coverage::CoverageRanges::UNCOVERED_REASON_BRANCH_ALWAYS_TAKEN)
+  if (
+    range.reason ==
+    Coverage::CoverageRanges::UNCOVERED_REASON_BRANCH_ALWAYS_TAKEN
+  ) {
     report << "Reason        : ALWAYS TAKEN"
            << std::endl << std::endl;
-  else if (range.reason ==
-    Coverage::CoverageRanges::UNCOVERED_REASON_BRANCH_NEVER_TAKEN)
-      report << "Reason        : NEVER TAKEN"
-             << std::endl << std::endl;
+  } else if (
+    range.reason ==
+    Coverage::CoverageRanges::UNCOVERED_REASON_BRANCH_NEVER_TAKEN
+  ) {
+    report << "Reason        : NEVER TAKEN"
+           << std::endl << std::endl;
+  }
 
   // See if an explanation is available
   explanation = AllExplanations->lookupExplanation( range.lowSourceLine );
@@ -100,9 +103,7 @@ bool ReportsText::PutBranchEntry(
            << std::endl << std::endl
            << "Explanation:" << std::endl;
 
-    for ( unsigned int i=0;
-          i < explanation->explanation.size();
-          i++) {
+    for ( unsigned int i=0; i < explanation->explanation.size(); i++ ) {
       report << explanation->explanation[i] << std::endl;
     }
   }
@@ -115,7 +116,7 @@ bool ReportsText::PutBranchEntry(
 void ReportsText::putCoverageNoRange(
   std::ofstream&     report,
   std::ofstream&     noRangeFile,
-  unsigned int  number,
+  unsigned int       number,
   const std::string& symbol
 )
 {
@@ -135,14 +136,14 @@ void ReportsText::putCoverageNoRange(
 }
 
 bool ReportsText::PutCoverageLine(
-  std::ofstream&                                  report,
-  unsigned int                                    number,
-  const std::string&                              symbolName,
-  const SymbolInformation&                        symbolInfo,
-  const CoverageRanges::coverageRange_t&          range
+  std::ofstream&                         report,
+  unsigned int                           number,
+  const std::string&                     symbolName,
+  const SymbolInformation&               symbolInfo,
+  const CoverageRanges::coverageRange_t& range
 )
 {
-  const Coverage::Explanation*   explanation;
+  const Coverage::Explanation* explanation;
 
   report << "============================================" << std::endl
          << "Index                : " << range.id << std::endl
@@ -175,14 +176,15 @@ bool ReportsText::PutCoverageLine(
   }
 
   report << "============================================" << std::endl;
+
   return true;
 }
 
 bool  ReportsText::PutSizeLine(
-  std::ofstream&                                  report,
-  unsigned int                                    number,
-  const std::string&                              symbolName,
-  const CoverageRanges::coverageRange_t&          range
+  std::ofstream&                         report,
+  unsigned int                           number,
+  const std::string&                     symbolName,
+  const CoverageRanges::coverageRange_t& range
 )
 {
   report << range.highAddress - range.lowAddress + 1 << '\t'
@@ -193,16 +195,16 @@ bool  ReportsText::PutSizeLine(
 }
 
 bool  ReportsText::PutSymbolSummaryLine(
-  std::ofstream&                                  report,
-  unsigned int                                    number,
-  const std::string&                              symbolName,
-  const SymbolInformation&                        symbolInfo
+  std::ofstream&           report,
+  unsigned int             number,
+  const std::string&       symbolName,
+  const SymbolInformation& symbolInfo
 )
 {
   float uncoveredBytes;
   float uncoveredInstructions;
 
-  if (symbolInfo.stats.sizeInBytes == 0) {
+  if ( symbolInfo.stats.sizeInBytes == 0 ) {
     report << "============================================" << std::endl
            << "Symbol                            : " << symbolName << std::endl
            << "          *** NEVER REFERENCED ***"
@@ -216,17 +218,20 @@ bool  ReportsText::PutSymbolSummaryLine(
            << "this symbol." << std::endl
            << "============================================" << std::endl;
   } else {
-    if ( symbolInfo.stats.sizeInInstructions == 0 )
+    if ( symbolInfo.stats.sizeInInstructions == 0 ) {
       uncoveredInstructions = 0;
-    else
-      uncoveredInstructions = (symbolInfo.stats.uncoveredInstructions*100.0)/
-                              symbolInfo.stats.sizeInInstructions;
+    } else {
+      uncoveredInstructions =
+        ( symbolInfo.stats.uncoveredInstructions * 100.0 ) /
+        symbolInfo.stats.sizeInInstructions;
+    }
 
-    if ( symbolInfo.stats.sizeInBytes == 0 )
+    if ( symbolInfo.stats.sizeInBytes == 0 ) {
       uncoveredBytes = 0;
-    else
-      uncoveredBytes = (symbolInfo.stats.uncoveredBytes*100.0)/
+    } else {
+      uncoveredBytes = ( symbolInfo.stats.uncoveredBytes * 100.0 ) /
                        symbolInfo.stats.sizeInBytes;
+    }
 
     report << "============================================" << std::endl
            << "Symbol                            : "
