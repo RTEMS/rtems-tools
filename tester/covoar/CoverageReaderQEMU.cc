@@ -68,10 +68,10 @@ namespace Coverage {
     // Read ENTRIES number of trace entries.
     //
 #define ENTRIES 1024
-    while (true) {
-      CoverageMapBase     *aCoverageMap = NULL;
+    while ( true ) {
+      CoverageMapBase*    aCoverageMap = NULL;
       struct trace_entry  entries[ENTRIES];
-      struct trace_entry  *entry;
+      struct trace_entry* entry;
 
       // Read and process each line of the coverage file.
       traceFile.read( (char *) entries, sizeof( struct trace_entry ) );
@@ -90,31 +90,31 @@ namespace Coverage {
         aCoverageMap = executableInformation->getCoverageMap( entry->pc );
 
         // Ensure that coverage map exists.
-        if (!aCoverageMap)
+        if ( !aCoverageMap )
           continue;
 
         // Set was executed for each TRACE_OP_BLOCK
-        if (entry->op & TRACE_OP_BLOCK) {
-         for (i=0; i<entry->size; i++) {
+        if ( entry->op & TRACE_OP_BLOCK ) {
+         for ( i = 0; i < entry->size; i++ ) {
             aCoverageMap->setWasExecuted( entry->pc + i );
           }
         }
 
         // Determine if additional branch information is available.
-        if ( (entry->op & branchInfo) != 0 ) {
+        if ( ( entry->op & branchInfo ) != 0 ) {
           uint32_t  a = entry->pc + entry->size - 1;
-            while (a > entry->pc && !aCoverageMap->isStartOfInstruction(a))
+            while ( a > entry->pc && !aCoverageMap->isStartOfInstruction( a ) )
               a--;
-            if (a == entry->pc && !aCoverageMap->isStartOfInstruction(a)) {
+            if ( a == entry->pc && !aCoverageMap->isStartOfInstruction( a ) ) {
               // Something went wrong parsing the objdump.
               std::ostringstream what;
               what << "Reached beginning of range in " << file
                 << " at " << entry->pc << " with no start of instruction.";
               throw rld::error( what, "CoverageReaderQEMU::processFile" );
             }
-            if (entry->op & taken) {
+            if ( entry->op & taken ) {
               aCoverageMap->setWasTaken( a );
-            } else if (entry->op & notTaken) {
+            } else if ( entry->op & notTaken ) {
               aCoverageMap->setWasNotTaken( a );
             }
         }
