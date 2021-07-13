@@ -25,17 +25,21 @@ Coverage::CoverageFormats_t Coverage::CoverageFormatToEnum(
   const std::string& format
 )
 {
-  if (format == "QEMU")
+  if ( format == "QEMU" ) {
     return COVERAGE_FORMAT_QEMU;
+  }
 
-  if (format == "RTEMS")
+  if ( format == "RTEMS" ) {
     return COVERAGE_FORMAT_RTEMS;
+  }
 
-  if (format == "Skyeye")
+  if (format == "Skyeye") {
     return COVERAGE_FORMAT_SKYEYE;
+  }
 
-  if (format == "TSIM")
+  if ( format == "TSIM" ) {
     return COVERAGE_FORMAT_TSIM;
+  }
 
   std::ostringstream what;
   what << format << " is an unknown coverage format "
@@ -47,7 +51,7 @@ Coverage::CoverageReaderBase* Coverage::CreateCoverageReader(
   CoverageFormats_t format
 )
 {
-  switch (format) {
+  switch ( format ) {
     case COVERAGE_FORMAT_QEMU:
       return new Coverage::CoverageReaderQEMU();
     case COVERAGE_FORMAT_RTEMS:
@@ -66,7 +70,7 @@ Coverage::CoverageWriterBase* Coverage::CreateCoverageWriter(
   CoverageFormats_t format
 )
 {
-  switch (format) {
+  switch ( format ) {
     case COVERAGE_FORMAT_RTEMS:
       return new Coverage::CoverageWriterRTEMS();
     case COVERAGE_FORMAT_SKYEYE:
