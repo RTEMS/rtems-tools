@@ -27,23 +27,28 @@ namespace Coverage {
      *  an instruction.
      */
     bool isStartOfInstruction;
+
     /*!
      *  This member indicates how many times the address was executed.
      */
     uint32_t wasExecuted;
+
     /*!
      *  This member indicates that the address is a branch instruction.
      */
     bool isBranch;
+
     /*!
      *  This member indicates that the address is a NOP instruction.
      */
     bool isNop;
+
     /*!
      *  When isBranch is TRUE, this member indicates that the branch
      *  instruction at the address was taken.
      */
     uint32_t wasTaken;
+
     /*!
      *  When isBranch is TRUE, this member indicates that the branch
      *  instruction at the address was NOT taken.
@@ -52,7 +57,7 @@ namespace Coverage {
 
   };
 
-  typedef std::vector < AddressInfo > AddressInfos;
+  typedef std::vector<AddressInfo> AddressInfos;
 
   /*!
    *  This structure identifies the low and high addresses
@@ -61,19 +66,22 @@ namespace Coverage {
    */
   struct AddressRange {
 
-    AddressRange ();
-    AddressRange (const std::string& name,
-                  uint32_t           lowAddress,
-                  uint32_t           highAddress);
+    AddressRange();
+    AddressRange(
+      const std::string& name,
+      uint32_t           lowAddress,
+      uint32_t           highAddress
+    );
 
-    size_t size () const;
+    size_t size() const;
 
-    bool inside (uint32_t address) const;
+    bool inside( uint32_t address ) const;
 
-    AddressInfo& get (uint32_t address);
-    const AddressInfo& get (uint32_t address) const;
+    AddressInfo& get( uint32_t address );
 
-    void dump (std::ostream& out, bool show_slots = false) const;
+    const AddressInfo& get( uint32_t address ) const;
+
+    void dump( std::ostream& out, bool show_slots = false ) const;
 
     /*!
      *  This is the file from which this originated.
@@ -100,7 +108,7 @@ namespace Coverage {
   /*
    *  This type identifies a list of ranges.
    */
-  typedef std::vector< AddressRange >  AddressRanges;
+  typedef std::vector<AddressRange> AddressRanges;
 
   /*! @class CoverageMapBase
    *
@@ -140,10 +148,14 @@ namespace Coverage {
     /*!
      *  This method prints the contents of the coverage map to stdout.
      */
-    void dump( void ) const;
+    void dump() const;
 
     /*!
-     *  Address valid?
+    *  This method checks whether an address is valid.
+    *
+    *  @param[in] address specifies the address to check
+    *
+    *  @return Returns true if @p address is valid and false if not.
      */
     bool validAddress( const uint32_t address ) const;
 
@@ -156,6 +168,14 @@ namespace Coverage {
      */
     int32_t getFirstLowAddress() const;
 
+    /*!
+     *  This method gets the low address of the range at @p index.
+     *
+     * @param[in] index the index of the range to get the size of
+     *
+     *  @return Returns the low address of the range at @p index in the
+     *  RangeList.
+     */
     uint32_t getLowAddressOfRange( size_t index ) const;
 
     /*!
@@ -179,6 +199,13 @@ namespace Coverage {
      */
     uint32_t getSize() const;
 
+    /*!
+     *  This method gets the size of the address range at @p index.
+     *
+     *  @param[in] index the index of the range to get the size of
+     *
+     *  @return Returns the size of the address range.
+     */
     uint32_t getSizeOfRange( size_t index ) const;
 
     /*!
@@ -201,14 +228,14 @@ namespace Coverage {
      *  This method returns the high address of the coverage map.
      *
      *  @return Returns the high address of the coverage map.
-    uint32_t getHighAddress( void ) const;
+    uint32_t getHighAddress() const;
      */
 
     /*!
      *  This method returns the low address of the coverage map.
      *
      *  @return Returns the low address of the coverage map.
-    uint32_t getLowAddress( void ) const;
+    uint32_t getLowAddress() const;
      */
 
     /*!
@@ -217,9 +244,7 @@ namespace Coverage {
      *
      *  @param[in] address specifies the address of the start of an instruction
      */
-    void setIsStartOfInstruction(
-      uint32_t address
-    );
+    void setIsStartOfInstruction( uint32_t address );
 
     /*!
      *  This method returns a boolean which indicates if this
@@ -368,7 +393,6 @@ namespace Coverage {
      */
     uint32_t getWasNotTaken( uint32_t address ) const;
 
-
     /*!
      *  This method returns a boolean which indicates if the branch
      *  instruction at the specified address is ALWAYS taken.
@@ -429,12 +453,12 @@ namespace Coverage {
     /*!
      * Range checked access to the info.
      */
-    AddressInfo& getInfo(uint32_t offset);
+    AddressInfo& getInfo( uint32_t offset );
 
     /*!
      * Constant range checked access to the info.
      */
-    const AddressInfo& getInfo(uint32_t offset) const;
+    const AddressInfo& getInfo( uint32_t offset ) const;
 
   };
 
