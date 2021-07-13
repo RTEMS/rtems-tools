@@ -61,7 +61,7 @@ namespace Coverage {
         break;
       }
 
-      for (i = 0; i < 0x80; i += 4) {
+      for ( i = 0; i < 0x80; i += 4 ) {
         unsigned int a;
 
         coverageFile >> std::hex >> cover >> std::dec;
@@ -69,9 +69,9 @@ namespace Coverage {
           std::cerr << "CoverageReaderTSIM: WARNING! Short line in "
                     << file
                     << " at address 0x"
-                    << std::hex << std::setfill('0')
+                    << std::hex << std::setfill( '0' )
                     << baseAddress
-                    << std::setfill(' ') << std::dec
+                    << std::setfill( ' ' ) << std::dec
                     << std::endl;
           break;
         }
@@ -82,8 +82,10 @@ namespace Coverage {
         //
         a = baseAddress + i;
         aCoverageMap = executableInformation->getCoverageMap( a );
-        if ( !aCoverageMap )
+        if ( !aCoverageMap ) {
           continue;
+        }
+
         if ( cover & 0x01 ) {
           aCoverageMap->setWasExecuted( a );
           aCoverageMap->setWasExecuted( a + 1 );
