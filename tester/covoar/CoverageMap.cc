@@ -13,7 +13,7 @@ namespace Coverage {
     const std::string& exefileName,
     uint32_t           low,
     uint32_t           high
-  ) : CoverageMapBase(exefileName, low, high)
+  ) : CoverageMapBase( exefileName, low, high )
   {
   }
 
