@@ -22,7 +22,6 @@ namespace Trace {
 
   public:
 
-
     /*!
      *  This method constructs a TraceReaderLogQEMU instance.
      */
