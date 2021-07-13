@@ -42,35 +42,35 @@ namespace Coverage {
        *  This member contains an identification number for this
        *  coverage range.
        */
-      uint32_t          id;
+      uint32_t id;
 
       /*!
        *  This member contains the low address of this coverage
        *  range.
        */
-      uint32_t          lowAddress;
+      uint32_t lowAddress;
 
       /*!
        *  This member contains the source line associated with the
        *  low address for this coverage range.
        */
-      std::string       lowSourceLine;
+      std::string lowSourceLine;
 
       /*!
        * This member contains the high address for this coverage range.
        */
-      uint32_t          highAddress;
+      uint32_t highAddress;
 
       /*!
        *  This member contains the high source line for this coverage range.
        */
-      std::string       highSourceLine;
+      std::string highSourceLine;
 
       /*!
        * This member contains an instruction count for this coverage
        * address range.
        */
-      uint32_t          instructionCount;
+      uint32_t instructionCount;
 
       /*!
        *  This member contains the reason that this area was uncovered.
@@ -104,6 +104,7 @@ namespace Coverage {
      *  @param[in] lowAddressArg specifies the lowest address of the range
      *  @param[in] highAddressArg specifies the highest address of the range
      *  @param[in] why specifies the reason that the range was added
+     *  @param[in] numInstructions specifies the number of instructions
      *
      */
     void add(
