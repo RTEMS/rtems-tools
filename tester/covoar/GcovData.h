@@ -33,8 +33,8 @@ namespace Gcov {
 #define GCOV_TAG_PROGRAM_SUMMARY        ((uint32_t)0xa3000000)
 
 
-typedef std::list<Gcov::GcovFunctionData>              functions_t;
-typedef std::list<Gcov::GcovFunctionData>::iterator    functions_iterator_t;
+typedef std::list<Gcov::GcovFunctionData>           functions_t;
+typedef std::list<Gcov::GcovFunctionData>::iterator functions_iterator_t;
 
 struct gcov_preamble
 {
@@ -96,7 +96,7 @@ class DesiredSymbols;
      *
      *  @return Returns TRUE if the method succeeded and FALSE if it failed.
      */
-    bool writeGcdaFile ();
+    bool writeGcdaFile();
 
     /*!
      *  This method writes all contained information to stdout file
@@ -109,22 +109,22 @@ class DesiredSymbols;
      *  This method runs gcov to generate report. This method should
      *  be used only when gcno and gcda files are already generated.
      */
-    void writeGcovFile( );
+    void writeGcovFile();
 
     /*!
      *  This method calculates values of counters for all functions
      */
-    bool processCounters( void );
+    bool processCounters();
 
   private:
 
-    uint32_t                            numberOfFunctions;
-    gcov_preamble                       gcnoPreamble;
-    std::string                         gcnoFileName;
-    std::string                         gcdaFileName;
-    std::string                         textFileName;
-    std::string                         cFileName;
-    functions_t                         functions;
+    uint32_t      numberOfFunctions;
+    gcov_preamble gcnoPreamble;
+    std::string   gcnoFileName;
+    std::string   gcdaFileName;
+    std::string   textFileName;
+    std::string   cFileName;
+    functions_t   functions;
 
 
     /*!
@@ -142,7 +142,8 @@ class DesiredSymbols;
      *  @param[in] buffer stores the string
      *  @param[in] file specifies the name of the file to read
      *
-     *  @return Returns length of words read (word = 32bit) or -1 if error ocurred
+     *  @return Returns length of words read (word = 32bit) or -1 if error
+     *  ocurred
      */
     int readString( char* buffer, std::ifstream& gcovFile );
 
@@ -168,9 +169,9 @@ class DesiredSymbols;
      *          or -1 if error ocurred
      */
     int readFilePreamble(
-      gcov_preamble*      preamble,
-      std::ifstream&      gcovFile,
-      const uint32_t      desiredMagic
+      gcov_preamble* preamble,
+      std::ifstream& gcovFile,
+      const uint32_t desiredMagic
     );
 
     /*!
@@ -183,9 +184,9 @@ class DesiredSymbols;
      *  @return Returns true if operation was succesfull
      */
     bool readFunctionFrame(
-      gcov_frame_header   header,
-      std::ifstream&      gcovFile,
-      GcovFunctionData*   function
+      gcov_frame_header header,
+      std::ifstream&    gcovFile,
+      GcovFunctionData* function
     );
 
     /*!
