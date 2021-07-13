@@ -60,9 +60,9 @@ namespace Trace {
   }
 
   bool TraceWriterQEMU::writeFile(
-    const std::string&         file,
-    Trace::TraceReaderBase    *log,
-    bool                       verbose
+    const std::string&      file,
+    Trace::TraceReaderBase* log,
+    bool                    verbose
   )
   {
     struct trace_header header;
@@ -99,13 +99,13 @@ namespace Trace {
     // The header.magic field is actually 12 bytes, but QEMU_TRACE_MAGIC is
     // 13 bytes including the NULL.
     memcpy( header.magic, QEMU_TRACE_MAGIC, sizeof(header.magic) );
-    header.version = QEMU_TRACE_VERSION;
-    header.kind    = QEMU_TRACE_KIND_RAW;  // XXX ??
+    header.version          = QEMU_TRACE_VERSION;
+    header.kind             = QEMU_TRACE_KIND_RAW;  // XXX ??
     header.sizeof_target_pc = 32;
-    header.big_endian = false;
-    header.machine[0] = 0; // XXX ??
-    header.machine[1] = 0; // XXX ??
-    header._pad = 0;
+    header.big_endian       = false;
+    header.machine[0]       = 0; // XXX ??
+    header.machine[1]       = 0; // XXX ??
+    header._pad             = 0;
 
     traceFile.write( (char *) &header, sizeof( trace_header ) );
     if ( traceFile.fail() ) {
@@ -113,30 +113,32 @@ namespace Trace {
       return false;
     }
 
-    if (verbose)
+    if ( verbose ) {
       std::cerr << "magic = " << QEMU_TRACE_MAGIC << std::endl
                 << "version = " << header.version << std::endl
                 << "kind = " << header.kind << std::endl
                 << "sizeof_target_pc = " << header.sizeof_target_pc << std::endl
                 << "big_endian = " << header.big_endian << std::endl
-                << std::hex << std::setfill('0')
-                << "machine = " << std::setw(2) << header.machine[0]
+                << std::hex << std::setfill( '0' )
+                << "machine = " << std::setw( 2 ) << header.machine[0]
                 << ':' << header.machine[1]
-                << std::dec << std::setfill(' ')
+                << std::dec << std::setfill( ' ' )
                 << std::endl;
+    }
 
     //
     // Loop through log and write each entry.
     //
 
-    for (const auto & itr : log->Trace.set) {
-      struct trace_entry32  entry;
+    for ( const auto& itr : log->Trace.set ) {
+      struct trace_entry32 entry;
 
       entry._pad[0] = 0;
       entry.pc      = itr.lowAddress;
       entry.size    = itr.length;
       entry.op      = TRACE_OP_BLOCK;
-      switch (itr.exitReason) {
+
+      switch ( itr.exitReason ) {
         case TraceList::EXIT_REASON_BRANCH_TAKEN:
           entry.op |= taken;
           break;
@@ -146,15 +148,19 @@ namespace Trace {
         case TraceList::EXIT_REASON_OTHER:
           break;
         default:
-          throw rld::error( "Unknown exit Reason", "TraceWriterQEMU::writeFile" );
+          throw rld::error(
+            "Unknown exit Reason",
+            "TraceWriterQEMU::writeFile"
+          );
           break;
        }
 
-      if ( verbose )
-        std::cerr << std::hex << std::setfill('0')
+      if ( verbose ) {
+        std::cerr << std::hex << std::setfill( '0' )
                   << entry.pc << ' ' << entry.size << ' ' << entry.op
-                  << std::dec << std::setfill(' ')
+                  << std::dec << std::setfill( ' ' )
                   << std::endl;
+      }
 
       traceFile.write( (char *) &entry, sizeof( entry ) );
       if ( traceFile.fail() ) {
