@@ -32,9 +32,7 @@ namespace Coverage {
    *
    *  @return Returns a coverage file format.
    */
-  CoverageFormats_t CoverageFormatToEnum(
-    const std::string& format
-  );
+  CoverageFormats_t CoverageFormatToEnum( const std::string& format );
 
   /*!
    *  This method returns an instance of a Coverage File Reader class
@@ -44,9 +42,7 @@ namespace Coverage {
    *
    *  @return Returns a Coverage File Reader class instance.
    */
-  CoverageReaderBase* CreateCoverageReader(
-    CoverageFormats_t format
-  );
+  CoverageReaderBase* CreateCoverageReader( CoverageFormats_t format );
 
   /*!
    *  This method returns an instance of a Coverage File Writer class
@@ -56,9 +52,7 @@ namespace Coverage {
    *
    *  @return Returns a Coverage File Writer class instance.
    */
-  CoverageWriterBase* CreateCoverageWriter(
-    CoverageFormats_t format
-  );
+  CoverageWriterBase* CreateCoverageWriter( CoverageFormats_t format );
 }
 
 #endif
