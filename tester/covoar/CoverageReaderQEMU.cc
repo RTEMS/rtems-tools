@@ -20,12 +20,6 @@
 
 #include "qemu-traces.h"
 
-#if HAVE_OPEN64
-#define OPEN fopen64
-#else
-#define OPEN fopen
-#endif
-
 namespace Coverage {
 
   CoverageReaderQEMU::CoverageReaderQEMU()
@@ -38,14 +32,13 @@ namespace Coverage {
   }
 
   void CoverageReaderQEMU::processFile(
-    const char* const     file,
+    const std::string&    file,
     ExecutableInfo* const executableInformation
   )
   {
     struct trace_header header;
     uintptr_t           i;
-    int                 status;
-    FILE*               traceFile;
+    std::ifstream       traceFile;
     uint8_t             taken;
     uint8_t             notTaken;
     uint8_t             branchInfo;
@@ -57,16 +50,15 @@ namespace Coverage {
     //
     // Open the coverage file and read the header.
     //
-    traceFile = ::OPEN( file, "r" );
-    if (!traceFile) {
+    traceFile.open( file );
+    if ( !traceFile.is_open() ) {
       std::ostringstream what;
       what << "Unable to open " << file;
       throw rld::error( what, "CoverageReaderQEMU::processFile" );
     }
 
-    status = ::fread( &header, sizeof(trace_header), 1, traceFile );
-    if (status != 1) {
-      ::fclose( traceFile );
+    traceFile.read( (char *) &header, sizeof( trace_header ) );
+    if ( traceFile.fail() || traceFile.gcount() != sizeof( trace_header ) ) {
       std::ostringstream what;
       what << "Unable to read header from " << file;
       throw rld::error( what, "CoverageReaderQEMU::processFile" );
@@ -80,22 +72,16 @@ namespace Coverage {
       CoverageMapBase     *aCoverageMap = NULL;
       struct trace_entry  entries[ENTRIES];
       struct trace_entry  *entry;
-      int                 num_entries;
-
 
       // Read and process each line of the coverage file.
-      num_entries = ::fread(
-        entries,
-        sizeof(struct trace_entry),
-        ENTRIES,
-        traceFile
-      );
-      if (num_entries == 0)
+      traceFile.read( (char *) entries, sizeof( struct trace_entry ) );
+      if ( traceFile.gcount() == 0 ) {
         break;
+      }
 
       // Get the coverage map for each entry.  Note that the map is
       // the same for each entry in the coverage map
-      for (int count=0; count<num_entries; count++) {
+      for ( int count = 0; count < traceFile.gcount(); count++ ) {
 
         entry = &entries[count];
 
@@ -134,6 +120,5 @@ namespace Coverage {
         }
       }
     }
-    ::fclose( traceFile );
   }
 }

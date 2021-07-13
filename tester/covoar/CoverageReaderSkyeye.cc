@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 
 #include "CoverageReaderSkyeye.h"
@@ -28,32 +29,30 @@ namespace Coverage {
   }
 
   void CoverageReaderSkyeye::processFile(
-    const char* const     file,
+    const std::string&    file,
     ExecutableInfo* const executableInformation
   )
   {
     CoverageMapBase* aCoverageMap = NULL;
     uintptr_t        baseAddress;
     uint8_t          cover;
-    FILE*            coverageFile;
+    std::ifstream    coverageFile;
     prof_header_t    header;
     uintptr_t        i;
     uintptr_t        length;
-    int              status;
 
     //
     // Open the coverage file and read the header.
     //
-    coverageFile = ::fopen( file, "r" );
-    if (!coverageFile) {
+    coverageFile.open( file );
+    if ( !coverageFile ) {
       std::ostringstream what;
       what << "Unable to open " << file;
       throw rld::error( what, "CoverageReaderSkyeye::processFile" );
     }
 
-    status = ::fread( &header, sizeof(header), 1, coverageFile );
-    if (status != 1) {
-      ::fclose( coverageFile );
+    coverageFile.read( (char *) &header, sizeof( header ) );
+    if ( coverageFile.fail() ) {
       std::ostringstream what;
       what << "Unable to read header from " << file;
       throw rld::error( what, "CoverageReaderSkyeye::processFile" );
@@ -66,8 +65,8 @@ namespace Coverage {
     // Read and process each line of the coverage file.
     //
     for (i = 0; i < length; i += 8) {
-      status = ::fread( &cover, sizeof(uint8_t), 1, coverageFile );
-      if (status != 1) {
+      coverageFile.read( (char *) &cover, sizeof( uint8_t ) );
+      if ( coverageFile.gcount() != sizeof( uint8_t ) ) {
         std::cerr << "CoverageReaderSkyeye::ProcessFile - breaking after 0x"
                   << std::hex << std::setfill('0')
                   << std::setw(8) << i
@@ -106,6 +105,5 @@ namespace Coverage {
       }
     }
 
-    ::fclose( coverageFile );
   }
 }

@@ -7,6 +7,8 @@
 #ifndef __COVERAGE_READER_QEMU_H__
 #define __COVERAGE_READER_QEMU_H__
 
+#include <fstream>
+
 #include "CoverageReaderBase.h"
 #include "ExecutableInfo.h"
 
@@ -37,7 +39,7 @@ TBD
 
     /* Inherit documentation from base class. */
     void processFile(
-      const char* const     file,
+      const std::string&    file,
       ExecutableInfo* const executableInformation
     );
   };

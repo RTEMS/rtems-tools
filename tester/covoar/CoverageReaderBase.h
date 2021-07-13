@@ -39,7 +39,7 @@ namespace Coverage {
      *             associated executable
      */
     virtual void processFile(
-      const char* const     file,
+      const std::string&    file,
       ExecutableInfo* const executableInformation
     ) = 0;
 

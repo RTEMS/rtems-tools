@@ -33,7 +33,7 @@ namespace Coverage {
    *  @return Returns a coverage file format.
    */
   CoverageFormats_t CoverageFormatToEnum(
-    const char* const format
+    const std::string& format
   );
 
   /*!

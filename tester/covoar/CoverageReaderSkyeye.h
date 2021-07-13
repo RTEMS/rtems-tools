@@ -35,7 +35,7 @@ TBD
 
     /* Inherit documentation from base class. */
     void processFile(
-      const char* const     file,
+      const std::string&    file,
       ExecutableInfo* const executableInformation
     );
   };

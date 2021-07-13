@@ -10,6 +10,7 @@
 #include <sys/stat.h>
 
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 
 #include <rld.h>
@@ -30,22 +31,22 @@ namespace Coverage {
   }
 
   void CoverageReaderTSIM::processFile(
-    const char* const     file,
+    const std::string&    file,
     ExecutableInfo* const executableInformation
   )
   {
     CoverageMapBase* aCoverageMap = NULL;
     int              baseAddress;
     int              cover;
-    FILE*            coverageFile;
+    std::ifstream    coverageFile;
     int              i;
-    int              status;
+    char             ignore;
 
     //
     // Open the coverage file.
     //
-    coverageFile = ::fopen( file, "r" );
-    if (!coverageFile) {
+    coverageFile.open( file );
+    if ( !coverageFile.is_open() ) {
       std::ostringstream what;
       what << "Unable to open " << file;
       throw rld::error( what, "CoverageReaderTSIM::processFile" );
@@ -55,15 +56,16 @@ namespace Coverage {
     // Read and process each line of the coverage file.
     //
     while ( true ) {
-      status = ::fscanf( coverageFile, "%x : ", &baseAddress );
-      if (status == EOF || status == 0) {
+      coverageFile >> std::hex >> baseAddress >> ignore >> std::dec;
+      if ( coverageFile.gcount() == 0 || coverageFile.fail() ) {
         break;
       }
 
       for (i = 0; i < 0x80; i += 4) {
         unsigned int a;
-        status = ::fscanf( coverageFile, "%x", &cover );
-        if (status == EOF || status == 0) {
+
+        coverageFile >> std::hex >> cover >> std::dec;
+        if ( coverageFile.fail() || coverageFile.gcount() == 0 ) {
           std::cerr << "CoverageReaderTSIM: WARNING! Short line in "
                     << file
                     << " at address 0x"
@@ -99,6 +101,5 @@ namespace Coverage {
       }
     }
 
-    ::fclose( coverageFile );
   }
 }

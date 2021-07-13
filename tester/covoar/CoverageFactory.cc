@@ -22,19 +22,19 @@
 #include "CoverageWriterTSIM.h"
 
 Coverage::CoverageFormats_t Coverage::CoverageFormatToEnum(
-  const char* const format
+  const std::string& format
 )
 {
-  if (!strcmp( format, "QEMU" ))
+  if (format == "QEMU")
     return COVERAGE_FORMAT_QEMU;
 
-  if (!strcmp( format, "RTEMS" ))
+  if (format == "RTEMS")
     return COVERAGE_FORMAT_RTEMS;
 
-  if (!strcmp( format, "Skyeye" ))
+  if (format == "Skyeye")
     return COVERAGE_FORMAT_SKYEYE;
 
-  if (!strcmp( format, "TSIM" ))
+  if (format == "TSIM")
     return COVERAGE_FORMAT_TSIM;
 
   std::ostringstream what;
