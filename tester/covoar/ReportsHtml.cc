@@ -34,8 +34,10 @@
 
 namespace Coverage {
 
-  ReportsHtml::ReportsHtml( time_t timestamp, const std::string& symbolSetName ):
-    ReportsBase( timestamp, symbolSetName )
+  ReportsHtml::ReportsHtml(
+   time_t              timestamp,
+    const std::string& symbolSetName
+  ): ReportsBase( timestamp, symbolSetName )
   {
     reportExtension_m = ".html";
   }
@@ -44,9 +46,7 @@ namespace Coverage {
   {
   }
 
-  void ReportsHtml::WriteIndex(
-    const std::string& fileName
-  )
+  void ReportsHtml::WriteIndex( const std::string& fileName )
   {
     std::ofstream aFile;
     #define PRINT_ITEM( _t, _n ) \
@@ -61,13 +61,14 @@ namespace Coverage {
 
 
     // Open the file
-    OpenFile(fileName, aFile);
+    OpenFile( fileName, aFile );
 
     aFile << "<title>Index</title>" << std::endl
           << "<div class=\"heading-title\">";
 
-    if (projectName)
+    if ( projectName ) {
       aFile << projectName << "<br>";
+    }
 
     aFile << "Coverage Analysis Reports</div>" << std::endl
           << "<div class =\"datetime\">"
@@ -98,7 +99,7 @@ namespace Coverage {
   )
   {
     // Open the file
-    ReportsBase::OpenFile(fileName, symbolSetName_m, aFile);
+    ReportsBase::OpenFile( fileName, symbolSetName_m, aFile );
 
     // Put Header information on the file
     aFile << "<html>" << std::endl
@@ -118,13 +119,14 @@ namespace Coverage {
   )
   {
     // Open the file
-    OpenFile(fileName, aFile);
+    OpenFile( fileName, aFile );
 
     aFile << "<title>Annotated Report</title>" << std::endl
           << "<div class=\"heading-title\">";
 
-    if (projectName)
+    if ( projectName ) {
       aFile << projectName << "<br>";
+    }
 
     aFile << "Annotated Report</div>" << std::endl
           << "<div class =\"datetime\">"
@@ -140,14 +142,15 @@ namespace Coverage {
   )
   {
     // Open the file
-    OpenFile(fileName, aFile);
+    OpenFile( fileName, aFile );
 
     // Put header information into the file
     aFile << "<title>Branch Report</title>" << std::endl
           << "<div class=\"heading-title\">";
 
-    if (projectName)
+    if ( projectName ) {
       aFile << projectName << "<br>";
+    }
 
     aFile << "Branch Report</div>" << std::endl
           << "<div class =\"datetime\">"
@@ -185,14 +188,15 @@ namespace Coverage {
   )
   {
     // Open the file
-    OpenFile(fileName, aFile);
+    OpenFile( fileName, aFile );
 
     // Put header information into the file
     aFile << "<title>Coverage Report</title>" << std::endl
           << "<div class=\"heading-title\">";
 
-    if (projectName)
+    if ( projectName ) {
       aFile << projectName << "<br>";
+    }
 
     aFile << "Coverage Report</div>" << std::endl
           << "<div class =\"datetime\">"
@@ -227,14 +231,15 @@ namespace Coverage {
   )
   {
     // Open the file
-    OpenFile(fileName, aFile);
+    OpenFile( fileName, aFile );
 
     // Put header information into the file
     aFile << "<title> Report</title>" << std::endl
           << "<div class=\"heading-title\">";
 
-    if (projectName)
+    if ( projectName ) {
       aFile << projectName << "<br>";
+    }
 
     aFile << "No Range Report</div>" << std::endl
           << "<div class =\"datetime\">"
@@ -259,14 +264,15 @@ namespace Coverage {
   )
   {
     // Open the file
-    OpenFile(fileName, aFile);
+    OpenFile( fileName, aFile );
 
     // Put header information into the file
     aFile << "<title>Uncovered Range Size Report</title>" << std::endl
           << "<div class=\"heading-title\">";
 
-    if (projectName)
+    if ( projectName ) {
       aFile << projectName << "<br>";
+    }
 
     aFile << "Uncovered Range Size Report</div>" << std::endl
           << "<div class =\"datetime\">"
@@ -295,14 +301,15 @@ namespace Coverage {
   )
   {
     // Open the file
-    OpenFile(fileName, aFile);
+    OpenFile( fileName, aFile );
 
     // Put header information into the file
     aFile << "<title>Symbol Summary Report</title>" << std::endl
           << "<div class=\"heading-title\">";
 
-    if (projectName)
+    if ( projectName ) {
       aFile << projectName << "<br>";
+    }
 
     aFile << "Symbol Summary Report</div>" << std::endl
           << "<div class =\"datetime\">"
@@ -361,33 +368,33 @@ namespace Coverage {
     number = std::to_string( id );
 
     // Set the stateText based upon the current state.
-    switch (state) {
-      case  A_SOURCE:
+    switch ( state ) {
+      case A_SOURCE:
         stateText = "</pre>\n<pre class=\"code\">\n";
         break;
-      case  A_EXECUTED:
+      case A_EXECUTED:
         stateText = "</pre>\n<pre class=\"codeExecuted\">\n";
         break;
-      case  A_NEVER_EXECUTED:
+      case A_NEVER_EXECUTED:
         stateText = "</pre>\n";
         stateText += "<a name=\"range";
         stateText += number;
         stateText += "\"></a><pre class=\"codeNotExecuted\">\n";
         break;
-      case  A_BRANCH_TAKEN:
+      case A_BRANCH_TAKEN:
         stateText = "</pre>\n";
         stateText += "<a name=\"range";
         stateText += number;
         stateText += "\"></a><pre class=\"codeAlwaysTaken\">\n";
         break;
-      case  A_BRANCH_NOT_TAKEN:
+      case A_BRANCH_NOT_TAKEN:
         stateText = "</pre>\n";
         stateText += "<a name=\"range";
         stateText += number;
         stateText += "\"></a><pre class=\"codeNeverTaken\">\n";
         break;
       default:
-        throw rld::error("Unknown state", "ReportsHtml::PutAnnotatedLine");
+        throw rld::error( "Unknown state", "ReportsHtml::PutAnnotatedLine" );
         break;
     }
 
@@ -402,33 +409,36 @@ namespace Coverage {
     // For all the characters in the line replace html reserved special
     // characters and output the line. Note that for a /pre block this
     // is only a '<' symbol.
-    for (unsigned int i=0; i<line.size(); i++ ) {
-      if ( line[i] == '<' )
+    for ( unsigned int i=0; i<line.size(); i++ ) {
+      if ( line[i] == '<' ) {
         aFile << "&lt;";
-      else
+      } else {
         aFile << line[i];
+      }
     }
     aFile << std::endl;
   }
 
-  bool ReportsHtml::PutNoBranchInfo(
-    std::ofstream& report
-  )
+  bool ReportsHtml::PutNoBranchInfo( std::ofstream& report )
   {
-    if (BranchInfoAvailable &&
-      SymbolsToAnalyze->getNumberBranchesFound(symbolSetName_m) != 0)
+    if (
+      BranchInfoAvailable &&
+      SymbolsToAnalyze->getNumberBranchesFound( symbolSetName_m ) != 0
+    ) {
       report << "All branch paths taken." << std::endl;
-    else
+    } else {
       report << "No branch information found." << std::endl;
+    }
+
     return true;
   }
 
   bool ReportsHtml::PutBranchEntry(
-    std::ofstream&                                   report,
-    unsigned int                                     count,
-    const std::string&                               symbolName,
-    const SymbolInformation&                         symbolInfo,
-    const CoverageRanges::coverageRange_t&           range
+    std::ofstream&                         report,
+    unsigned int                           count,
+    const std::string&                     symbolName,
+    const SymbolInformation&               symbolInfo,
+    const CoverageRanges::coverageRange_t& range
   )
   {
     const Coverage::Explanation* explanation;
@@ -439,10 +449,11 @@ namespace Coverage {
     Coverage::CoverageMapBase*   theCoverageMap = NULL;
 
     // Mark the background color different for odd and even lines.
-    if ( ( count%2 ) != 0 )
+    if ( ( count % 2 ) != 0 ) {
       report << "<tr class=\"covoar-tr-odd\">\n";
-    else
+    } else {
       report << "<tr>" << std::endl;
+    }
 
     // symbol
     report << "<td class=\"covoar-td\" align=\"center\">"
@@ -454,8 +465,8 @@ namespace Coverage {
            << range.lowSourceLine << "</td>" << std::endl;
 
     // File
-    i = range.lowSourceLine.find(":");
-    temp =  range.lowSourceLine.substr (0, i);
+    i = range.lowSourceLine.find( ":" );
+    temp = range.lowSourceLine.substr( 0, i );
     report << "<td class=\"covoar-td\" align=\"center\">"
            << temp << "</td>" << std::endl;
 
@@ -464,18 +475,23 @@ namespace Coverage {
            << range.highAddress - range.lowAddress + 1 << "</td>" << std::endl;
 
     // Reason Branch was uncovered
-    if (range.reason ==
-      Coverage::CoverageRanges::UNCOVERED_REASON_BRANCH_ALWAYS_TAKEN)
+    if (
+      range.reason ==
+      Coverage::CoverageRanges::UNCOVERED_REASON_BRANCH_ALWAYS_TAKEN
+    ) {
       report << "<td class=\"covoar-td\" align=\"center\">Always Taken</td>"
              << std::endl;
-    else if (range.reason ==
-      Coverage::CoverageRanges::UNCOVERED_REASON_BRANCH_NEVER_TAKEN)
+    } else if (
+      range.reason ==
+      Coverage::CoverageRanges::UNCOVERED_REASON_BRANCH_NEVER_TAKEN
+    ) {
       report << "<td class=\"covoar-td\" align=\"center\">Never Taken</td>"
              << std::endl;
+    }
 
     // Taken / Not taken counts
-    lowAddress = range.lowAddress;
-    bAddress = symbolInfo.baseAddress;
+    lowAddress     = range.lowAddress;
+    bAddress       = symbolInfo.baseAddress;
     theCoverageMap = symbolInfo.unifiedCoverageMap;
 
     report << "<td class=\"covoar-td\" align=\"center\">"
@@ -519,9 +535,9 @@ namespace Coverage {
   {
     std::ofstream report;
 
-    OpenFile(fileName, report);
+    OpenFile( fileName, report );
 
-    for ( unsigned int i=0 ; i < explanation->explanation.size(); i++) {
+    for ( unsigned int i=0 ; i < explanation->explanation.size(); i++ ) {
       report << explanation->explanation[i] << std::endl;
     }
     CloseFile( report );
@@ -531,7 +547,7 @@ namespace Coverage {
   void ReportsHtml::putCoverageNoRange(
     std::ofstream&     report,
     std::ofstream&     noRangeFile,
-    unsigned int  count,
+    unsigned int       count,
     const std::string& symbol
   )
   {
@@ -547,7 +563,7 @@ namespace Coverage {
     );
 
     // Mark the background color different for odd and even lines.
-    if ( ( count%2 ) != 0 ){
+    if ( ( count % 2 ) != 0 ) {
       report << "<tr class=\"covoar-tr-odd\">" << std::endl;
       noRangeFile << "<tr class=\"covoar-tr-odd\">" << std::endl;
     } else {
@@ -591,22 +607,23 @@ namespace Coverage {
   }
 
   bool ReportsHtml::PutCoverageLine(
-    std::ofstream&                                   report,
-    unsigned int                                     count,
-    const std::string&                               symbolName,
-    const SymbolInformation&                         symbolInfo,
-    const CoverageRanges::coverageRange_t&           range
+    std::ofstream&                         report,
+    unsigned int                           count,
+    const std::string&                     symbolName,
+    const SymbolInformation&               symbolInfo,
+    const CoverageRanges::coverageRange_t& range
   )
   {
-    const Coverage::Explanation*   explanation;
-    std::string                    temp;
-    int                            i;
+    const Coverage::Explanation* explanation;
+    std::string                  temp;
+    int                          i;
 
     // Mark the background color different for odd and even lines.
-    if ( ( count% 2) != 0 )
+    if ( ( count % 2) != 0 ) {
       report << "<tr class=\"covoar-tr-odd\">" << std::endl;
-    else
+    } else {
       report << "<tr>" << std::endl;
+    }
 
     // symbol
     report << "<td class=\"covoar-td\" align=\"center\">"
@@ -619,8 +636,8 @@ namespace Coverage {
            << range.highSourceLine << "</td>" << std::endl;
 
     // File
-    i = range.lowSourceLine.find(":");
-    temp =  range.lowSourceLine.substr (0, i);
+    i = range.lowSourceLine.find( ":" );
+    temp = range.lowSourceLine.substr( 0, i );
 
     report << "<td class=\"covoar-td\" align=\"center\">"
            << temp << "</td>" << std::endl;
@@ -661,20 +678,21 @@ namespace Coverage {
   }
 
   bool  ReportsHtml::PutSizeLine(
-    std::ofstream&                                  report,
-    unsigned int                                    count,
-    const std::string&                              symbolName,
-    const CoverageRanges::coverageRange_t&          range
+    std::ofstream&                         report,
+    unsigned int                           count,
+    const std::string&                     symbolName,
+    const CoverageRanges::coverageRange_t& range
   )
   {
-    std::string  temp;
-    int          i;
+    std::string temp;
+    int         i;
 
     // Mark the background color different for odd and even lines.
-    if ( ( count%2 ) != 0 )
+    if ( ( count % 2 ) != 0 ) {
       report << "<tr class=\"covoar-tr-odd\">" << std::endl;
-    else
+    } else {
       report << "<tr>" << std::endl;
+    }
 
     // size
     report << "<td class=\"covoar-td\" align=\"center\">"
@@ -690,8 +708,8 @@ namespace Coverage {
            << range.lowSourceLine << "</td>" << std::endl;
 
     // File
-    i = range.lowSourceLine.find(":");
-    temp =  range.lowSourceLine.substr (0, i);
+    i = range.lowSourceLine.find( ":" );
+    temp =  range.lowSourceLine.substr( 0, i );
     report << "<td class=\"covoar-td\" align=\"center\">"
            << temp << "</td>" << std::endl
            << "</tr>" << std::endl;
@@ -700,24 +718,25 @@ namespace Coverage {
   }
 
   bool  ReportsHtml::PutSymbolSummaryLine(
-    std::ofstream&                                  report,
-    unsigned int                                    count,
-    const std::string&                              symbolName,
-    const SymbolInformation&                        symbolInfo
+    std::ofstream&           report,
+    unsigned int             count,
+    const std::string&       symbolName,
+    const SymbolInformation& symbolInfo
   )
   {
 
     // Mark the background color different for odd and even lines.
-    if ( ( count%2 ) != 0 )
+    if ( ( count % 2 ) != 0 ) {
       report << "<tr class=\"covoar-tr-odd\">" << std::endl;
-    else
+    } else {
       report << "<tr>" << std::endl;
+    }
 
     // symbol
     report << "<td class=\"covoar-td\" align=\"center\">"
            << symbolName << "</td>" << std::endl;
 
-    if (symbolInfo.stats.sizeInBytes == 0) {
+    if ( symbolInfo.stats.sizeInBytes == 0 ) {
       // The symbol has never been seen. Write "unknown" for all columns.
       report << "<td class=\"covoar-td\" align=\"center\">unknown</td>"
              << std::endl
@@ -775,57 +794,52 @@ namespace Coverage {
              << symbolInfo.stats.branchesNeverTaken << "</td>" << std::endl;
 
       // % Uncovered Instructions
-      if ( symbolInfo.stats.sizeInInstructions == 0 )
+      if ( symbolInfo.stats.sizeInInstructions == 0 ) {
         report << "<td class=\"covoar-td\" align=\"center\">100.00</td>"
                << std::endl;
-      else
+      } else {
         report << "<td class=\"covoar-td\" align=\"center\">"
                << std::fixed << std::setprecision( 2 )
                << ( symbolInfo.stats.uncoveredInstructions * 100.0 ) /
                     symbolInfo.stats.sizeInInstructions
                << "</td>" << std::endl;
+      }
 
       // % Uncovered Bytes
-      if ( symbolInfo.stats.sizeInBytes == 0 )
+      if ( symbolInfo.stats.sizeInBytes == 0 ) {
         report << "<td class=\"covoar-td\" align=\"center\">100.00</td>"
                << std::endl;
-      else
+      } else {
         report << "<td class=\"covoar-td\" align=\"center\">"
                << ( symbolInfo.stats.uncoveredBytes * 100.0 ) /
                     symbolInfo.stats.sizeInBytes
                << "</td>" << std::endl;
+      }
     }
 
     report << "</tr>" << std::endl;
     return true;
   }
 
-  void ReportsHtml::CloseAnnotatedFile(
-    std::ofstream& aFile
-  )
+  void ReportsHtml::CloseAnnotatedFile( std::ofstream& aFile )
   {
     aFile << "</pre>"  << std::endl
           << "</body>" << std::endl
           << "</html>" << std::endl;
 
-    CloseFile(aFile);
+    CloseFile( aFile );
   }
 
-  void ReportsHtml::CloseBranchFile(
-    std::ofstream& aFile,
-    bool   hasBranches
-  )
+  void ReportsHtml::CloseBranchFile( std::ofstream& aFile, bool hasBranches )
   {
     aFile << TABLE_FOOTER
           << "</tbody>" << std::endl
           << "</table>" << std::endl;
 
-    CloseFile(aFile);
+    CloseFile( aFile );
   }
 
-  void ReportsHtml::CloseCoverageFile(
-    std::ofstream& aFile
-  )
+  void ReportsHtml::CloseCoverageFile( std::ofstream& aFile )
   {
     aFile << TABLE_FOOTER
           << "</tbody>" << std::endl
@@ -834,12 +848,10 @@ namespace Coverage {
           << "</body>"  << std::endl
           << "</html>";
 
-    CloseFile(aFile);
+    CloseFile( aFile );
   }
 
-  void ReportsHtml::CloseNoRangeFile(
-    std::ofstream& aFile
-  )
+  void ReportsHtml::CloseNoRangeFile( std::ofstream& aFile )
   {
     aFile << TABLE_FOOTER
           << "</tbody>" << std::endl
@@ -848,13 +860,11 @@ namespace Coverage {
           << "</body>"  << std::endl
           << "</html>";
 
-    CloseFile(aFile);
+    CloseFile( aFile );
   }
 
 
-  void ReportsHtml::CloseSizeFile(
-    std::ofstream& aFile
-  )
+  void ReportsHtml::CloseSizeFile( std::ofstream& aFile )
   {
     aFile << TABLE_FOOTER
           << "</tbody>" << std::endl
@@ -863,12 +873,10 @@ namespace Coverage {
           << "</body>"  << std::endl
           << "</html>";
 
-    CloseFile(aFile);
+    CloseFile( aFile );
   }
 
-  void ReportsHtml::CloseSymbolSummaryFile(
-    std::ofstream& aFile
-  )
+  void ReportsHtml::CloseSymbolSummaryFile( std::ofstream& aFile )
   {
     aFile << TABLE_FOOTER
           << "</tbody>" << std::endl
