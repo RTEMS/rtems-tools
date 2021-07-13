@@ -25,26 +25,26 @@ namespace Gcov {
 
 struct gcov_arc_info
 {
-  uint32_t    sourceBlock;
-  uint32_t    destinationBlock;
-  uint32_t    flags;
-  uint64_t    counter;
+  uint32_t sourceBlock;
+  uint32_t destinationBlock;
+  uint32_t flags;
+  uint64_t counter;
 };
 
 struct gcov_block_info
 {
-  uint32_t                    id;
-  uint32_t                    flags;
-  uint32_t                    numberOfLines;
-  uint64_t                    counter;
-  std::string                 sourceFileName;
-  std::list<uint32_t>         lines;
+  uint32_t            id;
+  uint32_t            flags;
+  uint32_t            numberOfLines;
+  uint64_t            counter;
+  std::string         sourceFileName;
+  std::list<uint32_t> lines;
 };
 
-typedef std::list<gcov_arc_info>                arcs_t;
-typedef std::list<gcov_arc_info>::iterator      arcs_iterator_t;
-typedef std::list<gcov_block_info>              blocks_t;
-typedef std::list<gcov_block_info>::iterator    blocks_iterator_t;
+typedef std::list<gcov_arc_info>             arcs_t;
+typedef std::list<gcov_arc_info>::iterator   arcs_iterator_t;
+typedef std::list<gcov_block_info>           blocks_t;
+typedef std::list<gcov_block_info>::iterator blocks_iterator_t;
 
 class DesiredSymbols;
 
@@ -71,27 +71,21 @@ class DesiredSymbols;
      *
      *  @param[in] chk stores the checksum value
      */
-    void setChecksum(
-      const uint32_t              chk
-    );
+    void setChecksum( const uint32_t chk );
 
     /*!
      *  This method stores id of function
      *
      *  @param[in] idNumber stores the id value
      */
-    void setId(
-      const uint32_t              idNumber
-    );
+    void setId( const uint32_t idNumber );
 
     /*!
      *  This method stores checksum related to function
      *
      *  @param[in] lineNo passes number of the line begining the function
      */
-    void setFirstLineNumber(
-      const uint32_t              lineNo
-    );
+    void setFirstLineNumber( const uint32_t lineNo );
 
     /*!
      *  This method stores name of the function and ties it to its
@@ -125,8 +119,8 @@ class DesiredSymbols;
      *  @return Returns TRUE if the method succeeded and FALSE if it failed.
      */
     void setBlockFileName(
-      const blocks_iterator_t             block,
-      const std::string&                  fileName
+      const blocks_iterator_t block,
+      const std::string&      fileName
     );
 
     /*!
@@ -159,9 +153,9 @@ class DesiredSymbols;
      */
     void getCounters(
       uint64_t* counterValues,
-      uint32_t &countersFound,
-      uint64_t &countersSum,
-      uint64_t &countersMax
+      uint32_t& countersFound,
+      uint64_t& countersSum,
+      uint64_t& countersMax
     );
 
     /*!
@@ -170,11 +164,7 @@ class DesiredSymbols;
      *  @param[in] source passes source block number
      *  @param[in] destination passes destination block number
      */
-    void addArc(
-      uint32_t    source,
-      uint32_t    destination,
-      uint32_t    flags
-    );
+    void addArc( uint32_t source, uint32_t destination, uint32_t flags );
 
     /*!
      *  This method adds new arc to arc list
@@ -182,10 +172,7 @@ class DesiredSymbols;
      *  @param[in] block identifies block
      *  @param[in] line passes the line number
      */
-    void addBlockLine(
-      const blocks_iterator_t     block,
-      const uint32_t              line
-    );
+    void addBlockLine( const blocks_iterator_t block, const uint32_t line );
 
     /*!
      *  This method finds block by its ID
@@ -204,9 +191,9 @@ class DesiredSymbols;
      *  @param[in] sourceFileName passes containing file name
      */
     void addBlock(
-      const uint32_t              id,
-      const uint32_t              flags,
-      const std::string&          sourceFileName
+      const uint32_t     id,
+      const uint32_t     flags,
+      const std::string& sourceFileName
     );
 
     /*!
@@ -243,26 +230,26 @@ class DesiredSymbols;
     /*!
      *  This method calculates values of arc counters
      */
-    bool processFunctionCounters( void );
+    bool processFunctionCounters();
 
   private:
 
-    uint32_t            id;
-    uint32_t            checksum;
-    uint32_t            firstLineNumber;
-    uint32_t            numberOfBlocks;
-    uint32_t            numberOfArcs;
-    arcs_t              arcs;
-    blocks_t            blocks;
-    std::string         functionName;
-    std::string         sourceFileName;
+    uint32_t    id;
+    uint32_t    checksum;
+    uint32_t    firstLineNumber;
+    uint32_t    numberOfBlocks;
+    uint32_t    numberOfArcs;
+    arcs_t      arcs;
+    blocks_t    blocks;
+    std::string functionName;
+    std::string sourceFileName;
 
     /*!
      *  This member contains the unified or merged coverage map
      *  and symbol info for the symbol.
      */
-    Coverage::CoverageMapBase*          coverageMap;
-    Coverage::SymbolInformation*        symbolInfo;
+    Coverage::CoverageMapBase*   coverageMap;
+    Coverage::SymbolInformation* symbolInfo;
 
     /*!
      *  This method creates list of taken/not taken values
@@ -272,8 +259,8 @@ class DesiredSymbols;
      *  @param[in] notTaken   used to return not taken counts list
      */
     bool processBranches(
-      std::list<uint64_t> * taken,
-      std::list<uint64_t> * notTaken
+      std::list<uint64_t>* taken,
+      std::list<uint64_t>* notTaken
     );
   };
 
