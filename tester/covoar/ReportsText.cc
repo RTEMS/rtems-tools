@@ -10,6 +10,9 @@
 #include "Explanations.h"
 #include "ObjdumpProcessor.h"
 
+#include <rtems-utils.h>
+
+typedef rtems::utils::ostream_guard ostream_guard;
 
 namespace Coverage {
 
@@ -144,6 +147,8 @@ bool ReportsText::PutCoverageLine(
 )
 {
   const Coverage::Explanation* explanation;
+
+  ostream_guard oldState( report );
 
   report << "============================================" << std::endl
          << "Index                : " << range.id << std::endl
