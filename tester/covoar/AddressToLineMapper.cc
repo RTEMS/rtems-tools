@@ -19,9 +19,13 @@ namespace Coverage {
     return is_end_sequence;
   }
 
-  const std::string& SourceLine::path() const
+  const std::string SourceLine::path() const
   {
-    return path_;
+    if (!path_) {
+      return "unknown";
+    } else {
+      return *path_;
+    }
   }
 
   int SourceLine::line() const
@@ -31,7 +35,8 @@ namespace Coverage {
 
   void AddressLineRange::addSourceLine(const rld::dwarf::address& address)
   {
-    auto insertResult = sourcePaths.insert(address.path());
+    auto insertResult = sourcePaths.insert(
+      std::make_shared<std::string>(address.path()));
 
     sourceLines.emplace_back(
       SourceLine (

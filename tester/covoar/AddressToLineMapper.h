@@ -8,6 +8,7 @@
 #define __ADDRESS_TO_LINE_MAPPER_H__
 
 #include <cstdint>
+#include <memory>
 #include <set>
 #include <string>
 #include <vector>
@@ -26,7 +27,7 @@ namespace Coverage {
 
     SourceLine()
     : address(0),
-      path_("unknown"),
+      path_(nullptr),
       line_num(-1),
       is_end_sequence(true)
     {
@@ -34,7 +35,7 @@ namespace Coverage {
 
     SourceLine(
       uint64_t addr,
-      const std::string& src,
+      const std::shared_ptr<std::string>& src,
       int line,
       bool end_sequence
     ) : address(addr),
@@ -64,7 +65,7 @@ namespace Coverage {
      *
      *  @return Returns the source file path of this address
      */
-    const std::string& path() const;
+    const std::string path() const;
 
     /*!
      *  This method gets the source line number of this address.
@@ -84,7 +85,7 @@ namespace Coverage {
      *  An iterator pointing to the location in the set that contains the
      *  source file path of the address.
      */
-    const std::string& path_;
+    const std::shared_ptr<std::string> path_;
 
     /*!
      *  The source line number of the address.
@@ -100,7 +101,17 @@ namespace Coverage {
 
   typedef std::vector<SourceLine> SourceLines;
 
-  typedef std::set<std::string> SourcePaths;
+  /* This allows comparison of strings owned by shared_ptrs. */
+  struct SharedStringCmp {
+    bool operator()(
+      const std::shared_ptr<std::string>& lhs,
+      const std::shared_ptr<std::string>& rhs
+    ) const {
+      return *lhs < *rhs;
+    }
+  };
+
+  typedef std::set<std::shared_ptr<std::string>, SharedStringCmp> SourcePaths;
 
   /*! @class AddressLineRange
    *
