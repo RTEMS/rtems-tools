@@ -47,6 +47,26 @@ namespace rtems
                bool        real = false,
                size_t      line_length = 16,
                uint32_t    offset = 0);
+
+    /*
+     * Save and restore the output stream's settings.
+     */
+    struct ostream_guard {
+      std::ostream&           o;
+      std::ios_base::fmtflags flags;
+
+      ostream_guard (std::ostream& o_)
+        : o (o_),
+          flags (o_.flags ())
+      {
+      }
+
+      ~ostream_guard ()
+      {
+        o.flags(flags);
+      }
+    };
+
   }
 }
 
