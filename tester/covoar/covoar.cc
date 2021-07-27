@@ -178,6 +178,7 @@ int covoar(
   Coverage::ObjdumpProcessor    objdumpProcessor;
   bool                          verbose = false;
   std::string                   dynamicLibrary;
+  std::string                   projectName;
 
   //
   // Process command line options.
@@ -223,7 +224,7 @@ int covoar(
   /*
    * Check for project name.
    */
-  if ( !projectName )
+  if ( projectName.empty() )
     throw option_error( "project name -p" );
 
   //
@@ -474,7 +475,12 @@ int covoar(
     std::cerr << "Generate Reports" << std::endl;
 
   for (const auto& setName : SymbolsToAnalyze->getSetNames()) {
-    Coverage::GenerateReports( setName, allExplanations, verbose );
+    Coverage::GenerateReports(
+      setName,
+      allExplanations,
+      verbose,
+      projectName
+    );
   }
 
   // Write explanations that were not found.

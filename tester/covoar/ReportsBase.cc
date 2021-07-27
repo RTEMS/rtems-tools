@@ -26,11 +26,13 @@ namespace Coverage {
 ReportsBase::ReportsBase(
   time_t                  timestamp,
   const std::string&      symbolSetName,
-  Coverage::Explanations& allExplanations
+  Coverage::Explanations& allExplanations,
+  const std::string&      projectName
 ): reportExtension_m( "" ),
    symbolSetName_m( symbolSetName ),
    timestamp_m( timestamp ),
-   allExplanations_m( allExplanations )
+   allExplanations_m( allExplanations ),
+   projectName_m( projectName )
 {
 }
 
@@ -565,7 +567,8 @@ void  ReportsBase::WriteSummaryReport(
 void GenerateReports(
   const std::string&      symbolSetName,
   Coverage::Explanations& allExplanations,
-  bool                    verbose
+  bool                    verbose,
+  const std::string&      projectName
 )
 {
   typedef std::list<ReportsBase *> reportList_t;
@@ -578,9 +581,19 @@ void GenerateReports(
 
 
   timestamp = time( NULL ); /* get current cal time */
-  reports = new ReportsText( timestamp, symbolSetName, allExplanations );
+  reports = new ReportsText(
+    timestamp,
+    symbolSetName,
+    allExplanations,
+    projectName
+  );
   reportList.push_back( reports );
-  reports = new ReportsHtml( timestamp, symbolSetName, allExplanations );
+  reports = new ReportsHtml(
+    timestamp,
+    symbolSetName,
+    allExplanations,
+    projectName
+  );
   reportList.push_back( reports );
 
   for ( ritr = reportList.begin(); ritr != reportList.end(); ritr++ ) {

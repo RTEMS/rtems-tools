@@ -60,7 +60,6 @@ Coverage::DesiredSymbols*   SymbolsToAnalyze    = NULL;
 const char*                 outputDirectory     = ".";
 bool                        BranchInfoAvailable = false;
 Target::TargetBase*         TargetInfo          = NULL;
-const char*                 projectName         = NULL;
 char                        inputBuffer[MAX_LINE_LENGTH];
 char                        inputBuffer2[MAX_LINE_LENGTH];
 

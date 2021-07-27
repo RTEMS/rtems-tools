@@ -30,7 +30,8 @@ class ReportsBase {
     ReportsBase(
       time_t                  timestamp,
       const std::string&      symbolSetName,
-      Coverage::Explanations& allExplanations
+      Coverage::Explanations& allExplanations,
+      const std::string&      projectName
     );
     virtual ~ReportsBase();
 
@@ -128,6 +129,11 @@ class ReportsBase {
      *  This member variable contains the explanations to report on.
      */
     Coverage::Explanations& allExplanations_m;
+
+    /*!
+     *  This variable stores the name of the project.
+     */
+    std::string projectName_m;
 
     /*!
      *  This method Opens a report file and verifies that it opened
@@ -401,11 +407,13 @@ class ReportsBase {
  *  @param[in] symbolSetName is the name of the symbol set to report on.
  *  @param[in] allExplanations is the explanations to report on.
  *  @param[in] verbose specifies whether to be verbose with output
+ *  @param[in] projectName specifies the name of the project
  */
 void GenerateReports(
   const std::string&      symbolSetName,
   Coverage::Explanations& allExplanations,
-  bool                    verbose
+  bool                    verbose,
+  const std::string&      projectName
 );
 
 }

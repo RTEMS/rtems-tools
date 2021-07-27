@@ -40,8 +40,9 @@ namespace Coverage {
   ReportsHtml::ReportsHtml(
     time_t                  timestamp,
     const std::string&      symbolSetName,
-    Coverage::Explanations& allExplanations
-  ): ReportsBase( timestamp, symbolSetName, allExplanations ),
+    Coverage::Explanations& allExplanations,
+    const std::string&      projectName
+  ): ReportsBase( timestamp, symbolSetName, allExplanations, projectName ),
      lastState_m( A_SOURCE )
   {
     reportExtension_m = ".html";
@@ -71,8 +72,8 @@ namespace Coverage {
     aFile << "<title>Index</title>" << std::endl
           << "<div class=\"heading-title\">";
 
-    if ( projectName ) {
-      aFile << projectName << "<br>";
+    if ( !projectName_m.empty() ) {
+      aFile << projectName_m << "<br>";
     }
 
     aFile << "Coverage Analysis Reports</div>" << std::endl
@@ -129,8 +130,8 @@ namespace Coverage {
     aFile << "<title>Annotated Report</title>" << std::endl
           << "<div class=\"heading-title\">";
 
-    if ( projectName ) {
-      aFile << projectName << "<br>";
+    if ( !projectName_m.empty() ) {
+      aFile << projectName_m << "<br>";
     }
 
     aFile << "Annotated Report</div>" << std::endl
@@ -153,8 +154,8 @@ namespace Coverage {
     aFile << "<title>Branch Report</title>" << std::endl
           << "<div class=\"heading-title\">";
 
-    if ( projectName ) {
-      aFile << projectName << "<br>";
+    if ( !projectName_m.empty() ) {
+      aFile << projectName_m << "<br>";
     }
 
     aFile << "Branch Report</div>" << std::endl
@@ -199,8 +200,8 @@ namespace Coverage {
     aFile << "<title>Coverage Report</title>" << std::endl
           << "<div class=\"heading-title\">";
 
-    if ( projectName ) {
-      aFile << projectName << "<br>";
+    if ( !projectName_m.empty() ) {
+      aFile << projectName_m << "<br>";
     }
 
     aFile << "Coverage Report</div>" << std::endl
@@ -242,8 +243,8 @@ namespace Coverage {
     aFile << "<title> Report</title>" << std::endl
           << "<div class=\"heading-title\">";
 
-    if ( projectName ) {
-      aFile << projectName << "<br>";
+    if ( !projectName_m.empty() ) {
+      aFile << projectName_m << "<br>";
     }
 
     aFile << "No Range Report</div>" << std::endl
@@ -275,8 +276,8 @@ namespace Coverage {
     aFile << "<title>Uncovered Range Size Report</title>" << std::endl
           << "<div class=\"heading-title\">";
 
-    if ( projectName ) {
-      aFile << projectName << "<br>";
+    if ( !projectName_m.empty() ) {
+      aFile << projectName_m << "<br>";
     }
 
     aFile << "Uncovered Range Size Report</div>" << std::endl
@@ -312,8 +313,8 @@ namespace Coverage {
     aFile << "<title>Symbol Summary Report</title>" << std::endl
           << "<div class=\"heading-title\">";
 
-    if ( projectName ) {
-      aFile << projectName << "<br>";
+    if ( !projectName_m.empty() ) {
+      aFile << projectName_m << "<br>";
     }
 
     aFile << "Symbol Summary Report</div>" << std::endl

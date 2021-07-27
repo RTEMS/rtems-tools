@@ -24,7 +24,8 @@ class ReportsText: public ReportsBase {
     ReportsText(
       time_t                  timestamp,
       const std::string&      symbolSetName,
-      Coverage::Explanations& allExplanations
+      Coverage::Explanations& allExplanations,
+      const std::string&      projectName
     );
     virtual ~ReportsText();
 

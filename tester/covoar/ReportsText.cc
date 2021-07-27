@@ -19,8 +19,9 @@ namespace Coverage {
 ReportsText::ReportsText(
   time_t                  timestamp,
   const std::string&      symbolSetName,
-  Coverage::Explanations& allExplanations
-): ReportsBase( timestamp, symbolSetName, allExplanations )
+  Coverage::Explanations& allExplanations,
+  const std::string&      projectName
+): ReportsBase( timestamp, symbolSetName, allExplanations, projectName )
 {
   reportExtension_m = ".txt";
 }

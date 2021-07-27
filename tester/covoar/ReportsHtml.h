@@ -28,7 +28,8 @@ class ReportsHtml: public ReportsBase {
     ReportsHtml(
       time_t                  timestamp,
       const std::string&      symbolSetName,
-      Coverage::Explanations& allExplanations
+      Coverage::Explanations& allExplanations,
+      const std::string&      projectName
     );
    ~ReportsHtml();
 
