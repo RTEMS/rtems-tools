@@ -57,7 +57,6 @@
  *  Global variables for the program
  */
 Coverage::DesiredSymbols*   SymbolsToAnalyze    = NULL;
-const char*                 outputDirectory     = ".";
 bool                        BranchInfoAvailable = false;
 Target::TargetBase*         TargetInfo          = NULL;
 char                        inputBuffer[MAX_LINE_LENGTH];

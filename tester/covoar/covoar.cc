@@ -179,6 +179,7 @@ int covoar(
   bool                          verbose = false;
   std::string                   dynamicLibrary;
   std::string                   projectName;
+  std::string                   outputDirectory = ".";
 
   //
   // Process command line options.
@@ -479,7 +480,8 @@ int covoar(
       setName,
       allExplanations,
       verbose,
-      projectName
+      projectName,
+      outputDirectory
     );
   }
 

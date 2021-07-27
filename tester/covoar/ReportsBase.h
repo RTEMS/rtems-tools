@@ -31,7 +31,8 @@ class ReportsBase {
       time_t                  timestamp,
       const std::string&      symbolSetName,
       Coverage::Explanations& allExplanations,
-      const std::string&      projectName
+      const std::string&      projectName,
+      const std::string&      outputDirectory
     );
     virtual ~ReportsBase();
 
@@ -87,7 +88,8 @@ class ReportsBase {
      */
     static void  WriteSummaryReport(
       const std::string& fileName,
-      const std::string& symbolSetName
+      const std::string& symbolSetName,
+      const std::string& outputDirectory
     );
 
     /*!
@@ -136,17 +138,24 @@ class ReportsBase {
     std::string projectName_m;
 
     /*!
+     *  This variable stores the output directory.
+     */
+    std::string outputDirectory_m = "";
+
+    /*!
      *  This method Opens a report file and verifies that it opened
      *  correctly.  Upon failure NULL is returned.
      *
      *  @param[in] fileName identifies the report file name
      *  @param[in] symbolSetName identifies the name of the report's symbol set
      *  @param[in] aFile identifies the file to open
+     *  @param[in] outputDirectory identifies the directory for the output
      */
     static void OpenFile(
       const std::string& fileName,
       const std::string& symbolSetName,
-      std::ofstream&     aFile
+      std::ofstream&     aFile,
+      const std::string& outputDirectory
     );
 
     /*!
@@ -408,12 +417,14 @@ class ReportsBase {
  *  @param[in] allExplanations is the explanations to report on.
  *  @param[in] verbose specifies whether to be verbose with output
  *  @param[in] projectName specifies the name of the project
+ *  @param[in] outputDirectory specifies the directory for the output
  */
 void GenerateReports(
   const std::string&      symbolSetName,
   Coverage::Explanations& allExplanations,
   bool                    verbose,
-  const std::string&      projectName
+  const std::string&      projectName,
+  const std::string&      outputDirectory
 );
 
 }

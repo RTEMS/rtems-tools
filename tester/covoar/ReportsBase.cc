@@ -27,12 +27,14 @@ ReportsBase::ReportsBase(
   time_t                  timestamp,
   const std::string&      symbolSetName,
   Coverage::Explanations& allExplanations,
-  const std::string&      projectName
+  const std::string&      projectName,
+  const std::string&      outputDirectory
 ): reportExtension_m( "" ),
    symbolSetName_m( symbolSetName ),
    timestamp_m( timestamp ),
    allExplanations_m( allExplanations ),
-   projectName_m( projectName )
+   projectName_m( projectName ),
+   outputDirectory_m( outputDirectory )
 {
 }
 
@@ -43,7 +45,8 @@ ReportsBase::~ReportsBase()
 void ReportsBase::OpenFile(
   const std::string& fileName,
   const std::string& symbolSetName,
-  std::ofstream&     aFile
+  std::ofstream&     aFile,
+  const std::string& outputDirectory
 )
 {
   int         sc;
@@ -89,7 +92,7 @@ void ReportsBase::OpenAnnotatedFile(
   std::ofstream&     aFile
 )
 {
-  OpenFile(fileName, symbolSetName_m, aFile);
+  OpenFile( fileName, symbolSetName_m, aFile, outputDirectory_m );
 }
 
 void ReportsBase::OpenBranchFile(
@@ -98,7 +101,7 @@ void ReportsBase::OpenBranchFile(
   std::ofstream&     aFile
 )
 {
-  OpenFile(fileName, symbolSetName_m, aFile);
+  OpenFile( fileName, symbolSetName_m, aFile, outputDirectory_m );
 }
 
 void ReportsBase::OpenCoverageFile(
@@ -106,7 +109,7 @@ void ReportsBase::OpenCoverageFile(
   std::ofstream&     aFile
 )
 {
-  OpenFile(fileName, symbolSetName_m, aFile);
+  OpenFile( fileName, symbolSetName_m, aFile, outputDirectory_m );
 }
 
 void ReportsBase::OpenNoRangeFile(
@@ -114,7 +117,7 @@ void ReportsBase::OpenNoRangeFile(
   std::ofstream&     aFile
 )
 {
-  OpenFile(fileName, symbolSetName_m, aFile);
+  OpenFile( fileName, symbolSetName_m, aFile, outputDirectory_m );
 }
 
 
@@ -123,7 +126,7 @@ void ReportsBase::OpenSizeFile(
   std::ofstream&     aFile
 )
 {
-  OpenFile(fileName, symbolSetName_m, aFile);
+  OpenFile( fileName, symbolSetName_m, aFile, outputDirectory_m );
 }
 
 void ReportsBase::OpenSymbolSummaryFile(
@@ -131,7 +134,7 @@ void ReportsBase::OpenSymbolSummaryFile(
   std::ofstream&     aFile
 )
 {
-  OpenFile(fileName, symbolSetName_m, aFile);
+  OpenFile( fileName, symbolSetName_m, aFile, outputDirectory_m );
 }
 
 void ReportsBase::CloseFile( std::ofstream& aFile )
@@ -466,7 +469,8 @@ void ReportsBase::WriteSymbolSummaryReport( const std::string& fileName )
 
 void  ReportsBase::WriteSummaryReport(
   const std::string& fileName,
-  const std::string& symbolSetName
+  const std::string& symbolSetName,
+  const std::string& outputDirectory
 )
 {
     // Calculate coverage statistics and output results.
@@ -480,7 +484,7 @@ void  ReportsBase::WriteSummaryReport(
   std::ofstream              report;
 
   // Open the report file.
-  OpenFile( fileName, symbolSetName, report );
+  OpenFile( fileName, symbolSetName, report, outputDirectory );
   if ( !report.is_open() ) {
     return;
   }
@@ -568,7 +572,8 @@ void GenerateReports(
   const std::string&      symbolSetName,
   Coverage::Explanations& allExplanations,
   bool                    verbose,
-  const std::string&      projectName
+  const std::string&      projectName,
+  const std::string&      outputDirectory
 )
 {
   typedef std::list<ReportsBase *> reportList_t;
@@ -585,14 +590,16 @@ void GenerateReports(
     timestamp,
     symbolSetName,
     allExplanations,
-    projectName
+    projectName,
+    outputDirectory
   );
   reportList.push_back( reports );
   reports = new ReportsHtml(
     timestamp,
     symbolSetName,
     allExplanations,
-    projectName
+    projectName,
+    outputDirectory
   );
   reportList.push_back( reports );
 
@@ -641,7 +648,11 @@ void GenerateReports(
     delete reports;
   }
 
-  ReportsBase::WriteSummaryReport( "summary.txt", symbolSetName );
+  ReportsBase::WriteSummaryReport(
+    "summary.txt",
+    symbolSetName,
+    outputDirectory
+  );
 }
 
 }

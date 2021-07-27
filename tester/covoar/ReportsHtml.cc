@@ -41,8 +41,15 @@ namespace Coverage {
     time_t                  timestamp,
     const std::string&      symbolSetName,
     Coverage::Explanations& allExplanations,
-    const std::string&      projectName
-  ): ReportsBase( timestamp, symbolSetName, allExplanations, projectName ),
+    const std::string&      projectName,
+    const std::string&      outputDirectory
+  ): ReportsBase(
+       timestamp,
+       symbolSetName,
+       allExplanations,
+       projectName,
+       outputDirectory
+     ),
      lastState_m( A_SOURCE )
   {
     reportExtension_m = ".html";
@@ -105,7 +112,12 @@ namespace Coverage {
   )
   {
     // Open the file
-    ReportsBase::OpenFile( fileName, symbolSetName_m, aFile );
+    ReportsBase::OpenFile(
+      fileName,
+      symbolSetName_m,
+      aFile,
+      outputDirectory_m
+    );
 
     // Put Header information on the file
     aFile << "<html>" << std::endl

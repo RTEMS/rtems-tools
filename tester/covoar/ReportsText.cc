@@ -20,8 +20,15 @@ ReportsText::ReportsText(
   time_t                  timestamp,
   const std::string&      symbolSetName,
   Coverage::Explanations& allExplanations,
-  const std::string&      projectName
-): ReportsBase( timestamp, symbolSetName, allExplanations, projectName )
+  const std::string&      projectName,
+  const std::string&      outputDirectory
+): ReportsBase(
+     timestamp,
+     symbolSetName,
+     allExplanations,
+     projectName,
+     outputDirectory
+   )
 {
   reportExtension_m = ".txt";
 }
