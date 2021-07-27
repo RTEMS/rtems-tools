@@ -189,7 +189,7 @@ namespace Coverage {
   }
 
 
-  void DesiredSymbols::computeUncovered( void )
+  void DesiredSymbols::computeUncovered( bool verbose )
   {
     // Look at each symbol set.
     for (const auto& kv : setNamesToSymbols) {
@@ -308,7 +308,7 @@ namespace Coverage {
                   CoverageRanges::UNCOVERED_REASON_BRANCH_ALWAYS_TAKEN,
                   1
                 );
-                if (Verbose)
+                if (verbose)
                   std::cerr << "Branch always taken found in" << symbol
                             << std::hex
                             << " (0x" << info.baseAddress + la
@@ -326,7 +326,7 @@ namespace Coverage {
                   CoverageRanges::UNCOVERED_REASON_BRANCH_NEVER_TAKEN,
                   1
                   );
-                if (Verbose)
+                if (verbose)
                   std::cerr << "Branch never taken found in " << symbol
                             << std::hex
                             << " (0x" << info.baseAddress + la
@@ -350,7 +350,8 @@ namespace Coverage {
     const std::string& exefileName,
     const std::string& symbolName,
     uint32_t           size,
-    uint32_t           sizeWithoutNops
+    uint32_t           sizeWithoutNops,
+    bool               verbose
   )
   {
     CoverageMapBase* aCoverageMap;
@@ -403,7 +404,7 @@ namespace Coverage {
 
       aCoverageMap = new CoverageMap( exefileName, 0, highAddress );
 
-      if ( Verbose )
+      if ( verbose )
         fprintf(
           stderr,
           "Created unified coverage map for %s (0x%x - 0x%x)\n",
@@ -440,7 +441,7 @@ namespace Coverage {
       return &set[ symbolName ];
   }
 
-  void DesiredSymbols::findSourceForUncovered( void )
+  void DesiredSymbols::findSourceForUncovered( bool verbose )
   {
     // Process uncovered ranges and/or branches for each symbol.
     for (auto& d : SymbolsToAnalyze->set) {
@@ -448,7 +449,7 @@ namespace Coverage {
       CoverageRanges* theRanges = d.second.uncoveredRanges;
       if (theRanges != nullptr) {
         if (!theRanges->set.empty()) {
-          if (Verbose)
+          if (verbose)
             std::cerr << "Looking up source lines for uncovered ranges in "
                       << d.first
                       << std::endl;
@@ -459,7 +460,7 @@ namespace Coverage {
         CoverageRanges* theBranches = d.second.uncoveredBranches;
         if (theBranches != nullptr) {
           if (!theBranches->set.empty()) {
-            if (Verbose)
+            if (verbose)
               std::cerr << "Looking up source lines for uncovered branches in "
                         << d.first
                         << std::endl;

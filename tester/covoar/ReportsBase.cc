@@ -564,7 +564,8 @@ void  ReportsBase::WriteSummaryReport(
 
 void GenerateReports(
   const std::string&      symbolSetName,
-  Coverage::Explanations& allExplanations
+  Coverage::Explanations& allExplanations,
+  bool                    verbose
 )
 {
   typedef std::list<ReportsBase *> reportList_t;
@@ -586,37 +587,37 @@ void GenerateReports(
     reports = *ritr;
 
     reportName = "index" + reports->ReportExtension();
-    if ( Verbose ) {
+    if ( verbose ) {
       std::cerr << "Generate " << reportName << std::endl;
     }
     reports->WriteIndex( reportName );
 
     reportName = "annotated" + reports->ReportExtension();
-    if ( Verbose ) {
+    if ( verbose ) {
       std::cerr << "Generate " << reportName << std::endl;
     }
     reports->WriteAnnotatedReport( reportName );
 
     reportName = "branch" + reports->ReportExtension();
-    if ( Verbose ) {
+    if ( verbose ) {
       std::cerr << "Generate " << reportName << std::endl;
     }
     reports->WriteBranchReport( reportName );
 
     reportName = "uncovered" + reports->ReportExtension();
-    if ( Verbose ) {
+    if ( verbose ) {
       std::cerr << "Generate " << reportName << std::endl;
     }
     reports->WriteCoverageReport( reportName );
 
     reportName = "sizes" + reports->ReportExtension();
-    if ( Verbose ) {
+    if ( verbose ) {
       std::cerr << "Generate " << reportName << std::endl;
     }
     reports->WriteSizeReport( reportName );
 
     reportName = "symbolSummary" + reports->ReportExtension();
-    if ( Verbose ) {
+    if ( verbose ) {
       std::cerr << "Generate " << reportName << std::endl;
     }
     reports->WriteSymbolSummaryReport( reportName );

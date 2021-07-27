@@ -400,10 +400,12 @@ class ReportsBase {
  *
  *  @param[in] symbolSetName is the name of the symbol set to report on.
  *  @param[in] allExplanations is the explanations to report on.
+ *  @param[in] verbose specifies whether to be verbose with output
  */
 void GenerateReports(
   const std::string&      symbolSetName,
-  Coverage::Explanations& allExplanations
+  Coverage::Explanations& allExplanations,
+  bool                    verbose
 );
 
 }

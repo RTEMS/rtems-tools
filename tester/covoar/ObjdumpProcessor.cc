@@ -29,7 +29,8 @@ namespace Coverage {
   void finalizeSymbol(
     ExecutableInfo* const            executableInfo,
     std::string&                     symbolName,
-    ObjdumpProcessor::objdumpLines_t instructions
+    ObjdumpProcessor::objdumpLines_t instructions,
+    bool                             verbose
   ) {
     // Find the symbol's coverage map.
     try {
@@ -105,7 +106,11 @@ namespace Coverage {
 
       // Create a unified coverage map for the symbol.
       SymbolsToAnalyze->createCoverageMap(
-        executableInfo->getFileName().c_str(), symbolName, size, sizeWithoutNops
+        executableInfo->getFileName().c_str(),
+        symbolName,
+        size,
+        sizeWithoutNops,
+        verbose
       );
     } catch (const ExecutableInfo::CoverageMapNotFoundError& e) {
       // Allow execution to continue even if a coverage map could not be
@@ -317,7 +322,8 @@ namespace Coverage {
   void ObjdumpProcessor::load(
     ExecutableInfo* const    executableInformation,
     rld::process::tempfile&  objdumpFile,
-    rld::process::tempfile&  err
+    rld::process::tempfile&  err,
+    bool                     verbose
   )
   {
     std::string     currentSymbol = "";
@@ -353,7 +359,8 @@ namespace Coverage {
           finalizeSymbol(
             executableInformation,
             currentSymbol,
-            theInstructions
+            theInstructions,
+            verbose
           );
           fprintf(
             stderr,
@@ -408,7 +415,8 @@ namespace Coverage {
           finalizeSymbol(
             executableInformation,
             currentSymbol,
-            theInstructions
+            theInstructions,
+            verbose
           );
         }
 
@@ -450,8 +458,9 @@ namespace Coverage {
           finalizeSymbol(
             executableInformation,
             currentSymbol,
-            theInstructions
-            );
+            theInstructions,
+            verbose
+          );
         }
         processSymbol = false;
       }

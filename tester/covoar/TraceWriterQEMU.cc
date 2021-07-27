@@ -73,7 +73,8 @@ namespace Trace {
 
   bool TraceWriterQEMU::writeFile(
     const char* const          file,
-    Trace::TraceReaderBase    *log
+    Trace::TraceReaderBase    *log,
+    bool                       verbose
   )
   {
     struct trace_header header;
@@ -120,7 +121,7 @@ namespace Trace {
       return false;
     }
 
-    if (Verbose)
+    if (verbose)
       std::cerr << "magic = " << header.magic << std::endl
                 << "version = " << header.version << std::endl
                 << "kind = " << header.kind << std::endl
@@ -157,7 +158,7 @@ namespace Trace {
           break;
        }
 
-      if ( Verbose )
+      if ( verbose )
         std::cerr << std::hex << std::setfill('0')
                   << entry.pc << ' ' << entry.size << ' ' << entry.op
                   << std::dec << std::setfill(' ')

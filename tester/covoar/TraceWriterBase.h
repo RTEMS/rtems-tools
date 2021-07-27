@@ -36,12 +36,14 @@ namespace Trace {
      *
      *  @param[in] file specifies the name of the file to write
      *  @param[in] log structure where the trace data was read into
+     *  @param[in] verbose specifies whether to be verbose with output
      *
      *  @return Returns TRUE if the method succeeded and FALSE if it failed.
      */
      virtual bool writeFile(
        const char* const          file,
-       Trace::TraceReaderBase    *log
+       Trace::TraceReaderBase    *log,
+       bool                       verbose
      ) =  0;
   };
 

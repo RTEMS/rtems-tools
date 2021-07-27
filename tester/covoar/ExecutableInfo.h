@@ -40,6 +40,7 @@ namespace Coverage {
      *
      *  @param[in] theExecutableName specifies the name of the executable
      *  @param[in] theLibraryName specifies the name of the executable
+     *  @param[in] verbose specifies whether to be verbose with output
      */
     ExecutableInfo(
       const char* const theExecutableName,

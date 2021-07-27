@@ -222,8 +222,10 @@ namespace Coverage {
     /*!
      *  This method analyzes each symbols coverage map to determine any
      *  uncovered ranges or branches.
+     *
+     *  @param[in] verbose specifies whether to be verbose with output
      */
-    void computeUncovered( void );
+    void computeUncovered( bool verbose );
 
     /*!
      *  This method creates a coverage map for the specified symbol
@@ -234,12 +236,15 @@ namespace Coverage {
      *  @param[in] symbolName specifies the symbol for which to create
      *             a coverage map
      *  @param[in] size specifies the size of the coverage map to create
+     *  @param[in] sizeWithoutNops specifies the size without no ops
+     *  @param[in] verbose specifies whether to be verbose with output
      */
     void createCoverageMap(
       const std::string& exefileName,
       const std::string& symbolName,
       uint32_t           size,
-      uint32_t           sizeWithoutNops
+      uint32_t           sizeWithoutNops,
+      bool               verbose
     );
 
     /*!
@@ -256,8 +261,10 @@ namespace Coverage {
     /*!
      *  This method determines the source lines that correspond to any
      *  uncovered ranges or branches.
+     *
+     *  @param[in] verbose specifies whether to be verbose with output
      */
-    void findSourceForUncovered( void );
+    void findSourceForUncovered( bool verbose );
 
     /*!
      *  This method returns the total number of branches always taken

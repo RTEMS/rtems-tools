@@ -57,7 +57,6 @@
  *  Global variables for the program
  */
 Coverage::DesiredSymbols*   SymbolsToAnalyze    = NULL;
-bool                        Verbose             = false;
 const char*                 outputDirectory     = ".";
 bool                        BranchInfoAvailable = false;
 Target::TargetBase*         TargetInfo          = NULL;

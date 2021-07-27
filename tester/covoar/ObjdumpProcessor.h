@@ -120,9 +120,10 @@ namespace Coverage {
      *  the specified executable.
      */
     void load(
-      ExecutableInfo* const executableInformation,
+      ExecutableInfo* const   executableInformation,
       rld::process::tempfile& dmp,
-      rld::process::tempfile& err
+      rld::process::tempfile& err,
+      bool                    verbose
     );
 
     /*!

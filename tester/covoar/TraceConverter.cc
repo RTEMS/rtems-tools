@@ -90,6 +90,7 @@ int main(
   rld::process::tempfile       objdumpFile( ".dmp" );
   rld::process::tempfile       err( ".err" );
   Coverage::ObjdumpProcessor   objdumpProcessor;
+  bool                         verbose = false;
 
   setup_signals();
 
@@ -105,7 +106,7 @@ int main(
       case 'l': logname = optarg;        break;
       case 'L': dynamicLibrary = optarg; break;
       case 't': tracefile = optarg;      break;
-      case 'v': Verbose = true;          break;
+      case 'v': verbose = true;          break;
       default:  usage();
     }
   }
@@ -141,5 +142,5 @@ int main(
     );
   objdumpProcessor.loadAddressTable( executableInfo, objdumpFile, err );
   log.processFile( logname, objdumpProcessor );
-  trace.writeFile( tracefile, &log );
+  trace.writeFile( tracefile, &log, verbose );
 }

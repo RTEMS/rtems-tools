@@ -176,6 +176,7 @@ int covoar(
   int                           opt;
   Coverage::Explanations        allExplanations;
   Coverage::ObjdumpProcessor    objdumpProcessor;
+  bool                          verbose = false;
 
   //
   // Process command line options.
@@ -193,7 +194,7 @@ int covoar(
       case 'S': symbolSet           = optarg; break;
       case 'T': target              = optarg; break;
       case 'O': outputDirectory     = optarg; break;
-      case 'v': Verbose             = true;
+      case 'v': verbose             = true;
                 rld::verbose_inc ();          break;
       case 'p': projectName         = optarg; break;
       case 'd': debug               = true;   break;
@@ -243,7 +244,7 @@ int covoar(
     buildTarget = target;
   }
 
-  if (Verbose) {
+  if (verbose) {
     if (singleExecutable) {
       std::cerr << "Processing a single executable and multiple coverage files"
                 << std::endl;
@@ -277,7 +278,7 @@ int covoar(
   //
   // Read symbol configuration file and load needed symbols.
   //
-  SymbolsToAnalyze->load( symbolSet, buildTarget, buildBSP, Verbose );
+  SymbolsToAnalyze->load( symbolSet, buildTarget, buildBSP, verbose );
 
   // If a single executable was specified, process the remaining
   // arguments as coverage file names.
@@ -304,11 +305,11 @@ int covoar(
       if (!coverageFileNames.empty()) {
         if (dynamicLibrary) {
           executableInfo = new Coverage::ExecutableInfo(
-            singleExecutable, dynamicLibrary, Verbose
+            singleExecutable, dynamicLibrary, verbose
           );
         } else {
           executableInfo = new Coverage::ExecutableInfo(
-            singleExecutable, nullptr, Verbose
+            singleExecutable, nullptr, verbose
           );
         }
 
@@ -332,7 +333,7 @@ int covoar(
                     << std::endl;
         } else {
           executableInfo = new Coverage::ExecutableInfo(
-            argv[i], nullptr, Verbose
+            argv[i], nullptr, verbose
           );
           executablesToAnalyze.push_back( executableInfo );
           coverageFileNames.push_back( coverageFileName );
@@ -351,7 +352,7 @@ int covoar(
   if (executablesToAnalyze.size() != coverageFileNames.size())
     throw rld::error( "executables and coverage name size mismatch", "covoar" );
 
-  if ( Verbose )
+  if ( verbose )
     std::cerr << "Analyzing " << SymbolsToAnalyze->allSymbols().size()
               << " symbols" << std::endl;
 
@@ -367,7 +368,7 @@ int covoar(
 
   // Prepare each executable for analysis.
   for (auto& exe : executablesToAnalyze) {
-    if (Verbose)
+    if (verbose)
       std::cerr << "Extracting information from: " << exe->getFileName()
                 << std::endl;
 
@@ -377,7 +378,7 @@ int covoar(
     }
 
     // Load the objdump for the symbols in this executable.
-    objdumpProcessor.load( exe, objdumpFile, err );
+    objdumpProcessor.load( exe, objdumpFile, err, verbose );
   }
 
   //
@@ -388,7 +389,7 @@ int covoar(
   Executables::iterator eitr = executablesToAnalyze.begin();
   for (const auto& cname : coverageFileNames) {
     Coverage::ExecutableInfo* exe = *eitr;
-    if (Verbose)
+    if (verbose)
       std::cerr << "Processing coverage file " << cname
                 << " for executable " << exe->getFileName()
                 << std::endl;
@@ -408,7 +409,7 @@ int covoar(
   }
 
   // Do necessary preprocessing of uncovered ranges and branches
-  if (Verbose)
+  if (verbose)
     std::cerr << "Preprocess uncovered ranges and branches" << std::endl;
 
   SymbolsToAnalyze->preprocess();
@@ -417,7 +418,7 @@ int covoar(
   // Generate Gcov reports
   //
   if (gcnosFileName) {
-    if (Verbose)
+    if (verbose)
       std::cerr << "Generating Gcov reports..." << std::endl;
 
     gcnosFile = fopen ( gcnosFileName , "r" );
@@ -429,7 +430,7 @@ int covoar(
         gcovFile = new Gcov::GcovData();
         strcpy( gcnoFileName, inputBuffer );
 
-        if ( Verbose )
+        if ( verbose )
           std::cerr << "Processing file: " << gcnoFileName << std::endl;
 
         if ( gcovFile->readGcnoFile( gcnoFileName ) ) {
@@ -447,32 +448,32 @@ int covoar(
   }
 
   // Determine the uncovered ranges and branches.
-  if (Verbose)
+  if (verbose)
     std::cerr << "Computing uncovered ranges and branches" << std::endl;
 
-  SymbolsToAnalyze->computeUncovered();
+  SymbolsToAnalyze->computeUncovered( verbose );
 
   // Calculate remainder of statistics.
-  if (Verbose)
+  if (verbose)
     std::cerr << "Calculate statistics" << std::endl;
 
   SymbolsToAnalyze->calculateStatistics();
 
   // Look up the source lines for any uncovered ranges and branches.
-  if (Verbose)
+  if (verbose)
     std::cerr << "Looking up source lines for uncovered ranges and branches"
               << std::endl;
 
-  SymbolsToAnalyze->findSourceForUncovered();
+  SymbolsToAnalyze->findSourceForUncovered( verbose );
 
   //
   // Report the coverage data.
   //
-  if (Verbose)
+  if (verbose)
     std::cerr << "Generate Reports" << std::endl;
 
   for (const auto& setName : SymbolsToAnalyze->getSetNames()) {
-    Coverage::GenerateReports( setName, allExplanations );
+    Coverage::GenerateReports( setName, allExplanations, verbose );
   }
 
   // Write explanations that were not found.
@@ -483,7 +484,7 @@ int covoar(
     notFound += "/";
     notFound += "ExplanationsNotFound.txt";
 
-    if (Verbose)
+    if (verbose)
       std::cerr << "Writing Not Found Report (" << notFound<< ')' << std::endl;
 
     allExplanations.writeNotFound( notFound.c_str() );

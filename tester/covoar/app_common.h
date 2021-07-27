@@ -13,7 +13,6 @@
 #include "TargetBase.h"
 
 extern Coverage::DesiredSymbols*    SymbolsToAnalyze;
-extern bool                         Verbose;
 extern const char*                  outputDirectory;
 extern bool                         BranchInfoAvailable;
 extern Target::TargetBase*          TargetInfo;
