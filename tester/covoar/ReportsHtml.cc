@@ -41,7 +41,8 @@ namespace Coverage {
     time_t                  timestamp,
     const std::string&      symbolSetName,
     Coverage::Explanations& allExplanations
-  ): ReportsBase( timestamp, symbolSetName, allExplanations )
+  ): ReportsBase( timestamp, symbolSetName, allExplanations ),
+     lastState_m( A_SOURCE )
   {
     reportExtension_m = ".html";
   }
