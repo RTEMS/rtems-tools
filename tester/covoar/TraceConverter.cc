@@ -89,6 +89,7 @@ int main(
   Coverage::ExecutableInfo*    executableInfo;
   rld::process::tempfile       objdumpFile( ".dmp" );
   rld::process::tempfile       err( ".err" );
+  Coverage::ObjdumpProcessor   objdumpProcessor;
 
   setup_signals();
 
@@ -133,14 +134,12 @@ int main(
   else
     executableInfo = new Coverage::ExecutableInfo( executable );
 
-  objdumpProcessor = new Coverage::ObjdumpProcessor();
-
   // If a dynamic library was specified, determine the load address.
   if (dynamicLibrary)
     executableInfo->setLoadAddress(
-      objdumpProcessor->determineLoadAddress( executableInfo )
+      objdumpProcessor.determineLoadAddress( executableInfo )
     );
-  objdumpProcessor->loadAddressTable( executableInfo, objdumpFile, err );
-  log.processFile( logname );
+  objdumpProcessor.loadAddressTable( executableInfo, objdumpFile, err );
+  log.processFile( logname, objdumpProcessor );
   trace.writeFile( tracefile, &log );
 }

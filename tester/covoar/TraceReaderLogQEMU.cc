@@ -72,7 +72,8 @@ namespace Trace {
   }
 
   bool TraceReaderLogQEMU::processFile(
-    const char* const     file
+    const char* const           file,
+    Coverage::ObjdumpProcessor& objdumpProcessor
   )
   {
     bool                done          = false;
@@ -160,7 +161,7 @@ namespace Trace {
         );
       } while( result > 1);
 
-      nextlogical = objdumpProcessor->getAddressAfter(last.address);
+      nextlogical = objdumpProcessor.getAddressAfter(last.address);
 
       if (! ReadUntilFound( logFile, QEMU_LOG_IN_KEY )) {
         done = true;
@@ -185,7 +186,7 @@ namespace Trace {
       if (nextlogical != 0) {
         TraceList::exitReason_t reason = TraceList::EXIT_REASON_OTHER;
 
-        if ( objdumpProcessor->IsBranch( last.instruction ) ) {
+        if ( objdumpProcessor.IsBranch( last.instruction ) ) {
           if ( nextExecuted.address == nextlogical ) {
             reason = TraceList::EXIT_REASON_BRANCH_NOT_TAKEN;
           }  else {

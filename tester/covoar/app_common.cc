@@ -56,7 +56,6 @@
 /*
  *  Global variables for the program
  */
-Coverage::ObjdumpProcessor* objdumpProcessor    = NULL;
 Coverage::DesiredSymbols*   SymbolsToAnalyze    = NULL;
 bool                        Verbose             = false;
 const char*                 outputDirectory     = ".";

@@ -8,6 +8,7 @@
 #define __TRACE_READER_BASE_H__
 
 #include "TraceList.h"
+#include "ObjdumpProcessor.h"
 
 namespace Trace {
 
@@ -41,13 +42,13 @@ namespace Trace {
      *  @a file and adds it to the specified @a executableInformation.
      *
      *  @param[in] file is the coverage file to process
-     *  @param[in] executableInformation is the information for an
-     *             associated executable
+     *  @param[in] objdumpProcessor the processor for the object dump
      *
      *  @return Returns TRUE if the method succeeded and FALSE if it failed.
      */
     virtual bool processFile(
-      const char* const     file
+      const char* const           file,
+      Coverage::ObjdumpProcessor& objdumpProcessor
     ) = 0;
   };
 

@@ -402,7 +402,7 @@ class ReportsBase {
  *  @param[in] allExplanations is the explanations to report on.
  */
 void GenerateReports(
-  const std::string& symbolSetName,
+  const std::string&      symbolSetName,
   Coverage::Explanations& allExplanations
 );
 

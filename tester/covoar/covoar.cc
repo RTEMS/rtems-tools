@@ -175,6 +175,7 @@ int covoar(
   std::string                   option;
   int                           opt;
   Coverage::Explanations        allExplanations;
+  Coverage::ObjdumpProcessor    objdumpProcessor;
 
   //
   // Process command line options.
@@ -364,9 +365,6 @@ int covoar(
   if (!coverageReader)
     throw rld::error( "Unable to create coverage file reader", "covoar" );
 
-  // Create the objdump processor.
-  objdumpProcessor = new Coverage::ObjdumpProcessor();
-
   // Prepare each executable for analysis.
   for (auto& exe : executablesToAnalyze) {
     if (Verbose)
@@ -375,11 +373,11 @@ int covoar(
 
     // If a dynamic library was specified, determine the load address.
     if (dynamicLibrary) {
-      exe->setLoadAddress( objdumpProcessor->determineLoadAddress( exe ) );
+      exe->setLoadAddress( objdumpProcessor.determineLoadAddress( exe ) );
     }
 
     // Load the objdump for the symbols in this executable.
-    objdumpProcessor->load( exe, objdumpFile, err );
+    objdumpProcessor.load( exe, objdumpFile, err );
   }
 
   //
