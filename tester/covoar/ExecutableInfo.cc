@@ -18,18 +18,18 @@
 namespace Coverage {
 
   ExecutableInfo::ExecutableInfo(
-    const char* const theExecutableName,
-    const char* const theLibraryName,
-    bool              verbose
+    const char* const  theExecutableName,
+    const std::string& theLibraryName,
+    bool               verbose
     ) : fileName(theExecutableName),
         loadAddress(0)
   {
-    if (theLibraryName != nullptr)
+    if ( !theLibraryName.empty() )
       libraryName = theLibraryName;
 
     if (verbose) {
       std::cerr << "Loading executable " << theExecutableName;
-      if (theLibraryName != nullptr)
+      if ( !theLibraryName.empty() )
         std::cerr << " (" << theLibraryName << ')';
       std::cerr << std::endl;
     }

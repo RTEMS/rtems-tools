@@ -43,9 +43,9 @@ namespace Coverage {
      *  @param[in] verbose specifies whether to be verbose with output
      */
     ExecutableInfo(
-      const char* const theExecutableName,
-      const char* const theLibraryName = NULL,
-      bool              verbose = false
+      const char* const  theExecutableName,
+      const std::string& theLibraryName = "",
+      bool               verbose = false
     );
 
     /*!

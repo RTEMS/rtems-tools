@@ -16,7 +16,6 @@ extern Coverage::DesiredSymbols*    SymbolsToAnalyze;
 extern const char*                  outputDirectory;
 extern bool                         BranchInfoAvailable;
 extern Target::TargetBase*          TargetInfo;
-extern const char*                  dynamicLibrary;
 extern const char*                  projectName;
 
 #define MAX_LINE_LENGTH             512

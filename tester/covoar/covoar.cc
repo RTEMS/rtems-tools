@@ -177,6 +177,7 @@ int covoar(
   Coverage::Explanations        allExplanations;
   Coverage::ObjdumpProcessor    objdumpProcessor;
   bool                          verbose = false;
+  std::string                   dynamicLibrary;
 
   //
   // Process command line options.
@@ -303,13 +304,13 @@ int covoar(
       // If there was at least one coverage file, create the
       // executable information.
       if (!coverageFileNames.empty()) {
-        if (dynamicLibrary) {
+        if ( !dynamicLibrary.empty() ) {
           executableInfo = new Coverage::ExecutableInfo(
             singleExecutable, dynamicLibrary, verbose
           );
         } else {
           executableInfo = new Coverage::ExecutableInfo(
-            singleExecutable, nullptr, verbose
+            singleExecutable, "", verbose
           );
         }
 
@@ -333,7 +334,7 @@ int covoar(
                     << std::endl;
         } else {
           executableInfo = new Coverage::ExecutableInfo(
-            argv[i], nullptr, verbose
+            argv[i], "", verbose
           );
           executablesToAnalyze.push_back( executableInfo );
           coverageFileNames.push_back( coverageFileName );
@@ -373,7 +374,7 @@ int covoar(
                 << std::endl;
 
     // If a dynamic library was specified, determine the load address.
-    if (dynamicLibrary) {
+    if ( !dynamicLibrary.empty() ) {
       exe->setLoadAddress( objdumpProcessor.determineLoadAddress( exe ) );
     }
 

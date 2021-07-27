@@ -91,6 +91,7 @@ int main(
   rld::process::tempfile       err( ".err" );
   Coverage::ObjdumpProcessor   objdumpProcessor;
   bool                         verbose = false;
+  std::string                  dynamicLibrary;
 
   setup_signals();
 
@@ -130,13 +131,13 @@ int main(
   // Create toolnames.
   TargetInfo = Target::TargetFactory( cpuname );
 
-  if (dynamicLibrary)
+  if ( !dynamicLibrary.empty() )
     executableInfo = new Coverage::ExecutableInfo( executable, dynamicLibrary );
   else
     executableInfo = new Coverage::ExecutableInfo( executable );
 
   // If a dynamic library was specified, determine the load address.
-  if (dynamicLibrary)
+  if ( !dynamicLibrary.empty() )
     executableInfo->setLoadAddress(
       objdumpProcessor.determineLoadAddress( executableInfo )
     );
