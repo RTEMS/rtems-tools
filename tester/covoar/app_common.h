@@ -12,7 +12,6 @@
 #include "Explanations.h"
 #include "TargetBase.h"
 
-extern Coverage::Explanations*      AllExplanations;
 extern Coverage::ObjdumpProcessor*  objdumpProcessor;
 extern Coverage::DesiredSymbols*    SymbolsToAnalyze;
 extern bool                         Verbose;

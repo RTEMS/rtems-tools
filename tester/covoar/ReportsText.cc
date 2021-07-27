@@ -16,8 +16,11 @@ typedef rtems::utils::ostream_guard ostream_guard;
 
 namespace Coverage {
 
-ReportsText::ReportsText( time_t timestamp, const std::string& symbolSetName ):
-  ReportsBase( timestamp, symbolSetName )
+ReportsText::ReportsText(
+  time_t                  timestamp,
+  const std::string&      symbolSetName,
+  Coverage::Explanations& allExplanations
+): ReportsBase( timestamp, symbolSetName, allExplanations )
 {
   reportExtension_m = ".txt";
 }
@@ -95,7 +98,7 @@ bool ReportsText::PutBranchEntry(
   }
 
   // See if an explanation is available
-  explanation = AllExplanations->lookupExplanation( range.lowSourceLine );
+  explanation = allExplanations_m.lookupExplanation( range.lowSourceLine );
 
   if ( !explanation ) {
     report << "Classification: NONE" << std::endl << std::endl
@@ -164,7 +167,7 @@ bool ReportsText::PutCoverageLine(
          << "Size in Instructions : " << range.instructionCount
          << std::endl << std::endl;
 
-  explanation = AllExplanations->lookupExplanation( range.lowSourceLine );
+  explanation = allExplanations_m.lookupExplanation( range.lowSourceLine );
 
   if ( !explanation ) {
     report << "Classification: NONE" << std::endl << std::endl

@@ -174,6 +174,7 @@ int covoar(
   std::string                   symbolSet;
   std::string                   option;
   int                           opt;
+  Coverage::Explanations        allExplanations;
 
   //
   // Process command line options.
@@ -354,9 +355,8 @@ int covoar(
               << " symbols" << std::endl;
 
   // Create explanations.
-  AllExplanations = new Coverage::Explanations();
   if ( explanations )
-    AllExplanations->load( explanations );
+    allExplanations.load( explanations );
 
   // Create coverage map reader.
   coverageFormat = Coverage::CoverageFormatToEnum(format);
@@ -474,7 +474,7 @@ int covoar(
     std::cerr << "Generate Reports" << std::endl;
 
   for (const auto& setName : SymbolsToAnalyze->getSetNames()) {
-    Coverage::GenerateReports(setName);
+    Coverage::GenerateReports( setName, allExplanations );
   }
 
   // Write explanations that were not found.
@@ -488,7 +488,7 @@ int covoar(
     if (Verbose)
       std::cerr << "Writing Not Found Report (" << notFound<< ')' << std::endl;
 
-    AllExplanations->writeNotFound( notFound.c_str() );
+    allExplanations.writeNotFound( notFound.c_str() );
   }
 
   //Leave tempfiles around if debug flag (-d) is enabled.

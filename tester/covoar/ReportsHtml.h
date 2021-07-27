@@ -25,7 +25,11 @@ namespace Coverage {
 class ReportsHtml: public ReportsBase {
 
   public:
-    ReportsHtml( time_t timestamp, const std::string& symbolSetName );
+    ReportsHtml(
+      time_t                  timestamp,
+      const std::string&      symbolSetName,
+      Coverage::Explanations& allExplanations
+    );
    ~ReportsHtml();
 
    /*!

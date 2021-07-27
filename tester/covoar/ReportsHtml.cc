@@ -38,9 +38,10 @@ typedef rtems::utils::ostream_guard ostream_guard;
 namespace Coverage {
 
   ReportsHtml::ReportsHtml(
-   time_t              timestamp,
-    const std::string& symbolSetName
-  ): ReportsBase( timestamp, symbolSetName )
+    time_t                  timestamp,
+    const std::string&      symbolSetName,
+    Coverage::Explanations& allExplanations
+  ): ReportsBase( timestamp, symbolSetName, allExplanations )
   {
     reportExtension_m = ".html";
   }
@@ -506,7 +507,7 @@ namespace Coverage {
 
     // See if an explanation is available and write the Classification and
     // the Explination Columns.
-    explanation = AllExplanations->lookupExplanation( range.lowSourceLine );
+    explanation = allExplanations_m.lookupExplanation( range.lowSourceLine );
     if ( !explanation ) {
       // Write Classificationditr->second.baseAddress
       report << "<td class=\"covoar-td\" align=\"center\">NONE</td>"
@@ -654,7 +655,7 @@ namespace Coverage {
            << range.instructionCount << "</td>" << std::endl;
 
     // See if an explanation is available
-    explanation = AllExplanations->lookupExplanation( range.lowSourceLine );
+    explanation = allExplanations_m.lookupExplanation( range.lowSourceLine );
     if ( !explanation ) {
       report << "<td class=\"covoar-td\" align=\"center\">NONE</td>"
              << std::endl

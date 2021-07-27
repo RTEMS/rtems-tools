@@ -15,6 +15,7 @@
 #include <fstream>
 #include <time.h>
 #include "DesiredSymbols.h"
+#include "Explanations.h"
 
 namespace Coverage {
 
@@ -26,7 +27,11 @@ namespace Coverage {
 class ReportsBase {
 
   public:
-    ReportsBase( time_t timestamp, const std::string& symbolSetName );
+    ReportsBase(
+      time_t                  timestamp,
+      const std::string&      symbolSetName,
+      Coverage::Explanations& allExplanations
+    );
     virtual ~ReportsBase();
 
     /*!
@@ -118,6 +123,11 @@ class ReportsBase {
      *  This member variable contains the timestamp for the report.
      */
     time_t timestamp_m;
+
+    /*!
+     *  This member variable contains the explanations to report on.
+     */
+    Coverage::Explanations& allExplanations_m;
 
     /*!
      *  This method Opens a report file and verifies that it opened
@@ -389,8 +399,12 @@ class ReportsBase {
  *  all reports.
  *
  *  @param[in] symbolSetName is the name of the symbol set to report on.
+ *  @param[in] allExplanations is the explanations to report on.
  */
-void GenerateReports( const std::string& symbolSetName );
+void GenerateReports(
+  const std::string& symbolSetName,
+  Coverage::Explanations& allExplanations
+);
 
 }
 

@@ -21,7 +21,11 @@ namespace Coverage {
 class ReportsText: public ReportsBase {
 
   public:
-    ReportsText( time_t timestamp, const std::string& symbolSetName );
+    ReportsText(
+      time_t                  timestamp,
+      const std::string&      symbolSetName,
+      Coverage::Explanations& allExplanations
+    );
     virtual ~ReportsText();
 
   /*!
