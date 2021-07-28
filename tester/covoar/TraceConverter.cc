@@ -21,7 +21,6 @@
 #include "TraceWriterQEMU.h"
 #include "TraceList.h"
 #include "ObjdumpProcessor.h"
-#include "app_common.h"
 #include "TargetFactory.h"
 
 #if defined(_WIN32) || defined(__CYGWIN__)

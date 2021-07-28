@@ -14,7 +14,6 @@
 
 #include <rld.h>
 
-#include "app_common.h"
 #include "CoverageReaderQEMU.h"
 #include "CoverageMap.h"
 #include "ExecutableInfo.h"

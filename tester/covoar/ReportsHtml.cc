@@ -9,7 +9,6 @@
 #include <rtems-utils.h>
 
 #include "ReportsHtml.h"
-#include "app_common.h"
 #include "CoverageRanges.h"
 #include "DesiredSymbols.h"
 #include "ObjdumpProcessor.h"

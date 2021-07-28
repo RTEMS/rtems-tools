@@ -14,7 +14,6 @@
 
 #include <rld.h>
 
-#include "app_common.h"
 #include "CoverageReaderTSIM.h"
 #include "CoverageMap.h"
 #include "ExecutableInfo.h"

@@ -8,7 +8,6 @@
 #include <sstream>
 
 #include "ReportsBase.h"
-#include "app_common.h"
 #include "CoverageRanges.h"
 #include "DesiredSymbols.h"
 #include "Explanations.h"

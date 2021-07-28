@@ -9,7 +9,6 @@
 #include <cstring>
 #include <cinttypes>
 
-#include "app_common.h"
 #include "GcovFunctionData.h"
 #include "ObjdumpProcessor.h"
 #include "CoverageMapBase.h"

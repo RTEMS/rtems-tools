@@ -15,7 +15,6 @@
 #include <rld.h>
 
 #include "Explanations.h"
-#include "app_common.h"
 
 namespace Coverage {
 

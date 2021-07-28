@@ -42,7 +42,6 @@
 
 #include <rld-process.h>
 
-#include "app_common.h"
 #include "TraceWriterQEMU.h"
 #include "ExecutableInfo.h"
 #include "CoverageMap.h"

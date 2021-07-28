@@ -13,7 +13,6 @@
 #include <rld.h>
 
 #include "SymbolTable.h"
-#include "app_common.h"
 
 namespace Coverage {
 

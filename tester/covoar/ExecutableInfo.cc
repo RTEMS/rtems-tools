@@ -11,7 +11,6 @@
 
 #include "ExecutableInfo.h"
 #include "ObjdumpProcessor.h"
-#include "app_common.h"
 #include "CoverageMap.h"
 #include "SymbolTable.h"
 

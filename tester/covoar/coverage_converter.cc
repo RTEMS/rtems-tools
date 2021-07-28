@@ -11,7 +11,6 @@
 #include <sys/stat.h>
 #include <unistd.h>
 
-#include "app_common.h"
 #include "CoverageFactory.h"
 #include "CoverageMap.h"
 

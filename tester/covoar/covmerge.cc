@@ -11,7 +11,6 @@
 #include <unistd.h>
 #include <errno.h>
 
-#include "app_common.h"
 #include "CoverageFactory.h"
 #include "CoverageMap.h"
 #include "CoverageRanges.h"

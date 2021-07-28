@@ -23,7 +23,6 @@
 #include "rld-files.h"
 
 #include "DesiredSymbols.h"
-#include "app_common.h"
 #include "CoverageMap.h"
 
 namespace Coverage {

@@ -41,7 +41,6 @@
 #include <string.h>
 
 #include "qemu-log.h"
-#include "app_common.h"
 #include "TraceReaderBase.h"
 #include "TraceReaderLogQEMU.h"
 #include "TraceList.h"

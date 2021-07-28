@@ -2,8 +2,7 @@ INSTALL_DIR=../bin
 CXXFLAGS=-g -Wall -O3
 PROGRAMS=covoar qemu-dump-trace trace-converter configfile-test
 
-COMMON_OBJS= app_common.o \
-  ConfigFile.o \
+COMMON_OBJS= ConfigFile.o \
   CoverageFactory.o \
   CoverageMap.o \
   CoverageMapBase.o \
@@ -89,9 +88,6 @@ trace-converter: $(TRACECONVERTER_OBJS)
 
 configfile-test: $(CONFIGFILE_TEST_OBJS)
 	$(CXX) $(CXXFLAGS) -o $(@) $(CONFIGFILE_TEST_OBJS)
-
-#  DEPENDENCIES ON SINGLE OBJECTS
-app_common.o: app_common.h app_common.cc
 
 covoar.o: covoar.cc CoverageFactory.h CoverageMap.h DesiredSymbols.h \
   ExecutableInfo.h Explanations.h ObjdumpProcessor.h ReportsBase.h

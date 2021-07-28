@@ -14,7 +14,6 @@
 #include <algorithm>
 #include <string>
 
-#include "app_common.h"
 #include "ObjdumpProcessor.h"
 #include "CoverageMap.h"
 #include "ExecutableInfo.h"

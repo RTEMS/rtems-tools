@@ -19,7 +19,6 @@
 #include <rld.h>
 #include <rld-process.h>
 
-#include "app_common.h"
 #include "CoverageFactory.h"
 #include "CoverageMap.h"
 #include "DesiredSymbols.h"
