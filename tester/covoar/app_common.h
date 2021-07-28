@@ -14,8 +14,5 @@
 
 
 
-bool FileIsNewer( const char *f1, const char *f2 );
-bool FileIsReadable( const char *f1 );
-bool ReadUntilFound( FILE *file, const char *line );
 
 #endif

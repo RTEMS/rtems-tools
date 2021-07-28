@@ -30,6 +30,12 @@
 #include "TargetFactory.h"
 #include "GcovData.h"
 
+#if HAVE_STAT64
+#define STAT stat64
+#else
+#define STAT stat
+#endif
+
 #if defined(_WIN32) || defined(__CYGWIN__)
   #define kill(p,s) raise(s)
 #endif
@@ -39,6 +45,20 @@
 typedef std::list<std::string> CoverageNames;
 typedef std::list<Coverage::ExecutableInfo*> Executables;
 typedef std::string option_error;
+
+bool FileIsReadable( const char *f1 )
+{
+  struct STAT buf1;
+
+  if (STAT( f1, &buf1 ) == -1)
+    return false;
+
+  if (buf1.st_size == 0)
+    return false;
+
+  // XXX check permission ??
+  return true;
+}
 
 /*
  * Create a build path from the executable paths. Also extract the build prefix

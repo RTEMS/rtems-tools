@@ -40,68 +40,10 @@
 #include "app_common.h"
 #include "DesiredSymbols.h"
 #include "Explanations.h"
-
-#if HAVE_STAT64
-#define STAT stat64
-#else
-#define STAT stat
-#endif
-
-#if HAVE_OPEN64
-#define OPEN fopen64
-#else
-#define OPEN fopen
-#endif
-
 /*
  *  Global variables for the program
  */
 
 
-bool FileIsNewer(
-  const char *f1,
-  const char *f2
-)
-{
-  struct STAT buf1, buf2;
 
-   if (STAT( f2, &buf2 ) == -1)
-    return true;
-
-  if (STAT( f1, &buf1 ) == -1)
-    exit (1);
-
-  if (buf1.st_mtime > buf2.st_mtime)
-    return true;
-
-  return false;
-}
-
-bool FileIsReadable( const char *f1 )
-{
-  struct STAT buf1;
-
-  if (STAT( f1, &buf1 ) == -1)
-    return false;
-
-  if (buf1.st_size == 0)
-    return false;
-
-  // XXX check permission ??
-  return true;
-}
-
-bool ReadUntilFound( FILE *file, const char *line )
-{
-  char discardBuff[100];
-  size_t  len = strlen( line );
-
-  do {
-    if ( !fgets( discardBuff, 99, file ) )
-      return false;
-
-    if ( strncmp( discardBuff, line, len ) == 0 )
-      return true;
-  } while (1);
-}
 

@@ -63,6 +63,20 @@
 
 #define MAX_LINE_LENGTH 512
 
+bool ReadUntilFound( FILE *file, const char *line )
+{
+  char discardBuff[100];
+  size_t  len = strlen( line );
+
+  do {
+    if ( !fgets( discardBuff, 99, file ) )
+      return false;
+
+    if ( strncmp( discardBuff, line, len ) == 0 )
+      return true;
+  } while (1);
+}
+
 namespace Trace {
 
   TraceReaderLogQEMU::TraceReaderLogQEMU()
