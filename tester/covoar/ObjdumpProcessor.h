@@ -91,7 +91,8 @@ namespace Coverage {
      *  This method constructs an ObjdumpProcessor instance.
      */
     ObjdumpProcessor(
-      DesiredSymbols& symbolsToAnalyze
+      DesiredSymbols&     symbolsToAnalyze,
+      std::shared_ptr<Target::TargetBase>& targetInfo
     );
 
     /*!
@@ -153,6 +154,13 @@ namespace Coverage {
       const char* const line
     );
 
+    /*!
+     * This method sets the targetInfo_m variable.
+     *
+     * @param[in] targetInfo the pointer to set targetInfo_m to
+     */
+    void setTargetInfo( std::shared_ptr<Target::TargetBase>& targetInfo );
+
   private:
 
     /*!
@@ -176,9 +184,19 @@ namespace Coverage {
     );
 
     /*!
+     * This member variable is a buffer for input
+     */
+    char* inputBuffer_m;
+
+    /*!
      * This member variable contains the symbols to be analyzed
      */
     DesiredSymbols& symbolsToAnalyze_m;
+
+    /*!
+     * This member variable points to the target's info
+     */
+    std::shared_ptr<Target::TargetBase>& targetInfo_m;
   };
 }
 #endif

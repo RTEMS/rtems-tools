@@ -124,8 +124,10 @@ namespace Coverage {
   }
 
   ObjdumpProcessor::ObjdumpProcessor(
-    DesiredSymbols& symbolsToAnalyze
-  ): symbolsToAnalyze_m( symbolsToAnalyze )
+    DesiredSymbols&     symbolsToAnalyze,
+    std::shared_ptr<Target::TargetBase>& targetInfo
+  ): symbolsToAnalyze_m( symbolsToAnalyze ),
+     targetInfo_m( targetInfo )
   {
   }
 
@@ -191,7 +193,7 @@ namespace Coverage {
     const char *instruction
   )
   {
-    if ( !TargetInfo ) {
+    if ( !targetInfo_m ) {
       fprintf(
         stderr,
         "ERROR: ObjdumpProcessor::IsBranch - unknown architecture\n"
@@ -200,14 +202,14 @@ namespace Coverage {
       return false;
     }
 
-    return TargetInfo->isBranch( instruction );
+    return targetInfo_m->isBranch( instruction );
   }
 
   bool ObjdumpProcessor::isBranchLine(
     const char* const line
   )
   {
-    if ( !TargetInfo ) {
+    if ( !targetInfo_m ) {
       fprintf(
         stderr,
         "ERROR: ObjdumpProcessor::isBranchLine - unknown architecture\n"
@@ -216,7 +218,7 @@ namespace Coverage {
       return false;
     }
 
-    return  TargetInfo->isBranchLine( line );
+    return  targetInfo_m->isBranchLine( line );
   }
 
   bool ObjdumpProcessor::isNop(
@@ -224,7 +226,7 @@ namespace Coverage {
     int&              size
   )
   {
-    if ( !TargetInfo ){
+    if ( !targetInfo_m ){
       fprintf(
         stderr,
         "ERROR: ObjdumpProcessor::isNop - unknown architecture\n"
@@ -233,7 +235,7 @@ namespace Coverage {
       return false;
     }
 
-    return TargetInfo->isNopLine( line, size );
+    return targetInfo_m->isNopLine( line, size );
   }
 
   void ObjdumpProcessor::getFile(
@@ -243,12 +245,12 @@ namespace Coverage {
     )
   {
     rld::process::status        status;
-    rld::process::arg_container args = { TargetInfo->getObjdump(),
+    rld::process::arg_container args = { targetInfo_m->getObjdump(),
                                          "-Cda", "--section=.text", "--source",
                                          fileName };
     try
     {
-      status = rld::process::execute( TargetInfo->getObjdump(),
+      status = rld::process::execute( targetInfo_m->getObjdump(),
                                       args, objdumpFile.name(), err.name() );
       if ( (status.type != rld::process::status::normal)
            || (status.code != 0) ) {
@@ -256,7 +258,7 @@ namespace Coverage {
       }
     } catch( rld::error& err )
       {
-        std::cout << "Error while running " << TargetInfo->getObjdump()
+        std::cout << "Error while running " << targetInfo_m->getObjdump()
                   << " on " << fileName << std::endl;
         std::cout << err.what << " in " << err.where << std::endl;
         return;
@@ -496,5 +498,12 @@ namespace Coverage {
         theInstructions.push_back( lineInfo );
       }
     }
+  }
+
+  void ObjdumpProcessor::setTargetInfo(
+    std::shared_ptr<Target::TargetBase>& targetInfo
+  )
+  {
+    targetInfo_m = targetInfo;
   }
 }

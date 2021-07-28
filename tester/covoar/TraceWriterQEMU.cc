@@ -83,8 +83,8 @@ namespace Trace {
     uint8_t             taken;
     uint8_t             notTaken;
 
-    taken    = TargetInfo->qemuTakenBit();
-    notTaken = TargetInfo->qemuNotTakenBit();
+    taken    = targetInfo_m->qemuTakenBit();
+    notTaken = targetInfo_m->qemuNotTakenBit();
 
     //
     // Verify that the TraceList has a non-zero size.

@@ -52,6 +52,11 @@ namespace Coverage {
    * This member variable tells whether the branch info is available.
    */
   bool branchInfoAvailable_m = false;
+
+  /*!
+   * This member variable points to the target's info
+   */
+  std::shared_ptr<Target::TargetBase> targetInfo_m = nullptr;
   };
 
 }

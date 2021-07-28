@@ -12,7 +12,6 @@
 #include "Explanations.h"
 #include "TargetBase.h"
 
-extern Target::TargetBase*          TargetInfo;
 
 
 bool FileIsNewer( const char *f1, const char *f2 );

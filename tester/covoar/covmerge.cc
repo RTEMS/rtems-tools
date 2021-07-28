@@ -257,6 +257,7 @@ int main(
   int opt;
   int i;
   char *format = NULL;
+  Target::TargetBase* targetInfo;
 
   progname = argv[0];
 
@@ -347,7 +348,7 @@ int main(
   /*
    *  Create toolnames based on target
    */
-  TargetInfo = Target::TargetFactory( target );
+  targetInfo = Target::TargetFactory( target );
 
   /*
    *  Create a ranges set
@@ -375,10 +376,14 @@ int main(
     exit(-1);
   }
 
+  CoverageReader.setTargetInfo( targetInfo );
+
   /*
    * Create the objdump processor
    */
   ObjdumpProcessor = new Coverage::ObjdumpProcessor();
+
+  ObjdumpProcessor->setTargetInfo( targetInfo );
 
   /*
    * Create writer

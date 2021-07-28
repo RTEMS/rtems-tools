@@ -56,7 +56,6 @@
 /*
  *  Global variables for the program
  */
-Target::TargetBase*         TargetInfo          = NULL;
 
 
 bool FileIsNewer(

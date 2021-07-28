@@ -184,7 +184,7 @@ int covoar(
   std::string                   outputDirectory = ".";
   Coverage::DesiredSymbols      symbolsToAnalyze;
   bool                          branchInfoAvailable = false;
-  Coverage::ObjdumpProcessor    objdumpProcessor( symbolsToAnalyze );
+  //Target::TargetBase*           targetInfo;
 
   //
   // Process command line options.
@@ -278,7 +278,10 @@ int covoar(
   //
 
   // Create data based on target.
-  TargetInfo = Target::TargetFactory( buildTarget );
+  std::shared_ptr<Target::TargetBase>
+    targetInfo( Target::TargetFactory( buildTarget ) );
+
+  Coverage::ObjdumpProcessor objdumpProcessor( symbolsToAnalyze, targetInfo );
 
   //
   // Read symbol configuration file and load needed symbols.
@@ -379,6 +382,8 @@ int covoar(
   coverageReader = Coverage::CreateCoverageReader(coverageFormat);
   if (!coverageReader)
     throw rld::error( "Unable to create coverage file reader", "covoar" );
+
+  coverageReader->targetInfo_m = targetInfo;
 
   // Prepare each executable for analysis.
   for (auto& exe : executablesToAnalyze) {

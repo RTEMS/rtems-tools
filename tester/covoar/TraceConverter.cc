@@ -92,7 +92,6 @@ int main(
   Coverage::DesiredSymbols     symbolsToAnalyze;
   bool                         verbose = false;
   std::string                  dynamicLibrary;
-  Coverage::ObjdumpProcessor   objdumpProcessor( symbolsToAnalyze );
 
   setup_signals();
 
@@ -130,7 +129,10 @@ int main(
   }
 
   // Create toolnames.
-  TargetInfo = Target::TargetFactory( cpuname );
+  std::shared_ptr<Target::TargetBase>
+    targetInfo( Target::TargetFactory( cpuname ) );
+
+  Coverage::ObjdumpProcessor objdumpProcessor( symbolsToAnalyze, targetInfo );
 
   if ( !dynamicLibrary.empty() )
     executableInfo = new Coverage::ExecutableInfo(

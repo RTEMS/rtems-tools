@@ -51,8 +51,8 @@ namespace Coverage {
     uint8_t             notTaken;
     uint8_t             branchInfo;
 
-    taken      = TargetInfo->qemuTakenBit();
-    notTaken   = TargetInfo->qemuNotTakenBit();
+    taken      = targetInfo_m->qemuTakenBit();
+    notTaken   = targetInfo_m->qemuNotTakenBit();
     branchInfo = taken | notTaken;
 
     //

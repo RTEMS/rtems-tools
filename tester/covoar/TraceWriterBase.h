@@ -45,6 +45,11 @@ namespace Trace {
        Trace::TraceReaderBase    *log,
        bool                       verbose
      ) =  0;
+
+    /*!
+     * This member variable points to the target's info
+     */
+    std::shared_ptr<Target::TargetBase> targetInfo_m;
   };
 
 }
