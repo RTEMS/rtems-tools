@@ -13,6 +13,7 @@
 #include "GcovFunctionData.h"
 #include "ObjdumpProcessor.h"
 #include "CoverageMapBase.h"
+#include "DesiredSymbols.h"
 
 
 namespace Gcov {
@@ -44,7 +45,10 @@ namespace Gcov {
     firstLineNumber = lineNo;
   }
 
-  bool GcovFunctionData::setFunctionName( const char* fcnName )
+  bool GcovFunctionData::setFunctionName(
+    const char*               fcnName,
+    Coverage::DesiredSymbols& symbolsToAnalyze
+  )
   {
     std::string   symbolName;
 
@@ -62,7 +66,7 @@ namespace Gcov {
     strcpy (functionName, fcnName);
 
     // Tie function to its coverage map
-    symbolInfo = SymbolsToAnalyze->find( symbolName );
+    symbolInfo = symbolsToAnalyze.find( symbolName );
     if ( symbolInfo != NULL )
       coverageMap = symbolInfo->unifiedCoverageMap;
 
@@ -237,7 +241,7 @@ namespace Gcov {
     uint32_t        baseAddress = 0;
     uint32_t        baseSize;
     uint32_t        currentAddress;
-    std::list<Coverage::ObjdumpProcessor::objdumpLine_t>::iterator   instruction;
+    std::list<Coverage::objdumpLine_t>::iterator   instruction;
 
     if ( coverageMap != NULL ) {
 
@@ -399,7 +403,7 @@ namespace Gcov {
 
     uint32_t               baseAddress = 0;
     uint32_t               currentAddress = 0;
-    std::list<Coverage::ObjdumpProcessor::objdumpLine_t>::iterator  instruction;
+    std::list<Coverage::objdumpLine_t>::iterator  instruction;
     blocks_iterator_t      blockIterator;
     blocks_iterator_t      blockIterator2;
     arcs_iterator_t        arcIterator;
@@ -567,7 +571,7 @@ namespace Gcov {
   {
     uint32_t        baseAddress = 0;
     uint32_t        currentAddress;
-    std::list<Coverage::ObjdumpProcessor::objdumpLine_t>::iterator   instruction;
+    std::list<Coverage::objdumpLine_t>::iterator   instruction;
 
     if ( coverageMap == NULL )
       return false;

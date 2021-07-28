@@ -18,8 +18,11 @@
 #include "AddressToLineMapper.h"
 #include "CoverageMapBase.h"
 #include "SymbolTable.h"
+#include "DesiredSymbols.h"
 
 namespace Coverage {
+
+class DesiredSymbols;
 
   /*! @class ExecutableInfo
    *
@@ -41,11 +44,13 @@ namespace Coverage {
      *  @param[in] theExecutableName specifies the name of the executable
      *  @param[in] theLibraryName specifies the name of the executable
      *  @param[in] verbose specifies whether to be verbose with output
+     *  @param[in] symbolsToAnalyze the symbols to be analyzed
      */
     ExecutableInfo(
       const char* const  theExecutableName,
-      const std::string& theLibraryName = "",
-      bool               verbose = false
+      const std::string& theLibraryName,
+      bool               verbose,
+      DesiredSymbols&    symbolsToAnalyze
     );
 
     /*!
@@ -197,6 +202,11 @@ namespace Coverage {
      *  of the executable or library.
      */
     SymbolTable theSymbolTable;
+
+    /*!
+     * This member variable contains the symbols to be analyzed.
+     */
+    DesiredSymbols& symbolsToAnalyze_m;
 
   };
 }

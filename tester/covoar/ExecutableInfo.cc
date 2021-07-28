@@ -10,9 +10,9 @@
 #include <rld.h>
 
 #include "ExecutableInfo.h"
+#include "ObjdumpProcessor.h"
 #include "app_common.h"
 #include "CoverageMap.h"
-#include "DesiredSymbols.h"
 #include "SymbolTable.h"
 
 namespace Coverage {
@@ -20,9 +20,11 @@ namespace Coverage {
   ExecutableInfo::ExecutableInfo(
     const char* const  theExecutableName,
     const std::string& theLibraryName,
-    bool               verbose
+    bool               verbose,
+    DesiredSymbols&    symbolsToAnalyze
     ) : fileName(theExecutableName),
-        loadAddress(0)
+        loadAddress(0),
+        symbolsToAnalyze_m(symbolsToAnalyze)
   {
     if ( !theLibraryName.empty() )
       libraryName = theLibraryName;
@@ -59,7 +61,7 @@ namespace Coverage {
           continue;
         }
 
-        if (!SymbolsToAnalyze->isDesired(func.name())) {
+        if (!symbolsToAnalyze_m.isDesired(func.name())) {
           continue;
         }
 
@@ -209,8 +211,8 @@ namespace Coverage {
 
   void ExecutableInfo::mergeCoverage( void ) {
     for (auto& cm : coverageMaps) {
-      if (SymbolsToAnalyze->isDesired( cm.first ))
-        SymbolsToAnalyze->mergeCoverageMap( cm.first, cm.second );
+      if (symbolsToAnalyze_m.isDesired( cm.first ))
+        symbolsToAnalyze_m.mergeCoverageMap( cm.first, cm.second );
     }
   }
 

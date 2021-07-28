@@ -28,13 +28,15 @@ ReportsBase::ReportsBase(
   const std::string&      symbolSetName,
   Coverage::Explanations& allExplanations,
   const std::string&      projectName,
-  const std::string&      outputDirectory
+  const std::string&      outputDirectory,
+  const DesiredSymbols&   symbolsToAnalyze
 ): reportExtension_m( "" ),
    symbolSetName_m( symbolSetName ),
    timestamp_m( timestamp ),
    allExplanations_m( allExplanations ),
    projectName_m( projectName ),
-   outputDirectory_m( outputDirectory )
+   outputDirectory_m( outputDirectory ),
+   symbolsToAnalyze_m( symbolsToAnalyze )
 {
 }
 
@@ -213,11 +215,11 @@ void ReportsBase::WriteAnnotatedReport( const std::string& fileName )
 
   // Process uncovered branches for each symbol.
   const std::vector<std::string>& symbols =
-    SymbolsToAnalyze->getSymbolsForSet( symbolSetName_m );
+    symbolsToAnalyze_m.getSymbolsForSet( symbolSetName_m );
 
   for ( const auto& symbol : symbols ) {
     const SymbolInformation& info =
-      SymbolsToAnalyze->allSymbols().at( symbol );
+      symbolsToAnalyze_m.allSymbols().at( symbol );
 
     // If uncoveredRanges and uncoveredBranches don't exist, then the
     // symbol was never referenced by any executable.  Just skip it.
@@ -308,7 +310,7 @@ void ReportsBase::WriteBranchReport( const std::string& fileName )
   bool                      hasBranches = true;
 
   if (
-    ( SymbolsToAnalyze->getNumberBranchesFound( symbolSetName_m ) == 0 ) ||
+    ( symbolsToAnalyze_m.getNumberBranchesFound( symbolSetName_m ) == 0 ) ||
     ( BranchInfoAvailable == false )
   ) {
      hasBranches = false;
@@ -322,17 +324,17 @@ void ReportsBase::WriteBranchReport( const std::string& fileName )
 
   // If no branches were found then branch coverage is not supported
   if (
-    ( SymbolsToAnalyze->getNumberBranchesFound( symbolSetName_m ) != 0 ) &&
+    ( symbolsToAnalyze_m.getNumberBranchesFound( symbolSetName_m ) != 0 ) &&
     ( BranchInfoAvailable == true )
   ) {
     // Process uncovered branches for each symbol in the set.
     const std::vector<std::string>& symbols =
-      SymbolsToAnalyze->getSymbolsForSet( symbolSetName_m );
+      symbolsToAnalyze_m.getSymbolsForSet( symbolSetName_m );
 
     count = 0;
     for ( const auto& symbol : symbols ) {
       const SymbolInformation& info =
-        SymbolsToAnalyze->allSymbols().at( symbol );
+        symbolsToAnalyze_m.allSymbols().at( symbol );
 
       theBranches = info.uncoveredBranches;
 
@@ -375,12 +377,12 @@ void ReportsBase::WriteCoverageReport( const std::string& fileName )
 
   // Process uncovered ranges for each symbol.
   const std::vector<std::string>& symbols =
-    SymbolsToAnalyze->getSymbolsForSet( symbolSetName_m );
+    symbolsToAnalyze_m.getSymbolsForSet( symbolSetName_m );
 
   count = 0;
   for ( const auto& symbol : symbols ) {
     const SymbolInformation& info =
-      SymbolsToAnalyze->allSymbols().at( symbol );
+      symbolsToAnalyze_m.allSymbols().at( symbol );
 
     theRanges = info.uncoveredRanges;
 
@@ -420,12 +422,12 @@ void ReportsBase::WriteSizeReport( const std::string& fileName )
 
   // Process uncovered ranges for each symbol.
   const std::vector<std::string>& symbols =
-    SymbolsToAnalyze->getSymbolsForSet( symbolSetName_m );
+    symbolsToAnalyze_m.getSymbolsForSet( symbolSetName_m );
 
   count = 0;
   for ( const auto& symbol : symbols ) {
     const SymbolInformation& info =
-      SymbolsToAnalyze->allSymbols().at( symbol );
+      symbolsToAnalyze_m.allSymbols().at( symbol );
 
     theRanges = info.uncoveredRanges;
 
@@ -440,7 +442,10 @@ void ReportsBase::WriteSizeReport( const std::string& fileName )
   CloseSizeFile( report );
 }
 
-void ReportsBase::WriteSymbolSummaryReport( const std::string& fileName )
+void ReportsBase::WriteSymbolSummaryReport(
+  const std::string&    fileName,
+  const DesiredSymbols& symbolsToAnalyze
+)
 {
   std::ofstream report;
   unsigned int  count;
@@ -453,12 +458,12 @@ void ReportsBase::WriteSymbolSummaryReport( const std::string& fileName )
 
   // Process each symbol.
   const std::vector<std::string>& symbols =
-    SymbolsToAnalyze->getSymbolsForSet( symbolSetName_m );
+    symbolsToAnalyze_m.getSymbolsForSet( symbolSetName_m );
 
   count = 0;
   for ( const auto& symbol : symbols ) {
     const SymbolInformation& info =
-      SymbolsToAnalyze->allSymbols().at( symbol );
+      symbolsToAnalyze_m.allSymbols().at( symbol );
 
     PutSymbolSummaryLine( report, count, symbol, info );
     count++;
@@ -468,9 +473,10 @@ void ReportsBase::WriteSymbolSummaryReport( const std::string& fileName )
 }
 
 void  ReportsBase::WriteSummaryReport(
-  const std::string& fileName,
-  const std::string& symbolSetName,
-  const std::string& outputDirectory
+  const std::string&              fileName,
+  const std::string&              symbolSetName,
+  const std::string&              outputDirectory,
+  const Coverage::DesiredSymbols& symbolsToAnalyze
 )
 {
     // Calculate coverage statistics and output results.
@@ -491,10 +497,10 @@ void  ReportsBase::WriteSummaryReport(
 
   // Look at each symbol.
   const std::vector<std::string>& symbols =
-    SymbolsToAnalyze->getSymbolsForSet( symbolSetName );
+    symbolsToAnalyze.getSymbolsForSet( symbolSetName );
 
   for ( const auto& symbol : symbols ) {
-    SymbolInformation info = SymbolsToAnalyze->allSymbols().at( symbol );
+    SymbolInformation info = symbolsToAnalyze.allSymbols().at( symbol );
 
     // If the symbol's unified coverage map exists, scan through it
     // and count bytes.
@@ -518,12 +524,12 @@ void  ReportsBase::WriteSummaryReport(
   }
 
   percentageBranches = (double) (
-    SymbolsToAnalyze->getNumberBranchesAlwaysTaken( symbolSetName ) +
-    SymbolsToAnalyze->getNumberBranchesNeverTaken( symbolSetName ) +
-  ( SymbolsToAnalyze->getNumberBranchesNotExecuted( symbolSetName ) * 2 )
+    symbolsToAnalyze.getNumberBranchesAlwaysTaken( symbolSetName ) +
+    symbolsToAnalyze.getNumberBranchesNeverTaken( symbolSetName ) +
+  ( symbolsToAnalyze.getNumberBranchesNotExecuted( symbolSetName ) * 2 )
   );
   percentageBranches /=
-    (double) SymbolsToAnalyze->getNumberBranchesFound( symbolSetName ) * 2;
+    (double) symbolsToAnalyze.getNumberBranchesFound( symbolSetName ) * 2;
   percentageBranches *= 100.0;
 
   report << "Bytes Analyzed                   : " << totalBytes << std::endl
@@ -533,31 +539,31 @@ void  ReportsBase::WriteSummaryReport(
          << 100.0 - percentage << std::endl
          << "Percentage Not Executed          : " << percentage << std::endl
          << "Unreferenced Symbols             : "
-         << SymbolsToAnalyze->getNumberUnreferencedSymbols( symbolSetName )
+         << symbolsToAnalyze.getNumberUnreferencedSymbols( symbolSetName )
          << std::endl << "Uncovered ranges found           : "
-         << SymbolsToAnalyze->getNumberUncoveredRanges( symbolSetName )
+         << symbolsToAnalyze.getNumberUncoveredRanges( symbolSetName )
          << std::endl << std::endl;
 
   if (
-    ( SymbolsToAnalyze->getNumberBranchesFound( symbolSetName ) == 0 ) ||
+    ( symbolsToAnalyze.getNumberBranchesFound( symbolSetName ) == 0 ) ||
     ( BranchInfoAvailable == false )
   ) {
     report << "No branch information available" << std::endl;
   } else {
     report << "Total conditional branches found : "
-           << SymbolsToAnalyze->getNumberBranchesFound( symbolSetName )
+           << symbolsToAnalyze.getNumberBranchesFound( symbolSetName )
            << std::endl << "Total branch paths found         : "
-           << SymbolsToAnalyze->getNumberBranchesFound( symbolSetName ) * 2
+           << symbolsToAnalyze.getNumberBranchesFound( symbolSetName ) * 2
            << std::endl << "Uncovered branch paths found     : "
-           << SymbolsToAnalyze->getNumberBranchesAlwaysTaken( symbolSetName ) +
-              SymbolsToAnalyze->getNumberBranchesNeverTaken( symbolSetName ) +
-            ( SymbolsToAnalyze->getNumberBranchesNotExecuted( symbolSetName ) * 2 )
+           << symbolsToAnalyze.getNumberBranchesAlwaysTaken( symbolSetName ) +
+              symbolsToAnalyze.getNumberBranchesNeverTaken( symbolSetName ) +
+            ( symbolsToAnalyze.getNumberBranchesNotExecuted( symbolSetName ) * 2 )
            << std::endl << "   "
-           << SymbolsToAnalyze->getNumberBranchesAlwaysTaken( symbolSetName )
+           << symbolsToAnalyze.getNumberBranchesAlwaysTaken( symbolSetName )
            << " branches always taken" << std::endl << "   "
-           << SymbolsToAnalyze->getNumberBranchesNeverTaken( symbolSetName )
+           << symbolsToAnalyze.getNumberBranchesNeverTaken( symbolSetName )
            << " branches never taken" << std::endl << "   "
-           << SymbolsToAnalyze->getNumberBranchesNotExecuted( symbolSetName ) * 2
+           << symbolsToAnalyze.getNumberBranchesNotExecuted( symbolSetName ) * 2
            << " branch paths not executed" << std::endl
            << "Percentage branch paths covered  : "
            << std::fixed << std::setprecision( 2 ) << std::setw( 4 )
@@ -569,11 +575,12 @@ void  ReportsBase::WriteSummaryReport(
 }
 
 void GenerateReports(
-  const std::string&      symbolSetName,
-  Coverage::Explanations& allExplanations,
-  bool                    verbose,
-  const std::string&      projectName,
-  const std::string&      outputDirectory
+  const std::string&              symbolSetName,
+  Coverage::Explanations&         allExplanations,
+  bool                            verbose,
+  const std::string&              projectName,
+  const std::string&              outputDirectory,
+  const Coverage::DesiredSymbols& symbolsToAnalyze
 )
 {
   typedef std::list<ReportsBase *> reportList_t;
@@ -591,7 +598,8 @@ void GenerateReports(
     symbolSetName,
     allExplanations,
     projectName,
-    outputDirectory
+    outputDirectory,
+    symbolsToAnalyze
   );
   reportList.push_back( reports );
   reports = new ReportsHtml(
@@ -599,7 +607,8 @@ void GenerateReports(
     symbolSetName,
     allExplanations,
     projectName,
-    outputDirectory
+    outputDirectory,
+    symbolsToAnalyze
   );
   reportList.push_back( reports );
 
@@ -640,7 +649,7 @@ void GenerateReports(
     if ( verbose ) {
       std::cerr << "Generate " << reportName << std::endl;
     }
-    reports->WriteSymbolSummaryReport( reportName );
+    reports->WriteSymbolSummaryReport( reportName, symbolsToAnalyze );
   }
 
   for ( ritr = reportList.begin(); ritr != reportList.end(); ritr++ ) {
@@ -651,7 +660,8 @@ void GenerateReports(
   ReportsBase::WriteSummaryReport(
     "summary.txt",
     symbolSetName,
-    outputDirectory
+    outputDirectory,
+    symbolsToAnalyze
   );
 }
 

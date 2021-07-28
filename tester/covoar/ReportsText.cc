@@ -21,13 +21,15 @@ ReportsText::ReportsText(
   const std::string&      symbolSetName,
   Coverage::Explanations& allExplanations,
   const std::string&      projectName,
-  const std::string&      outputDirectory
+  const std::string&      outputDirectory,
+  const DesiredSymbols&   symbolsToAnalyze
 ): ReportsBase(
      timestamp,
      symbolSetName,
      allExplanations,
      projectName,
-     outputDirectory
+     outputDirectory,
+     symbolsToAnalyze
    )
 {
   reportExtension_m = ".txt";
@@ -61,7 +63,7 @@ bool ReportsText::PutNoBranchInfo( std::ofstream& report )
 {
   if (
     BranchInfoAvailable &&
-    SymbolsToAnalyze->getNumberBranchesFound( symbolSetName_m ) != 0
+    symbolsToAnalyze_m.getNumberBranchesFound( symbolSetName_m ) != 0
   ) {
     report << "All branch paths taken." << std::endl;
   } else {

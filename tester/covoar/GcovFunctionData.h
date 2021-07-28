@@ -44,6 +44,8 @@ typedef std::list<gcov_arc_info>::iterator      arcs_iterator_t;
 typedef std::list<gcov_block_info>              blocks_t;
 typedef std::list<gcov_block_info>::iterator    blocks_iterator_t;
 
+class DesiredSymbols;
+
   /*! @class GcovFunctionData
    *
    *  This is the specification of the GcovFunctionData class.
@@ -94,11 +96,13 @@ typedef std::list<gcov_block_info>::iterator    blocks_iterator_t;
      *  unified coverage map.
      *
      *  @param[in] functionName passes name of the the function
+     *  @param[in] symbolsToAnalyze the symbols to be analyzed
      *
      *  @return Returns TRUE if the method succeeded and FALSE if it failed.
      */
     bool setFunctionName(
-      const char*                 fcnName
+      const char*               fcnName,
+      Coverage::DesiredSymbols& symbolsToAnalyze
     );
 
     /*!

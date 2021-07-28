@@ -26,7 +26,8 @@ class ReportsText: public ReportsBase {
       const std::string&      symbolSetName,
       Coverage::Explanations& allExplanations,
       const std::string&      projectName,
-      const std::string&      outputDirectory
+      const std::string&      outputDirectory,
+      const DesiredSymbols&   symbolsToAnalyze
     );
     virtual ~ReportsText();
 

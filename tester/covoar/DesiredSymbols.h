@@ -19,6 +19,10 @@
 
 namespace Coverage {
 
+  class ObjdumpProcessor;
+  struct objdumpLine_t;
+  class ExecutableInfo;
+
 
   /*!
    *
@@ -139,7 +143,7 @@ namespace Coverage {
     /*!
      *  This member contains the disassembly associated with a symbol.
      */
-    std::list<ObjdumpProcessor::objdumpLine_t> instructions;
+    std::list<objdumpLine_t> instructions;
 
     /*!
      *  This member contains the executable that was used to
@@ -263,8 +267,12 @@ namespace Coverage {
      *  uncovered ranges or branches.
      *
      *  @param[in] verbose specifies whether to be verbose with output
+     *  @param[in] symbolsToAnalyze the symbols to be analyzed
      */
-    void findSourceForUncovered( bool verbose );
+    void findSourceForUncovered(
+      bool verbose,
+      const DesiredSymbols& symbolsToAnalyze
+    );
 
     /*!
      *  This method returns the total number of branches always taken
@@ -398,8 +406,10 @@ namespace Coverage {
     /*!
      *  This method preprocesses each symbol's coverage map to mark nop
      *  and branch information.
+     *
+     *  @param[in] symbolsToAnalyze the symbols to be analyzed
      */
-    void preprocess( void );
+    void preprocess( const DesiredSymbols& symbolsToAnalyze );
 
   private:
 

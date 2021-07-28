@@ -32,7 +32,8 @@ class ReportsBase {
       const std::string&      symbolSetName,
       Coverage::Explanations& allExplanations,
       const std::string&      projectName,
-      const std::string&      outputDirectory
+      const std::string&      outputDirectory,
+      const DesiredSymbols&   symbolsToAnalyze
     );
     virtual ~ReportsBase();
 
@@ -80,16 +81,21 @@ class ReportsBase {
      *  each symbol which did not achieve 100% coverage
      *
      *  @param[in] fileName identifies the report file name
+     *  @param[in] symbolsToAnalyze the symbols to be analyzed
      */
-    void WriteSymbolSummaryReport( const std::string& fileName );
+    void WriteSymbolSummaryReport(
+      const std::string&              fileName,
+      const Coverage::DesiredSymbols& symbolsToAnalyze
+    );
 
     /*!
      *  This method produces a sumary report for the overall test run.
      */
     static void  WriteSummaryReport(
-      const std::string& fileName,
-      const std::string& symbolSetName,
-      const std::string& outputDirectory
+      const std::string&              fileName,
+      const std::string&              symbolSetName,
+      const std::string&              outputDirectory,
+      const Coverage::DesiredSymbols& symbolsToAnalyze
     );
 
     /*!
@@ -141,6 +147,11 @@ class ReportsBase {
      *  This variable stores the output directory.
      */
     std::string outputDirectory_m = "";
+
+    /*!
+     * This member variable contains the symbols to be analyzed.
+     */
+    const Coverage::DesiredSymbols& symbolsToAnalyze_m;
 
     /*!
      *  This method Opens a report file and verifies that it opened
@@ -418,13 +429,15 @@ class ReportsBase {
  *  @param[in] verbose specifies whether to be verbose with output
  *  @param[in] projectName specifies the name of the project
  *  @param[in] outputDirectory specifies the directory for the output
+ *  @param[in] symbolsToAnalyze the symbols to be analyzed
  */
 void GenerateReports(
-  const std::string&      symbolSetName,
-  Coverage::Explanations& allExplanations,
-  bool                    verbose,
-  const std::string&      projectName,
-  const std::string&      outputDirectory
+  const std::string&              symbolSetName,
+  Coverage::Explanations&         allExplanations,
+  bool                            verbose,
+  const std::string&              projectName,
+  const std::string&              outputDirectory,
+  const Coverage::DesiredSymbols& symbolsToAnalyze
 );
 
 }

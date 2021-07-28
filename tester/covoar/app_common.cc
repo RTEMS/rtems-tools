@@ -56,7 +56,6 @@
 /*
  *  Global variables for the program
  */
-Coverage::DesiredSymbols*   SymbolsToAnalyze    = NULL;
 bool                        BranchInfoAvailable = false;
 Target::TargetBase*         TargetInfo          = NULL;
 

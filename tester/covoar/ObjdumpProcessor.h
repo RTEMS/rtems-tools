@@ -12,10 +12,53 @@
 
 #include "ExecutableInfo.h"
 #include "TargetBase.h"
+#include "DesiredSymbols.h"
 
 #include "rld-process.h"
 
 namespace Coverage {
+
+  class DesiredSymbols;
+  class ExecutableInfo;
+
+  /*!
+   *  This type defines the elements of an objdump line.
+   */
+  struct objdumpLine_t {
+    /*!
+     *  This member variable contains the actual line from the object dump.
+     */
+    std::string line;
+
+    /*!
+     *  This member variable contains the address from the object dump line.
+     */
+    uint32_t address;
+
+    /*!
+     *  This member variable contains an indication of whether the line
+     *  is an instruction.
+     */
+    bool isInstruction;
+
+    /*!
+     *  This member variable contains an indication of whether the line
+     *  is a nop instruction.
+     */
+    bool isNop;
+
+    /*!
+     *  This member variable contains the size of the nop instruction.
+     */
+    int nopSize;
+
+    /*!
+     *  This member variable contains an indication of whether the line
+     *  is a branch instruction.
+     */
+    bool isBranch;
+
+  };
 
   /*! @class ObjdumpProcessor
    *
@@ -30,45 +73,6 @@ namespace Coverage {
   class ObjdumpProcessor {
 
   public:
-
-    /*!
-     *  This type defines the elements of an objdump line.
-     */
-    typedef struct {
-      /*!
-       *  This member variable contains the actual line from the object dump.
-       */
-      std::string line;
-
-      /*!
-       *  This member variable contains the address from the object dump line.
-       */
-      uint32_t address;
-
-      /*!
-       *  This member variable contains an indication of whether the line
-       *  is an instruction.
-       */
-      bool isInstruction;
-
-      /*!
-       *  This member variable contains an indication of whether the line
-       *  is a nop instruction.
-       */
-      bool isNop;
-
-      /*!
-       *  This member variable contains the size of the nop instruction.
-       */
-      int nopSize;
-
-      /*!
-       *  This member variable contains an indication of whether the line
-       *  is a branch instruction.
-       */
-      bool isBranch;
-
-    } objdumpLine_t;
 
     /*!
      *  This object defines a list of object dump lines
@@ -86,7 +90,9 @@ namespace Coverage {
     /*!
      *  This method constructs an ObjdumpProcessor instance.
      */
-    ObjdumpProcessor();
+    ObjdumpProcessor(
+      DesiredSymbols& symbolsToAnalyze
+    );
 
     /*!
      *  This method destructs an ObjdumpProcessor instance.
@@ -169,6 +175,10 @@ namespace Coverage {
       int&              size
     );
 
+    /*!
+     * This member variable contains the symbols to be analyzed
+     */
+    DesiredSymbols& symbolsToAnalyze_m;
   };
 }
 #endif

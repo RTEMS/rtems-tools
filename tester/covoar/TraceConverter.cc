@@ -89,9 +89,10 @@ int main(
   Coverage::ExecutableInfo*    executableInfo;
   rld::process::tempfile       objdumpFile( ".dmp" );
   rld::process::tempfile       err( ".err" );
-  Coverage::ObjdumpProcessor   objdumpProcessor;
+  Coverage::DesiredSymbols     symbolsToAnalyze;
   bool                         verbose = false;
   std::string                  dynamicLibrary;
+  Coverage::ObjdumpProcessor   objdumpProcessor( symbolsToAnalyze );
 
   setup_signals();
 
@@ -132,9 +133,19 @@ int main(
   TargetInfo = Target::TargetFactory( cpuname );
 
   if ( !dynamicLibrary.empty() )
-    executableInfo = new Coverage::ExecutableInfo( executable, dynamicLibrary );
+    executableInfo = new Coverage::ExecutableInfo(
+      executable,
+      dynamicLibrary,
+      false,
+      symbolsToAnalyze
+    );
   else
-    executableInfo = new Coverage::ExecutableInfo( executable );
+    executableInfo = new Coverage::ExecutableInfo(
+      executable,
+      "",
+      false,
+      symbolsToAnalyze
+    );
 
   // If a dynamic library was specified, determine the load address.
   if ( !dynamicLibrary.empty() )

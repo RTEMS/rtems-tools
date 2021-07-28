@@ -11,6 +11,7 @@
 #include <list>
 #include <iostream>
 #include "GcovFunctionData.h"
+#include "DesiredSymbols.h"
 
 namespace Gcov {
 
@@ -56,6 +57,8 @@ struct gcov_statistics
   uint64_t sumMax;            // sum of individual runs max values
 };
 
+class DesiredSymbols;
+
   /*! @class GcovData
    *
    *  This is the specification of the GcovData class.
@@ -66,8 +69,10 @@ struct gcov_statistics
 
     /*!
      *  This method constructs a GcnoReader instance.
+     *
+     *  @param[in] symbolsToAnalyze the symbols to be analyzed
      */
-    GcovData();
+    GcovData( Coverage::DesiredSymbols& symbolsToAnalyze );
 
     /*!
      *  This method destructs a GcnoReader instance.
@@ -194,6 +199,11 @@ struct gcov_statistics
      *  to a specified report file
      */
     void printGcnoFileInfo( FILE * textFile );
+
+    /*!
+     * This member variable contains the symbols to be analyzed
+     */
+    Coverage::DesiredSymbols& symbolsToAnalyze_m;
   };
 }
 #endif

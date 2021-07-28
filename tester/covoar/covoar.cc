@@ -178,11 +178,12 @@ int covoar(
   int                           opt;
   char                          inputBuffer[MAX_LINE_LENGTH];
   Coverage::Explanations        allExplanations;
-  Coverage::ObjdumpProcessor    objdumpProcessor;
   bool                          verbose = false;
   std::string                   dynamicLibrary;
   std::string                   projectName;
   std::string                   outputDirectory = ".";
+  Coverage::DesiredSymbols      symbolsToAnalyze;
+  Coverage::ObjdumpProcessor    objdumpProcessor( symbolsToAnalyze );
 
   //
   // Process command line options.
@@ -278,13 +279,10 @@ int covoar(
   // Create data based on target.
   TargetInfo = Target::TargetFactory( buildTarget );
 
-  // Create the set of desired symbols.
-  SymbolsToAnalyze = new Coverage::DesiredSymbols();
-
   //
   // Read symbol configuration file and load needed symbols.
   //
-  SymbolsToAnalyze->load( symbolSet, buildTarget, buildBSP, verbose );
+  symbolsToAnalyze.load( symbolSet, buildTarget, buildBSP, verbose );
 
   // If a single executable was specified, process the remaining
   // arguments as coverage file names.
@@ -311,11 +309,17 @@ int covoar(
       if (!coverageFileNames.empty()) {
         if ( !dynamicLibrary.empty() ) {
           executableInfo = new Coverage::ExecutableInfo(
-            singleExecutable, dynamicLibrary, verbose
+            singleExecutable,
+            dynamicLibrary,
+            verbose,
+            symbolsToAnalyze
           );
         } else {
           executableInfo = new Coverage::ExecutableInfo(
-            singleExecutable, "", verbose
+            singleExecutable,
+            "",
+            verbose,
+            symbolsToAnalyze
           );
         }
 
@@ -339,7 +343,10 @@ int covoar(
                     << std::endl;
         } else {
           executableInfo = new Coverage::ExecutableInfo(
-            argv[i], "", verbose
+            argv[i],
+            "",
+            verbose,
+            symbolsToAnalyze
           );
           executablesToAnalyze.push_back( executableInfo );
           coverageFileNames.push_back( coverageFileName );
@@ -359,7 +366,7 @@ int covoar(
     throw rld::error( "executables and coverage name size mismatch", "covoar" );
 
   if ( verbose )
-    std::cerr << "Analyzing " << SymbolsToAnalyze->allSymbols().size()
+    std::cerr << "Analyzing " << symbolsToAnalyze.allSymbols().size()
               << " symbols" << std::endl;
 
   // Create explanations.
@@ -418,7 +425,7 @@ int covoar(
   if (verbose)
     std::cerr << "Preprocess uncovered ranges and branches" << std::endl;
 
-  SymbolsToAnalyze->preprocess();
+  symbolsToAnalyze.preprocess( symbolsToAnalyze );
 
   //
   // Generate Gcov reports
@@ -433,7 +440,7 @@ int covoar(
       std::cerr << "Unable to open " << gcnosFileName << std::endl;
     else {
       while ( fscanf( gcnosFile, "%s", inputBuffer ) != EOF) {
-        gcovFile = new Gcov::GcovData();
+        gcovFile = new Gcov::GcovData( symbolsToAnalyze );
         strcpy( gcnoFileName, inputBuffer );
 
         if ( verbose )
@@ -457,20 +464,20 @@ int covoar(
   if (verbose)
     std::cerr << "Computing uncovered ranges and branches" << std::endl;
 
-  SymbolsToAnalyze->computeUncovered( verbose );
+  symbolsToAnalyze.computeUncovered( verbose );
 
   // Calculate remainder of statistics.
   if (verbose)
     std::cerr << "Calculate statistics" << std::endl;
 
-  SymbolsToAnalyze->calculateStatistics();
+  symbolsToAnalyze.calculateStatistics();
 
   // Look up the source lines for any uncovered ranges and branches.
   if (verbose)
     std::cerr << "Looking up source lines for uncovered ranges and branches"
               << std::endl;
 
-  SymbolsToAnalyze->findSourceForUncovered( verbose );
+  symbolsToAnalyze.findSourceForUncovered( verbose, symbolsToAnalyze );
 
   //
   // Report the coverage data.
@@ -478,13 +485,14 @@ int covoar(
   if (verbose)
     std::cerr << "Generate Reports" << std::endl;
 
-  for (const auto& setName : SymbolsToAnalyze->getSetNames()) {
+  for (const auto& setName : symbolsToAnalyze.getSetNames()) {
     Coverage::GenerateReports(
       setName,
       allExplanations,
       verbose,
       projectName,
-      outputDirectory
+      outputDirectory,
+      symbolsToAnalyze
     );
   }
 

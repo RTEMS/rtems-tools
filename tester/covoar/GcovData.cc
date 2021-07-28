@@ -25,9 +25,10 @@
 
 namespace Gcov {
 
-  GcovData::GcovData()
+  GcovData::GcovData( Coverage::DesiredSymbols& symbolsToAnalyze ):
+    numberOfFunctions( 0 ),
+    symbolsToAnalyze_m( symbolsToAnalyze )
   {
-    numberOfFunctions = 0;
   }
 
   GcovData::~GcovData()
@@ -416,7 +417,7 @@ namespace Gcov {
     function->setChecksum( intBuffer[1] );
 
     header.length -= readString( buffer, gcovFile );
-    function->setFunctionName( buffer );
+    function->setFunctionName( buffer, symbolsToAnalyze_m );
     header.length -= readString( buffer, gcovFile );
     function->setFileName( buffer );
     status = fread( &intBuffer, 4, header.length, gcovFile );

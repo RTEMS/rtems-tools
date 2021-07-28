@@ -38,17 +38,19 @@ typedef rtems::utils::ostream_guard ostream_guard;
 namespace Coverage {
 
   ReportsHtml::ReportsHtml(
-    time_t                  timestamp,
-    const std::string&      symbolSetName,
-    Coverage::Explanations& allExplanations,
-    const std::string&      projectName,
-    const std::string&      outputDirectory
+    time_t                          timestamp,
+    const std::string&              symbolSetName,
+    Coverage::Explanations&         allExplanations,
+    const std::string&              projectName,
+    const std::string&              outputDirectory,
+    const Coverage::DesiredSymbols& symbolsToAnalyze
   ): ReportsBase(
        timestamp,
        symbolSetName,
        allExplanations,
        projectName,
-       outputDirectory
+       outputDirectory,
+       symbolsToAnalyze
      ),
      lastState_m( A_SOURCE )
   {
@@ -441,7 +443,7 @@ namespace Coverage {
   {
     if (
       BranchInfoAvailable &&
-      SymbolsToAnalyze->getNumberBranchesFound( symbolSetName_m ) != 0
+      symbolsToAnalyze_m.getNumberBranchesFound( symbolSetName_m ) != 0
     ) {
       report << "All branch paths taken." << std::endl;
     } else {

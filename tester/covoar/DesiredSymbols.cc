@@ -25,7 +25,6 @@
 #include "DesiredSymbols.h"
 #include "app_common.h"
 #include "CoverageMap.h"
-#include "ObjdumpProcessor.h"
 
 namespace Coverage {
 
@@ -116,10 +115,10 @@ namespace Coverage {
     }
   }
 
-  void DesiredSymbols::preprocess( void )
+  void DesiredSymbols::preprocess( const DesiredSymbols& symbolsToAnalyze )
   {
     // Look at each symbol.
-    for (auto& s : SymbolsToAnalyze->set) {
+    for (auto& s : symbolsToAnalyze.set) {
       // If the unified coverage map does not exist, the symbol was
       // never referenced by any executable.  Just skip it.
       CoverageMapBase* theCoverageMap = s.second.unifiedCoverageMap;
@@ -441,10 +440,13 @@ namespace Coverage {
       return &set[ symbolName ];
   }
 
-  void DesiredSymbols::findSourceForUncovered( bool verbose )
+  void DesiredSymbols::findSourceForUncovered(
+    bool                  verbose,
+    const DesiredSymbols& symbolsToAnalyze
+  )
   {
     // Process uncovered ranges and/or branches for each symbol.
-    for (auto& d : SymbolsToAnalyze->set) {
+    for (auto& d : symbolsToAnalyze.set) {
       // First the unexecuted ranges, ...
       CoverageRanges* theRanges = d.second.uncoveredRanges;
       if (theRanges != nullptr) {

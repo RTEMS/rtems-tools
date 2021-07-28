@@ -26,11 +26,12 @@ class ReportsHtml: public ReportsBase {
 
   public:
     ReportsHtml(
-      time_t                  timestamp,
-      const std::string&      symbolSetName,
-      Coverage::Explanations& allExplanations,
-      const std::string&      projectName,
-      const std::string&      outputDirectory
+      time_t                          timestamp,
+      const std::string&              symbolSetName,
+      Coverage::Explanations&         allExplanations,
+      const std::string&              projectName,
+      const std::string&              outputDirectory,
+      const Coverage::DesiredSymbols& symbolsToAnalyze
     );
    ~ReportsHtml();
 

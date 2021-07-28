@@ -32,7 +32,8 @@ namespace Coverage {
     ExecutableInfo* const            executableInfo,
     std::string&                     symbolName,
     ObjdumpProcessor::objdumpLines_t instructions,
-    bool                             verbose
+    bool                             verbose,
+    DesiredSymbols&                  symbolsToAnalyze
   ) {
     // Find the symbol's coverage map.
     try {
@@ -88,7 +89,7 @@ namespace Coverage {
       }
 
       // If there are NOT already saved instructions, save them.
-      SymbolInformation* symbolInfo = SymbolsToAnalyze->find( symbolName );
+      SymbolInformation* symbolInfo = symbolsToAnalyze.find( symbolName );
       if (symbolInfo->instructions.empty()) {
         symbolInfo->sourceFile = executableInfo;
         symbolInfo->baseAddress = lowAddress;
@@ -107,7 +108,7 @@ namespace Coverage {
       }
 
       // Create a unified coverage map for the symbol.
-      SymbolsToAnalyze->createCoverageMap(
+      symbolsToAnalyze.createCoverageMap(
         executableInfo->getFileName().c_str(),
         symbolName,
         size,
@@ -122,7 +123,9 @@ namespace Coverage {
     }
   }
 
-  ObjdumpProcessor::ObjdumpProcessor()
+  ObjdumpProcessor::ObjdumpProcessor(
+    DesiredSymbols& symbolsToAnalyze
+  ): symbolsToAnalyze_m( symbolsToAnalyze )
   {
   }
 
@@ -363,7 +366,8 @@ namespace Coverage {
             executableInformation,
             currentSymbol,
             theInstructions,
-            verbose
+            verbose,
+            symbolsToAnalyze_m
           );
           fprintf(
             stderr,
@@ -419,7 +423,8 @@ namespace Coverage {
             executableInformation,
             currentSymbol,
             theInstructions,
-            verbose
+            verbose,
+            symbolsToAnalyze_m
           );
         }
 
@@ -444,7 +449,7 @@ namespace Coverage {
         }
 
         // See if the new symbol is one that we care about.
-        if (SymbolsToAnalyze->isDesired( symbol )) {
+        if (symbolsToAnalyze_m.isDesired( symbol )) {
           currentSymbol = symbol;
           processSymbol = true;
           theInstructions.push_back( lineInfo );
@@ -462,7 +467,8 @@ namespace Coverage {
             executableInformation,
             currentSymbol,
             theInstructions,
-            verbose
+            verbose,
+            symbolsToAnalyze_m
           );
         }
         processSymbol = false;
