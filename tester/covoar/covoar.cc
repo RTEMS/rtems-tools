@@ -34,6 +34,8 @@
   #define kill(p,s) raise(s)
 #endif
 
+#define MAX_LINE_LENGTH 512
+
 typedef std::list<std::string> CoverageNames;
 typedef std::list<Coverage::ExecutableInfo*> Executables;
 typedef std::string option_error;
@@ -174,6 +176,7 @@ int covoar(
   std::string                   symbolSet;
   std::string                   option;
   int                           opt;
+  char                          inputBuffer[MAX_LINE_LENGTH];
   Coverage::Explanations        allExplanations;
   Coverage::ObjdumpProcessor    objdumpProcessor;
   bool                          verbose = false;

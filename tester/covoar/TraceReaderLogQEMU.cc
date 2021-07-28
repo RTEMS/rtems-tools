@@ -61,6 +61,8 @@
 #define OPEN fopen
 #endif
 
+#define MAX_LINE_LENGTH 512
+
 namespace Trace {
 
   TraceReaderLogQEMU::TraceReaderLogQEMU()
@@ -85,6 +87,7 @@ namespace Trace {
     int                 status;
     FILE*               logFile;
     int                 result;
+    char                inputBuffer[MAX_LINE_LENGTH];
 
     //
     // Verify that the log file has a non-zero size.

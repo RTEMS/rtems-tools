@@ -31,7 +31,6 @@ namespace Coverage {
     const char* const explanations
   )
   {
-    #define MAX_LINE_LENGTH 512
     std::ifstream  explain;
     Explanation    e;
     int            line = 1;
@@ -46,44 +45,44 @@ namespace Coverage {
       throw rld::error( what, "Explanations::load" );
     }
 
+    std::string input_line;
     while ( 1 ) {
       // Read the starting line of this explanation and
       // skip blank lines between
       do {
-        inputBuffer[0] = '\0';
-        explain.getline( inputBuffer, MAX_LINE_LENGTH );
+        std::getline( explain, input_line );
         if (explain.fail()) {
           return;
         }
         line++;
-      } while ( inputBuffer[0] == '\0' );
+      } while ( input_line.empty() );
 
       // Have we already seen this one?
-      if (set.find( inputBuffer ) != set.end()) {
+      if (set.find( input_line ) != set.end()) {
         std::ostringstream what;
         what << "line " << line
              << "contains a duplicate explanation ("
-             << inputBuffer << ")";
+             << input_line << ")";
         throw rld::error( what, "Explanations::load" );
       }
 
       // Add the starting line and file
-      e.startingPoint = std::string(inputBuffer);
+      e.startingPoint = input_line;
       e.found = false;
 
       // Get the classification
-      explain.getline( inputBuffer, MAX_LINE_LENGTH );
+      std::getline( explain, input_line );
       if (explain.fail()) {
         std::ostringstream what;
         what << "line " << line
              << "out of sync at the classification";
         throw rld::error( what, "Explanations::load" );
       }
-      e.classification = inputBuffer;
+      e.classification = input_line;
       line++;
 
       // Get the explanation
-      for (std::string input_line; std::getline( explain, input_line ); ) {
+      while ( std::getline( explain, input_line ) ) {
         line++;
 
         const std::string delimiter = "+++";
@@ -105,7 +104,6 @@ namespace Coverage {
       set[ e.startingPoint ] = e;
     }
 
-    #undef MAX_LINE_LENGTH
   }
 
   const Explanation *Explanations::lookupExplanation(

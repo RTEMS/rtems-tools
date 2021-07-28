@@ -59,8 +59,6 @@
 Coverage::DesiredSymbols*   SymbolsToAnalyze    = NULL;
 bool                        BranchInfoAvailable = false;
 Target::TargetBase*         TargetInfo          = NULL;
-char                        inputBuffer[MAX_LINE_LENGTH];
-char                        inputBuffer2[MAX_LINE_LENGTH];
 
 
 bool FileIsNewer(

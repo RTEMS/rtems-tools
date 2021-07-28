@@ -24,6 +24,8 @@
 #include "rld.h"
 #include "rld-process.h"
 
+#define MAX_LINE_LENGTH 512
+
 namespace Coverage {
 
   void finalizeSymbol(
@@ -136,6 +138,7 @@ namespace Coverage {
     FILE*        loadAddressFile = NULL;
     char*        cStatus;
     uint32_t     offset;
+    char         inputBuffer[MAX_LINE_LENGTH];
 
     // This method should only be call for a dynamic library.
     if (!theExecutable->hasDynamicLibrary())
