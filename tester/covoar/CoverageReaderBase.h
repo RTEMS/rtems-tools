@@ -42,6 +42,16 @@ namespace Coverage {
       const char* const     file,
       ExecutableInfo* const executableInformation
     ) = 0;
+
+  /*!
+   *  This method retrieves the branchInfoAvailable_m variable
+   */
+  bool getBranchInfoAvailable() const;
+
+  /*!
+   * This member variable tells whether the branch info is available.
+   */
+  bool branchInfoAvailable_m = false;
   };
 
 }

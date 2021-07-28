@@ -56,7 +56,6 @@
 /*
  *  Global variables for the program
  */
-bool                        BranchInfoAvailable = false;
 Target::TargetBase*         TargetInfo          = NULL;
 
 

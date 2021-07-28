@@ -22,14 +22,16 @@ ReportsText::ReportsText(
   Coverage::Explanations& allExplanations,
   const std::string&      projectName,
   const std::string&      outputDirectory,
-  const DesiredSymbols&   symbolsToAnalyze
+  const DesiredSymbols&   symbolsToAnalyze,
+  bool                    branchInfoAvailable
 ): ReportsBase(
      timestamp,
      symbolSetName,
      allExplanations,
      projectName,
      outputDirectory,
-     symbolsToAnalyze
+     symbolsToAnalyze,
+     branchInfoAvailable
    )
 {
   reportExtension_m = ".txt";
@@ -62,7 +64,7 @@ void ReportsText::PutAnnotatedLine(
 bool ReportsText::PutNoBranchInfo( std::ofstream& report )
 {
   if (
-    BranchInfoAvailable &&
+    branchInfoAvailable_m &&
     symbolsToAnalyze_m.getNumberBranchesFound( symbolSetName_m ) != 0
   ) {
     report << "All branch paths taken." << std::endl;

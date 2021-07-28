@@ -183,6 +183,7 @@ int covoar(
   std::string                   projectName;
   std::string                   outputDirectory = ".";
   Coverage::DesiredSymbols      symbolsToAnalyze;
+  bool                          branchInfoAvailable = false;
   Coverage::ObjdumpProcessor    objdumpProcessor( symbolsToAnalyze );
 
   //
@@ -486,13 +487,16 @@ int covoar(
     std::cerr << "Generate Reports" << std::endl;
 
   for (const auto& setName : symbolsToAnalyze.getSetNames()) {
+    branchInfoAvailable = coverageReader->getBranchInfoAvailable();
+
     Coverage::GenerateReports(
       setName,
       allExplanations,
       verbose,
       projectName,
       outputDirectory,
-      symbolsToAnalyze
+      symbolsToAnalyze,
+      branchInfoAvailable
     );
   }
 

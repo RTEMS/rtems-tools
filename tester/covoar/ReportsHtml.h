@@ -31,7 +31,8 @@ class ReportsHtml: public ReportsBase {
       Coverage::Explanations&         allExplanations,
       const std::string&              projectName,
       const std::string&              outputDirectory,
-      const Coverage::DesiredSymbols& symbolsToAnalyze
+      const Coverage::DesiredSymbols& symbolsToAnalyze,
+      bool                            branchInfoAvailable
     );
    ~ReportsHtml();
 

@@ -43,14 +43,16 @@ namespace Coverage {
     Coverage::Explanations&         allExplanations,
     const std::string&              projectName,
     const std::string&              outputDirectory,
-    const Coverage::DesiredSymbols& symbolsToAnalyze
+    const Coverage::DesiredSymbols& symbolsToAnalyze,
+    bool                            branchInfoAvailable
   ): ReportsBase(
        timestamp,
        symbolSetName,
        allExplanations,
        projectName,
        outputDirectory,
-       symbolsToAnalyze
+       symbolsToAnalyze,
+       branchInfoAvailable
      ),
      lastState_m( A_SOURCE )
   {
@@ -442,7 +444,7 @@ namespace Coverage {
   bool ReportsHtml::PutNoBranchInfo( std::ofstream& report )
   {
     if (
-      BranchInfoAvailable &&
+      branchInfoAvailable_m &&
       symbolsToAnalyze_m.getNumberBranchesFound( symbolSetName_m ) != 0
     ) {
       report << "All branch paths taken." << std::endl;

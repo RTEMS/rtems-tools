@@ -33,7 +33,8 @@ class ReportsBase {
       Coverage::Explanations& allExplanations,
       const std::string&      projectName,
       const std::string&      outputDirectory,
-      const DesiredSymbols&   symbolsToAnalyze
+      const DesiredSymbols&   symbolsToAnalyze,
+      bool                    branchInfoAvailable
     );
     virtual ~ReportsBase();
 
@@ -95,7 +96,8 @@ class ReportsBase {
       const std::string&              fileName,
       const std::string&              symbolSetName,
       const std::string&              outputDirectory,
-      const Coverage::DesiredSymbols& symbolsToAnalyze
+      const Coverage::DesiredSymbols& symbolsToAnalyze,
+      bool                            branchInfoAvailable
     );
 
     /*!
@@ -152,6 +154,11 @@ class ReportsBase {
      * This member variable contains the symbols to be analyzed.
      */
     const Coverage::DesiredSymbols& symbolsToAnalyze_m;
+
+    /*!
+     * This member variable tells whether the branch info is available
+     */
+    bool branchInfoAvailable_m = false;
 
     /*!
      *  This method Opens a report file and verifies that it opened
@@ -430,6 +437,7 @@ class ReportsBase {
  *  @param[in] projectName specifies the name of the project
  *  @param[in] outputDirectory specifies the directory for the output
  *  @param[in] symbolsToAnalyze the symbols to be analyzed
+ *  @param[in] branchInfoAvailable tells if branch info is available
  */
 void GenerateReports(
   const std::string&              symbolSetName,
@@ -437,7 +445,8 @@ void GenerateReports(
   bool                            verbose,
   const std::string&              projectName,
   const std::string&              outputDirectory,
-  const Coverage::DesiredSymbols& symbolsToAnalyze
+  const Coverage::DesiredSymbols& symbolsToAnalyze,
+  bool                            branchInfoAvailable
 );
 
 }

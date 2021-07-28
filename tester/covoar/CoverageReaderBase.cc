@@ -16,4 +16,9 @@ namespace Coverage {
   CoverageReaderBase::~CoverageReaderBase()
   {
   }
+
+  bool CoverageReaderBase::getBranchInfoAvailable() const
+  {
+    return branchInfoAvailable_m;
+  }
 }

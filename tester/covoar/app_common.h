@@ -12,7 +12,6 @@
 #include "Explanations.h"
 #include "TargetBase.h"
 
-extern bool                         BranchInfoAvailable;
 extern Target::TargetBase*          TargetInfo;
 
 

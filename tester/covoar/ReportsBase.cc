@@ -29,14 +29,16 @@ ReportsBase::ReportsBase(
   Coverage::Explanations& allExplanations,
   const std::string&      projectName,
   const std::string&      outputDirectory,
-  const DesiredSymbols&   symbolsToAnalyze
+  const DesiredSymbols&   symbolsToAnalyze,
+  bool                    branchInfoAvailable
 ): reportExtension_m( "" ),
    symbolSetName_m( symbolSetName ),
    timestamp_m( timestamp ),
    allExplanations_m( allExplanations ),
    projectName_m( projectName ),
    outputDirectory_m( outputDirectory ),
-   symbolsToAnalyze_m( symbolsToAnalyze )
+   symbolsToAnalyze_m( symbolsToAnalyze ),
+   branchInfoAvailable_m( branchInfoAvailable )
 {
 }
 
@@ -311,7 +313,7 @@ void ReportsBase::WriteBranchReport( const std::string& fileName )
 
   if (
     ( symbolsToAnalyze_m.getNumberBranchesFound( symbolSetName_m ) == 0 ) ||
-    ( BranchInfoAvailable == false )
+    ( branchInfoAvailable_m == false )
   ) {
      hasBranches = false;
   }
@@ -325,7 +327,7 @@ void ReportsBase::WriteBranchReport( const std::string& fileName )
   // If no branches were found then branch coverage is not supported
   if (
     ( symbolsToAnalyze_m.getNumberBranchesFound( symbolSetName_m ) != 0 ) &&
-    ( BranchInfoAvailable == true )
+    ( branchInfoAvailable_m == true )
   ) {
     // Process uncovered branches for each symbol in the set.
     const std::vector<std::string>& symbols =
@@ -476,7 +478,8 @@ void  ReportsBase::WriteSummaryReport(
   const std::string&              fileName,
   const std::string&              symbolSetName,
   const std::string&              outputDirectory,
-  const Coverage::DesiredSymbols& symbolsToAnalyze
+  const Coverage::DesiredSymbols& symbolsToAnalyze,
+  bool                            branchInfoAvailable
 )
 {
     // Calculate coverage statistics and output results.
@@ -546,7 +549,7 @@ void  ReportsBase::WriteSummaryReport(
 
   if (
     ( symbolsToAnalyze.getNumberBranchesFound( symbolSetName ) == 0 ) ||
-    ( BranchInfoAvailable == false )
+    ( branchInfoAvailable == false )
   ) {
     report << "No branch information available" << std::endl;
   } else {
@@ -580,7 +583,8 @@ void GenerateReports(
   bool                            verbose,
   const std::string&              projectName,
   const std::string&              outputDirectory,
-  const Coverage::DesiredSymbols& symbolsToAnalyze
+  const Coverage::DesiredSymbols& symbolsToAnalyze,
+  bool                            branchInfoAvailable
 )
 {
   typedef std::list<ReportsBase *> reportList_t;
@@ -599,7 +603,8 @@ void GenerateReports(
     allExplanations,
     projectName,
     outputDirectory,
-    symbolsToAnalyze
+    symbolsToAnalyze,
+    branchInfoAvailable
   );
   reportList.push_back( reports );
   reports = new ReportsHtml(
@@ -608,7 +613,8 @@ void GenerateReports(
     allExplanations,
     projectName,
     outputDirectory,
-    symbolsToAnalyze
+    symbolsToAnalyze,
+    branchInfoAvailable
   );
   reportList.push_back( reports );
 
@@ -661,7 +667,8 @@ void GenerateReports(
     "summary.txt",
     symbolSetName,
     outputDirectory,
-    symbolsToAnalyze
+    symbolsToAnalyze,
+    branchInfoAvailable
   );
 }
 

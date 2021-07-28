@@ -31,7 +31,7 @@ namespace Coverage {
 
   CoverageReaderQEMU::CoverageReaderQEMU()
   {
-    BranchInfoAvailable = true;
+    branchInfoAvailable_m = true;
   }
 
   CoverageReaderQEMU::~CoverageReaderQEMU()

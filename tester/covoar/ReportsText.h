@@ -27,7 +27,8 @@ class ReportsText: public ReportsBase {
       Coverage::Explanations& allExplanations,
       const std::string&      projectName,
       const std::string&      outputDirectory,
-      const DesiredSymbols&   symbolsToAnalyze
+      const DesiredSymbols&   symbolsToAnalyze,
+      bool                    branchInfoAvailable
     );
     virtual ~ReportsText();
 

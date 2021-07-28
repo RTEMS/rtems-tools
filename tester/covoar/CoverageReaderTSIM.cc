@@ -90,11 +90,11 @@ namespace Coverage {
           aCoverageMap->setWasExecuted( a + 3 );
           if ( cover & 0x08 ) {
             aCoverageMap->setWasTaken( a );
-            BranchInfoAvailable = true;
+            branchInfoAvailable_m = true;
           }
           if ( cover & 0x10 ) {
             aCoverageMap->setWasNotTaken( a );
-            BranchInfoAvailable = true;
+            branchInfoAvailable_m = true;
           }
         }
       }
