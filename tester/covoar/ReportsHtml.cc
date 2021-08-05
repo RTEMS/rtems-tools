@@ -13,8 +13,6 @@
 #include "DesiredSymbols.h"
 #include "ObjdumpProcessor.h"
 
-typedef rtems::utils::ostream_guard ostream_guard;
-
 #if 0
 #define TABLE_HEADER_CLASS \
   " table-autopage:10 table-page-number:pagenum table-page-count:pages "
@@ -745,7 +743,7 @@ namespace Coverage {
     const SymbolInformation& symbolInfo
   )
   {
-    ostream_guard old_state( report );
+    rtems::utils::ostream_guard old_state( report );
 
     // Mark the background color different for odd and even lines.
     if ( ( count % 2 ) != 0 ) {

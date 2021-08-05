@@ -53,8 +53,6 @@
 #define kill(p,s) raise(s)
 #endif
 
-typedef rtems::utils::ostream_guard ostream_guard;
-
 namespace rld
 {
   namespace exeinfo
@@ -369,7 +367,7 @@ namespace rld
        */
 
       rld::strings all_flags;
-      ostream_guard old_state( std::cout );
+      ::rtems::utils::ostream_guard old_state( std::cout );
 
       size_t source_max = 0;
 
@@ -636,7 +634,7 @@ namespace rld
 
     void image::output_tls ()
     {
-      ostream_guard old_state( std::cout );
+      ::rtems::utils::ostream_guard old_state( std::cout );
 
       symbols::symbol* tls_data_begin = symbols.find_global("_TLS_Data_begin");
       symbols::symbol* tls_data_end = symbols.find_global("_TLS_Data_end");

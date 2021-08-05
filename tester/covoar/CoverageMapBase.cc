@@ -16,8 +16,6 @@
 
 #include "CoverageMapBase.h"
 
-typedef rtems::utils::ostream_guard ostream_guard;
-
 namespace Coverage {
 
   AddressInfo::AddressInfo ()
@@ -78,7 +76,7 @@ namespace Coverage {
 
   void AddressRange::dump (std::ostream& out, bool show_slots) const
   {
-    ostream_guard old_state( out );
+    rtems::utils::ostream_guard old_state( out );
 
     out << std::hex << std::setfill('0')
         << "Address range: low = " << std::setw(8) << lowAddress
