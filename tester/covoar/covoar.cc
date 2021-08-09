@@ -45,11 +45,11 @@ typedef std::list<std::string> CoverageNames;
 typedef std::list<Coverage::ExecutableInfo*> Executables;
 typedef std::string option_error;
 
-bool FileIsReadable( const char *f1 )
+bool FileIsReadable( const std::string& f1 )
 {
   struct STAT buf1;
 
-  if (STAT( f1, &buf1 ) == -1)
+  if (STAT( f1.c_str(), &buf1 ) == -1)
     return false;
 
   if (buf1.st_size == 0)
@@ -177,17 +177,14 @@ int covoar(
   std::string                   coverageExtension = "cov";
   Coverage::CoverageFormats_t   coverageFormat = Coverage::COVERAGE_FORMAT_QEMU;
   Coverage::CoverageReaderBase* coverageReader = NULL;
-  char*                         executable = NULL;
-  const char*                   explanations = NULL;
-  const char*                   gcnosFileName = NULL;
-  char                          gcnoFileName[FILE_NAME_LENGTH];
-  char                          gcdaFileName[FILE_NAME_LENGTH];
-  char                          gcovBashCommand[256];
+  std::string                   explanations;
+  std::string                   gcnosFileName;
+  std::string                   gcnoFileName;
   std::string                   target;
-  const char*                   format = "QEMU";
-  FILE*                         gcnosFile = NULL;
+  std::string                   format = "QEMU";
+  std::ifstream                 gcnosFile;
   Gcov::GcovData*               gcovFile;
-  const char*                   singleExecutable = NULL;
+  std::string                   singleExecutable;
   rld::process::tempfile        objdumpFile( ".dmp" );
   rld::process::tempfile        err( ".err" );
   rld::process::tempfile        syms( ".syms" );
@@ -203,7 +200,6 @@ int covoar(
   std::string                   outputDirectory = ".";
   Coverage::DesiredSymbols      symbolsToAnalyze;
   bool                          branchInfoAvailable = false;
-  //Target::TargetBase*           targetInfo;
 
   //
   // Process command line options.
@@ -243,7 +239,7 @@ int covoar(
   /*
    * Has path to explanations.txt been specified.
    */
-  if ( !explanations )
+  if ( explanations.empty() )
     throw option_error( "explanations -E" );
 
   /*
@@ -272,7 +268,7 @@ int covoar(
   }
 
   if (verbose) {
-    if (singleExecutable) {
+    if (!singleExecutable.empty()) {
       std::cerr << "Processing a single executable and multiple coverage files"
                 << std::endl;
     } else {
@@ -287,7 +283,7 @@ int covoar(
     for (const auto& cname : coverageFileNames) {
       std::cerr << "Coverage file " << cname
                 << " for executable: " << (*eitr)->getFileName() << std::endl;
-      if (!singleExecutable)
+      if (singleExecutable.empty())
         eitr++;
     }
   }
@@ -309,7 +305,7 @@ int covoar(
 
   // If a single executable was specified, process the remaining
   // arguments as coverage file names.
-  if (singleExecutable) {
+  if (!singleExecutable.empty()) {
 
     // Ensure that the executable is readable.
     if (!FileIsReadable( singleExecutable )) {
@@ -332,14 +328,14 @@ int covoar(
       if (!coverageFileNames.empty()) {
         if ( !dynamicLibrary.empty() ) {
           executableInfo = new Coverage::ExecutableInfo(
-            singleExecutable,
+            singleExecutable.c_str(),
             dynamicLibrary,
             verbose,
             symbolsToAnalyze
           );
         } else {
           executableInfo = new Coverage::ExecutableInfo(
-            singleExecutable,
+            singleExecutable.c_str(),
             "",
             verbose,
             symbolsToAnalyze
@@ -393,8 +389,8 @@ int covoar(
               << " symbols" << std::endl;
 
   // Create explanations.
-  if ( explanations )
-    allExplanations.load( explanations );
+  if ( !explanations.empty() )
+    allExplanations.load( explanations.c_str() );
 
   // Create coverage map reader.
   coverageFormat = Coverage::CoverageFormatToEnum(format);
@@ -441,7 +437,7 @@ int covoar(
     // DEBUG Print ExecutableInfo content
     //exe->dumpExecutableInfo();
 
-    if (!singleExecutable) {
+    if (singleExecutable.empty()) {
       eitr++;
     }
   }
@@ -455,18 +451,18 @@ int covoar(
   //
   // Generate Gcov reports
   //
-  if (gcnosFileName) {
+  if (!gcnosFileName.empty()) {
     if (verbose)
       std::cerr << "Generating Gcov reports..." << std::endl;
 
-    gcnosFile = fopen ( gcnosFileName , "r" );
+    gcnosFile.open( gcnosFileName );
 
     if ( !gcnosFile )
       std::cerr << "Unable to open " << gcnosFileName << std::endl;
     else {
-      while ( fscanf( gcnosFile, "%s", inputBuffer ) != EOF) {
+      while ( gcnosFile >> inputBuffer ) {
         gcovFile = new Gcov::GcovData( symbolsToAnalyze );
-        strcpy( gcnoFileName, inputBuffer );
+        gcnoFileName = inputBuffer;
 
         if ( verbose )
           std::cerr << "Processing file: " << gcnoFileName << std::endl;
@@ -481,7 +477,7 @@ int covoar(
 
         delete gcovFile;
       }
-      fclose( gcnosFile );
+      gcnosFile.close();
     }
   }
 
@@ -525,7 +521,7 @@ int covoar(
   }
 
   // Write explanations that were not found.
-  if ( explanations ) {
+  if ( !explanations.empty() ) {
     std::string notFound;
 
     notFound = outputDirectory;
