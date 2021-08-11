@@ -16,6 +16,7 @@
 //#include "CoverageMap.h"
 //#include "qemu-traces.h"
 
+#include "rtems-utils.h"
 
 namespace Gcov {
 
@@ -400,6 +401,8 @@ namespace Gcov {
   )
   {
     int length;
+
+    rtems::utils::ostream_guard old_state( std::cerr );
 
     length = sizeof( gcov_preamble );
     gcovFile.read( (char *) &preamble, 4 * sizeof( gcov_preamble ) );
