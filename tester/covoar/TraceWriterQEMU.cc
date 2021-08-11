@@ -106,7 +106,9 @@ namespace Trace {
     //
     //  Write the Header to the file
     //
-    strncpy( header.magic, QEMU_TRACE_MAGIC, sizeof(header.magic) );
+    // The header.magic field is actually 12 bytes, but QEMU_TRACE_MAGIC is
+    // 13 bytes including the NULL.
+    memcpy( header.magic, QEMU_TRACE_MAGIC, sizeof(header.magic) );
     header.version = QEMU_TRACE_VERSION;
     header.kind    = QEMU_TRACE_KIND_RAW;  // XXX ??
     header.sizeof_target_pc = 32;
