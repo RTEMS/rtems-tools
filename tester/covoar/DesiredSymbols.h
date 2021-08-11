@@ -179,6 +179,7 @@ namespace Coverage {
      */
     SymbolInformation() :
       baseAddress( 0 ),
+      sourceFile( NULL ),
       uncoveredBranches( NULL ),
       uncoveredRanges( NULL ),
       unifiedCoverageMap( NULL )
