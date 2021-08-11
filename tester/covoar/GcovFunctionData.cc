@@ -13,6 +13,7 @@
 #include "ObjdumpProcessor.h"
 #include "CoverageMapBase.h"
 #include "DesiredSymbols.h"
+#include "rtems-utils.h"
 
 
 namespace Gcov {
@@ -366,6 +367,8 @@ namespace Gcov {
   )
   {
     std::list<uint32_t>::iterator line;
+
+    rtems::utils::ostream_guard old_state( textFile );
 
     textFile << " > BLOCK " << std::setw( 3 ) << block->id
              << " from " << block->sourceFileName << std::endl
