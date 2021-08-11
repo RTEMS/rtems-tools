@@ -221,6 +221,8 @@ bool  ReportsText::PutSymbolSummaryLine(
   float uncoveredBytes;
   float uncoveredInstructions;
 
+  rtems::utils::ostream_guard old_state( report );
+
   if ( symbolInfo.stats.sizeInBytes == 0 ) {
     report << "============================================" << std::endl
            << "Symbol                            : " << symbolName << std::endl
