@@ -121,7 +121,7 @@ namespace Trace {
     }
 
     if (verbose)
-      std::cerr << "magic = " << header.magic << std::endl
+      std::cerr << "magic = " << QEMU_TRACE_MAGIC << std::endl
                 << "version = " << header.version << std::endl
                 << "kind = " << header.kind << std::endl
                 << "sizeof_target_pc = " << header.sizeof_target_pc << std::endl
