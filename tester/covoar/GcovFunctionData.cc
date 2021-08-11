@@ -20,9 +20,13 @@ namespace Gcov {
 
   GcovFunctionData::GcovFunctionData()
   {
-    numberOfArcs   = 0;
-    numberOfBlocks = 0;
-    coverageMap    = NULL;
+    id              = 0;
+    checksum        = 0;
+    firstLineNumber = 0;
+    numberOfBlocks  = 0;
+    numberOfArcs    = 0;
+    coverageMap     = NULL;
+    symbolInfo      = NULL;
   }
 
   GcovFunctionData::~GcovFunctionData()
