@@ -3,6 +3,7 @@
 #include <errno.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <assert.h>
 
 #include <iomanip>
 #include <sstream>
@@ -230,6 +231,10 @@ void ReportsBase::WriteAnnotatedReport( const std::string& fileName )
     ) {
       continue;
     }
+
+    // uncoveredRanges and uncoveredBranches are always allocated as a pair
+    // so both are NULL or both are not NULL.
+    assert( info.uncoveredRanges != NULL && info.uncoveredBranches != NULL );
 
     // If uncoveredRanges and uncoveredBranches are empty, then everything
     // must have been covered for this symbol.  Just skip it.
