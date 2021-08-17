@@ -130,7 +130,7 @@ namespace Gcov {
     preamble.timestamp = gcnoPreamble.timestamp;
 
     //Write preamble
-    gcdaFile.write( (char *) &preamble , 4 * sizeof( preamble ) );
+    gcdaFile.write( (char *) &preamble , sizeof( preamble ) );
     if ( gcdaFile.fail() ) {
       std::cerr << "Error while writing gcda preamble to a file "
                 << gcdaFileName << std::endl;
@@ -400,13 +400,12 @@ namespace Gcov {
      uint32_t       desiredMagic
   )
   {
-    int length;
-
     rtems::utils::ostream_guard old_state( std::cerr );
 
-    length = sizeof( gcov_preamble );
-    gcovFile.read( (char *) &preamble, 4 * sizeof( gcov_preamble ) );
-    if ( gcovFile.gcount() != 4 * sizeof( gcov_preamble ) ) {
+    // Read the gcov preamble and make sure it is the right length and has the
+    // magic number
+    gcovFile.read( (char *) &preamble, sizeof( gcov_preamble ) );
+    if ( gcovFile.gcount() != sizeof( gcov_preamble ) ) {
       std::cerr << "Error while reading file preamble" << std::endl;
       return -1;
     }
@@ -418,7 +417,7 @@ namespace Gcov {
       return -1;
     }
 
-    return length / 4;
+    return sizeof( gcov_preamble ) / 4;
   }
 
   bool GcovData::readFunctionFrame(
