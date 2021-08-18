@@ -679,12 +679,18 @@ namespace rld
         machine_code_ (false),
         external_ (false),
         declaration_ (false),
+        prototyped_ (false),
         inline_ (DW_INL_not_inlined),
         entry_pc_ (0),
         has_entry_pc_ (false),
         pc_low_ (0),
         pc_high_ (0),
         ranges_ (debug),
+        name_ (),
+        linkage_name_ (),
+        decl_file_ (),
+        decl_line_ (0),
+        call_file_ (),
         call_line_ (0)
     {
       dwarf_bool db;
@@ -819,6 +825,7 @@ namespace rld
         machine_code_ (orig.machine_code_),
         external_ (orig.external_),
         declaration_ (orig.declaration_),
+        prototyped_ (orig.prototyped_),
         inline_ (orig.inline_),
         entry_pc_ (orig.entry_pc_),
         has_entry_pc_ (orig.has_entry_pc_),
@@ -827,6 +834,8 @@ namespace rld
         ranges_ (orig.ranges_),
         name_ (orig.name_),
         linkage_name_ (orig.linkage_name_),
+        decl_file_ (orig.decl_file_),
+        decl_line_ (orig.decl_line_),
         call_file_ (orig.call_file_),
         call_line_ (orig.call_line_)
     {
@@ -986,7 +995,10 @@ namespace rld
         ranges_ = rhs.ranges_;
         name_ = rhs.name_;
         linkage_name_ = rhs.linkage_name_;
+        decl_file_ = rhs.decl_file_;
+        decl_line_ = rhs.decl_line_;
         call_file_ = rhs.call_file_;
+        call_line_ = rhs.call_line_;
       }
       return *this;
     }
