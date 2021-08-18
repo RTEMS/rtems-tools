@@ -210,7 +210,8 @@ namespace rld
 
     section::section (const section& orig)
       : sec (orig.sec),
-        data (orig.data)
+        data (orig.data),
+        byteorder (orig.byteorder)
     {
     }
 
