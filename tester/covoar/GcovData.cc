@@ -22,6 +22,7 @@ namespace Gcov {
 
   GcovData::GcovData( Coverage::DesiredSymbols& symbolsToAnalyze ):
     numberOfFunctions( 0 ),
+    gcnoPreamble(),
     symbolsToAnalyze_m( symbolsToAnalyze )
   {
   }
