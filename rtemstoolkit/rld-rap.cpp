@@ -724,10 +724,19 @@ namespace rld
     section_merge::~section_merge ()
     {
       if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
-        std::cout << "rap:section-merge: " << sec.name
-                  << " size=" << sec.size ()
-                  << " offset=" << sec.offset
-                  << " " << obj.obj.name ().full ()  << std::endl;
+        try
+        {
+          std::cout << "rap:section-merge: " << sec.name
+                    << " size=" << sec.size ()
+                    << " offset=" << sec.offset
+                    << " " << obj.obj.name ().full ()  << std::endl;
+        }
+        catch ( rld::error re )
+        {
+          std::cerr << "error: "
+                    << re.where << ": " << re.what
+                    << std::endl;
+        }
     }
 
     void
