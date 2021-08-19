@@ -115,6 +115,7 @@ namespace Trace {
     header.big_endian = false;
     header.machine[0] = 0; // XXX ??
     header.machine[1] = 0; // XXX ??
+    header._pad = 0;
     status = ::fwrite( &header, sizeof(trace_header), 1, traceFile );
     if (status != 1) {
       std::cerr << "Unable to write header to " << file << std::endl;
