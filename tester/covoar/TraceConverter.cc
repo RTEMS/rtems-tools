@@ -91,6 +91,7 @@ int main(
   Coverage::DesiredSymbols     symbolsToAnalyze;
   bool                         verbose = false;
   std::string                  dynamicLibrary;
+  int                          ec = 0;
 
   setup_signals();
 
@@ -140,13 +141,24 @@ int main(
       false,
       symbolsToAnalyze
     );
-  else
-    executableInfo = new Coverage::ExecutableInfo(
-      executable,
-      "",
-      false,
-      symbolsToAnalyze
-    );
+  else {
+    try
+    {
+      executableInfo = new Coverage::ExecutableInfo(
+        executable,
+        "",
+        false,
+        symbolsToAnalyze
+      );
+    }
+    catch ( rld::error re )
+    {
+      std::cerr << "error: "
+                << re.where << ": " << re.what
+                << std::endl;
+      ec = 10;
+    }
+  }
 
   // If a dynamic library was specified, determine the load address.
   if ( !dynamicLibrary.empty() )
@@ -156,4 +168,6 @@ int main(
   objdumpProcessor.loadAddressTable( executableInfo, objdumpFile, err );
   log.processFile( logname, objdumpProcessor );
   trace.writeFile( tracefile, &log, verbose );
+
+  return ec;
 }
