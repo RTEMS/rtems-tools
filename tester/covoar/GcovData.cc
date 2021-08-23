@@ -404,7 +404,7 @@ namespace Gcov {
 
     // Read the gcov preamble and make sure it is the right length and has the
     // magic number
-    gcovFile.read( (char *) &preamble, sizeof( gcov_preamble ) );
+    gcovFile.read( (char *) preamble, sizeof( gcov_preamble ) );
     if ( gcovFile.gcount() != sizeof( gcov_preamble ) ) {
       std::cerr << "Error while reading file preamble" << std::endl;
       return -1;
@@ -429,7 +429,7 @@ namespace Gcov {
     char buffer[512];
     char intBuffer[16384];
 
-    gcovFile.read( (char *) &intBuffer, 8 );
+    gcovFile.read( (char *) intBuffer, 8 );
     if ( gcovFile.gcount() != 8 ) {
       std::cerr << "ERROR: Unable to read Function ID & checksum" << std::endl;
       return false;
@@ -443,7 +443,7 @@ namespace Gcov {
     function->setFunctionName( buffer, symbolsToAnalyze_m );
     header.length -= readString( buffer, gcovFile );
     function->setFileName( buffer );
-    gcovFile.read( (char*) &intBuffer, 4 * header.length );
+    gcovFile.read( (char*) intBuffer, 4 * header.length );
     if (gcovFile.gcount() != 4 * header.length ) {
       std::cerr << "ERROR: Unable to read Function starting line number"
                 << std::endl;
