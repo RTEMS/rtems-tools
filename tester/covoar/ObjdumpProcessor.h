@@ -184,11 +184,6 @@ namespace Coverage {
     );
 
     /*!
-     * This member variable is a buffer for input
-     */
-    char* inputBuffer_m;
-
-    /*!
      * This member variable contains the symbols to be analyzed
      */
     DesiredSymbols& symbolsToAnalyze_m;

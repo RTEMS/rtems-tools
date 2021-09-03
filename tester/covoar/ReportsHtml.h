@@ -81,59 +81,67 @@ class ReportsHtml: public ReportsBase {
     virtual void  OpenAnnotatedFile(
       const std::string& fileName,
       std::ofstream&     aFile
-    );
+    ) override;
 
     /* Inherit documentation from base class. */
     virtual void OpenBranchFile(
       const std::string& fileName,
       bool               hasBranches,
       std::ofstream&     aFile
-    );
+    ) override;
 
     /* Inherit documentation from base class. */
     virtual void OpenCoverageFile(
       const std::string& fileName,
       std::ofstream&     aFile
-    );
+    ) override;
 
     /* Inherit documentation from base class. */
-    void OpenNoRangeFile(
+    virtual void OpenNoRangeFile(
       const std::string& fileName,
       std::ofstream&     aFile
-    );
+    ) override;
 
     /* Inherit documentation from base class. */
     virtual void OpenSizeFile(
       const std::string& fileName,
       std::ofstream&     aFile
-    );
+    ) override;
 
     /* Inherit documentation from base class. */
     virtual void OpenSymbolSummaryFile(
       const std::string& fileName,
       std::ofstream&     aFile
-    );
+    ) override;
 
     /* Inherit documentation from base class. */
-    virtual void CloseAnnotatedFile( std::ofstream& aFile );
+    virtual void CloseAnnotatedFile(
+      std::ofstream& aFile
+    ) override;
 
     /* Inherit documentation from base class. */
     virtual void CloseBranchFile(
       std::ofstream& aFile,
       bool           hasBranches
-    );
+    ) override;
 
     /* Inherit documentation from base class. */
-    virtual void CloseCoverageFile( std::ofstream& aFile );
+    virtual void CloseCoverageFile(
+      std::ofstream& aFile
+    ) override;
 
     /* Inherit documentation from base class. */
     void CloseNoRangeFile( std::ofstream& aFile );
 
     /* Inherit documentation from base class. */
-    virtual void CloseSizeFile( std::ofstream& aFile );
+    virtual void CloseSizeFile(
+      std::ofstream& aFile
+    ) override;
 
     /* Inherit documentation from base class. */
-    virtual void CloseSymbolSummaryFile( std::ofstream& aFile );
+    virtual void CloseSymbolSummaryFile(
+      std::ofstream& aFile
+    ) override;
 
     /* Inherit documentation from base class. */
     virtual void PutAnnotatedLine(
@@ -141,16 +149,22 @@ class ReportsHtml: public ReportsBase {
       AnnotatedLineState_t state,
       const std::string&   line,
       uint32_t             id
-    );
+    ) override;
 
     /* Inherit documentation from base class. */
-     virtual void AnnotatedStart( std::ofstream& aFile );
+     virtual void AnnotatedStart(
+       std::ofstream& aFile
+     ) override;
 
     /* Inherit documentation from base class. */
-     virtual void AnnotatedEnd( std::ofstream& aFile );
+     virtual void AnnotatedEnd(
+       std::ofstream& aFile
+     ) override;
 
     /* Inherit documentation from base class. */
-    virtual bool PutNoBranchInfo( std::ofstream& report );
+    virtual bool PutNoBranchInfo(
+      std::ofstream& report
+    ) override;
 
     /* Inherit documentation from base class. */
     virtual bool PutBranchEntry(
@@ -159,7 +173,7 @@ class ReportsHtml: public ReportsBase {
       const std::string&                     symbolName,
       const SymbolInformation&               symbolInfo,
       const CoverageRanges::coverageRange_t& range
-    );
+    ) override;
 
     /* Inherit documentation from base class. */
     virtual void putCoverageNoRange(
@@ -167,7 +181,7 @@ class ReportsHtml: public ReportsBase {
       std::ofstream&     noRangeFile,
       unsigned int       number,
       const std::string& symbol
-    );
+    ) override;
 
     /* Inherit documentation from base class. */
     virtual bool PutCoverageLine(
@@ -176,7 +190,7 @@ class ReportsHtml: public ReportsBase {
       const std::string&                     symbolName,
       const SymbolInformation&               symbolInfo,
       const CoverageRanges::coverageRange_t& range
-    );
+    ) override;
 
     /* Inherit documentation from base class. */
     virtual bool PutSizeLine(
@@ -184,7 +198,7 @@ class ReportsHtml: public ReportsBase {
       unsigned int                           number,
       const std::string&                     symbolName,
       const CoverageRanges::coverageRange_t& range
-    );
+    ) override;
 
     /* Inherit documentation from base class. */
     virtual bool PutSymbolSummaryLine(
@@ -192,7 +206,7 @@ class ReportsHtml: public ReportsBase {
       unsigned int             number,
       const std::string&       symbolName,
       const SymbolInformation& symbolInfo
-    );
+    ) override;
 
     /* Inherit documentation from base class. */
     virtual void OpenFile(

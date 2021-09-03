@@ -41,10 +41,10 @@ namespace Target {
      *
      *  @return Returns TRUE if the instruction is a nop, FALSE otherwise.
      */
-    bool isNopLine(
+    virtual bool isNopLine(
       const char* const line,
       int&              size
-    );
+    ) override;
 
     /*!
      *  This method determines if the specified line from an
