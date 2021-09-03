@@ -95,20 +95,20 @@ namespace Gcov {
 
   bool GcovData::writeGcdaFile()
   {
-    gcov_preamble         preamble;
-    gcov_frame_header     header;
-    std::ofstream         gcdaFile;
-    functions_iterator_t  currentFunction;
-    arcs_iterator_t       currentArc;
-    uint32_t              buffer;
-    uint32_t              countersFound;
-    uint32_t              countersFoundSum;
-    uint64_t              countersSum;
-    uint64_t              countersMax;
-    uint64_t              llBuffer[4096];    // TODO: Use common buffer
-    gcov_statistics       objectStats;
-    gcov_statistics       programStats;
-    long int              bytes_before;
+    gcov_preamble           preamble;
+    gcov_frame_header       header;
+    std::ofstream           gcdaFile;
+    functions_iterator_t    currentFunction;
+    arcs_iterator_t         currentArc;
+    uint32_t                buffer;
+    uint32_t                countersFound;
+    uint32_t                countersFoundSum;
+    uint64_t                countersSum;
+    uint64_t                countersMax;
+    uint64_t                llBuffer[4096];    // TODO: Use common buffer
+    gcov_statistics         objectStats;
+    gcov_statistics         programStats;
+    std::ofstream::pos_type bytes_before;
 
     // Debug message
     //std::cerr << "Writing file: " <<  gcdaFileName << std::endl;

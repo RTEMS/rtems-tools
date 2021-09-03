@@ -686,11 +686,8 @@ namespace rld
         pc_low_ (0),
         pc_high_ (0),
         ranges_ (debug),
-        name_ (),
         linkage_name_ (),
-        decl_file_ (),
         decl_line_ (0),
-        call_file_ (),
         call_line_ (0)
     {
       dwarf_bool db;
