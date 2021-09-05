@@ -68,6 +68,7 @@ class report(object):
         self.wrong_version = 0
         self.wrong_build = 0
         self.wrong_tools = 0
+        self.wrong_header = 0
         self.results = {}
         self.config = {}
         self.name_max_len = 0
@@ -82,12 +83,14 @@ class report(object):
         msg += 'Timeout:       %*d%s' % (self.total_len, self.timeouts, os.linesep)
         msg += 'Test too long: %*d%s' % (self.total_len, self.test_too_long, os.linesep)
         msg += 'Invalid:       %*d%s' % (self.total_len, self.invalids, os.linesep)
-        msg += 'Wrong Version  %*d%s' % (self.total_len, self.wrong_version, os.linesep)
-        msg += 'Wrong Build    %*d%s' % (self.total_len, self.wrong_build, os.linesep)
-        msg += 'Wrong Tools    %*d%s' % (self.total_len, self.wrong_tools, os.linesep)
+        msg += 'Wrong Version: %*d%s' % (self.total_len, self.wrong_version, os.linesep)
+        msg += 'Wrong Build:   %*d%s' % (self.total_len, self.wrong_build, os.linesep)
+        msg += 'Wrong Tools:   %*d%s' % (self.total_len, self.wrong_tools, os.linesep)
+        msg += 'Wrong Header:  %*d%s' % (self.total_len, self.wrong_header, os.linesep)
         return msg
 
     def start(self, index, total, name, executable, bsp_arch, bsp, show_header):
+        wrong = self.wrong_version + self.wrong_build + self.wrong_tools + self.wrong_header
         header = '[%*d/%*d] p:%-*d f:%-*d u:%-*d e:%-*d I:%-*d B:%-*d ' \
                  't:%-*d L:%-*d i:%-*d W:%-*d | %s/%s: %s' % \
                  (len(str(total)), index,
@@ -101,7 +104,7 @@ class report(object):
                   len(str(total)), self.timeouts,
                   len(str(total)), self.test_too_long,
                   len(str(total)), self.invalids,
-                  len(str(total)), self.wrong_version + self.wrong_build + self.wrong_tools,
+                  len(str(total)), wrong,
                   bsp_arch,
                   bsp,
                   path.basename(name))
@@ -245,7 +248,8 @@ class report(object):
                     status = 'wrong-tools'
                     self.wrong_tools += 1
                 else:
-                    raise error.general('invalid test state: %s: %s' % (name, state))
+                    status = 'wrong-header'
+                    self.wrong_header += 1
             self.results[name]['result'] = status
             self.results[name]['output'] = prefixed_output
             if self.name_max_len < len(path.basename(name)):
@@ -256,7 +260,8 @@ class report(object):
 
     def log(self, name, mode):
         status_fails = ['failed', 'timeout', 'test-too-long', 'invalid',
-                        'wrong-version', 'wrong-build', 'wrong-tools']
+                        'wrong-version', 'wrong-build', 'wrong-tools',
+                        'wrong-header']
         if mode != 'none':
             self.lock.acquire()
             if name not in self.results:
@@ -266,7 +271,12 @@ class report(object):
             result = self.results[name]['result']
             time = self.results[name]['end'] - self.results[name]['start']
             failed = result in status_fails
-            result = 'Result: %-10s Time: %s %s' % (result, str(time), exe)
+            out = ['Result: %-10s' % (result), 'Time: %s %s' % (str(time), exe)]
+            if result.startswith('wrong-'):
+                what_is_wrong = result.split('-', 1)[1]
+                if what_is_wrong in ['version', 'build', 'tools']:
+                    out += ['Wrong %s: tested value: %s' % (what_is_wrong,
+                                                            self.config[what_is_wrong])]
             if mode != 'none':
                 header = self.results[name]['header']
             if mode == 'all' or failed:
@@ -277,7 +287,7 @@ class report(object):
             if header:
                 log.output(header)
             if output:
-                log.output(result)
+                log.output(out)
                 log.output(output)
 
     def get_config(self, config, not_found = None):
@@ -287,7 +297,7 @@ class report(object):
 
     def score_card(self, mode = 'full'):
         if mode == 'short':
-            wrongs = self.wrong_version + self.wrong_build + self.wrong_tools
+            wrongs = self.wrong_version + self.wrong_build + self.wrong_tools + self.wrong_header
             return 'Passed:%d Failed:%d Timeout:%d Test-Too-long:%d Invalid:%d Wrong:%d' % \
                 (self.passed, self.failed, self.timeouts, self.test_too_long,
                  self.invalids, wrongs)
@@ -305,6 +315,7 @@ class report(object):
             l += ['Wrong Version: %*d' % (self.total_len, self.wrong_version)]
             l += ['Wrong Build:   %*d' % (self.total_len, self.wrong_build)]
             l += ['Wrong Tools:   %*d' % (self.total_len, self.wrong_tools)]
+            l += ['Wrong Header:  %*d' % (self.total_len, self.wrong_header)]
             l += ['---------------%s' % ('-' * self.total_len)]
             l += ['Total:         %*d' % (self.total_len, self.total)]
             return os.linesep.join(l)
@@ -352,6 +363,9 @@ class report(object):
         if self.wrong_tools:
             l += ['Wrong Tools:']
             l += show_state(self.results, 'wrong-tools', self.name_max_len)
+        if self.wrong_header:
+            l += ['Wrong Headers:']
+            l += show_state(self.results, 'wrong-header', self.name_max_len)
         return os.linesep.join(l)
 
     def summary(self):

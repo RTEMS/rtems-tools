@@ -240,6 +240,7 @@ def generate_json_report(args, reports, start_time, end_time,
     json_log['summary']['wrong-version_count'] = reports.wrong_version
     json_log['summary']['wrong-build_count'] = reports.wrong_build
     json_log['summary']['wrong-tools_count'] = reports.wrong_tools
+    json_log['summary']['invalid-header_count'] = reports.wrong_header
     json_log['summary']['total_count'] = reports.total
     time_delta = end_time - start_time
     json_log['summary']['average_test_time'] = str(time_delta / total)
@@ -248,7 +249,7 @@ def generate_json_report(args, reports, start_time, end_time,
     result_types = [
             'failed', 'user-input', 'expected-fail', 'indeterminate',
             'benchmark', 'timeout', 'test-too-long', 'invalid', 'wrong-version',
-            'wrong-build', 'wrong-tools'
+            'wrong-build', 'wrong-tools', 'wrong-header'
     ]
     json_results = {}
     for result_type in result_types:
@@ -313,6 +314,7 @@ def generate_junit_report(args, reports, start_time, end_time,
     junit_prop['wrong-version_count'] = reports.wrong_version
     junit_prop['wrong-build_count'] = reports.wrong_build
     junit_prop['wrong-tools_count'] = reports.wrong_tools
+    junit_prop['wrong-header_count'] = reports.wrong_header
     junit_prop['total_count'] = reports.total
     time_delta = end_time - start_time
     junit_prop['average_test_time'] = str(time_delta / total)
@@ -367,6 +369,7 @@ def generate_yaml_report(args, reports, start_time, end_time,
     yaml_log['summary']['wrong-version-count'] = reports.wrong_version
     yaml_log['summary']['wrong-build-count'] = reports.wrong_build
     yaml_log['summary']['wrong-tools-count'] = reports.wrong_tools
+    yaml_log['summary']['wrong-header-count'] = reports.wrong_header
     yaml_log['summary']['total-count'] = reports.total
     time_delta = end_time - start_time
     yaml_log['summary']['average-test-time'] = str(time_delta / total)
@@ -375,7 +378,7 @@ def generate_yaml_report(args, reports, start_time, end_time,
     result_types = [
             'failed', 'user-input', 'expected-fail', 'indeterminate',
             'benchmark', 'timeout', 'test-too-long', 'invalid', 'wrong-version',
-            'wrong-build', 'wrong-tools'
+            'wrong-build', 'wrong-tools', 'wrong-header'
     ]
     for result_type in result_types:
         yaml_log['summary'][result_type] = []

@@ -424,7 +424,7 @@ class file(config.file):
     def exe_trace(self, flag):
         dt = self.macros['exe_trace']
         if dt:
-            if flag in dt.split(','):
+            if 'all' in dt or flag in dt.split(','):
                 return True
         return False
 
