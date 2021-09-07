@@ -36,6 +36,7 @@ import errno
 import os
 import sys
 import telnetlib
+import time
 
 from rtemstoolkit import error
 from rtemstoolkit import host
@@ -71,13 +72,20 @@ class tty:
         return s
 
     def _reopen(self):
+        if self.conn:
+            self.conn.close()
+            time.sleep(1)
         try:
             self.conn.open(self.host, self.port, self.timeout)
         except IOError as ioe:
+            if self.conn:
+                self.conn.close()
             raise error.general('opening telnet: %s:%d: %s' % (self.host,
                                                                self.port,
                                                                ioe))
         except:
+            if self.conn:
+                self.conn.close()
             raise error.general('opening telnet: %s:%d: unknown' % (self.host,
                                                                     self.port))
 
@@ -98,7 +106,7 @@ class tty:
             if ioe.errno == errno.ECONNREFUSED:
                 reopen = True
             data = ''
-        except EOFError:
+        except EOFError as ose:
             reopen = True
             data = ''
         if reopen:
