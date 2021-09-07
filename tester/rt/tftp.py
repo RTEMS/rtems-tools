@@ -140,7 +140,7 @@ class tftp(object):
         self._unlock('_listener')
         self.server = tester.rt.tftpserver.tftp_server(host = 'all',
                                                        port = self.port,
-                                                       timeout = 1,
+                                                       timeout = 10,
                                                        forced_file = exe,
                                                        sessions = 1)
         try:

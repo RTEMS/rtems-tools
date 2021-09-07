@@ -309,12 +309,12 @@ class tftp_session(object):
                     block = (data[2] << 8) | data[3]
                     out += '  ' + self.opcodes[opcode] + ', '
                     out += '#' + str(block) + ', '
-                    if dlen > 4:
+                    if dlen > 8:
                         out += '%02x%02x..%02x%02x' % (data[4], data[5],
                                                        data[-2], data[-1])
                     else:
-                        out += '%02x%02x%02x%02x' % (data[4], data[5], data[6],
-                                                     data[6])
+                        for i in range(4, dlen):
+                            out += '%02x' % (data[i])
                     out += ',' + str(dlen - 4)
                 elif opcode == self.OP_ACK:
                     block = (data[2] << 8) | data[3]
@@ -370,7 +370,7 @@ class tftp_session(object):
 
     def get_timeout(self, default_timeout, timeout_guard):
         '''Get the timeout. The timeout can be an option.'''
-        if self.timeout == 0:
+        if self.timeout != 0:
             return self.timeout + timeout_guard
         return default_timeout
 
@@ -384,8 +384,7 @@ class udp_handler(socketserver.BaseRequestHandler):
     def _notice(self, text):
         if self.server.tftp.notices:
             log.notice(text)
-        else:
-            log.trace(text)
+        log.output(text)
 
     def handle_session(self, index):
         '''Handle the TFTP session data.'''
@@ -408,7 +407,7 @@ class udp_handler(socketserver.BaseRequestHandler):
                 if log.tracing and self.server.tftp.packet_trace:
                     log.trace(' > ' +
                               session.decode(client_ip, client_port, data))
-                timeout = session.get_timeout(self.server.tftp.timeout, 1)
+                timeout = session.get_timeout(self.server.tftp.timeout, 5)
                 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 sock.bind(('', 0))
                 sock.settimeout(timeout)
@@ -426,21 +425,22 @@ class udp_handler(socketserver.BaseRequestHandler):
                             log.trace(
                                 ' > ' +
                                 session.decode(address[0], address[1], data))
+                    except socket.timout as sto:
+                        self._notice('] tftp: %d: timeout: %s' % (index, client))
+                        continue
                     except socket.error as serr:
-                        if log.tracing:
-                            log.trace('] tftp: %d: receive: %s: error: %s' \
-                                      % (index, client, serr))
+                        log._notice('] tftp: %d: sock receive: %s: error: %s' \
+                                    % (index, client, serr))
                         return
                     except socket.gaierror as serr:
-                        if log.tracing:
-                            log.trace('] tftp: %d: receive: %s: error: %s' \
-                                      % (index, client, serr))
+                        log._notice('] tftp: %d: sock receive: %s: error: %s' \
+                                    % (index, client, serr))
                         return
                     if session.finished:
                         break
                     response = session.process(address[0], address[1], data)
         except error.general as gerr:
-            self._notice('] tftp: %dd: error: %s' % (index, gerr))
+            self._notice('] tftp: %d: error: %s' % (index, gerr))
         except error.internal as ierr:
             self._notice('] tftp: %d: error: %s' % (index, ierr))
         except error.exit:
