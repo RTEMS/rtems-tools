@@ -113,10 +113,11 @@ class tftp_session(object):
                     block = (data[2] << 8) | data[3]
                     s += '  ' + self.opcodes[opcode] + ', '
                     s += '#' + str(block) + ', '
-                    if dlen > 4:
+                    if dlen > 8:
                         s += '%02x%02x..%02x%02x' % (data[4], data[5], data[-2], data[-1])
                     else:
-                        s += '%02x%02x%02x%02x' % (data[4], data[5], data[6], data[6])
+                        for i in range(4, dlen):
+                            s += '%02x' % (data[i])
                     s += ',' + str(dlen - 4)
                 elif opcode == 4:
                     block = (data[2] << 8) | data[3]
@@ -162,8 +163,8 @@ class tftp_session(object):
         return None
 
     def get_timeout(self, default_timeout, timeout_guard):
-        if self.timeout == 0:
-            return self.timeout + timeout_guard
+        if self.timeout != 0:
+            return self.timeout * timeout_guard
         return default_timeout
 
     def get_block_size(self):
@@ -178,7 +179,7 @@ class udp_handler(socketserver.BaseRequestHandler):
         session = tftp_session()
         finished = session.data(client_ip, client_port, self.request[0])
         if not finished:
-            timeout = session.get_timeout(self.server.proxy.session_timeout, 1)
+            timeout = session.get_timeout(self.server.proxy.session_timeout, 4)
             host = self.server.proxy.get_host(client_ip)
             if host is not None:
                 session_count = self.server.proxy.get_session_count()
@@ -325,7 +326,7 @@ class proxy_server(object):
             if client in self.clients:
                 host = self.clients[client]
             else:
-                mac = getmac.get_mac_address(ip = client)
+                mac = misc.tools.getmac.get_mac_address(ip = client)
                 if mac in self.clients:
                     host = self.clients[mac]
         finally:
