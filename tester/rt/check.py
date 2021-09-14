@@ -966,13 +966,13 @@ class builder:
     def _create_config(self, job, commands):
         filename = 'config-%s-%s-%s.ini' % (job.arch, job.bsp, job.build)
         cfg_file = open(path.join(self.rtems, filename),'w+')
-        cfg_file.write('[%s/%s]' + os.linsep() % (job.arch, job.bsp))
+        cfg_file.write('[%s/%s]' % (job.arch, job.bsp) + os.linesep)
         new_cfg_cmds = []
         for option in commands['configure'].split():
             if 'waf' in option or '--' in option or 'configure' in option:
                 new_cfg_cmds += [option]
             else:
-                cfg_file.write(option + os.linesep())
+                cfg_file.write(option + os.linesep)
         commands['configure'] = ' '.join(new_cfg_cmds)
         cfg_file.close()
 
