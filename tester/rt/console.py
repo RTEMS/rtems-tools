@@ -109,7 +109,6 @@ class tty(console):
                     data = me.tty.read()
                     if isinstance(data, bytes):
                         data = data.decode('utf-8', 'ignore')
-                    data = [c for c in data if ord(c) < 128]
                 except IOError as ioe:
                     if ioe.errno == errno.EAGAIN:
                         continue
@@ -117,13 +116,11 @@ class tty(console):
                 except:
                     raise
                 for c in data:
-                    if len(c) == 0:
-                        continue
-                    if c != chr(0):
+                    if ord(c) > 0 and ord(c) < 128:
                         line += c
-                    if c == '\n':
-                        me.output(line)
-                        line = ''
+                        if c == '\n':
+                            me.output(line)
+                            line = ''
         if stty and path.exists(self.dev):
             self.tty = stty.tty(self.dev)
         else:
