@@ -284,6 +284,18 @@ class gdb(object):
         finally:
             self._unlock('_kill')
 
+    def target_restart(self, started):
+        pass
+
+    def target_reset(self, started):
+        pass
+
+    def target_start(self):
+        pass
+
+    def target_end(self):
+        pass
+
     def gdb_expect(self):
         if self.trace:
             print('}}} gdb-expect')

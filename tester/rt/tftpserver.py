@@ -384,7 +384,8 @@ class udp_handler(socketserver.BaseRequestHandler):
     def _notice(self, text):
         if self.server.tftp.notices:
             log.notice(text)
-        log.output(text)
+        if log.tracing:
+            log.trace(text)
 
     def handle_session(self, index):
         '''Handle the TFTP session data.'''
@@ -425,7 +426,7 @@ class udp_handler(socketserver.BaseRequestHandler):
                             log.trace(
                                 ' > ' +
                                 session.decode(address[0], address[1], data))
-                    except socket.timout as sto:
+                    except socket.timeout as sto:
                         self._notice('] tftp: %d: timeout: %s' % (index, client))
                         continue
                     except socket.error as serr:
@@ -529,14 +530,14 @@ class tftp_server(object):
 
     def stop(self):
         '''Stop the TFTP server and close the server port.'''
-        self._lock()
-        try:
-            if self.server is not None:
-                self.server.shutdown()
-                self.server.server_close()
+        if self.server is not None:
+            self.server.server_close()
+            self.server.shutdown()
+            self._lock()
+            try:
                 self.server = None
-        finally:
-            self._unlock()
+            finally:
+                self._unlock()
 
     def run(self):
         '''Run the TFTP server for the specified number of sessions.'''

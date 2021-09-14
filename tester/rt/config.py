@@ -84,8 +84,10 @@ class file(config.file):
         self.kill_good = False
         self.kill_on_end = False
         self.test_label = None
-        self.target_reset_regx = None
         self.target_start_regx = None
+        self.target_reset_regx = None
+        self.restarts = 0
+        self.max_restarts = int(self.expand('%{max_restarts}'))
 
     def __del__(self):
         if self.console:
@@ -190,11 +192,12 @@ class file(config.file):
 
     def _output_length(self):
         self._lock()
-        if self.test_started:
-            l = len(self.output)
+        try:
+            if self.test_started:
+                l = len(self.output)
+                return l
+        finally:
             self._unlock()
-            return l
-        self._unlock()
         return 0
 
     def _capture_console(self, text):
@@ -354,15 +357,15 @@ class file(config.file):
         return None, None, None
 
     def _realtime_trace(self, text):
-        for l in text:
-            self._unlock()
-            try:
-                print(''.join(l))
-            except:
-                stacktraces.trace()
-                raise
-            finally:
-                self._lock()
+        self._unlock()
+        try:
+            for l in text:
+                log.output(''.join(l))
+        except:
+            stacktraces.trace()
+            raise
+        finally:
+            self._lock()
 
     def run(self):
         self.target_start_regx = self._target_regex('target_start_regex')
@@ -380,25 +383,36 @@ class file(config.file):
                     if e >= 0:
                         self.test_label = text[s + len('*** BEGIN OF TEST '):s + e + 3 - 1]
                     self._capture_console('test start: %s' % (self.test_label))
+                    self.process.target_start()
             ok_to_kill = '*** TEST STATE: USER_INPUT' in text or \
                          '*** TEST STATE: BENCHMARK' in text
             if ok_to_kill:
                 reset_target = True
             else:
                 reset_target = False
-            if self.test_started and self.target_start_regx is not None:
+            if self.target_start_regx is not None:
                 if self.target_start_regx.match(text):
-                    self._capture_console('target start detected')
-                    ok_to_kill = True
+                    if self.test_started:
+                        self._capture_console('target start detected')
+                        ok_to_kill = True
+                    else:
+                        self.restarts += 1
+                        if self.restarts > self.max_restarts:
+                            self._capture_console('target restart maximum count reached')
+                            ok_to_kill = True
+                        else:
+                            self.process.target_restart(self.test_started)
             if not reset_target and self.target_reset_regx is not None:
                 if self.target_reset_regx.match(text):
                     self._capture_console('target reset condition detected')
                     self._target_command('reset')
+                    self.process.target_reset(self.test_started)
             if self.kill_on_end:
                 if not ok_to_kill and '*** END OF TEST ' in text:
                     self._capture_console('test end: %s' % (self.test_label))
                     if self.test_label is not None:
                         ok_to_kill = '*** END OF TEST %s ***' % (self.test_label) in text
+                    self.process.target_end()
             text = [(self.console_prefix, l) for l in text.replace(chr(13), '').splitlines()]
             if self.output is not None:
                 if self.realtime_trace:

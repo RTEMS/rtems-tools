@@ -41,6 +41,7 @@ import time
 import sys
 
 from rtemstoolkit import error
+from rtemstoolkit import log
 from rtemstoolkit import reraise
 
 import tester.rt.tftpserver
@@ -68,54 +69,69 @@ class tftp(object):
         self.timeout = None
         self.test_too_long = None
         self.timer = None
+        self.opened = False
         self.running = False
         self.finished = False
         self.caught = None
+        self.target_state = 'reset'
 
     def _lock(self, msg):
         if self.lock_trace:
-            print('|[   LOCK:%s ]|' % (msg))
+            log.trace('|[   LOCK:%s ]|' % (msg))
         self.lock.acquire()
+        if self.lock_trace:
+            log.trace('|[   LOCK:%s done ]|' % (msg))
 
     def _unlock(self, msg):
         if self.lock_trace:
-            print('|] UNLOCK:%s [|' % (msg))
+            log.trace('|] UNLOCK:%s [|' % (msg))
         self.lock.release()
+        if self.lock_trace:
+            log.trace('|[ UNLOCK:%s done ]|' % (msg))
+
+    def _trace(self, text):
+        if log.tracing:
+            log.trace('] tftp: ' + text)
+
+    def _console(self, text):
+        if self.console:
+            self.console(text)
+
+    def _set_target_state(self, state):
+        self._trace('set state: ' + state)
+        self.target_state = state
 
     def _finished(self):
         self.server = None
         self.exe = None
 
-    def _stop(self):
+    def _stop(self, finished = True):
         try:
-            if self.server:
+            if self.server is not None:
                 self.server.stop()
-            self.finished = True
+            self.finished = Finished
         except:
             pass
 
+    def _run_finished(self):
+        while self.opened and (self.running or not self.finished):
+            self._unlock('_run_finished')
+            time.sleep(0.2)
+            self._lock('_run_finished')
+
     def _kill(self):
         self._stop()
-        while self.running or not self.finished:
-            self._unlock('_kill')
-            time.sleep(0.1)
-            self._lock('_kill')
+        self._run_finished()
 
     def _timeout(self):
         self._stop()
-        while self.running or not self.finished:
-            self._unlock('_timeout')
-            time.sleep(0.1)
-            self._lock('_timeout')
+        self._run_finished()
         if self.timeout is not None:
             self.timeout()
 
     def _test_too_long(self):
         self._stop()
-        while self.running or not self.finished:
-            self._unlock('_test_too_long')
-            time.sleep(0.1)
-            self._lock('_test_too_long')
+        self._run_finished()
         if self.test_too_long is not None:
             self.test_too_long()
 
@@ -125,25 +141,21 @@ class tftp(object):
         self.exe = None
         self._unlock('_exe_handle')
         if exe is not None:
-            if self.console:
-                self.console('tftp: %s' % (exe))
+            self._console('tftp: %s' % (exe))
             return open(exe, "rb")
-        if self.console:
-            self.console('tftp: re-requesting exe; target must have reset')
+        self._console('tftp: re-requesting exe; target must have reset')
         self._stop()
         return None
 
-    def _listener(self):
-        self._lock('_listener')
-        exe = self.exe
-        self.exe = None
-        self._unlock('_listener')
+    def _listener(self, exe):
         self.server = tester.rt.tftpserver.tftp_server(host = 'all',
                                                        port = self.port,
                                                        timeout = 10,
                                                        forced_file = exe,
                                                        sessions = 1)
         try:
+            if log.tracing:
+                self.server.trace_packets()
             self.server.start()
             self.server.run()
         except:
@@ -151,20 +163,44 @@ class tftp(object):
             raise
 
     def _runner(self):
+        self._trace('session: start')
         self._lock('_runner')
-        self.running = True
+        exe = self.exe
+        self.exe = None
         self._unlock('_runner')
         caught = None
         try:
-            self._listener()
+            self._lock('_runner')
+            state = self.target_state
+            self._unlock('_runner')
+            self._trace('runner: ' + state)
+            while state not in ['shutdown', 'finished']:
+                if state != 'running':
+                    self._trace('listening: begin: ' + state)
+                    self._listener(exe)
+                    self._lock('_runner')
+                    if self.target_state == 'booting':
+                        self._set_target_state('loaded')
+                    self._unlock('_runner')
+                    self._trace('listening: end: ' + state)
+                else:
+                    time.sleep(0.25)
+                self._lock('_runner')
+                state = self.target_state
+                self._unlock('_runner')
         except:
             caught = sys.exc_info()
+            self._trace('session: exception')
         self._lock('_runner')
-        self.running = False
+        self._trace('runner: ' + self.target_state)
         self.caught = caught
+        self.finished = True
+        self.running = False
         self._unlock('_runner')
+        self._trace('session: end')
 
     def open(self, executable, port, output_length, console, timeout):
+        self._trace('open: start')
         self._lock('_open')
         if self.exe is not None:
             self._unlock('_open')
@@ -174,13 +210,16 @@ class tftp(object):
         self.console = console
         self.port = port
         self.exe = executable
-        if self.console:
-            self.console('tftp: exe: %s' % (executable))
         self.timeout = timeout[2]
         self.test_too_long = timeout[3]
+        self.opened = True
+        self.running = True
         self.listener = threading.Thread(target = self._runner,
                                          name = 'tftp-listener')
+        self._unlock('_open: start listner')
+        self._console('tftp: exe: %s' % (executable))
         self.listener.start()
+        self._lock('_open: start listner')
         step = 0.25
         period = timeout[0]
         seconds = timeout[1]
@@ -188,6 +227,7 @@ class tftp(object):
         while not self.finished and period > 0 and seconds > 0:
             if not self.running and self.caught:
                 break
+            self._unlock('_open: loop')
             current_length = self.output_length()
             if output_length != current_length:
                 period = timeout[0]
@@ -201,9 +241,9 @@ class tftp(object):
                 period = 0
             else:
                 period -= step
-            self._unlock('_open')
             time.sleep(step)
-            self._lock('_open')
+            self._lock('_open: loop')
+        self._trace('open: finished')
         if not self.finished:
             if period == 0:
                 self._timeout()
@@ -216,9 +256,54 @@ class tftp(object):
             reraise.reraise(*caught)
 
     def kill(self):
+        self._trace('kill')
         self._lock('kill')
+        self._set_target_state('shutdown')
         self._kill()
         self._unlock('kill')
+
+    def target_restart(self, started):
+        self._trace('target: restart: %d' % (started))
+        self._lock('target_restart')
+        try:
+            if not started:
+                if self.server is not None:
+                    self._trace('server: stop')
+                    self._stop(finished = False)
+                    self._trace('server: stop done')
+                state = 'booting'
+            else:
+                state = 'shutdown'
+            self._set_target_state(state)
+        finally:
+            self._unlock('target_restart')
+
+    def target_reset(self, started):
+        self._trace('target: reset: %d' % (started))
+        self._lock('target_reset')
+        try:
+            if not started:
+                if self.server is not None:
+                    self._trace('server: stop')
+                    self.server.stop()
+                state = 'booting'
+            else:
+                state = 'shutdown'
+            self._set_target_state(state)
+        finally:
+            self._unlock('target_reset')
+
+    def target_start(self):
+        self._trace('target: start')
+        self._lock('target_start')
+        self._set_target_state('running')
+        self._unlock('target_start')
+
+    def target_end(self):
+        self._trace('target: end')
+        self._lock('target_end')
+        self._set_target_state('finished')
+        self._unlock('target_end')
 
 if __name__ == "__main__":
     import sys

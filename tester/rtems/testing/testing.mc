@@ -53,6 +53,7 @@ _rtscripts:           none,    none,     '%{_rtbase}/rtems/testing'
 # Defaults
 timeout:              none,    none,     '180'  # seconds
 max_test_period:      none,    none,     '300'  # seconds
+max_restarts:         none,    none,     '3'
 
 # Tests detected as invalid that are valid
 invalid_tests:        none,    none,     '''minimum.exe'''

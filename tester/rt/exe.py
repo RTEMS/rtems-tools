@@ -170,3 +170,15 @@ class exe(object):
             self._kill()
         finally:
             self._unlock('_kill')
+
+    def target_restart(self, started):
+        pass
+
+    def target_reset(self, started):
+        pass
+
+    def target_start(self):
+        pass
+
+    def target_end(self):
+        pass
