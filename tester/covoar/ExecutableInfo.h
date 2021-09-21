@@ -62,12 +62,12 @@ class DesiredSymbols;
      *  This method prints the contents of all coverage maps for
      *  this executable.
      */
-    void dumpCoverageMaps( void );
+    void dumpCoverageMaps();
 
     /*!
      *  This method prints the contents of Executable info containers
      */
-    void dumpExecutableInfo( void );
+    void dumpExecutableInfo();
 
     /*!
      *  This method returns a pointer to the executable's coverage map
@@ -84,28 +84,28 @@ class DesiredSymbols;
      *
      *  @return Returns the executable's file name
      */
-    const std::string& getFileName( void ) const;
+    const std::string& getFileName() const;
 
     /*!
      *  This method returns the library name associated with the executable.
      *
      *  @return Returns the executable's library name
      */
-    const std::string getLibraryName( void ) const;
+    const std::string getLibraryName() const;
 
     /*!
      *  This method returns the load address of the dynamic library
      *
      *  @return Returns the load address of the dynamic library
      */
-    uint32_t getLoadAddress( void ) const;
+    uint32_t getLoadAddress() const;
 
     /*!
      *  This method returns a pointer to the executable's symbol table.
      *
      *  @return Returns a pointer to the symbol table.
      */
-    SymbolTable* getSymbolTable( void );
+    SymbolTable* getSymbolTable();
 
     /*!
      *  This method finds a coverage map for the specified symbol.
@@ -131,13 +131,13 @@ class DesiredSymbols;
      *
      *  @return Returns TRUE if
      */
-    bool hasDynamicLibrary( void );
+    bool hasDynamicLibrary();
 
     /*!
      *  This method merges the coverage maps for this executable into
      *  the unified coverage map.
      */
-    void mergeCoverage( void );
+    void mergeCoverage();
 
     /*!
      *  This method sets the load address of the dynamic library
