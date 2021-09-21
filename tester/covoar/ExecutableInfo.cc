@@ -21,74 +21,81 @@ namespace Coverage {
     const std::string& theLibraryName,
     bool               verbose,
     DesiredSymbols&    symbolsToAnalyze
-    ) : fileName(theExecutableName),
-        loadAddress(0),
-        symbolsToAnalyze_m(symbolsToAnalyze)
+    ) : fileName( theExecutableName ),
+        loadAddress( 0 ),
+        symbolsToAnalyze_m( symbolsToAnalyze )
   {
-    if ( !theLibraryName.empty() )
+    if ( !theLibraryName.empty() ) {
       libraryName = theLibraryName;
+    }
 
-    if (verbose) {
+    if ( verbose ) {
       std::cerr << "Loading executable " << theExecutableName;
-      if ( !theLibraryName.empty() )
+      if ( !theLibraryName.empty() ) {
         std::cerr << " (" << theLibraryName << ')';
+      }
+
       std::cerr << std::endl;
     }
 
-    rld::files::object executable(theExecutableName);
+    rld::files::object executable( theExecutableName );
 
     executable.open();
     executable.begin();
-    executable.load_symbols(symbols);
+    executable.load_symbols( symbols );
 
     rld::dwarf::file debug;
 
-    debug.begin(executable.elf());
+    debug.begin( executable.elf() );
     debug.load_debug();
     debug.load_functions();
 
-    for (auto& cu : debug.get_cus()) {
-      AddressLineRange& range = mapper.makeRange(cu.pc_low(), cu.pc_high());
+    for ( auto& cu : debug.get_cus() ) {
+      AddressLineRange& range = mapper.makeRange( cu.pc_low(), cu.pc_high() );
       // Does not filter on desired symbols under the assumption that the test
       // code and any support code is small relative to what is being tested.
-      for (const auto &address : cu.get_addresses()) {
-        range.addSourceLine(address);
+      for ( const auto &address : cu.get_addresses() ) {
+        range.addSourceLine( address );
       }
 
-      for (auto& func : cu.get_functions()) {
-        if (!func.has_machine_code()) {
+      for ( auto& func : cu.get_functions() ) {
+        if ( !func.has_machine_code() ) {
           continue;
         }
 
-        if (!symbolsToAnalyze_m.isDesired(func.name())) {
+        if ( !symbolsToAnalyze_m.isDesired( func.name() ) ) {
           continue;
         }
 
-        if (func.is_inlined()) {
-          if (func.is_external()) {
+        if ( func.is_inlined() ) {
+          if ( func.is_external() ) {
             // Flag it
             std::cerr << "Function is both external and inlined: "
                       << func.name() << std::endl;
           }
 
-          if (func.has_entry_pc()) {
+          if ( func.has_entry_pc() ) {
             continue;
           }
 
           // If the low PC address is zero, the symbol does not appear in
           // this executable.
-          if (func.pc_low() == 0) {
+          if ( func.pc_low() == 0 ) {
             continue;
           }
         }
 
         // We can't process a zero size function.
-        if (func.pc_high() == 0) {
+        if ( func.pc_high() == 0 ) {
           continue;
         }
 
-        createCoverageMap (cu.name(), func.name(),
-                            func.pc_low(), func.pc_high() - 1);
+        createCoverageMap(
+          cu.name(),
+          func.name(),
+          func.pc_low(),
+          func.pc_high() - 1
+        );
       }
     }
   }
@@ -97,16 +104,18 @@ namespace Coverage {
   {
   }
 
-  void ExecutableInfo::dumpCoverageMaps( void ) {
-    ExecutableInfo::CoverageMaps::iterator  itr;
+  void ExecutableInfo::dumpCoverageMaps()
+  {
+    ExecutableInfo::CoverageMaps::iterator itr;
 
-    for (auto& cm : coverageMaps) {
+    for ( auto& cm : coverageMaps ) {
       std::cerr << "Coverage Map for " << cm.first << std::endl;
       cm.second->dump();
     }
   }
 
-  void ExecutableInfo::dumpExecutableInfo( void ){
+  void ExecutableInfo::dumpExecutableInfo()
+  {
     std::cout << std::endl
               << "== Executable info ==" << std::endl
               << "executable = " << getFileName () << std::endl
@@ -115,7 +124,7 @@ namespace Coverage {
     theSymbolTable.dumpSymbolTable();
   }
 
-  CoverageMapBase* ExecutableInfo::getCoverageMap ( uint32_t address )
+  CoverageMapBase* ExecutableInfo::getCoverageMap( uint32_t address )
   {
     CoverageMapBase*       aCoverageMap = NULL;
     CoverageMaps::iterator it;
@@ -123,29 +132,29 @@ namespace Coverage {
 
     // Obtain the coverage map containing the specified address.
     itsSymbol = theSymbolTable.getSymbol( address );
-    if (itsSymbol != "") {
-      aCoverageMap = &findCoverageMap(itsSymbol);
+    if ( itsSymbol != "" ) {
+      aCoverageMap = &findCoverageMap( itsSymbol );
     }
 
     return aCoverageMap;
   }
 
-  const std::string& ExecutableInfo::getFileName ( void ) const
+  const std::string& ExecutableInfo::getFileName() const
   {
     return fileName;
   }
 
-  const std::string ExecutableInfo::getLibraryName( void ) const
+  const std::string ExecutableInfo::getLibraryName() const
   {
     return libraryName;
   }
 
-  uint32_t ExecutableInfo::getLoadAddress( void ) const
+  uint32_t ExecutableInfo::getLoadAddress() const
   {
     return loadAddress;
   }
 
-  SymbolTable* ExecutableInfo::getSymbolTable ( void )
+  SymbolTable* ExecutableInfo::getSymbolTable()
   {
     return &theSymbolTable;
   }
@@ -155,8 +164,10 @@ namespace Coverage {
   )
   {
     CoverageMaps::iterator cmi = coverageMaps.find( symbolName );
-    if ( cmi == coverageMaps.end() )
-      throw CoverageMapNotFoundError(symbolName);
+    if ( cmi == coverageMaps.end() ) {
+      throw CoverageMapNotFoundError( symbolName );
+    }
+
     return *(cmi->second);
   }
 
@@ -167,8 +178,8 @@ namespace Coverage {
     uint32_t           highAddress
   )
   {
-    CoverageMapBase        *theMap;
-    CoverageMaps::iterator  itr;
+    CoverageMapBase*       theMap;
+    CoverageMaps::iterator itr;
 
     if ( lowAddress > highAddress ) {
       std::ostringstream what;
@@ -195,22 +206,24 @@ namespace Coverage {
     std::string&       line
   )
   {
-    std::string file;
-    int         lno;
-    mapper.getSource (address, file, lno);
+    std::string        file;
+    int                lno;
     std::ostringstream ss;
+
+    mapper.getSource( address, file, lno );
     ss << file << ':' << lno;
     line = ss.str ();
   }
 
-  bool ExecutableInfo::hasDynamicLibrary( void )
+  bool ExecutableInfo::hasDynamicLibrary()
   {
     return !libraryName.empty();
   }
 
-  void ExecutableInfo::mergeCoverage( void ) {
-    for (auto& cm : coverageMaps) {
-      if (symbolsToAnalyze_m.isDesired( cm.first ))
+  void ExecutableInfo::mergeCoverage()
+  {
+    for ( auto& cm : coverageMaps ) {
+      if ( symbolsToAnalyze_m.isDesired( cm.first ) )
         symbolsToAnalyze_m.mergeCoverageMap( cm.first, cm.second );
     }
   }
