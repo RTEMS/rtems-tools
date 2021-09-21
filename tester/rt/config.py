@@ -52,6 +52,7 @@ import tester.rt.console
 import tester.rt.exe
 import tester.rt.gdb
 import tester.rt.tftp
+import tester.rt.wait
 
 timeout = 15
 
@@ -61,6 +62,7 @@ class file(config.file):
     _directives = ['%execute',
                    '%gdb',
                    '%tftp',
+                   '%wait',
                    '%console']
 
     def __init__(self, index, total, report, name, opts,
@@ -217,8 +219,8 @@ class file(config.file):
             if data[0] == 'stdio':
                 self.console = tester.rt.console.stdio(trace = console_trace)
             elif data[0] == 'tty':
-                if len(data) < 2 or len(data) >3:
-                    raise error.general(self._name_line_msg('no tty configuration provided'))
+                if len(data) < 2 or len(data) > 3:
+                    raise error.general(self._name_line_msg('invalid tty configuration provided'))
                 if len(data) == 3:
                     settings = data[2]
                 else:
@@ -296,6 +298,25 @@ class file(config.file):
                 if self.console:
                     self.console.close()
 
+    def _dir_wait(self, data, total, index, exe, bsp_arch, bsp):
+        if len(data) != 0:
+            raise error.general('%wait has no arguments')
+        self.kill_on_end = True
+        if not self.opts.dry_run():
+            self.process = tester.rt.wait.wait(bsp_arch, bsp,
+                                               trace = self.exe_trace('wait'))
+            if not self.in_error:
+                if self.console:
+                    self.console.open()
+                self.process.open(output_length = self._output_length,
+                                  console = self.capture_console,
+                                  timeout = (int(self.expand('%{timeout}')),
+                                             int(self.expand('%{max_test_period}')),
+                                             self._timeout,
+                                             self._test_too_long))
+                if self.console:
+                    self.console.close()
+
     def _directive_filter(self, results, directive, info, data):
         if results[0] == 'directive':
             _directive = results[1]
@@ -332,6 +353,8 @@ class file(config.file):
                     self._dir_gdb(ds, total, index, fexe, bsp_arch, bsp)
                 elif _directive == '%tftp':
                     self._dir_tftp(ds, total, index, fexe, bsp_arch, bsp)
+                elif _directive == '%wait':
+                    self._dir_wait(ds, total, index, fexe, bsp_arch, bsp)
                 else:
                     raise error.general(self._name_line_msg('invalid directive'))
                 self._lock()
