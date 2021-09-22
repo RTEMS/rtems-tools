@@ -26,19 +26,18 @@ namespace Coverage {
   {
   }
 
-  void Explanations::load(
-    const std::string& explanations
-  )
+  void Explanations::load( const std::string& explanations )
   {
-    std::ifstream  explain;
-    Explanation    e;
-    int            line = 1;
+    std::ifstream explain;
+    Explanation   e;
+    int           line = 1;
 
-    if (explanations.empty())
+    if ( explanations.empty() ) {
       return;
+    }
 
     explain.open( explanations );
-    if (!explain) {
+    if ( !explain ) {
       std::ostringstream what;
       what << "Unable to open " << explanations;
       throw rld::error( what, "Explanations::load" );
@@ -50,14 +49,15 @@ namespace Coverage {
       // skip blank lines between
       do {
         std::getline( explain, input_line );
-        if (explain.fail()) {
+        if ( explain.fail() ) {
           return;
         }
+
         line++;
       } while ( input_line.empty() );
 
       // Have we already seen this one?
-      if (set.find( input_line ) != set.end()) {
+      if ( set.find( input_line ) != set.end() ) {
         std::ostringstream what;
         what << "line " << line
              << "contains a duplicate explanation ("
@@ -71,7 +71,7 @@ namespace Coverage {
 
       // Get the classification
       std::getline( explain, input_line );
-      if (explain.fail()) {
+      if ( explain.fail() ) {
         std::ostringstream what;
         what << "line " << line
              << "out of sync at the classification";
@@ -85,14 +85,14 @@ namespace Coverage {
         line++;
 
         const std::string delimiter = "+++";
-        if (input_line.compare( delimiter ) == 0) {
+        if ( input_line.compare( delimiter ) == 0 ) {
           break;
         }
         // XXX only taking last line.  Needs to be a vector
         e.explanation.push_back( input_line );
       }
 
-      if (explain.fail()) {
+      if ( explain.fail() ) {
         std::ostringstream what;
         what << "line " << line
               << "out of sync at the explanation";
@@ -109,7 +109,7 @@ namespace Coverage {
     const std::string& start
   )
   {
-    if (set.find( start ) == set.end()) {
+    if ( set.find( start ) == set.end() ) {
       #if 0
         std::cerr << "Warning: Unable to find explanation for "
                   << start << std::endl;
@@ -120,38 +120,39 @@ namespace Coverage {
     return &set[ start ];
   }
 
-  void Explanations::writeNotFound(
-    const std::string& fileName
-  )
+  void Explanations::writeNotFound( const std::string& fileName )
   {
     std::ofstream notFoundFile;
     bool  notFoundOccurred = false;
 
-    if (fileName.empty())
+    if ( fileName.empty() ) {
       return;
+    }
 
     notFoundFile.open( fileName );
-    if (!notFoundFile) {
+    if ( !notFoundFile ) {
       std::ostringstream what;
       what << "Unable to open " << fileName
            << " out of sync at the explanation";
       throw rld::error( what, "Explanations::writeNotFound" );
     }
 
-    for (std::map<std::string, Explanation>::iterator itr = set.begin();
-         itr != set.end();
-         itr++) {
+    for (
+      std::map<std::string, Explanation>::iterator itr = set.begin();
+      itr != set.end();
+      itr++
+    ) {
       Explanation e = (*itr).second;
       std::string key = (*itr).first;
 
-      if (!e.found) {
+      if ( !e.found ) {
         notFoundOccurred = true;
         notFoundFile << e.startingPoint << std::endl;
       }
     }
 
-    if (!notFoundOccurred) {
-      if (!unlink( fileName.c_str())) {
+    if ( !notFoundOccurred ) {
+      if ( !unlink( fileName.c_str() ) ) {
         std::cerr << "Warning: Unable to unlink " << fileName
                   << std::endl
                   << std::endl;
