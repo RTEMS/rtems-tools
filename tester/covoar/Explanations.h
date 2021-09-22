@@ -49,7 +49,7 @@ namespace Coverage {
     /*!
      *  This method constructs an Explanation instance.
      */
-    Explanation() {found = false;}
+    Explanation() { found = false; }
 
     /*!
      *  This method destructs an Explanation instance.
@@ -87,9 +87,7 @@ namespace Coverage {
      *  @param[in] explanations specifies the file name containing
      *             the explanation information
      */
-    void load(
-      const std::string& explanations
-    );
+    void load( const std::string& explanations );
 
     /*!
      *  This method returns the explanation associated with the
@@ -98,9 +96,7 @@ namespace Coverage {
      *  @param[in] start specifies the starting line number for
      *             which to search
      */
-    const Explanation *lookupExplanation(
-      const std::string& start
-    );
+    const Explanation *lookupExplanation( const std::string& start );
 
     /*!
      *  This method writes a file that contains a list of any
@@ -108,9 +104,7 @@ namespace Coverage {
      *
      *  @param[in] fileName specifies the name of the file to write
      */
-    void writeNotFound(
-      const std::string& fileName
-    );
+    void writeNotFound( const std::string& fileName );
 
   };
 
