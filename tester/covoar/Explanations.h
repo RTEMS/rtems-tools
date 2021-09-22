@@ -88,7 +88,7 @@ namespace Coverage {
      *             the explanation information
      */
     void load(
-      const char* const explanations
+      const std::string& explanations
     );
 
     /*!
@@ -109,7 +109,7 @@ namespace Coverage {
      *  @param[in] fileName specifies the name of the file to write
      */
     void writeNotFound(
-      const char* const fileName
+      const std::string& fileName
     );
 
   };

@@ -27,14 +27,14 @@ namespace Coverage {
   }
 
   void Explanations::load(
-    const char* const explanations
+    const std::string& explanations
   )
   {
     std::ifstream  explain;
     Explanation    e;
     int            line = 1;
 
-    if (!explanations)
+    if (explanations.empty())
       return;
 
     explain.open( explanations );
@@ -121,13 +121,13 @@ namespace Coverage {
   }
 
   void Explanations::writeNotFound(
-    const char* const fileName
+    const std::string& fileName
   )
   {
     std::ofstream notFoundFile;
     bool  notFoundOccurred = false;
 
-    if (!fileName)
+    if (fileName.empty())
       return;
 
     notFoundFile.open( fileName );
@@ -151,7 +151,7 @@ namespace Coverage {
     }
 
     if (!notFoundOccurred) {
-      if (!unlink( fileName )) {
+      if (!unlink( fileName.c_str())) {
         std::cerr << "Warning: Unable to unlink " << fileName
                   << std::endl
                   << std::endl;
