@@ -27,15 +27,14 @@
   #define kill(p,s) raise(s)
 #endif
 
-char*       progname;
+std::string progname;
 
 void usage()
 {
-  fprintf(
-    stderr,
-    "Usage: %s [-v] -c CPU -e executable -t tracefile [-E logfile]\n",
-    progname
-  );
+  std::cerr << "Usage: "
+            << progname
+            << " [-v] -c CPU -e executable -t tracefile [-E logfile]"
+            << std::endl;
   exit(1);
 }
 
@@ -81,10 +80,10 @@ int main(
   int                                 opt;
   Trace::TraceReaderLogQEMU           log;
   Trace::TraceWriterQEMU              trace;
-  const char                         *cpuname    = "";
-  const char                         *executable = "";
-  const char                         *tracefile  =  "";
-  const char                         *logname = "/tmp/qemu.log";
+  std::string                         cpuname;
+  std::string                         executable;
+  std::string                         tracefile;
+  std::string                         logname = "/tmp/qemu.log";
   Coverage::ExecutableInfo*           executableInfo;
   rld::process::tempfile              objdumpFile( ".dmp" );
   rld::process::tempfile              err( ".err" );
@@ -114,18 +113,18 @@ int main(
   }
 
   // Make sure we have all the required parameters
-  if ( !cpuname ) {
-    fprintf( stderr, "cpuname not specified\n" );
+  if ( cpuname.empty() ) {
+    std::cerr << "cpuname not specified" << std::endl;
     usage();
   }
 
-  if ( !executable ) {
-    fprintf( stderr, "executable not specified\n" );
+  if ( executable.empty() ) {
+    std::cerr << "executable not specified" << std::endl;
     usage();
   }
 
-  if ( !tracefile ) {
-    fprintf( stderr, "output trace file not specified\n" );
+  if ( tracefile.empty() ) {
+    std::cerr << "output trace file not specified" << std::endl;
     usage();
   }
 
@@ -149,7 +148,7 @@ int main(
 
   if ( !dynamicLibrary.empty() )
     executableInfo = new Coverage::ExecutableInfo(
-      executable,
+      executable.c_str(),
       dynamicLibrary,
       false,
       symbolsToAnalyze
@@ -158,7 +157,7 @@ int main(
     try
     {
       executableInfo = new Coverage::ExecutableInfo(
-        executable,
+        executable.c_str(),
         "",
         false,
         symbolsToAnalyze
@@ -195,8 +194,8 @@ int main(
   try
   {
     objdumpProcessor.loadAddressTable( executableInfo, objdumpFile, err );
-    log.processFile( logname, objdumpProcessor );
-    trace.writeFile( tracefile, &log, verbose );
+    log.processFile( logname.c_str(), objdumpProcessor );
+    trace.writeFile( tracefile.c_str(), &log, verbose );
   }
   catch ( rld::error re )
   {
