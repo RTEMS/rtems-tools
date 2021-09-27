@@ -1,5 +1,6 @@
 #include "TraceList.h"
-#include <stdio.h>
+#include <iostream>
+#include <iomanip>
 
 namespace Trace {
 
@@ -20,7 +21,7 @@ namespace Trace {
       traceRange_t t;
 
       t.lowAddress = lowAddressArg;
-      t.length = highAddressArg - lowAddressArg;
+      t.length     = highAddressArg - lowAddressArg;
       t.exitReason = why;
 
       set.push_back( t );
@@ -28,12 +29,9 @@ namespace Trace {
 
     void TraceList::ShowTrace( traceRange_t *t)
     {
-      printf(
-        "Start 0x%x, length 0x%03x Reason %d\n",
-        t->lowAddress,
-        t->length,
-        t->exitReason
-      );
+      std::cout << std::hex << "Start 0x" << t->lowAddress
+                << ", length 0x" << std::setfill( '0' ) << std::setw( 3 )
+                << t->length << " Reason " << t->exitReason << std::endl;
     }
 
     void  TraceList::ShowList()
