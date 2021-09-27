@@ -35,11 +35,10 @@ void usage()
             << progname
             << " [-v] -c CPU -e executable -t tracefile [-E logfile]"
             << std::endl;
-  exit(1);
+  exit( 1 );
 }
 
-static void
-fatal_signal( int signum )
+static void fatal_signal( int signum )
 {
   signal( signum, SIG_DFL );
 
@@ -52,20 +51,23 @@ fatal_signal( int signum )
   kill( getpid(), signum );
 }
 
-static void
-setup_signals( void )
+static void setup_signals()
 {
-  if ( signal (SIGINT, SIG_IGN) != SIG_IGN )
+  if ( signal (SIGINT, SIG_IGN) != SIG_IGN ) {
     signal( SIGINT, fatal_signal );
+  }
 #ifdef SIGHUP
-  if ( signal( SIGHUP, SIG_IGN ) != SIG_IGN )
+  if ( signal( SIGHUP, SIG_IGN ) != SIG_IGN ) {
     signal( SIGHUP, fatal_signal );
+  }
 #endif
-  if ( signal( SIGTERM, SIG_IGN ) != SIG_IGN )
+  if ( signal( SIGTERM, SIG_IGN ) != SIG_IGN ) {
     signal( SIGTERM, fatal_signal );
+  }
 #ifdef SIGPIPE
-  if ( signal( SIGPIPE, SIG_IGN ) != SIG_IGN )
+  if ( signal( SIGPIPE, SIG_IGN ) != SIG_IGN ) {
     signal( SIGPIPE, fatal_signal );
+  }
 #endif
 #ifdef SIGCHLD
   signal( SIGCHLD, SIG_DFL );
@@ -100,15 +102,15 @@ int main(
    //
   progname = argv[0];
 
-  while ((opt = getopt(argc, argv, "c:e:l:L:t:v")) != -1) {
-    switch (opt) {
-      case 'c': cpuname = optarg;        break;
-      case 'e': executable = optarg;     break;
-      case 'l': logname = optarg;        break;
+  while ( (opt = getopt( argc, argv, "c:e:l:L:t:v" ) ) != -1 ) {
+    switch ( opt ) {
+      case 'c': cpuname        = optarg; break;
+      case 'e': executable     = optarg; break;
+      case 'l': logname        = optarg; break;
       case 'L': dynamicLibrary = optarg; break;
-      case 't': tracefile = optarg;      break;
-      case 'v': verbose = true;          break;
-      default:  usage();
+      case 't': tracefile      = optarg; break;
+      case 'v': verbose        = true;   break;
+      default: usage();
     }
   }
 
@@ -146,14 +148,14 @@ int main(
 
   Coverage::ObjdumpProcessor objdumpProcessor( symbolsToAnalyze, targetInfo );
 
-  if ( !dynamicLibrary.empty() )
+  if ( !dynamicLibrary.empty() ) {
     executableInfo = new Coverage::ExecutableInfo(
       executable.c_str(),
       dynamicLibrary,
       false,
       symbolsToAnalyze
     );
-  else {
+  } else {
     try
     {
       executableInfo = new Coverage::ExecutableInfo(
