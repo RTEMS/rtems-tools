@@ -37,7 +37,7 @@ namespace Target {
   //!
   typedef struct {
      //! This is the string found in configuration to match.
-     const char    *theTarget;
+     std::string   theTarget;
      //! This is the static wrapper for the constructor.
      TargetBase *(*theCtor)(
        std::string
@@ -76,10 +76,10 @@ namespace Target {
     else
       cpu = targetName.substr( 0, i );
 
-    // fprintf( stderr, "%s --> %s\n", targetName.c_str(), cpu.c_str());
+    // std::cerr << targetName << " --> " << cpu << std::endl;
     // Iterate over the table trying to find an entry with a matching name
     for ( i=0 ; i < sizeof(FactoryTable) / sizeof(FactoryEntry_t); i++ ) {
-      if ( !strcmp(FactoryTable[i].theTarget, cpu.c_str() ) )
+      if ( FactoryTable[i].theTarget == cpu )
         return FactoryTable[i].theCtor( targetName );
     }
 
