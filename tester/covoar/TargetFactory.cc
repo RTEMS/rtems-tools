@@ -39,9 +39,7 @@ namespace Target {
      //! This is the string found in configuration to match.
      std::string   theTarget;
      //! This is the static wrapper for the constructor.
-     TargetBase *(*theCtor)(
-       std::string
-     );
+     TargetBase *(*theCtor)( std::string );
   } FactoryEntry_t;
 
   //!
@@ -60,27 +58,27 @@ namespace Target {
     { "powerpc", Target_powerpc_Constructor },
     { "sparc",   Target_sparc_Constructor },
     { "riscv",   Target_riscv_Constructor },
-    { "TBD",     NULL },
+    { "TBD",     NULL }
   };
 
-  TargetBase* TargetFactory(
-    std::string          targetName
-  )
+  TargetBase* TargetFactory( std::string targetName )
   {
     size_t      i;
     std::string cpu;
 
     i = targetName.find( '-' );
-    if ( i == targetName.npos )
+    if ( i == targetName.npos ) {
       cpu = targetName;
-    else
+    } else {
       cpu = targetName.substr( 0, i );
+    }
 
     // std::cerr << targetName << " --> " << cpu << std::endl;
     // Iterate over the table trying to find an entry with a matching name
-    for ( i=0 ; i < sizeof(FactoryTable) / sizeof(FactoryEntry_t); i++ ) {
-      if ( FactoryTable[i].theTarget == cpu )
+    for ( i = 0 ; i < sizeof( FactoryTable ) / sizeof( FactoryEntry_t ); i++) {
+      if ( FactoryTable[i].theTarget == cpu ) {
         return FactoryTable[i].theCtor( targetName );
+      }
     }
 
     std::ostringstream what;
