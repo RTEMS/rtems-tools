@@ -59,7 +59,7 @@
 #define BITS_PER_CHAR 8
 #define COMPACT_HEADER_ID 31
 
-static const uint8_t kEmptyThreadName[THREAD_API_COUNT] = "";
+static const uint8_t kEmptyThreadName[THREAD_NAME_SIZE] = "";
 
 static const uint8_t kUUID[] = {0x6a, 0x77, 0x15, 0xd0, 0xb5, 0x02, 0x4c, 0x65,
                                 0x86, 0x78, 0x67, 0x77, 0xac, 0x7f, 0x75, 0x5a};
