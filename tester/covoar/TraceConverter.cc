@@ -78,20 +78,21 @@ int main(
   char** argv
 )
 {
-  int                          opt;
-  Trace::TraceReaderLogQEMU    log;
-  Trace::TraceWriterQEMU       trace;
-  const char                  *cpuname    = "";
-  const char                  *executable = "";
-  const char                  *tracefile  =  "";
-  const char                  *logname = "/tmp/qemu.log";
-  Coverage::ExecutableInfo*    executableInfo;
-  rld::process::tempfile       objdumpFile( ".dmp" );
-  rld::process::tempfile       err( ".err" );
-  Coverage::DesiredSymbols     symbolsToAnalyze;
-  bool                         verbose = false;
-  std::string                  dynamicLibrary;
-  int                          ec = 0;
+  int                                 opt;
+  Trace::TraceReaderLogQEMU           log;
+  Trace::TraceWriterQEMU              trace;
+  const char                         *cpuname    = "";
+  const char                         *executable = "";
+  const char                         *tracefile  =  "";
+  const char                         *logname = "/tmp/qemu.log";
+  Coverage::ExecutableInfo*           executableInfo;
+  rld::process::tempfile              objdumpFile( ".dmp" );
+  rld::process::tempfile              err( ".err" );
+  Coverage::DesiredSymbols            symbolsToAnalyze;
+  bool                                verbose = false;
+  std::string                         dynamicLibrary;
+  int                                 ec = 0;
+  std::shared_ptr<Target::TargetBase> targetInfo;
 
   setup_signals();
 
@@ -128,9 +129,21 @@ int main(
     usage();
   }
 
+
   // Create toolnames.
-  std::shared_ptr<Target::TargetBase>
-    targetInfo( Target::TargetFactory( cpuname ) );
+  try
+  {
+    targetInfo.reset( Target::TargetFactory( cpuname ) );
+  }
+  catch ( rld::error re )
+  {
+    std::cerr << "error: "
+              << re.where << ": " << re.what
+              << std::endl;
+    ec = 10;
+
+    return ec;
+  }
 
   Coverage::ObjdumpProcessor objdumpProcessor( symbolsToAnalyze, targetInfo );
 
