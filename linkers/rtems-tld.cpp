@@ -1266,10 +1266,7 @@ namespace rld
                 ds += " + ";
               else
                 ds_added = true;
-              if (drs_added)
-                drs += " + ";
-              else
-                drs_added = true;
+              drs_added = true;
               ds += "sizeof(" + sig.ret + ')';
               drs += "sizeof(" + sig.ret + ')';
             }
