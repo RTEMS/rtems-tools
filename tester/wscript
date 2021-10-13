@@ -67,7 +67,8 @@ def build(bld):
                   'rt/telnet.py',
                   'rt/test.py',
                   'rt/tftp.py',
-                  'rt/tftpserver.py'],
+                  'rt/tftpserver.py',
+                  'rt/wait.py'],
         install_from = '.',
         install_path = '${PREFIX}/share/rtems/tester')
     bld(features = 'py',
