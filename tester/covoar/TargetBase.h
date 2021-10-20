@@ -42,28 +42,28 @@ namespace Target {
      *
      *  @return Returns the target specific addr2line program name
      */
-    const char* getAddr2line( void ) const;
+    const std::string& getAddr2line() const;
 
     /*!
      *  This method returns the CPU name.
      *
      *  @return Returns the target cpu name
      */
-    const char* getCPU( void ) const;
+    const std::string& getCPU() const;
 
     /*!
      *  This method returns the program name for objdump.
      *
      *  @return Returns the target specific objdump program name
      */
-    const char* getObjdump( void ) const;
+    const std::string& getObjdump() const;
 
     /*!
      *  This method returns the target name.
      *
      *  @return Returns the target name
      */
-    const char* getTarget( void ) const;
+    const std::string& getTarget() const;
 
     /*!
      *  This method determines whether the specified line from a
@@ -75,8 +75,8 @@ namespace Target {
      *  @return Returns TRUE if the instruction is a nop, FALSE otherwise.
      */
     virtual bool isNopLine(
-      const char* const line,
-      int&              size
+      const std::string& line,
+      int&               size
     ) = 0;
 
 
@@ -90,7 +90,7 @@ namespace Target {
      *  @return Returns TRUE if the instruction is a branch, FALSE otherwise.
      */
     bool isBranchLine(
-      const char* const line
+      const std::string& line
     );
 
 
@@ -104,13 +104,13 @@ namespace Target {
      *  This method returns the bit set by Qemu in the trace record
      *  when a branch is taken.
      */
-    virtual uint8_t qemuTakenBit(void);
+    virtual uint8_t qemuTakenBit();
 
     /*!
      *  This method returns the bit set by Qemu in the trace record
      *  when a branch is taken.
      */
-    virtual uint8_t qemuNotTakenBit(void);
+    virtual uint8_t qemuNotTakenBit();
 
   protected:
 

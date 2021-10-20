@@ -58,11 +58,11 @@ namespace Target {
   }
 
   bool Target_powerpc::isNopLine(
-    const char* const line,
-    int&              size
+    const std::string& line,
+    int&               size
   )
   {
-    if (!strcmp( &line[strlen(line)-3], "nop")) {
+    if ( line.substr( line.length() - 3 ) == "nop" ) {
       size = 4;
       return true;
     }
@@ -71,7 +71,7 @@ namespace Target {
   }
 
   bool Target_powerpc::isBranch(
-      const char* const instruction
+      const std::string& instruction
   )
   {
     throw rld::error(

@@ -82,26 +82,28 @@ namespace Target {
   }
 
   bool Target_arm::isNopLine(
-    const char* const line,
-    int&              size
+    const std::string& line,
+    int&               size
   )
   {
-    if (!strcmp( &line[strlen(line)-3], "nop")) {
+    size_t stringLen = line.length();
+
+    if ( line.substr( stringLen - 3 ) == "nop" ) {
       size = 4;
       return true;
     }
 
     // On ARM, there are literal tables at the end of methods.
     // We need to avoid them.
-    if (!strncmp( &line[strlen(line)-10], ".byte", 5)) {
+    if ( line.substr( stringLen - 10, 5 ) == ".byte" ) {
       size = 1;
       return true;
     }
-    if (!strncmp( &line[strlen(line)-13], ".short", 6)) {
+    if ( line.substr( stringLen - 13, 6 ) == ".short" ) {
       size = 2;
       return true;
     }
-    if (!strncmp( &line[strlen(line)-16], ".word", 5)) {
+    if ( line.substr( stringLen - 16, 5 ) == ".word" ) {
       size = 4;
       return true;
     }
@@ -111,7 +113,7 @@ namespace Target {
   }
 
   bool Target_arm::isBranch(
-      const char* instruction
+      const std::string& instruction
   )
   {
     throw rld::error(

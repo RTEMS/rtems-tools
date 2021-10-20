@@ -57,39 +57,41 @@ namespace Target {
   }
 
   bool Target_i386::isNopLine(
-    const char* const line,
-    int&              size
+    const std::string& line,
+    int&               size
   )
   {
-    if (!strcmp( &line[strlen(line)-3], "nop")) {
+    size_t stringLen = line.length();
+
+    if ( line.substr( stringLen - 3 ) == "nop" ) {
       size = 1;
       return true;
     }
 
     // i386 has some two and three byte nops
-    if (!strncmp( &line[strlen(line)-14], "xchg   %ax,%ax", 14)) {
+    if ( line.substr( stringLen - 14 ) == "xchg   %ax,%ax" ) {
       size = 2;
       return true;
     }
-    if (!strncmp( &line[strlen(line)-16], "xor    %eax,%eax", 16)) {
+    if ( line.substr( stringLen - 16 ) == "xor    %eax,%eax" ) {
       size = 2;
       return true;
     }
-    if (!strncmp( &line[strlen(line)-16], "xor    %ebx,%ebx", 16)) {
+    if ( line.substr( stringLen - 16 ) == "xor    %ebx,%ebx" ) {
       size = 2;
       return true;
     }
-    if (!strncmp( &line[strlen(line)-16], "xor    %esi,%esi", 16)) {
+    if ( line.substr( stringLen - 16 ) == "xor    %esi,%esi" ) {
       size = 2;
       return true;
     }
-    if (!strncmp( &line[strlen(line)-21], "lea    0x0(%esi),%esi", 21)) {
+    if ( line.substr( stringLen - 21 ) == "lea    0x0(%esi),%esi" ) {
       size = 3;
       return true;
     }
-    if (!strncmp( &line[strlen(line)-28], "lea    0x0(%esi,%eiz,1),%esi", 28)) {
+    if ( line.substr( stringLen - 28 ) == "lea    0x0(%esi,%eiz,1),%esi" ) {
       // Could be 4 or 7 bytes of padding.
-      if (!strncmp( &line[strlen(line)-32], "00", 2)) {
+      if ( line.substr( stringLen - 32, 2 ) == "00" ) {
         size = 7;
       } else {
         size = 4;

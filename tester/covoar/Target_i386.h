@@ -43,8 +43,8 @@ namespace Target {
      *  @return Returns TRUE if the instruction is a nop, FALSE otherwise.
      */
     bool isNopLine(
-      const char* const line,
-      int&              size
+      const std::string& line,
+      int&               size
     );
 
     /* Documentation inherited from base class */

@@ -77,11 +77,13 @@ namespace Target {
   }
 
   bool Target_m68k::isNopLine(
-    const char* const line,
-    int&              size
+    const std::string& line,
+    int&               size
   )
   {
-    if (!strcmp( &line[strlen(line)-3], "nop")) {
+    size_t stringLen = line.length();
+
+    if ( line.substr( stringLen - 3 ) == "nop" ) {
       size = 2;
       return true;
     }
@@ -89,7 +91,7 @@ namespace Target {
     #define GNU_LD_FILLS_ALIGNMENT_WITH_RTS
     #if defined(GNU_LD_FILLS_ALIGNMENT_WITH_RTS)
       // Until binutils 2.20, binutils would fill with rts not nop
-      if (!strcmp( &line[strlen(line)-3], "rts")) {
+      if ( line.substr( stringLen - 3 ) == "rts" ) {
         size = 4;
         return true;
       }
@@ -99,7 +101,7 @@ namespace Target {
   }
 
   bool Target_m68k::isBranch(
-      const char* const instruction
+      const std::string& instruction
   )
   {
     throw rld::error(

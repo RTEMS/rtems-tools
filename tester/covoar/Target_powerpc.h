@@ -43,7 +43,7 @@ namespace Target {
      *  @return Returns TRUE if the instruction is a nop, FALSE otherwise.
      */
     bool isNopLine(
-      const char* const line,
+      const std::string& line,
       int&              size
     );
 
@@ -52,7 +52,7 @@ namespace Target {
      *  objdump file is a branch instruction.
      */
     bool isBranch(
-      const char* const instruction
+      const std::string& instruction
     );
 
   private:

@@ -67,8 +67,8 @@ namespace Target {
    *  @return Returns True if the instruction is nop, False otherwise.
    */
   bool isNopLine(
-    const char* const line,
-    int&              size
+    const std::string& line,
+    int&               size
   );
 
   /*!
@@ -80,7 +80,7 @@ namespace Target {
    */
 
   bool isBranch(
-    const char* const instruction
+    const std::string& instruction
   );
 
   private:

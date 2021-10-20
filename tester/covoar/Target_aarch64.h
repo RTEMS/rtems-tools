@@ -42,8 +42,8 @@ namespace Target {
      *  @return Returns TRUE if the instruction is a nop, FALSE otherwise.
      */
     virtual bool isNopLine(
-      const char* const line,
-      int&              size
+      const std::string& line,
+      int&               size
     ) override;
 
     /*!
@@ -51,7 +51,7 @@ namespace Target {
      *  objdump file is a branch instruction.
      */
     bool isBranch(
-      const char* const instruction
+      const std::string& instruction
     );
 
     /* Documentation inherited from base class */

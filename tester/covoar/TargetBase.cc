@@ -40,24 +40,24 @@ namespace Target {
   {
   }
 
-  const char* TargetBase::getAddr2line() const
+  const std::string& TargetBase::getAddr2line() const
   {
-    return addr2line_m.c_str();
+    return addr2line_m;
   }
 
-  const char* TargetBase::getCPU( void ) const
+  const std::string& TargetBase::getCPU() const
   {
-    return cpu_m.c_str();
+    return cpu_m;
   }
 
-  const char* TargetBase::getObjdump() const
+  const std::string& TargetBase::getObjdump() const
   {
-    return objdump_m.c_str();
+    return objdump_m;
   }
 
-  const char* TargetBase::getTarget( void ) const
+  const std::string& TargetBase::getTarget() const
   {
-    return targetName_m.c_str();
+    return targetName_m;
   }
 
   bool TargetBase::isBranch( const std::string& instruction )
@@ -83,12 +83,13 @@ namespace Target {
   }
 
   bool TargetBase::isBranchLine(
-    const char* const line
+    const std::string& line
   )
   {
-    #define WARNING \
-        "WARNING: TargetBase::isBranchLine - (%d) " \
-        "Unable to find instruction in: %s\n"
+    #define WARNING_PT1 \
+        "WARNING: TargetBase::isBranchLine - ("
+    #define WARNING_PT2 \
+        ") Unable to find instruction in: "
     const char *ch;
     char instruction[120];
     int  result;
@@ -101,7 +102,7 @@ namespace Target {
       ch++;
     }
     if (*ch != '\t') {
-      fprintf( stderr, WARNING, 1, line );
+      std::cerr << WARNING_PT1 << 1 << WARNING_PT2 << line << std::endl;
       return false;
     }
     ch++;
@@ -110,7 +111,7 @@ namespace Target {
     while ((*ch != '\t') && (*ch != '\0'))
       ch++;
     if (*ch != '\t') {
-      fprintf( stderr, WARNING, 2, line) ;
+      std::cerr << WARNING_PT1 << 2 << WARNING_PT2 << line << std::endl;
       return false;
     }
     ch++;
@@ -119,19 +120,19 @@ namespace Target {
     // after the second tab.
     result = sscanf( ch, "%s", instruction );
     if (result != 1) {
-        fprintf( stderr, WARNING, 3, line );
+        std::cerr << WARNING_PT1 << 3 << WARNING_PT2 << line << std::endl;
         return false;
     }
 
     return isBranch( instruction );
   }
 
-  uint8_t TargetBase::qemuTakenBit(void)
+  uint8_t TargetBase::qemuTakenBit()
   {
     return TRACE_OP_BR0;
   }
 
-  uint8_t TargetBase::qemuNotTakenBit(void)
+  uint8_t TargetBase::qemuNotTakenBit()
   {
     return TRACE_OP_BR1;
   }

@@ -62,11 +62,11 @@ namespace Target {
   }
 
   bool Target_riscv::isNopLine(
-    const char* const line,
-    int&              size
+    const std::string& line,
+    int&               size
     )
   {
-    if (!strcmp( &line[strlen(line)-3], "nop")){
+    if ( line.substr( line.length() - 3 ) == "nop" ) {
         size = 4;
         return true;
     }
