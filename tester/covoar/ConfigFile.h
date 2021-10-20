@@ -53,9 +53,7 @@ namespace Configuration {
      *
      *  @return Returns TRUE if the method succeeded and FALSE if it failed.
      */
-    virtual bool processFile(
-      const std::string&     file
-    );
+    virtual bool processFile( const std::string& file );
 
     bool setOption(
       const char* const option,
@@ -66,7 +64,7 @@ namespace Configuration {
       const char* const option
     );
 
-    void printOptions(void);
+    void printOptions();
 
   private:
     /*!
@@ -78,7 +76,7 @@ namespace Configuration {
      *
      *  @return Returns TRUE if the method succeeded and FALSE if it failed.
      */
-    Options_t *options_m;
+    Options_t* options_m;
 
   };
 
