@@ -7,8 +7,17 @@
 
 #include "ConfigFile.h"
 #include <string.h>
-#include <stdio.h>
 #include <ctype.h>
+
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
+static void print_invalid_line_number( const std::string& file, int line_no )
+{
+  std::cerr << file << ": line" << line_no << " is invalid: " << line
+            << std::endl;
+}
 
 namespace Configuration {
 
@@ -24,43 +33,40 @@ namespace Configuration {
   }
 
   bool FileReader::processFile(
-    const char* const     file
+    const std::string&     file
   )
   {
     #define METHOD "FileReader::processFile - "
-    FILE *  in;
-    char    line[256];
-    char    option[256];
-    char    value[256];
+    #define MAX_LENGTH 256
+    std::ifstream in;
+    std::string line;
+    char option[MAX_LENGTH];
+    char value[MAX_LENGTH];
     int     line_no;
     int     i;
     int     j;
 
-    if ( file == NULL ) {
-      fprintf( stderr, METHOD "NULL filename\n" );
+    if ( file.empty() ) {
+      std::cerr << METHOD << "Empty filename" << std::endl;
       return false;
     }
 
-    in = fopen( file, "r" );
-    if ( !in ) {
-      fprintf( stderr, METHOD "unable to open %s\n", file );
+    in.open( file );
+    if ( !in.is_open() ) {
+      std::cerr << METHOD << "unable to open " << file << std::endl;
       return false;
     }
 
     line_no = 0;
-    while (fgets(line, sizeof(line), in) != NULL) {
+    while ( std::getline( line, MAX_LENGTH ) ) {
       int length;
 
       line_no++;
 
-      length = (int) strlen( line );
-      if ( line[length - 1] != '\n' ) {
-        fprintf(
-          stderr,
-          "%s: line %d is too long",
-          file,
-          line_no
-        );
+      length = (int) line.length();
+      if ( length > MAX_LENGTH ) {
+        std::cerr << file << ": line " << line_no << " is too long"
+                  << std::endl;
         continue;
       }
 
@@ -96,14 +102,8 @@ namespace Configuration {
       if (line[0] == '\0')
         continue;
 
-      if (sscanf(line, "%s", option) != 1) {
-        fprintf(
-          stderr,
-          "%s: line %d is invalid: %s\n",
-          file,
-          line_no,
-          line
-        );
+      if (std::sscanf(line.c_str(), "%s", option) != 1) {
+        print_invalid_line_number(file, line_no);
         continue;
       }
 
@@ -111,13 +111,7 @@ namespace Configuration {
         ;
 
       if (i == length) {
-        fprintf(
-          stderr,
-          "%s: line %d is invalid: %s\n",
-          file,
-          line_no,
-          line
-        );
+        print_invalid_line_number(file, line_no);
         continue;
       }
 
@@ -129,24 +123,12 @@ namespace Configuration {
         value[j] = line[i];
       value[j] = '\0';
       if (value[0] == '\0') {
-        fprintf(
-          stderr,
-          "%s: line %d is invalid: %s\n",
-          file,
-          line_no,
-          line
-        );
+        print_invalid_line_number(file, line_no);
         continue;
       }
 
       if ( !setOption(option, value) ) {
-        fprintf(
-          stderr,
-          "%s: line %d: option %s is unknown\n",
-          file,
-          line_no,
-          option
-        );
+        print_invalid_line_number(file, line_no);
         continue;
       }
 
@@ -190,7 +172,7 @@ namespace Configuration {
     Options_t *o;
 
     for ( o=options_m ; o->option ; o++ ) {
-      fprintf( stderr, "(%s)=(%s)\n", o->option, o->value );
+      std::cerr << '(' << o->option << ")=(" << o->value << ')' << std::endl;
     }
   }
 }

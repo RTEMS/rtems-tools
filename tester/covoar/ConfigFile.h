@@ -54,7 +54,7 @@ namespace Configuration {
      *  @return Returns TRUE if the method succeeded and FALSE if it failed.
      */
     virtual bool processFile(
-      const char* const     file
+      const std::string&     file
     );
 
     bool setOption(
