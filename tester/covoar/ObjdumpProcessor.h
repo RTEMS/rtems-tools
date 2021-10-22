@@ -91,7 +91,7 @@ namespace Coverage {
      *  This method constructs an ObjdumpProcessor instance.
      */
     ObjdumpProcessor(
-      DesiredSymbols&     symbolsToAnalyze,
+      DesiredSymbols&                      symbolsToAnalyze,
       std::shared_ptr<Target::TargetBase>& targetInfo
     );
 
@@ -100,24 +100,24 @@ namespace Coverage {
      */
     virtual ~ObjdumpProcessor();
 
-    uint32_t determineLoadAddress(
-      ExecutableInfo* theExecutable
-    );
+    uint32_t determineLoadAddress( ExecutableInfo* theExecutable );
 
     /*!
      *  This method fills a tempfile with the .text section of objdump
      *  for the given file name.
      */
-    void getFile( std::string fileName,
-                  rld::process::tempfile& dmp,
-                  rld::process::tempfile& err );
+    void getFile(
+      std::string             fileName,
+      rld::process::tempfile& dmp,
+      rld::process::tempfile& err
+    );
 
     /*!
      *  This method fills the objdumpList list with all the
      *  instruction addresses in the object dump file.
      */
     void loadAddressTable (
-      ExecutableInfo* const executableInformation,
+      ExecutableInfo* const   executableInformation,
       rld::process::tempfile& dmp,
       rld::process::tempfile& err
     );
@@ -150,9 +150,7 @@ namespace Coverage {
      *  the given line in the objdmp file is a branch instruction,
      *  otherwise it returns false.
      */
-    bool isBranchLine(
-      const std::string& line
-    );
+    bool isBranchLine( const std::string& line );
 
     /*!
      * This method sets the targetInfo_m variable.
@@ -167,7 +165,7 @@ namespace Coverage {
      *  This variable consists of a list of all instruction addresses
      *  extracted from the obj dump file.
      */
-    objdumpFile_t       objdumpList;
+    objdumpFile_t objdumpList;
 
     /*!
      *  This method determines whether the specified line is a
