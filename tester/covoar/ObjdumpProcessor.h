@@ -151,7 +151,7 @@ namespace Coverage {
      *  otherwise it returns false.
      */
     bool isBranchLine(
-      const char* const line
+      const std::string& line
     );
 
     /*!
@@ -179,8 +179,8 @@ namespace Coverage {
      *  @return Returns TRUE if the instruction is a nop, FALSE otherwise.
      */
     bool isNop(
-      const char* const line,
-      int&              size
+      const std::string& line,
+      int&               size
     );
 
     /*!

@@ -13,6 +13,8 @@
 #include <string.h>
 #include <algorithm>
 #include <string>
+#include <fstream>
+#include <iomanip>
 
 #include "ObjdumpProcessor.h"
 #include "CoverageMap.h"
@@ -139,8 +141,7 @@ namespace Coverage {
   )
   {
     #define METHOD "ERROR: ObjdumpProcessor::determineLoadAddress - "
-    FILE*        loadAddressFile = NULL;
-    char*        cStatus;
+    std::ifstream loadAddressFile;
     uint32_t     offset;
     char         inputBuffer[MAX_LINE_LENGTH];
 
@@ -155,8 +156,8 @@ namespace Coverage {
 
     dlinfoName += ".dlinfo";
     // Read load address.
-    loadAddressFile = ::fopen( dlinfoName.c_str(), "r" );
-    if (!loadAddressFile) {
+    loadAddressFile.open( dlinfoName );
+    if (!loadAddressFile.is_open()) {
       std::ostringstream what;
       what << "Unable to open " << dlinfoName;
       throw rld::error( what, METHOD );
@@ -166,9 +167,9 @@ namespace Coverage {
     while ( 1 ) {
 
       // Get a line.
-      cStatus = ::fgets( inputBuffer, MAX_LINE_LENGTH, loadAddressFile );
-      if (cStatus == NULL) {
-        ::fclose( loadAddressFile );
+      loadAddressFile.getline( inputBuffer, MAX_LINE_LENGTH );
+      if ( loadAddressFile.fail() && loadAddressFile.is_open() ) {
+        loadAddressFile.close();
         std::ostringstream what;
         what << "library " << Library << " not found in " << dlinfoName;
         throw rld::error( what, METHOD );
@@ -176,13 +177,15 @@ namespace Coverage {
       sscanf( inputBuffer, "%s %x", inLibName, &offset );
       std::string tmp = inLibName;
       if ( tmp.find( Library ) != tmp.npos ) {
-        // fprintf( stderr, "%s - 0x%08x\n", inLibName, offset );
+        // std::cerr << inLibName << " - 0x"
+        //           << std::setfill( '0' ) << std::setw( 8 ) << std::hex
+        //           << offset << std::endl
+        //           << std::dec << std::setfill( ' ' );
         address = offset;
         break;
       }
     }
 
-    ::fclose( loadAddressFile );
     return address;
 
     #undef METHOD
@@ -203,7 +206,7 @@ namespace Coverage {
   }
 
   bool ObjdumpProcessor::isBranchLine(
-    const char* const line
+    const std::string& line
   )
   {
     if ( !targetInfo_m ) {
@@ -219,8 +222,8 @@ namespace Coverage {
   }
 
   bool ObjdumpProcessor::isNop(
-    const char* const line,
-    int&              size
+    const std::string& line,
+    int&               size
   )
   {
     if ( !targetInfo_m ){
