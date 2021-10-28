@@ -174,10 +174,24 @@ int main(
   }
 
   // If a dynamic library was specified, determine the load address.
-  if ( !dynamicLibrary.empty() )
-    executableInfo->setLoadAddress(
-      objdumpProcessor.determineLoadAddress( executableInfo )
-    );
+  if ( !dynamicLibrary.empty() ) {
+    try
+    {
+      executableInfo->setLoadAddress(
+        objdumpProcessor.determineLoadAddress( executableInfo )
+      );
+    }
+    catch ( rld::error re )
+    {
+      std::cerr << "error: "
+                << re.where << ": " << re.what
+                << std::endl;
+      ec = 10;
+
+      return ec;
+    }
+  }
+
   objdumpProcessor.loadAddressTable( executableInfo, objdumpFile, err );
   log.processFile( logname, objdumpProcessor );
   trace.writeFile( tracefile, &log, verbose );
