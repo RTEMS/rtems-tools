@@ -61,14 +61,15 @@ def append_options(opts):
 def add_arguments(argsp):
     argsp.add_argument('--mail', help = _options['--mail'], action = 'store_true')
     argsp.add_argument('--use-gitconfig', help = _options['--use-gitconfig'], action = 'store_true')
-    for o in list(_options)[1:]:
+    no_add = ['--mail', '--use-gitconfig']
+    for o in [opt for opt in list(_options) if opt not in no_add]:
         argsp.add_argument(o, help = _options[o], type = str)
 
 class mail:
     def __init__(self, opts):
         self.opts = opts
         self.gitconfig_lines = None
-        if opts.find_arg('--use-gitconfig') is not None:
+        if self._get_arg('--use-gitconfig'):
             # Read the output of `git config --list` instead of reading the
             # .gitconfig file directly because Python 2 ConfigParser does not
             # accept tabs at the beginning of lines.
