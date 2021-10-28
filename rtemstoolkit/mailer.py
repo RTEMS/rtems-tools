@@ -70,7 +70,7 @@ class mail:
     def __init__(self, opts):
         self.opts = opts
         self.gitconfig_lines = None
-        if opts.find_arg('--use-gitconfig') is not None:
+        if self._get_arg('--use-gitconfig'):
             # Read the output of `git config --list` instead of reading the
             # .gitconfig file directly because Python 2 ConfigParser does not
             # accept tabs at the beginning of lines.

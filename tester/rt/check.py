@@ -105,7 +105,22 @@ def title():
     return 'RTEMS Tools Project - RTEMS Kernel BSP Builder, %s' % (version.string())
 
 def command_line():
-    return wrap(('command: ', ' '.join(sys.argv)), lineend = '\\')
+    # Filter potentially sensitive mail options out.
+    filtered_args = [
+        arg for arg in sys.argv
+        if all(
+            smtp_opt not in arg
+            for smtp_opt in [
+                '--smtp-host',
+                '--mail-to',
+                '--mail-from',
+                '--smtp-user',
+                '--smtp-password',
+                '--smtp-port'
+            ]
+        )
+    ]
+    return wrap(('command: ', ' '.join(filtered_args)), lineend = '\\')
 
 def jobs_option_parse(jobs_option):
     try:
