@@ -86,7 +86,10 @@ class mail:
         if self._args_are_macros():
             value = self.opts.find_arg(arg)
             if value is not None:
-                value = self.opts.find_arg(arg)[1]
+                if len(value) > 1:
+                    value = self.opts.find_arg(arg)[1]
+                else:
+                    value = True
         else:
             if arg.startswith('--'):
                 arg = arg[2:]
