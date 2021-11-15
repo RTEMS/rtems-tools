@@ -192,9 +192,19 @@ int main(
     }
   }
 
-  objdumpProcessor.loadAddressTable( executableInfo, objdumpFile, err );
-  log.processFile( logname, objdumpProcessor );
-  trace.writeFile( tracefile, &log, verbose );
+  try
+  {
+    objdumpProcessor.loadAddressTable( executableInfo, objdumpFile, err );
+    log.processFile( logname, objdumpProcessor );
+    trace.writeFile( tracefile, &log, verbose );
+  }
+  catch ( rld::error re )
+  {
+    std::cerr << "error: "
+              << re.where << ": " << re.what
+              << std::endl;
+    ec = 10;
+  }
 
   return ec;
 }
