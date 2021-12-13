@@ -150,12 +150,13 @@ namespace Coverage {
   {
     #define METHOD "ERROR: ObjdumpProcessor::determineLoadAddress - "
     std::ifstream loadAddressFile;
-    uint32_t     offset;
-    char         inputBuffer[MAX_LINE_LENGTH];
+    uint32_t      offset;
+    char          inputBuffer[ MAX_LINE_LENGTH ];
 
     // This method should only be call for a dynamic library.
-    if (!theExecutable->hasDynamicLibrary())
+    if ( !theExecutable->hasDynamicLibrary() ) {
       return 0;
+    }
 
     std::string dlinfoName = theExecutable->getFileName();
     uint32_t address;
@@ -165,7 +166,7 @@ namespace Coverage {
     dlinfoName += ".dlinfo";
     // Read load address.
     loadAddressFile.open( dlinfoName );
-    if (!loadAddressFile.is_open()) {
+    if ( !loadAddressFile.is_open() ) {
       std::ostringstream what;
       what << "Unable to open " << dlinfoName;
       throw rld::error( what, METHOD );
@@ -182,6 +183,7 @@ namespace Coverage {
         what << "library " << Library << " not found in " << dlinfoName;
         throw rld::error( what, METHOD );
       }
+
       sscanf( inputBuffer, "%s %x", inLibName, &offset );
       std::string tmp = inLibName;
       if ( tmp.find( Library ) != tmp.npos ) {
@@ -206,23 +208,21 @@ namespace Coverage {
         stderr,
         "ERROR: ObjdumpProcessor::IsBranch - unknown architecture\n"
       );
-      assert(0);
+      assert( 0 );
       return false;
     }
 
     return targetInfo_m->isBranch( instruction );
   }
 
-  bool ObjdumpProcessor::isBranchLine(
-    const std::string& line
-  )
+  bool ObjdumpProcessor::isBranchLine( const std::string& line )
   {
     if ( !targetInfo_m ) {
       fprintf(
         stderr,
         "ERROR: ObjdumpProcessor::isBranchLine - unknown architecture\n"
       );
-      assert(0);
+      assert( 0 );
       return false;
     }
 
@@ -234,7 +234,7 @@ namespace Coverage {
     int&               size
   )
   {
-    if ( !targetInfo_m ){
+    if ( !targetInfo_m ) {
       fprintf(
         stderr,
         "ERROR: ObjdumpProcessor::isNop - unknown architecture\n"
@@ -247,21 +247,32 @@ namespace Coverage {
   }
 
   void ObjdumpProcessor::getFile(
-    std::string fileName,
+    std::string             fileName,
     rld::process::tempfile& objdumpFile,
     rld::process::tempfile& err
-    )
+  )
   {
     rld::process::status        status;
-    rld::process::arg_container args = { targetInfo_m->getObjdump(),
-                                         "-Cda", "--section=.text", "--source",
-                                         fileName };
+    rld::process::arg_container args = {
+      targetInfo_m->getObjdump(),
+      "-Cda",
+      "--section=.text",
+      "--source",
+      fileName
+    };
+
     try
     {
-      status = rld::process::execute( targetInfo_m->getObjdump(),
-                                      args, objdumpFile.name(), err.name() );
-      if ( (status.type != rld::process::status::normal)
-           || (status.code != 0) ) {
+      status = rld::process::execute(
+        targetInfo_m->getObjdump(),
+        args,
+        objdumpFile.name(),
+        err.name()
+      );
+      if (
+        ( status.type != rld::process::status::normal ) ||
+        ( status.code != 0 )
+      ) {
         throw rld::error( "Objdump error", "generating objdump" );
       }
     } catch( rld::error& err )
@@ -280,12 +291,12 @@ namespace Coverage {
     objdumpFile_t::iterator itr;
 
     itr = find ( objdumpList.begin(), objdumpList.end(), address );
-    if (itr == objdumpList.end()) {
+    if ( itr == objdumpList.end() ) {
       return 0;
     }
 
     itr++;
-    if (itr == objdumpList.end()) {
+    if ( itr == objdumpList.end() ) {
       return 0;
     }
 
@@ -294,21 +305,22 @@ namespace Coverage {
   }
 
   void ObjdumpProcessor::loadAddressTable (
-    ExecutableInfo* const    executableInformation,
-    rld::process::tempfile&  objdumpFile,
-    rld::process::tempfile&  err
+    ExecutableInfo* const   executableInformation,
+    rld::process::tempfile& objdumpFile,
+    rld::process::tempfile& err
   )
   {
-    int          items;
-    uint32_t     offset;
-    char         terminator;
-    std::string  line;
+    int         items;
+    uint32_t    offset;
+    char        terminator;
+    std::string line;
 
     // Obtain the objdump file.
-    if ( !executableInformation->hasDynamicLibrary() )
+    if ( !executableInformation->hasDynamicLibrary() ) {
       getFile( executableInformation->getFileName(), objdumpFile, err );
-    else
+    } else {
       getFile( executableInformation->getLibraryName(), objdumpFile, err );
+    }
 
     // Process all lines from the objdump file.
     while ( true ) {
@@ -320,14 +332,10 @@ namespace Coverage {
       }
 
       // See if it is the dump of an instruction.
-      items = sscanf(
-        line.c_str(),
-        "%x%c",
-        &offset, &terminator
-      );
+      items = sscanf( line.c_str(), "%x%c", &offset, &terminator );
 
       // If it looks like an instruction ...
-      if ((items == 2) && (terminator == ':')) {
+      if ( ( items == 2 ) && ( terminator == ':' ) ) {
         objdumpList.push_back(
           executableInformation->getLoadAddress() + offset
         );
@@ -336,42 +344,43 @@ namespace Coverage {
   }
 
   void ObjdumpProcessor::load(
-    ExecutableInfo* const    executableInformation,
-    rld::process::tempfile&  objdumpFile,
-    rld::process::tempfile&  err,
-    bool                     verbose
+    ExecutableInfo* const   executableInformation,
+    rld::process::tempfile& objdumpFile,
+    rld::process::tempfile& err,
+    bool                    verbose
   )
   {
-    std::string     currentSymbol = "";
-    uint32_t        instructionOffset;
-    int             items;
-    int             found;
-    objdumpLine_t   lineInfo;
-    uint32_t        offset;
-    bool            processSymbol = false;
-    char            symbol[ MAX_LINE_LENGTH ];
-    char            terminator1;
-    char            terminatorOne;
-    char            terminator2;
-    objdumpLines_t  theInstructions;
-    char            instruction[ MAX_LINE_LENGTH ];
-    char            ID[ MAX_LINE_LENGTH ];
-    std::string     call = "";
-    std::string     jumpTableID = "";
-    std::string     line = "";
+    std::string    currentSymbol = "";
+    uint32_t       instructionOffset;
+    int            items;
+    int            found;
+    objdumpLine_t  lineInfo;
+    uint32_t       offset;
+    bool           processSymbol = false;
+    char           symbol[ MAX_LINE_LENGTH ];
+    char           terminator1;
+    char           terminatorOne;
+    char           terminator2;
+    objdumpLines_t theInstructions;
+    char           instruction[ MAX_LINE_LENGTH ];
+    char           ID[ MAX_LINE_LENGTH ];
+    std::string    call = "";
+    std::string    jumpTableID = "";
+    std::string    line = "";
 
     // Obtain the objdump file.
-    if ( !executableInformation->hasDynamicLibrary() )
+    if ( !executableInformation->hasDynamicLibrary() ) {
       getFile( executableInformation->getFileName(), objdumpFile, err );
-    else
+    } else {
       getFile( executableInformation->getLibraryName(), objdumpFile, err );
+    }
 
     while ( true ) {
       // Get the line.
       objdumpFile.read_line( line );
       if ( line.empty() ) {
         // If we are currently processing a symbol, finalize it.
-        if (processSymbol) {
+        if ( processSymbol ) {
           finalizeSymbol(
             executableInformation,
             currentSymbol,
@@ -379,23 +388,23 @@ namespace Coverage {
             verbose,
             symbolsToAnalyze_m
           );
-          fprintf(
-            stderr,
-            "WARNING: ObjdumpProcessor::load - analysis of symbol %s \n"
-            "         may be incorrect.  It was the last symbol in %s\n"
-            "         and the length of its last instruction is assumed "
-            "         to be one.\n",
-            currentSymbol.c_str(),
-            executableInformation->getFileName().c_str()
-          );
+
+          std::cerr << "WARNING: ObjdumpProcessor::load - analysis of symbol "
+                    << currentSymbol << std::endl
+                    << "         may be incorrect.  It was the last symbol in "
+                    << executableInformation->getFileName() << std::endl
+                    << "         and the length of its last instruction"
+                    << " is assumed          to be one."
+                    << std::endl;
         }
+
         objdumpFile.close();
         break;
       }
 
       // Remove any extra line break
-      if (line.back() == '\n') {
-        line.erase(line.end() - 1);
+      if ( line.back() == '\n' ) {
+        line.erase( line.end() - 1 );
       }
 
       lineInfo.line          = line;
@@ -413,22 +422,28 @@ namespace Coverage {
       items = sscanf(
         line.c_str(),
         "%x <%[^>]>%c",
-        &offset, symbol, &terminator1
+        &offset,
+        symbol,
+        &terminator1
       );
 
       // See if it is a jump table.
       found = sscanf(
         line.c_str(),
         "%x%c\t%*[^\t]%c%s %*x %*[^+]%s",
-        &instructionOffset, &terminatorOne, &terminator2, instruction, ID
+        &instructionOffset,
+        &terminatorOne,
+        &terminator2,
+        instruction,
+        ID
       );
       call = instruction;
       jumpTableID = ID;
 
       // If all items found, we are at the beginning of a symbol's objdump.
-      if ((items == 3) && (terminator1 == ':')) {
+      if ( ( items == 3 ) && ( terminator1 == ':' ) ) {
         // If we are currently processing a symbol, finalize it.
-        if (processSymbol) {
+        if ( processSymbol ) {
           finalizeSymbol(
             executableInformation,
             currentSymbol,
@@ -453,24 +468,27 @@ namespace Coverage {
         // When this happens, the compiler will generate a function with a
         // ".part.n" suffix. For our purposes, this generated function part is
         // equivalent to the original function and should be treated as such.
-        char *periodIndex = strstr(symbol, ".");
-        if (periodIndex != NULL) {
+        char *periodIndex = strstr( symbol, "." );
+        if ( periodIndex != NULL ) {
           *periodIndex = 0;
         }
 
         // See if the new symbol is one that we care about.
-        if (symbolsToAnalyze_m.isDesired( symbol )) {
+        if ( symbolsToAnalyze_m.isDesired( symbol ) ) {
           currentSymbol = symbol;
           processSymbol = true;
           theInstructions.push_back( lineInfo );
         }
       }
       // If it looks like a jump table, finalize the symbol.
-      else if ( (found == 5) && (terminatorOne == ':') && (terminator2 == '\t')
-               && (call.find( "call" ) != std::string::npos)
-               && (jumpTableID.find( "+0x" ) != std::string::npos)
-               && processSymbol )
-      {
+      else if (
+        ( found == 5 ) &&
+        ( terminatorOne == ':' ) &&
+        ( terminator2 == '\t' ) &&
+        ( call.find( "call" ) != std::string::npos ) &&
+        ( jumpTableID.find( "+0x" ) != std::string::npos ) &&
+        processSymbol
+      ) {
         // If we are currently processing a symbol, finalize it.
         if ( processSymbol ) {
           finalizeSymbol(
@@ -481,19 +499,26 @@ namespace Coverage {
             symbolsToAnalyze_m
           );
         }
+
         processSymbol = false;
       }
-      else if (processSymbol) {
+      else if ( processSymbol ) {
 
         // See if it is the dump of an instruction.
         items = sscanf(
           line.c_str(),
           "%x%c\t%*[^\t]%c",
-          &instructionOffset, &terminator1, &terminator2
+          &instructionOffset,
+          &terminator1,
+          &terminator2
         );
 
         // If it looks like an instruction ...
-        if ((items == 3) && (terminator1 == ':') && (terminator2 == '\t')) {
+        if (
+          ( items == 3 ) &&
+          ( terminator1 == ':' ) &&
+          ( terminator2 == '\t' )
+        ) {
           // update the line's information, save it and ...
           lineInfo.address =
            executableInformation->getLoadAddress() + instructionOffset;
