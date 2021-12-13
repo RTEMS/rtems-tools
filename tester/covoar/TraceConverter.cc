@@ -87,13 +87,37 @@ int main(
   std::string                         tracefile;
   std::string                         logname = "/tmp/qemu.log";
   Coverage::ExecutableInfo*           executableInfo;
-  rld::process::tempfile              objdumpFile( ".dmp" );
-  rld::process::tempfile              err( ".err" );
   Coverage::DesiredSymbols            symbolsToAnalyze;
   bool                                verbose = false;
   std::string                         dynamicLibrary;
   int                                 ec = 0;
   std::shared_ptr<Target::TargetBase> targetInfo;
+  rld::process::tempfile              *objdumpFile;
+  rld::process::tempfile              *err;
+
+  try
+  {
+    objdumpFile = new rld::process::tempfile( ".dmp" );
+  }
+  catch ( rld::error re )
+  {
+    std::cerr << "Failed to make .dmp tempfile " << std::endl;
+    ec = 10;
+
+    return ec;
+  }
+
+  try
+  {
+    err = new rld::process::tempfile( ".err" );
+  }
+  catch ( rld::error re )
+  {
+    std::cerr << "Failed to make .err tempfile " << std::endl;
+    ec = 10;
+
+    return ec;
+  }
 
   setup_signals();
 
@@ -195,7 +219,7 @@ int main(
 
   try
   {
-    objdumpProcessor.loadAddressTable( executableInfo, objdumpFile, err );
+    objdumpProcessor.loadAddressTable( executableInfo, *objdumpFile, *err );
     log.processFile( logname.c_str(), objdumpProcessor );
     trace.writeFile( tracefile.c_str(), &log, verbose );
   }
