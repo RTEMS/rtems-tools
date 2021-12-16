@@ -65,6 +65,7 @@ def build(bld):
     if bld.env.HAVE_STD_CXX14:
         cxxstd = '-std=c++14'
     conf['cxxflags'] = [cxxstd] + conf['cflags']
+    conf['cflags'] = ['-std=c99'] + conf['cflags']
     conf['linkflags'] = ['-g']
     conf['lib'] = []
     if bld.env.LIB_WS2_32:

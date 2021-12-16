@@ -52,6 +52,7 @@ def build(bld):
     conf['warningflags'] = ['-Wall', '-Wextra', '-pedantic']
     conf['optflags'] = bld.env.C_OPTS
     conf['cflags'] = ['-pipe', '-g'] + conf['optflags']
+    conf['cflags'] = ['-std=c99'] + conf['cflags']
     conf['linkflags'] = ['-g']
 
     #
