@@ -591,80 +591,75 @@ void GenerateReports(
   bool                            branchInfoAvailable
 )
 {
-  typedef std::list<ReportsBase *> reportList_t;
+  using reportList_ptr = std::unique_ptr<ReportsBase>;
+  using reportList = std::vector<reportList_ptr>;
 
-  reportList_t           reportList;
-  reportList_t::iterator ritr;
+  reportList             reports;
   std::string            reportName;
-  ReportsBase*           reports;
   time_t                 timestamp;
 
 
   timestamp = time( NULL ); /* get current cal time */
-  reports = new ReportsText(
-    timestamp,
-    symbolSetName,
-    allExplanations,
-    projectName,
-    outputDirectory,
-    symbolsToAnalyze,
-    branchInfoAvailable
+  reports.emplace_back(
+    new ReportsText(
+      timestamp,
+      symbolSetName,
+      allExplanations,
+      projectName,
+      outputDirectory,
+      symbolsToAnalyze,
+      branchInfoAvailable
+    )
   );
-  reportList.push_back( reports );
-  reports = new ReportsHtml(
-    timestamp,
-    symbolSetName,
-    allExplanations,
-    projectName,
-    outputDirectory,
-    symbolsToAnalyze,
-    branchInfoAvailable
+  reports.emplace_back(
+    new ReportsHtml(
+      timestamp,
+      symbolSetName,
+      allExplanations,
+      projectName,
+      outputDirectory,
+      symbolsToAnalyze,
+      branchInfoAvailable
+    )
   );
-  reportList.push_back( reports );
 
-  for ( ritr = reportList.begin(); ritr != reportList.end(); ritr++ ) {
-    reports = *ritr;
+  for ( auto& report: reports ) {
 
-    reportName = "index" + reports->ReportExtension();
+    reportName = "index" + report->ReportExtension();
     if ( verbose ) {
       std::cerr << "Generate " << reportName << std::endl;
     }
-    reports->WriteIndex( reportName );
+    report->WriteIndex( reportName );
 
-    reportName = "annotated" + reports->ReportExtension();
+    reportName = "annotated" + report->ReportExtension();
     if ( verbose ) {
       std::cerr << "Generate " << reportName << std::endl;
     }
-    reports->WriteAnnotatedReport( reportName );
+    report->WriteAnnotatedReport( reportName );
 
-    reportName = "branch" + reports->ReportExtension();
+    reportName = "branch" + report->ReportExtension();
     if ( verbose ) {
       std::cerr << "Generate " << reportName << std::endl;
     }
-    reports->WriteBranchReport( reportName );
+    report->WriteBranchReport( reportName );
 
-    reportName = "uncovered" + reports->ReportExtension();
+    reportName = "uncovered" + report->ReportExtension();
     if ( verbose ) {
       std::cerr << "Generate " << reportName << std::endl;
     }
-    reports->WriteCoverageReport( reportName );
+    report->WriteCoverageReport( reportName );
 
-    reportName = "sizes" + reports->ReportExtension();
+    reportName = "sizes" + report->ReportExtension();
     if ( verbose ) {
       std::cerr << "Generate " << reportName << std::endl;
     }
-    reports->WriteSizeReport( reportName );
+    report->WriteSizeReport( reportName );
 
-    reportName = "symbolSummary" + reports->ReportExtension();
+    reportName = "symbolSummary" + report->ReportExtension();
     if ( verbose ) {
       std::cerr << "Generate " << reportName << std::endl;
     }
-    reports->WriteSymbolSummaryReport( reportName, symbolsToAnalyze );
-  }
-
-  for ( ritr = reportList.begin(); ritr != reportList.end(); ritr++ ) {
-    reports = *ritr;
-    delete reports;
+    report->WriteSymbolSummaryReport( reportName, symbolsToAnalyze );
   }
 
   ReportsBase::WriteSummaryReport(
