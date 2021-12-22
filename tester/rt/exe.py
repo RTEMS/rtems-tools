@@ -116,12 +116,12 @@ class exe(object):
     def _monitor(self, timeout):
         output_length = self.output_length
         step = 0.25
-        period = timeout[0] * step
-        seconds = timeout[1] * step
+        period = timeout[0] / step
+        seconds = timeout[1] / step
         while self.process and period > 0 and seconds > 0:
             current_length = self.output_length
             if output_length != current_length:
-                period = timeout[0] * step
+                period = timeout[0] / step
             output_length = current_length
             if seconds < step:
                 seconds = 0
