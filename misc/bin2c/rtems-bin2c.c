@@ -42,6 +42,7 @@ int verbose = 0;
 int zeroterminated = 0;
 int createC = 1;
 int createH = 1;
+unsigned int align = 0;
 
 static void sanitize_file_name(char *p)
 {
@@ -175,10 +176,21 @@ void process(const char *ifname, const char *ofname, const char *forced_name)
     /* print structure */
     fprintf(
       ocfile,
-      "%s%sunsigned char %s[] = {\n  ",
+      "%s%sunsigned char %s[] ",
       ((usestatic) ? "static " : ""),
       ((useconst) ? "const " : ""),
       buf
+    );
+    if (align > 0) {
+      fprintf(
+        ocfile,
+        "__attribute__(( __aligned__(%d) )) ",
+        align
+      );
+    }
+    fprintf(
+      ocfile,
+      "= {\n  "
     );
     int c, col = 1;
     while ((c = myfgetc(ifile)) != EOF) {
@@ -238,15 +250,22 @@ void process(const char *ifname, const char *ofname, const char *forced_name)
     /* print structure */
     fprintf(
       ohfile,
-      "extern %s%sunsigned char %s[];",
+      "extern %s%sunsigned char %s[]",
       ((usestatic) ? "static " : ""),
       ((useconst) ? "const " : ""),
       buf
     );
+    if (align > 0) {
+      fprintf(
+        ohfile,
+        " __attribute__(( __aligned__(%d) ))",
+        align
+      );
+    };
     /* print sizeof */
     fprintf(
       ohfile,
-      "\n"
+      ";\n"
       "extern %s%ssize_t %s_size;\n",
       ((usestatic) ? "static " : ""),
       ((useconst) ? "const " : ""),
@@ -274,7 +293,7 @@ void usage(void)
 {
   fprintf(
      stderr,
-     "usage: bin2c [-csvzCH] [-N name] <input_file> <output_file>\n"
+     "usage: bin2c [-csvzCH] [-N name] [-A alignment] <input_file> <output_file>\n"
      "  <input_file> is the binary file to convert\n"
      "  <output_file> should not have a .c or .h extension\n"
      "\n"
@@ -285,6 +304,7 @@ void usage(void)
      "  -H - create c-header only\n"
      "  -C - create c-source file only\n"
      "  -N - force name of data array\n"
+     "  -A - add alignment - parameter can be a hexadecimal or decimal number\n"
     );
   exit(1);
 }
@@ -327,6 +347,20 @@ int main(int argc, char **argv)
         usage();
       }
       name = argv[1];
+      --argc;
+      ++argv;
+    } else if (!strcmp(argv[1], "-A")) {
+      --argc;
+      ++argv;
+      if (argc <= 1) {
+        fprintf(stderr, "error: -A needs an alignment\n");
+        usage();
+      }
+      align = strtoul(argv[1], NULL, 0);
+      if (align == 0) {
+        fprintf(stderr, "error: Couldn't convert argument of -A\n");
+        usage();
+      }
       --argc;
       ++argv;
     } else {
