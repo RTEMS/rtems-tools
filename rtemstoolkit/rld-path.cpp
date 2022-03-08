@@ -116,6 +116,7 @@ namespace rld
           if (!::getcwd (buf, 32 * 1024))
           {
             delete [] buf;
+            buf = 0;
             throw rld::error (::strerror (errno), "get current working directory");
           }
           path_join (buf, path, apath);
