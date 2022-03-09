@@ -109,23 +109,13 @@ namespace rld
       }
       else
       {
-        char* buf = 0;
-        try
+        std::vector<char> buf (32 * 1024);
+        if (!::getcwd (buf.data(), buf.size()))
         {
-          buf = new char[32 * 1024];
-          if (!::getcwd (buf, 32 * 1024))
-          {
-            delete [] buf;
-            throw rld::error (::strerror (errno), "get current working directory");
-          }
-          path_join (buf, path, apath);
-          delete [] buf;
+          throw rld::error (::strerror (errno), "get current working directory");
         }
-        catch (...)
-        {
-          delete [] buf;
-          throw;
-        }
+        std::string cwd (buf.data());
+        path_join (cwd, path, apath);
       }
 
       strings ps;
