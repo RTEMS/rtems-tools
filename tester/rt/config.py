@@ -258,6 +258,7 @@ class file(config.file):
         script = self.expand('%%{%s}' % data[2])
         if script:
             script = [l.strip() for l in script.splitlines()]
+        self.kill_on_end = True
         if not self.in_error:
             if self.console:
                 self.console.open()
