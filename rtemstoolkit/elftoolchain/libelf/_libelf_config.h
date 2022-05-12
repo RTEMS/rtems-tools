@@ -23,28 +23,14 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: _libelf_config.h 3566 2017-08-31 02:28:40Z emaste $
+ * $Id: _libelf_config.h 3764 2019-06-28 21:44:46Z emaste $
  */
 
-#if defined(__APPLE__) || defined(__DragonFly__)
-
-#if	defined(__amd64__)
-#define	LIBELF_ARCH		EM_X86_64
-#define	LIBELF_BYTEORDER	ELFDATA2LSB
-#define	LIBELF_CLASS		ELFCLASS64
-#elif	defined(__i386__)
-#define	LIBELF_ARCH		EM_386
-#define	LIBELF_BYTEORDER	ELFDATA2LSB
-#define	LIBELF_CLASS		ELFCLASS32
-#endif
-
-#endif	/* __DragonFly__ */
-
-#ifdef __FreeBSD__
+#if defined(__APPLE__) || defined(__DragonFly__) || defined(__FreeBSD__)
 
 /*
  * Define LIBELF_{ARCH,BYTEORDER,CLASS} based on the machine architecture.
- * See also: <machine/elf.h>.
+ * See also: <machine/elf.h> on FreeBSD.
  */
 
 #if	defined(__amd64__)
@@ -91,6 +77,16 @@
 #endif
 #define	LIBELF_CLASS		ELFCLASS32
 
+#elif	defined(__powerpc64__)
+
+#define	LIBELF_ARCH		EM_PPC64
+#if	__BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+#define	LIBELF_BYTEORDER	ELFDATA2LSB
+#else
+#define	LIBELF_BYTEORDER	ELFDATA2MSB
+#endif
+#define	LIBELF_CLASS		ELFCLASS64
+
 #elif	defined(__powerpc__)
 
 #define	LIBELF_ARCH		EM_PPC
@@ -103,6 +99,12 @@
 #define	LIBELF_BYTEORDER	ELFDATA2LSB
 #define	LIBELF_CLASS		ELFCLASS64
 
+#elif	defined(__riscv64)
+
+#define	LIBELF_ARCH		EM_RISCV
+#define	LIBELF_BYTEORDER	ELFDATA2LSB
+#define	LIBELF_CLASS		ELFCLASS64
+
 #elif	defined(__sparc__)
 
 #define	LIBELF_ARCH		EM_SPARCV9
@@ -110,9 +112,9 @@
 #define	LIBELF_CLASS		ELFCLASS64
 
 #else
-#error	Unknown FreeBSD architecture.
+#error	Unknown architecture.
 #endif
-#endif  /* __FreeBSD__ */
+#endif  /*  defined(__APPLE__) || defined(__DragonFly__) || defined(__FreeBSD__) */
 
 /*
  * Definitions for Minix3.
@@ -187,25 +189,3 @@
 #endif
 
 #endif /* defined(__linux__) || defined(__GNU__) || defined(__GLIBC__) */
-
-#if defined(__WIN32__) || defined(__CYGWIN__)
-
-#define LIBELF_VCSID(ID)
-
-#if     defined(__amd64__)
-
-#define LIBELF_ARCH             EM_X86_64
-#define LIBELF_BYTEORDER        ELFDATA2LSB
-#define LIBELF_CLASS            ELFCLASS64
-
-#elif   defined(__i386__)
-
-#define LIBELF_ARCH             EM_386
-#define LIBELF_BYTEORDER        ELFDATA2LSB
-#define LIBELF_CLASS            ELFCLASS32
-
-#else
-#error  Unknown Windows architecture.
-#endif
-
-#endif  /* __WIN32__ || __CYGWIN__ */
