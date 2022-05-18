@@ -144,7 +144,7 @@ namespace rld
       /**
        * Load the executable file.
        */
-      image (const std::string exe_name);
+      image (const std::string exe_name, bool load_functions);
 
       /**
        * Clean up.
@@ -283,7 +283,7 @@ namespace rld
       }
     }
 
-    image::image (const std::string exe_name)
+    image::image (const std::string exe_name, bool load_functions)
       : exe (exe_name),
         init (0),
         fini (0)
@@ -321,7 +321,11 @@ namespace rld
       debug.load_debug ();
       debug.load_types ();
       debug.load_variables ();
-      debug.load_functions ();
+      if (load_functions)
+      {
+        std::cout << "May take a while ..." << std::endl;
+        debug.load_functions ();
+      }
       symbols.globals (addresses);
       symbols.weaks (addresses);
       symbols.locals (addresses);
@@ -610,23 +614,26 @@ namespace rld
           uint32_t         address;
           symbols::symbol* sym;
           sec.data >> address;
-          sym = addresses[address];
-          std::cout << "  "
-                    << std::hex << std::setfill ('0')
-                    << "0x" << std::setw (8) << address
-                    << std::dec << std::setfill ('0');
-          if (sym)
+          if (address != 0)
           {
-            std::string label = sym->name ();
-            if (rld::symbols::is_cplusplus (label))
-              rld::symbols::demangle_name (label, label);
-            std::cout << " " << label;
+            sym = addresses[address];
+            std::cout << "  "
+                      << std::hex << std::setfill ('0')
+                      << "0x" << std::setw (8) << address
+                      << std::dec << std::setfill ('0');
+            if (sym)
+            {
+              std::string label = sym->name ();
+              if (rld::symbols::is_cplusplus (label))
+                rld::symbols::demangle_name (label, label);
+              std::cout << " " << label;
+            }
+            else
+            {
+              std::cout << " no symbol (maybe static to a module)";
+            }
+            std::cout << std::endl;
           }
-          else
-          {
-            std::cout << " no symbol";
-          }
-          std::cout << std::endl;
         }
       }
 
@@ -1114,7 +1121,7 @@ main (int argc, char* argv[])
     /*
      * Open the executable and read the symbols.
      */
-    rld::exeinfo::image exe (exe_name);
+    rld::exeinfo::image exe (exe_name, inlined | dwarf_data);
 
     std::cout << "exe: " << exe.exe.name ().full () << std::endl
               << std::endl;

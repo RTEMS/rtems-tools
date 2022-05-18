@@ -1812,7 +1812,7 @@ namespace rld
         debug_info_entry next (die.get_debug ());
 
         if (die.get_child (next))
-          load_functions (next);
+          load_variables (next);
 
         if (!die.get_sibling (next))
           break;
