@@ -218,76 +218,48 @@ def killall(tests):
         test.kill()
 
 
+def results_to_data(args, reports, start_time, end_time):
+    data = {}
+    data['report-version'] = 1
+    data['tester-version'] = version.string()
+    data['command-line'] = args
+    data['host'] = host.label(mode='all')
+    data['python'] = sys.version.replace('\n', '')
+    data['start-time'] = start_time.isoformat()
+    data['end-time'] = end_time.isoformat()
+    reports_data = []
+
+    for name, run in reports.results.items():
+        run_data = {}
+        result = run['result']
+        run_data['result'] = result
+        output = []
+        for line in run['output']:
+            if line.startswith('] '):
+                output.append(line[2:])
+            elif line.startswith('=>  exe:'):
+                run_data['command-line'] = line[9:].split()
+        run_data['output'] = output
+        run_data['executable'] = name
+        run_data['executable-sha512'] = get_hash512(name)
+        run_data['start-time'] = run['start'].isoformat()
+        run_data['end-time'] = run['end'].isoformat()
+        run_data['bsp'] = run['bsp']
+        run_data['arch'] = run['bsp_arch']
+        reports_data.append(run_data)
+
+    data['reports'] = reports_data
+    return data
+
+
 def generate_json_report(args, reports, start_time, end_time,
-                         total, json_file):
+                         _total, json_file):
     import json
-    import sys
-    json_log = {}
-    json_log['Command Line'] = " ".join(args)
-    json_log['Python'] = sys.version.replace('\n', '')
-    json_log['test_groups'] = []
-    json_log['Host'] = host.label(mode='all')
-    json_log['summary'] = {}
-    json_log['summary']['passed_count'] = reports.passed
-    json_log['summary']['failed_count'] = reports.failed
-    json_log['summary']['user-input_count'] = reports.user_input
-    json_log['summary']['expected-fail_count'] = reports.expected_fail
-    json_log['summary']['indeterminate_count'] = reports.indeterminate
-    json_log['summary']['benchmark_count'] = reports.benchmark
-    json_log['summary']['timeout_count'] = reports.timeouts
-    json_log['summary']['test-too-long_count'] = reports.test_too_long
-    json_log['summary']['invalid_count'] = reports.invalids
-    json_log['summary']['wrong-version_count'] = reports.wrong_version
-    json_log['summary']['wrong-build_count'] = reports.wrong_build
-    json_log['summary']['wrong-tools_count'] = reports.wrong_tools
-    json_log['summary']['invalid-header_count'] = reports.wrong_header
-    json_log['summary']['total_count'] = reports.total
-    time_delta = end_time - start_time
-    json_log['summary']['average_test_time'] = str(time_delta / total)
-    json_log['summary']['testing_time'] = str(time_delta)
 
-    result_types = [
-            'failed', 'user-input', 'expected-fail', 'indeterminate',
-            'benchmark', 'timeout', 'test-too-long', 'invalid', 'wrong-version',
-            'wrong-build', 'wrong-tools', 'wrong-header'
-    ]
-    json_results = {}
-    for result_type in result_types:
-        json_log['summary'][result_type] = []
+    data = results_to_data(args, reports, start_time, end_time);
 
-    # collate results for JSON log
-    for name in reports.results:
-        result_type = reports.results[name]['result']
-        # map fatal-error on to failed since the report adds both to the failed count
-        if result_type == "fatal-error":
-            result_type = "failed"
-        test_parts = name.split("/")
-        test_category = test_parts[-2]
-        test_name = test_parts[-1]
-        if result_type != 'passed':
-            json_log['summary'][result_type].append(test_name)
-        if test_category not in json_results:
-            json_results[test_category] = []
-        json_result = {}
-        # remove the file extension
-        json_result["name"] = test_name.split('.')[0]
-        json_result["result"] = result_type
-        if result_type == "failed" or result_type == "timeout":
-            json_result["output"] = reports.results[name]["output"]
-        json_results[test_category].append(json_result)
-
-    # convert results to a better format for report generation
-    sorted_keys = sorted(json_results.keys())
-    for i in range(len(sorted_keys)):
-        results_log = {}
-        results_log["index"] = i + 1
-        results_log["name"] = sorted_keys[i]
-        results_log["results"] = json_results[sorted_keys[i]]
-        json_log["test_groups"].append(results_log)
-
-    # write out JSON log
     with open(json_file, 'w') as outfile:
-        json.dump(json_log, outfile, sort_keys=True, indent=4)
+        json.dump(data, outfile, sort_keys=True, indent=4)
 
 
 def generate_junit_report(args, reports, start_time, end_time,
@@ -343,97 +315,16 @@ def generate_junit_report(args, reports, start_time, end_time,
 
 
 def generate_yaml_report(args, reports, start_time, end_time,
-                         total, yaml_file):
+                         _total, yaml_file):
     """ Generates a YAML file containing information about the test run,
     including all test outputs """
 
     import yaml
 
-    def format_output(output_list):
-        return "\n".join(output_list).replace("] ", '').replace('=>  ', '')
-
-    yaml_log = {}
-    yaml_log['command-line'] = args
-    yaml_log['host'] = host.label(mode='all')
-    yaml_log['python'] = sys.version.replace('\n', '')
-    yaml_log['summary'] = {}
-    yaml_log['summary']['passed-count'] = reports.passed
-    yaml_log['summary']['failed-count'] = reports.failed
-    yaml_log['summary']['user-input-count'] = reports.user_input
-    yaml_log['summary']['expected-fail-count'] = reports.expected_fail
-    yaml_log['summary']['indeterminate-count'] = reports.indeterminate
-    yaml_log['summary']['benchmark-count'] = reports.benchmark
-    yaml_log['summary']['timeout-count'] = reports.timeouts
-    yaml_log['summary']['test-too-long_count'] = reports.test_too_long
-    yaml_log['summary']['invalid-count'] = reports.invalids
-    yaml_log['summary']['wrong-version-count'] = reports.wrong_version
-    yaml_log['summary']['wrong-build-count'] = reports.wrong_build
-    yaml_log['summary']['wrong-tools-count'] = reports.wrong_tools
-    yaml_log['summary']['wrong-header-count'] = reports.wrong_header
-    yaml_log['summary']['total-count'] = reports.total
-    time_delta = end_time - start_time
-    yaml_log['summary']['average-test-time'] = str(time_delta / total)
-    yaml_log['summary']['testing-time'] = str(time_delta)
-
-    result_types = [
-            'failed', 'user-input', 'expected-fail', 'indeterminate',
-            'benchmark', 'timeout', 'test-too-long', 'invalid', 'wrong-version',
-            'wrong-build', 'wrong-tools', 'wrong-header'
-    ]
-    for result_type in result_types:
-        yaml_log['summary'][result_type] = []
-
-    result_element = {}
-    yaml_log['outputs'] = []
-
-    # process output of each test
-    for exe_name in reports.results:
-        test_parts = exe_name.split("/")
-        test_name = test_parts[-1]
-        result_element['executable-name'] = test_name
-        result_element['executable-sha512'] = get_hash512(exe_name)
-        result_element['execution-start'] = reports.results[exe_name]['start'].isoformat()
-        result_element['execution-end'] = reports.results[exe_name]['end'].isoformat()
-        date_diff = reports.results[exe_name]['end'] - reports.results[exe_name]['start']
-        result_element['execution-duration'] = str(date_diff)
-        result_element['execution-result'] = reports.results[exe_name]['result']
-        result_element['bsp'] = reports.results[exe_name]['bsp']
-        result_element['bsp-arch'] = reports.results[exe_name]['bsp_arch']
-        result_output = reports.results[exe_name]['output']
-
-        dbg_output = []
-        test_output = []
-        idxs_output = []  # store indices of given substrings
-        for elem in result_output:
-            if '=> ' in elem:
-                idxs_output.append(result_output.index(elem))
-            if '*** END' in elem:
-                idxs_output.append(result_output.index(elem))
-
-        if len(idxs_output) == 3:  # test executed and has result
-            dbg_output = result_output[idxs_output[0]:idxs_output[1]]
-            dbg_output.append("=== Executed Test ===")
-            dbg_output = dbg_output + result_output[idxs_output[2]+1:len(result_output)]
-            test_output = result_output[idxs_output[1]:idxs_output[2]+1]
-        else:
-            dbg_output = result_output
-
-        result_element['debugger-output'] = format_output(dbg_output)
-        result_element['console-output'] = format_output(test_output)
-        yaml_log['outputs'].append(result_element)
-
-        result_type = reports.results[exe_name]['result']
-        # map "fatal-error" on to "failed"
-        if result_type == "fatal-error":
-            result_type = "failed"
-
-        if result_type != 'passed':
-            yaml_log['summary'][result_type].append(test_name)
-
-        result_element = {}
+    data = results_to_data(args, reports, start_time, end_time);
 
     with open(yaml_file, 'w') as outfile:
-        yaml.dump(yaml_log, outfile, default_flow_style=False, allow_unicode=True)
+        yaml.dump(data, outfile, default_flow_style=False, allow_unicode=True)
 
 
 def get_hash512(exe):
