@@ -244,7 +244,7 @@ output_sym::operator ()(const rld::symbols::symtab::value_type& value)
 
   if (embed)
   {
-    c.write_line ("#if __riscv_xlen == 64");
+    c.write_line ("#if __SIZEOF_POINTER__ == 8");
     c.write_line ("asm(\"  .quad " + sym.name () + "\");");
     c.write_line ("#else");
     c.write_line ("asm(\"  .long " + sym.name () + "\");");
@@ -254,7 +254,7 @@ output_sym::operator ()(const rld::symbols::symtab::value_type& value)
   {
     std::stringstream oss;
     oss << std::hex << std::setfill ('0') << std::setw (8) << sym.value ();
-    c.write_line ("#if __riscv_xlen == 64");
+    c.write_line ("#if __SIZEOF_POINTER__ == 8");
     c.write_line ("asm(\"  .quad 0x" + oss.str () + "\");");
     c.write_line ("#else");
     c.write_line ("asm(\"  .long 0x" + oss.str () + "\");");
