@@ -260,7 +260,7 @@ class macros:
         return [rm[7:] for rm in self.read_maps]
 
     def key_filter(self, key):
-        if key.startswith('%{') and key[-1] is '}':
+        if key.startswith('%{') and key[-1] == '}':
             key = key[2:-1]
         return key.lower()
 
@@ -295,29 +295,29 @@ class macros:
                     print(']]]]]]]] c:%s(%d) s:%s t:"%s" m:%r M:%s' % \
                         (c, ord(c), state, token, macro, map))
                 l_remaining = l_remaining[1:]
-                if c is '#' and not state.startswith('value'):
+                if c == '#' and not state.startswith('value'):
                     break
                 if c == '\n' or c == '\r':
-                    if not (state is 'key' and len(token) == 0) and \
+                    if not (state == 'key' and len(token) == 0) and \
                             not state.startswith('value-multiline'):
                         self.macros = orig_macros
                         raise error.general('malformed macro line:%d: %s' % (lc, l))
-                if state is 'key':
+                if state == 'key':
                     if c not in string.whitespace:
-                        if c is '[':
+                        if c == '[':
                             state = 'map'
-                        elif c is '%':
+                        elif c == '%':
                             state = 'directive'
-                        elif c is ':':
+                        elif c == ':':
                             macro += [token]
                             token = ''
                             state = 'attribs'
-                        elif c is '#':
+                        elif c == '#':
                             break
                         else:
                             token += c
-                elif state is 'map':
-                    if c is ']':
+                elif state == 'map':
+                    if c == ']':
                         if token not in self.macros:
                             self.macros[token] = {}
                         map = token
@@ -328,7 +328,7 @@ class macros:
                     else:
                         self.macros = orig_macros
                         raise error.general('invalid macro map:%d: %s' % (lc, l))
-                elif state is 'directive':
+                elif state == 'directive':
                     if c in string.whitespace:
                         if token == 'include':
                             self.load(_clean(l_remaining))
@@ -340,7 +340,7 @@ class macros:
                     else:
                         self.macros = orig_macros
                         raise error.general('invalid macro directive:%d: %s' % (lc, l))
-                elif state is 'include':
+                elif state == 'include':
                     if c is string.whitespace:
                         if token == 'include':
                             state = 'include'
@@ -349,49 +349,49 @@ class macros:
                     else:
                         self.macros = orig_macros
                         raise error.general('invalid macro directive:%d: %s' % (lc, l))
-                elif state is 'attribs':
+                elif state == 'attribs':
                     if c not in string.whitespace:
-                        if c is ',':
+                        if c == ',':
                             macro += [token]
                             token = ''
                             if len(macro) == 3:
                                 state = 'value-start'
                         else:
                             token += c
-                elif state is 'value-start':
-                    if c is "'":
+                elif state == 'value-start':
+                    if c == "'":
                         state = 'value-line-start'
-                elif state is 'value-line-start':
-                    if c is "'":
+                elif state == 'value-line-start':
+                    if c == "'":
                         state = 'value-multiline-start'
                     else:
                         state = 'value-line'
                         token += c
-                elif state is 'value-multiline-start':
-                    if c is "'":
+                elif state == 'value-multiline-start':
+                    if c == "'":
                         state = 'value-multiline'
                     else:
                         macro += [token]
                         state = 'macro'
-                elif state is 'value-line':
-                    if c is "'":
+                elif state == 'value-line':
+                    if c == "'":
                         macro += [token]
                         state = 'macro'
                     else:
                         token += c
-                elif state is 'value-multiline':
-                    if c is "'":
+                elif state == 'value-multiline':
+                    if c == "'":
                         state = 'value-multiline-end'
                     else:
                         token += c
-                elif state is 'value-multiline-end':
-                    if c is "'":
+                elif state == 'value-multiline-end':
+                    if c == "'":
                         state = 'value-multiline-end-end'
                     else:
                         state = 'value-multiline'
                         token += "'" + c
-                elif state is 'value-multiline-end-end':
-                    if c is "'":
+                elif state == 'value-multiline-end-end':
+                    if c == "'":
                         macro += [token]
                         state = 'macro'
                     else:
@@ -400,7 +400,7 @@ class macros:
                 else:
                     self.macros = orig_macros
                     raise error.internal('bad state: %s' % (state))
-                if state is 'macro':
+                if state == 'macro':
                     self.macros[map][macro[0].lower()] = (macro[1], macro[2], macro[3])
                     macro = []
                     token = ''
