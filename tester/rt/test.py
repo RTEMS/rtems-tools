@@ -248,7 +248,7 @@ def results_to_data(args, reports, start_time, end_time):
         run_data['arch'] = run['bsp_arch']
         reports_data.append(run_data)
 
-    data['reports'] = reports_data
+    data['reports'] = sorted(reports_data, key=lambda x: x["executable"])
     return data
 
 
