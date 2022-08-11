@@ -127,7 +127,7 @@ class file(object):
             self.opts.set_dry_run()
 
     def _label(self, name):
-        if name.startswith('%{') and name[-1] is '}':
+        if name.startswith('%{') and name[-1] == '}':
             return name
         return '%{' + name.lower() + '}'
 
