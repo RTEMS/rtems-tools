@@ -141,11 +141,11 @@ class report(object):
             if line[0] == output_prefix:
                 if line[1].startswith('*** '):
                     banner = line[1][4:]
-                    if banner.startswith('BEGIN OF '):
+                    if banner.startswith('BEGIN OF TEST '):
                         start = True
-                    elif line[1][4:].startswith('END OF '):
+                    elif banner.startswith('END OF TEST '):
                         end = True
-                    elif line[1][4:].startswith('FATAL'):
+                    elif banner.startswith('FATAL'):
                         fatal = True
                     elif banner.startswith('TIMEOUT TIMEOUT'):
                         timeout = True
