@@ -65,7 +65,7 @@ void ReportsBase::OpenFile(
 
   // Create the output directory if it does not already exist
 #ifdef _WIN32
-  sc = _mkdir( symbolSetOutputDirectory );
+  sc = _mkdir( symbolSetOutputDirectory.c_str() );
 #else
   sc = mkdir( symbolSetOutputDirectory.c_str(), 0755 );
 #endif
