@@ -221,6 +221,8 @@ class LTTNGClient : public Client {
 
   void WriteIRQHandlerExit(PerCPUContext* pcpu, const ClientItem& item);
 
+  void ResetThreadName(PerCPUContext* pcpu, const ClientItem& item);
+
   void AddThreadName(PerCPUContext* pcpu, const ClientItem& item);
 
   void PrintItem(const ClientItem& item);
@@ -437,6 +439,20 @@ void LTTNGClient::WriteIRQHandlerExit(PerCPUContext* pcpu,
   std::fwrite(&ih, sizeof(ih), 1, pcpu->event_stream);
 }
 
+void LTTNGClient::ResetThreadName(PerCPUContext* pcpu, const ClientItem& item) {
+  pcpu->thread_id = item.data;
+  pcpu->thread_ns = item.ns;
+  pcpu->thread_name_index = 0;
+
+  uint32_t api_index = GetAPIIndexOfID(pcpu->thread_id);
+  if (api_index >= THREAD_API_COUNT) {
+    return;
+  }
+
+  uint32_t obj_index = GetObjIndexOfID(pcpu->thread_id);
+  std::memset(&thread_names_[api_index][obj_index][0], 0, THREAD_NAME_SIZE);
+}
+
 void LTTNGClient::AddThreadName(PerCPUContext* pcpu, const ClientItem& item) {
   if (pcpu->thread_name_index >= THREAD_NAME_SIZE) {
     return;
@@ -489,10 +505,9 @@ void LTTNGClient::PrintItem(const ClientItem& item) {
         WriteSchedSwitch(&pcpu, item);
       }
       break;
+    case RTEMS_RECORD_THREAD_CREATE:
     case RTEMS_RECORD_THREAD_ID:
-      pcpu.thread_id = item.data;
-      pcpu.thread_ns = item.ns;
-      pcpu.thread_name_index = 0;
+      ResetThreadName(&pcpu, item);
       break;
     case RTEMS_RECORD_INTERRUPT_ENTRY:
       WriteIRQHandlerEntry(&pcpu, item);
