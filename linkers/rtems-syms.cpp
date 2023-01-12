@@ -242,6 +242,11 @@ output_sym::operator ()(const rld::symbols::symtab::value_type& value)
 
   c.write_line ("asm(\"  .asciz \\\"" + sym.name () + "\\\"\");");
 
+  if (sym.type() == STT_TLS)
+  {
+    c.write_line ("asm(\"  .type \\\"" + sym.name () + "\\\", %tls_object\");");
+  }
+
   if (embed)
   {
     c.write_line ("#if __SIZEOF_POINTER__ == 8");

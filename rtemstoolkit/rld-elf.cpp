@@ -891,6 +891,7 @@ namespace rld
         {
           if (((stype == STT_NOTYPE) ||
                (stype == STT_OBJECT) ||
+               (stype == STT_TLS) ||
                (stype == STT_FUNC)) &&
               ((weak && (sbind == STB_WEAK)) ||
                (!unresolved && ((local && (sbind == STB_LOCAL)) ||

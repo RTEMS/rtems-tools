@@ -277,6 +277,9 @@ namespace rld
         case STT_FILE:
           type = "STT_FILE   ";
           break;
+        case STT_TLS:
+          type = "STT_TLS    ";
+          break;
         default:
           if ((type_val >= STT_LOPROC) && (type_val <= STT_HIPROC))
             type = "STT_LOPROC(" + rld::to_string (type_val) + ")";
