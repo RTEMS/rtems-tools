@@ -60,10 +60,22 @@ static const char* c_header[] =
   " *  Automatically generated. Do not edit..",
   " */",
   "",
+  "#include <stddef.h>",
+  "#include <stdint.h>",
+  "",
+  "extern void* rtems_rtl_tls_get_base (void);",
+  "",
   "extern const unsigned char rtems__rtl_base_globals[];",
   "extern const unsigned int rtems__rtl_base_globals_size[];",
   "",
-  "void rtems_rtl_base_sym_global_add (const unsigned char* , unsigned int );",
+  "typedef size_t (*rtems_rtl_tls_offset_func)(void);",
+  "typedef struct rtems_rtl_tls_offset {",
+  "  size_t index;",
+  "  rtems_rtl_tls_offset_func offset;",
+  "} rtems_rtl_tls_offset;",
+  "",
+  "void rtems_rtl_base_sym_global_add (const unsigned char* , unsigned int,",
+  "                                    rtems_rtl_tls_offset*, size_t );",
   "",
   "asm(\".section \\\".rodata\\\"\");",
   "",
@@ -78,27 +90,50 @@ static const char* c_header[] =
   0
 };
 
-static const char* c_trailer[] =
+static const char* c_sym_table_end[] =
 {
   "asm(\"  .byte    0\");",
   "asm(\"  .ascii   \\\"\\xde\\xad\\xbe\\xef\\\"\");",
-#if BROKEN_ON_SOME_ASSEMBLERS
-  "asm(\"  .type    rtems__rtl_base_globals, #object\");",
-  "asm(\"  .size    rtems__rtl_base_globals, . - rtems__rtl_base_globals\");",
-#endif
   "",
+  0
+};
+
+static const char* c_tls_call_table_start[] =
+{
+  "rtems_rtl_tls_offset rtems_rtl_tls_offsets[] = {",
+  0
+};
+
+static const char* c_tls_call_table_end[] =
+{
+  "};",
+  "#define RTEMS_RTL_TLS_OFFSETS_NUM " \
+  "(sizeof(rtems_rtl_tls_offsets) / (sizeof(rtems_rtl_tls_offsets[0])))",
+  "",
+  0
+};
+
+static const char* c_trailer[] =
+{
   "/*",
   " * Symbol table size.",
   " */",
   "asm(\"  .align   4\");",
   "asm(\"  .local   rtems__rtl_base_globals_size\");",
-#if BROKEN_ON_SOME_ASSEMBLERS
-  "asm(\"  .type    rtems__rtl_base_globals_size, #object\");",
-  "asm(\"  .size    rtems__rtl_base_globals_size, 4\");",
-#endif
   "asm(\"rtems__rtl_base_globals_size:\");",
   "asm(\"  .long rtems__rtl_base_globals_size - rtems__rtl_base_globals\");",
   "",
+  0
+};
+
+static const char* c_rtl_call_body_embeded[] =
+{
+  "{",
+  "  rtems_rtl_base_sym_global_add (&rtems__rtl_base_globals[0],",
+  "                                 rtems__rtl_base_globals_size[0],",
+  "                                 &rtems_rtl_tls_offsets[0],",
+  "                                 RTEMS_RTL_TLS_OFFSETS_NUM);",
+  "}",
   0
 };
 
@@ -106,7 +141,9 @@ static const char* c_rtl_call_body[] =
 {
   "{",
   "  rtems_rtl_base_sym_global_add (&rtems__rtl_base_globals[0],",
-  "                                 rtems__rtl_base_globals_size[0]);",
+  "                                 rtems__rtl_base_globals_size[0],",
+  "                                 NULL",
+  "                                 0);",
   "}",
   0
 };
@@ -140,7 +177,7 @@ c_embedded_trailer (rld::process::tempfile& c)
 {
   c.write_line ("void rtems_rtl_base_global_syms_init(void);");
   c.write_line ("void rtems_rtl_base_global_syms_init(void)");
-  temporary_file_paint (c, c_rtl_call_body);
+  temporary_file_paint (c, c_rtl_call_body_embeded);
 }
 
 /**
@@ -214,16 +251,27 @@ symbol_filter::filter (const rld::symbols::symtab& symbols,
 
 struct output_sym
 {
+  enum struct output_mode {
+    symbol,
+    tls_func,
+    tls_call_table
+  };
   rld::process::tempfile& c;
   const bool              embed;
   const bool              weak;
+  const output_mode       mode;
+  size_t&                 index;
 
-  output_sym(rld::process::tempfile& c,
-             bool                    embed,
-             bool                    weak)
-    : c (c),
-      embed (embed),
-      weak (weak) {
+  output_sym(rld::process::tempfile& c_,
+             bool                    embed_,
+             bool                    weak_,
+             output_mode             mode_,
+             size_t&                 index_)
+    : c (c_),
+      embed (embed_),
+      weak (weak_),
+      mode (mode_),
+      index (index_) {
   }
 
   void operator ()(const rld::symbols::symtab::value_type& value);
@@ -240,33 +288,55 @@ output_sym::operator ()(const rld::symbols::symtab::value_type& value)
   if (weak && sym.value () == 0)
     return;
 
-  c.write_line ("asm(\"  .asciz \\\"" + sym.name () + "\\\"\");");
-
-  if (sym.type() == STT_TLS)
-  {
-    c.write_line ("asm(\"  .type \\\"" + sym.name () + "\\\", %tls_object\");");
+  switch (mode) {
+    case output_mode::symbol:
+    default:
+      /*
+       * Set TLS value to 0. It is filled in at run time by the call
+       * table.
+       */
+      c.write_line ("asm(\"  .asciz \\\"" + sym.name () + "\\\"\");");
+      {
+        std::string val;
+        if (sym.type () == STT_TLS) {
+          val = "0";
+        } else {
+          if (embed) {
+            val = sym.name ();
+          } else {
+            std::stringstream oss;
+            oss << std::hex << std::setfill ('0') << std::setw (8) << sym.value ();
+            val = oss.str ();
+          }
+        }
+        c.write_line ("#if __SIZEOF_POINTER__ == 8");
+        c.write_line ("asm(\"  .quad " + val + "\");");
+        c.write_line ("#else");
+        c.write_line ("asm(\"  .long " + val + "\");");
+        c.write_line ("#endif");
+      }
+      break;
+    case output_mode::tls_func:
+      if (sym.type () == STT_TLS) {
+        c.write_line ("#define RTEMS_TLS_INDEX_" + sym.name () + " " + std::to_string(index));
+        c.write_line ("static size_t rtems_rtl_tls_" + sym.name () + "(void) {");
+        c.write_line ("  extern __thread void* "  + sym.name () +  ";");
+        c.write_line ("  const void* tls_base = rtems_rtl_tls_get_base ();");
+        c.write_line ("  const void* tls_addr = (void*) &"  + sym.name () +  ";");
+        c.write_line ("  return tls_addr - tls_base;");
+        c.write_line ("}");
+        c.write_line ("");
+      }
+      break;
+    case output_mode::tls_call_table:
+      if (sym.type () == STT_TLS) {
+        c.write_line ("  { RTEMS_TLS_INDEX_" + sym.name () +
+                      ", rtems_rtl_tls_" + sym.name () + " },");
+      }
+      break;
   }
-
-  if (embed)
-  {
-    c.write_line ("#if __SIZEOF_POINTER__ == 8");
-    c.write_line ("asm(\"  .quad " + sym.name () + "\");");
-    c.write_line ("#else");
-    c.write_line ("asm(\"  .long " + sym.name () + "\");");
-    c.write_line ("#endif");
-  }
-  else
-  {
-    std::stringstream oss;
-    oss << std::hex << std::setfill ('0') << std::setw (8) << sym.value ();
-    c.write_line ("#if __SIZEOF_POINTER__ == 8");
-    c.write_line ("asm(\"  .quad 0x" + oss.str () + "\");");
-    c.write_line ("#else");
-    c.write_line ("asm(\"  .long 0x" + oss.str () + "\");");
-    c.write_line ("#endif");
-  }
+  ++index;
 }
-
 
 static void
 generate_c (rld::process::tempfile& c,
@@ -281,9 +351,28 @@ generate_c (rld::process::tempfile& c,
    * longer weak and should be consider a global symbol. You cannot link a
    * global symbol with the same in a dynamically loaded module.
    */
+  size_t index = 0;
   std::for_each (symbols.begin (),
                  symbols.end (),
-                 output_sym (c, embed, false));
+                 output_sym (c, embed, false,
+                             output_sym::output_mode::symbol, index));
+
+  temporary_file_paint (c, c_sym_table_end);
+
+  if (embed) {
+    index = 0;
+    std::for_each (symbols.begin (),
+                   symbols.end (),
+                   output_sym (c, embed, false,
+                               output_sym::output_mode::tls_func, index));
+    temporary_file_paint (c, c_tls_call_table_start);
+    index = 0;
+    std::for_each (symbols.begin (),
+                   symbols.end (),
+                   output_sym (c, embed, false,
+                               output_sym::output_mode::tls_call_table, index));
+    temporary_file_paint (c, c_tls_call_table_end);
+  }
 
   temporary_file_paint (c, c_trailer);
 
