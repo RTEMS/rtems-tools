@@ -37,6 +37,7 @@ from __future__ import print_function
 import datetime
 import os
 import re
+import shlex
 import threading
 
 from rtemstoolkit import configuration
@@ -326,7 +327,7 @@ class file(config.file):
             if len(_data):
                 ds = [_data[0]]
                 if len(_data) > 1:
-                    ds += _data[1].split()
+                    ds += shlex.split(_data[1], posix=False)
             ds = self.expand(ds)
 
             if _directive == '%console':
