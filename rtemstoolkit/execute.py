@@ -389,11 +389,38 @@ class execute(object):
                     r, e = os.path.splitext(command[0])
                     if e not in ['.exe', '.com', '.bat']:
                         command[0] = command[0] + '.exe'
-            proc = subprocess.Popen(command, shell = shell,
-                                    cwd = cwd, env = env,
-                                    stdin = stdin, stdout = stdout,
-                                    stderr = stderr,
-                                    close_fds = False)
+                        
+            pipe_commands = []
+            current_command = []
+            for cmd in command:
+                if cmd == '|':
+                    pipe_commands.append(current_command)
+                    current_command = []
+                else:
+                    current_command.append(cmd)
+            pipe_commands.append(current_command)
+
+            proc = None
+            for i, cmd in enumerate(pipe_commands):
+                if i == 0:
+                    proc = subprocess.Popen(
+                        cmd, shell=shell,
+                        cwd=cwd, env=env,
+                        stdin=stdin, stdout=subprocess.PIPE)
+                elif i == len(pipe_commands) - 1:
+                    proc = subprocess.Popen(
+                        cmd, shell=shell,
+                        cwd=cwd, env=env,
+                        stdin=proc.stdout,
+                        stdout=stdout, stderr=stderr,
+                        close_fds=False)
+                else:
+                    proc = subprocess.Popen(
+                        cmd, shell=shell,
+                        cwd=cwd, env=env,
+                        stdin=proc.stdout,
+                        stdout=subprocess.PIPE)
+
             if not capture:
                 return (0, proc)
             if self.output is None:
@@ -583,6 +610,10 @@ if __name__ == "__main__":
             proc.stdin.close()
             e.capture(proc)
             del proc
+        ec, proc = e.open(commands['open'])
+        if ec == 0:
+            e.capture(proc)
+            del proc
 
     def capture_output(text):
         print(text, end = '')
@@ -601,6 +632,7 @@ if __name__ == "__main__":
     commands['windows']['csubsts'] = [('netstat %0', ['-a']),
                                       ('netstat %0 %1', ['-a', '-n'])]
     commands['windows']['pipe'] = ('ftp', None, 'help\nquit')
+    commands['windows']['open'] = ["echo",  "hello rtems", "|", "findstr", "rtems"]
     commands['unix']['shell'] = ['pwd', 'ls -las', './xyz', sh_shell_test]
     commands['unix']['spawn'] = ['ls', 'execute.pyc', ['ls', '-i']]
     commands['unix']['cmd'] = [('date'), ('date', '-R'), ('date', ['-u', '+%d %D']),
@@ -608,6 +640,7 @@ if __name__ == "__main__":
     commands['unix']['csubsts'] = [('date %0 "+%d %D %S"', ['-u']),
                                    ('date %0 %1', ['-u', '+%d %D %S'])]
     commands['unix']['pipe'] = ('grep', 'hello', 'hello world')
+    commands['unix']['open'] = ["echo", "hello world", "|", "cut", "-d ", "-f2"]
 
     print(arg_list('cmd a1 a2 "a3 is a string" a4'))
     print(arg_list('cmd b1 b2 "b3 is a string a4'))
