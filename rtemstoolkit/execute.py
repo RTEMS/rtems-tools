@@ -392,7 +392,7 @@ class execute(object):
                         command[0] = command[0] + '.exe'
             # If a string split
             if isinstance(command, str):
-                command = shlex.split(command, posix=False)
+                command = shlex.split(command)
             # See if there is a pipe operator in the command. If present
             # split the commands by the pipe and run them with the pipe.
             # if no pipe it is the normal stdin and stdout
@@ -623,10 +623,11 @@ if __name__ == "__main__":
             proc.stdin.close()
             e.capture(proc)
             del proc
-        ec, proc = e.open(commands['open'])
-        if ec == 0:
-            e.capture(proc)
-            del proc
+        for c in commands['open']:
+            ec, proc = e.open(c)
+            if ec == 0:
+                e.capture(proc)
+                del proc
 
     def capture_output(text):
         print(text, end = '')
@@ -645,7 +646,10 @@ if __name__ == "__main__":
     commands['windows']['csubsts'] = [('netstat %0', ['-a']),
                                       ('netstat %0 %1', ['-a', '-n'])]
     commands['windows']['pipe'] = ('ftp', None, 'help\nquit')
-    commands['windows']['open'] = ["echo",  "hello rtems", "|", "findstr", "rtems"]
+    commands['windows']['open'] = [
+            ["echo",  "hello rtems", "|", "findstr", "rtems"],
+            " ".join(["echo",  "hello rtems", "|", "findstr", "rtems"])
+            ]
     commands['unix']['shell'] = ['pwd', 'ls -las', './xyz', sh_shell_test]
     commands['unix']['spawn'] = ['ls', 'execute.pyc', ['ls', '-i']]
     commands['unix']['cmd'] = [('date'), ('date', '-R'), ('date', ['-u', '+%d %D']),
@@ -653,7 +657,10 @@ if __name__ == "__main__":
     commands['unix']['csubsts'] = [('date %0 "+%d %D %S"', ['-u']),
                                    ('date %0 %1', ['-u', '+%d %D %S'])]
     commands['unix']['pipe'] = ('grep', 'hello', 'hello world')
-    commands['unix']['open'] = ["echo", "hello world", "|", "cut", "-d ", "-f2"]
+    commands['unix']['open'] = [
+            ["echo", "hello world", "|", "cut", "-d ", "-f2"],
+            " ".join(["echo", "hello world", "|", "cut", "-d\" \"", "-f2"])
+            ]
 
     print(arg_list('cmd a1 a2 "a3 is a string" a4'))
     print(arg_list('cmd b1 b2 "b3 is a string a4'))

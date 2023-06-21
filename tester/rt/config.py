@@ -327,7 +327,7 @@ class file(config.file):
             if len(_data):
                 ds = [_data[0]]
                 if len(_data) > 1:
-                    ds += shlex.split(_data[1], posix=False)
+                    ds += shlex.split(_data[1])
             ds = self.expand(ds)
 
             if _directive == '%console':
