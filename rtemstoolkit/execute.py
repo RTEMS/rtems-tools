@@ -40,6 +40,7 @@ import functools
 import io
 import os
 import re
+import shlex
 import sys
 import subprocess
 import threading
@@ -389,7 +390,12 @@ class execute(object):
                     r, e = os.path.splitext(command[0])
                     if e not in ['.exe', '.com', '.bat']:
                         command[0] = command[0] + '.exe'
-                        
+            # If a string split
+            if isinstance(command, str):
+                command = shlex.split(command, posix=False)
+            # See if there is a pipe operator in the command. If present
+            # split the commands by the pipe and run them with the pipe.
+            # if no pipe it is the normal stdin and stdout
             pipe_commands = []
             current_command = []
             for cmd in command:
@@ -399,28 +405,35 @@ class execute(object):
                 else:
                     current_command.append(cmd)
             pipe_commands.append(current_command)
-
             proc = None
-            for i, cmd in enumerate(pipe_commands):
-                if i == 0:
-                    proc = subprocess.Popen(
-                        cmd, shell=shell,
-                        cwd=cwd, env=env,
-                        stdin=stdin, stdout=subprocess.PIPE)
-                elif i == len(pipe_commands) - 1:
-                    proc = subprocess.Popen(
-                        cmd, shell=shell,
-                        cwd=cwd, env=env,
-                        stdin=proc.stdout,
-                        stdout=stdout, stderr=stderr,
-                        close_fds=False)
-                else:
-                    proc = subprocess.Popen(
-                        cmd, shell=shell,
-                        cwd=cwd, env=env,
-                        stdin=proc.stdout,
-                        stdout=subprocess.PIPE)
-
+            if len(pipe_commands) == 1:
+                cmd = pipe_commands[0]
+                proc = subprocess.Popen(
+                    cmd, shell = shell,
+                    cwd = cwd, env = env,
+                    stdin = stdin, stdout = stdout,
+                    stderr = stderr,
+                    close_fds = False)
+            else:
+                for i, cmd in enumerate(pipe_commands):
+                    if i == 0:
+                        proc = subprocess.Popen(
+                            cmd, shell=shell,
+                            cwd=cwd, env=env,
+                            stdin=stdin, stdout=subprocess.PIPE)
+                    elif i == len(pipe_commands) - 1:
+                        proc = subprocess.Popen(
+                            cmd, shell=shell,
+                            cwd=cwd, env=env,
+                            stdin=proc.stdout,
+                            stdout=stdout, stderr=stderr,
+                            close_fds=False)
+                    else:
+                        proc = subprocess.Popen(
+                            cmd, shell=shell,
+                            cwd=cwd, env=env,
+                            stdin=proc.stdout,
+                            stdout=subprocess.PIPE)
             if not capture:
                 return (0, proc)
             if self.output is None:
