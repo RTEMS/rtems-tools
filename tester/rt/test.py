@@ -329,13 +329,14 @@ def generate_yaml_report(args, reports, start_time, end_time,
 
 def get_hash512(exe):
     """ returns SHA512 hash string of a given binary file passed as argument """
+    import base64
     import hashlib
 
     hash = hashlib.sha512()
     with open(exe, "rb") as f:
         for byte_block in iter(lambda: f.read(4096), b""):
             hash.update(byte_block)
-    return hash.hexdigest()
+    return base64.urlsafe_b64encode(hash.digest()).decode("ascii")
 
 
 report_formatters = {
