@@ -356,10 +356,17 @@ class execute(object):
         a string."""
         if self.output is None:
             raise error.general('capture needs an output handler')
-        cs = command
-        if type(command) is list:
-            def add(x, y): return x + ' ' + str(y)
-            cs = functools.reduce(add, command, '')[1:]
+        # If a string split and not a shell command split
+        if not shell and isinstance(command, str):
+            command = shlex.split(command)
+        if shell and isinstance(command, list):
+            command = shlex.join(command)
+            if self.shell_exe:
+                command = self.shell_exe + ' ' + command
+        if isinstance(command, list):
+            cs = shlex.join(command)
+        else:
+            cs = command
         what = 'spawn'
         if shell:
             what = 'shell'
@@ -367,9 +374,6 @@ class execute(object):
         if self.verbose:
             log.output(what + ': ' + cs)
         log.trace('exe: %s' % (cs))
-        if shell and self.shell_exe:
-            command = arg_list(command)
-            command[:0] = self.shell_exe
         if not stdin and self.input:
             stdin = subprocess.PIPE
         if not stdout:
@@ -390,21 +394,21 @@ class execute(object):
                     r, e = os.path.splitext(command[0])
                     if e not in ['.exe', '.com', '.bat']:
                         command[0] = command[0] + '.exe'
-            # If a string split
-            if isinstance(command, str):
-                command = shlex.split(command)
-            # See if there is a pipe operator in the command. If present
-            # split the commands by the pipe and run them with the pipe.
-            # if no pipe it is the normal stdin and stdout
             pipe_commands = []
-            current_command = []
-            for cmd in command:
-                if cmd == '|':
-                    pipe_commands.append(current_command)
-                    current_command = []
-                else:
-                    current_command.append(cmd)
-            pipe_commands.append(current_command)
+            if shell:
+                pipe_commands.append(command)
+            else:
+                # See if there is a pipe operator in the command. If present
+                # split the commands by the pipe and run them with the pipe.
+                # if no pipe it is the normal stdin and stdout
+                current_command = []
+                for cmd in command:
+                    if cmd == '|':
+                        pipe_commands.append(current_command)
+                        current_command = []
+                    else:
+                        current_command.append(cmd)
+                pipe_commands.append(current_command)
             proc = None
             if len(pipe_commands) == 1:
                 cmd = pipe_commands[0]
@@ -600,16 +604,28 @@ class capture_execution(execute):
 if __name__ == "__main__":
     def run_tests(e, commands, use_shell):
         for c in commands['shell']:
-            e.shell(c)
+            ec, out = e.shell(c)
+            if ec != 0:
+              raise RuntimeError('ec = {}'.format(ec))
+        for c in commands['error']:
+            ec, out = e.shell(c)
+            if ec == 0:
+              raise RuntimeError('ec = {}'.format(ec))
         for c in commands['spawn']:
-            e.spawn(c)
+            ec, out = e.spawn(c)
+            if ec != 0:
+              raise RuntimeError('ec = {}'.format(ec))
         for c in commands['cmd']:
             if type(c) is str:
-                e.command(c, shell = use_shell)
+                ec, out = e.command(c, shell = use_shell)
             else:
-                e.command(c[0], c[1], shell = use_shell)
+                ec, out = e.command(c[0], c[1], shell = use_shell)
+            if ec != 0:
+              raise RuntimeError('ec = {}'.format(ec))
         for c in commands['csubsts']:
-            e.command_subst(c[0], c[1], shell = use_shell)
+            ec, out = e.command_subst(c[0], c[1], shell = use_shell)
+            if ec != 0:
+              raise RuntimeError('ec = {}'.format(ec))
         ec, proc = e.command(commands['pipe'][0], commands['pipe'][1],
                              capture = False, stdin = subprocess.PIPE)
         if ec == 0:
@@ -623,11 +639,15 @@ if __name__ == "__main__":
             proc.stdin.close()
             e.capture(proc)
             del proc
+        else:
+            raise RuntimeError('ec = {}'.format(ec))
         for c in commands['open']:
             ec, proc = e.open(c)
             if ec == 0:
                 e.capture(proc)
                 del proc
+            else:
+                raise RuntimeError('ec = {}'.format(ec))
 
     def capture_output(text):
         print(text, end = '')
@@ -640,7 +660,8 @@ if __name__ == "__main__":
     commands = {}
     commands['windows'] = {}
     commands['unix'] = {}
-    commands['windows']['shell'] = ['cd', 'dir /w', '.\\xyz', cmd_shell_test]
+    commands['windows']['shell'] = ['cd', 'dir /w', cmd_shell_test]
+    commands['windows']['error'] = ['.\\xyz']
     commands['windows']['spawn'] = ['hostname', 'hostnameZZ', ['netstat', '/e']]
     commands['windows']['cmd'] = [('ipconfig'), ('nslookup', 'www.python.org')]
     commands['windows']['csubsts'] = [('netstat %0', ['-a']),
@@ -650,8 +671,9 @@ if __name__ == "__main__":
             ["echo",  "hello rtems", "|", "findstr", "rtems"],
             " ".join(["echo",  "hello rtems", "|", "findstr", "rtems"])
             ]
-    commands['unix']['shell'] = ['pwd', 'ls -las', './xyz', sh_shell_test]
-    commands['unix']['spawn'] = ['ls', 'execute.pyc', ['ls', '-i']]
+    commands['unix']['shell'] = ['pwd', 'ls -las', sh_shell_test, 'ls -las']
+    commands['unix']['error'] = ['./xyz']
+    commands['unix']['spawn'] = ['ls', ['ls', '-i'], 'ls -l']
     commands['unix']['cmd'] = [('date'), ('date', '-R'), ('date', ['-u', '+%d %D']),
                                ('date', '-u "+%d %D %S"')]
     commands['unix']['csubsts'] = [('date %0 "+%d %D %S"', ['-u']),
