@@ -125,6 +125,14 @@ class execute(object):
         self.timing_out = False
         self.proc = None
 
+    @staticmethod
+    def _shlex_join(elements):
+        try:
+            return shlex.join(elements)
+        except AttributeError:
+            # Python older than 3.8 does not have shlex.join
+            return ' '.join(elements)
+
     def capture(self, proc, command = 'pipe', timeout = None):
         """Create 3 threads to read stdout and stderr and send to the output handler
         and call an input handler is provided. Based on the 'communicate' code
@@ -360,11 +368,11 @@ class execute(object):
         if not shell and isinstance(command, str):
             command = shlex.split(command)
         if shell and isinstance(command, list):
-            command = shlex.join(command)
+            command = execute._shlex_join(command)
             if self.shell_exe:
                 command = self.shell_exe + ' ' + command
         if isinstance(command, list):
-            cs = shlex.join(command)
+            cs = execute._shlex_join(command)
         else:
             cs = command
         what = 'spawn'
