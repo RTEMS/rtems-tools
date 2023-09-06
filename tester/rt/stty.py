@@ -558,7 +558,7 @@ class tty(object):
         self._update()
 
     def read(self):
-        return self.fs.read()
+        return self.fd.read()
 
 if __name__ == "__main__":
     if len(sys.argv) == 2:
