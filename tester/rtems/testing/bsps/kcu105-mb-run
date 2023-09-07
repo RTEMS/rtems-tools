@@ -1,0 +1,181 @@
+#! /usr/bin/env python
+import telnetlib
+import subprocess
+import sys
+import time
+import select
+import argparse
+import serial
+
+import os
+
+
+# Get the directory of the current script
+
+def xsdb_reset(args):
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    cmd = [
+        "xsdb",
+        f"{script_dir}/xsdb-reset.tcl",
+        args.elf_path
+    ]
+    if args.jtag_serial:
+        cmd.append(['--jtag_serial', args.jtag_serial])
+    if args.jtag_ip:
+        cmd.append(['--jtag_ip', args.jtag_ip])
+    if args.cpu:
+        cmd.append(['--cpu', args.cpu])
+    
+    print('=>', ' '.join(cmd))
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    print('=>', result.stdout)
+    print('=>', result.stderr, file=sys.stderr)
+def xsdb_download_test_to_system(args):
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    cmd = [
+        "xsdb",
+        f"{script_dir}/xsdb-load-elf.tcl",
+        args.elf_path
+    ]
+    if args.jtag_serial:
+        cmd.append(['--jtag_serial', args.jtag_serial])
+    if args.jtag_ip:
+        cmd.append(['--jtag_ip', args.jtag_ip])
+    if args.cpu:
+        cmd.append(['--cpu', args.cpu])
+    if args.dtb:
+        cmd.append(['--dtb', args.dtb])
+    if args.dtb:
+        cmd.append(['--dtb_address', args.dtb_address])
+    
+    print('=>', ' '.join(cmd))
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    print('=>', result.stdout)
+    print('=>', result.stderr, file=sys.stderr)
+
+
+def serial_and_capture_output(args):
+    PORT = args.tty  # Replace with your actual port
+    BAUDRATE = 115200 
+    TIMEOUT = 1  # timeout for the serial read operation
+    NO_DATA_TIMEOUT = args.timeout  # timeout if no data received for 30 seconds
+    serial_buffer = ""
+    no_data_time_counter = 0  # counter for no data timeout
+    if not args.openocd: # XSDB version 
+        xsdb_reset(args)
+        time.sleep(2)
+    else:
+        # TODO HAVE open ocd reset board
+    with serial.Serial(PORT, BAUDRATE, timeout=TIMEOUT) as ser:
+        # Flush any data from the reset
+        ser.flushInput()
+        ser.flushOutput()
+
+        while True:
+            data = ser.read().decode('utf-8')
+            if data:
+                # Reset the no data counter if data is received
+                no_data_time_counter = 0
+
+                # Buffer the data and print it out when we see a newline
+                serial_buffer += data
+                # If the data contains a newline then split the data and print it out
+                if "\n" in serial_buffer:
+                    lines = serial_buffer.split("\n")
+                    serial_buffer = lines[-1]
+                    for line in lines[:-1]:
+                        print(line)
+                        if "executing thread name: " in line:
+                            return
+            else:
+                no_data_time_counter += TIMEOUT
+                if no_data_time_counter >= NO_DATA_TIMEOUT:
+                    print("No data received for {} seconds, exiting".format(NO_DATA_TIMEOUT))
+                    break
+
+            # Insert a short delay before downloading to ensure we don't miss any outputs
+            if not hasattr(serial_and_capture_output, "downloaded"):
+                if not args.openocd: # XSDB version 
+                    # Download image
+                    xsdb_download_test_to_system(args)
+                else:
+                    print("TODO Implement Openocd version for risc-v")
+                serial_and_capture_output.downloaded = True
+
+def telnet_and_capture_output():
+    HOST = "192.168.1.25"
+    PORT = 30000
+    TIMEOUT = 0.5  # timeout for the telnet read operation
+    NO_DATA_TIMEOUT = 30  # timeout if no data received for 30 seconds
+    telnet_buffer = ""
+    no_data_time_counter = 0  # counter for no data timeout
+
+    with telnetlib.Telnet(HOST, PORT) as tn:
+        # Use select to poll the telnet connection without blocking
+        while True:
+            ready_to_read, _, _ = select.select([tn], [], [], TIMEOUT)
+            if ready_to_read:
+                data = tn.read_eager().decode('utf-8')
+                if not data:
+                    break
+                # Reset the no data counter if data is received
+                no_data_time_counter = 0
+
+                # Buffer the data and print it out when we see a newline
+                telnet_buffer += data
+                # If the data contains a newline then split the data and print it out
+                if "\n" in telnet_buffer:
+                    lines = telnet_buffer.split("\n")
+                    telnet_buffer = lines[-1]
+                    for line in lines[:-1]:
+                        print(line)
+                        if "executing thread name: " in line:
+                            return
+            else:
+                no_data_time_counter += TIMEOUT
+                if no_data_time_counter >= NO_DATA_TIMEOUT:
+                    print("No data received for {} seconds, exiting".format(NO_DATA_TIMEOUT))
+                    break
+
+            # Insert a short delay before downloading to ensure we don't miss any outputs
+            if not hasattr(serial_and_capture_output, "downloaded"):
+                time.sleep(2)
+                xsdb_download_test_to_system(sys.argv[1])
+                serial_and_capture_output.downloaded = True
+
+def main():
+    
+    parser = argparse.ArgumentParser(description="Process an ELF file with optional settings.")
+
+    # Required argument for ELF file
+    parser.add_argument("elf_file", type=str, help="Path to the ELF file")
+
+    # Optional arguments
+    parser.add_argument("-t", "--timeout", type=int, default=180, 
+                        help="Timeout value in seconds (default: 180 seconds)")
+    parser.add_argument("-t", "--tty", type=str, 
+                        help="Path to the tty serial port")
+    parser.add_argument("-j", "--jtag_serial", type=str, 
+                        help="JTAG serial address")
+    parser.add_argument("--jtag_ip", type=str, 
+                        help="JTAG IP address")
+    parser.add_argument("-c", "--cpu", type=int,default=0, 
+                        help="CPU number to run test on")
+    parser.add_argument("--dtb", type=str, 
+                        help="Path to the Binary Device Tree(BDT) filename")
+    parser.add_argument("--dtb_address", type=int, default=None, 
+                        help="Address that device tree binary should be copied to.")
+    parser.add_argument("-v", "--verbose", type=int, choices=[0, 1, 2, 3], default=0, 
+                        help="Set verbosity level: 0 (silent), 1 (default), 2 (detailed), 3 (most detailed)")
+    parser.add_argument("--openocd", action="store_true",
+                        help="Use openocd over xsdb")
+    args= parser.parse_args()
+
+    #telnet_and_capture_output()
+    serial_and_capture_output(args)
+
+if __name__ == "__main__":
+    main()
+
