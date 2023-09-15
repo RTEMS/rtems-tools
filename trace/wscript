@@ -33,11 +33,14 @@ def options(opt):
 def configure(conf):
     conf.load('compiler_c')
     conf.load('compiler_cxx')
+    needs_cxx17 = False
     try:
         cppflags = conf.cmd_and_log(['llvm-config', '--cppflags'])
         ldflags = conf.cmd_and_log(['llvm-config', '--ldflags'])
         conf.env.append_value('CPPFLAGS', cppflags.split())
         conf.env.append_value('LDFLAGS', ldflags.split())
+        # llvm 16+ requires C++17 to build
+        needs_cxx17 = int(conf.cmd_and_log(['llvm-config', '--version']).split()[0]) >= 16
     except:
         pass
     if conf.check_cxx(lib = 'LLVM', mandatory=False):
@@ -46,6 +49,7 @@ def configure(conf):
         conf.check_cxx(lib = 'z')
     conf.check_cxx(lib = 'ws2_32', mandatory=False)
     conf.check_cxx(cxxflags='-std=c++14', mandatory=False, define_name="HAVE_STD_CXX14")
+    conf.check_cxx(cxxflags='-std=c++17', mandatory=needs_cxx17, define_name="HAVE_STD_CXX17")
     conf.write_config_header('config.h')
 
 def build(bld):
@@ -63,7 +67,9 @@ def build(bld):
     cstd = '-std=c99'
     conf['cflags'] = [cstd] + ['-pipe', '-g'] + conf['optflags']
     cxxstd = '-std=c++11'
-    if bld.env.HAVE_STD_CXX14:
+    if bld.env.HAVE_STD_CXX17:
+        cxxstd = '-std=c++17'
+    elif bld.env.HAVE_STD_CXX14:
         cxxstd = '-std=c++14'
     conf['cxxflags'] = [cxxstd] + ['-pipe', '-g'] + conf['optflags']
     conf['linkflags'] = ['-g']
