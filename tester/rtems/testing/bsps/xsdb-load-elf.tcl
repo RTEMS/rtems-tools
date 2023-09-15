@@ -58,7 +58,7 @@ if { $jtag_ip ne "" } {
     set ffast 10000000
 } else {
 #    puts "INFO: Connecting to localhost programmer (SN: $jtag_serial)"
-    connect -symbols
+    connect 
 
     # Increase JTAG Target Frequency
     if { $jtag_serial ne "" } {
@@ -92,7 +92,7 @@ if { $dtb ne "" } {
 }
 
 puts "INFO: Downloading ELF file: $elf_filename"
-dow  $elf_path
+dow  $elf_filename
 after 2000
 con
 

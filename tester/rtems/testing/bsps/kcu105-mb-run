@@ -17,7 +17,7 @@ def xsdb_reset(args):
 
     cmd = [
         "xsdb",
-        f"{script_dir}/xsdb-reset.tcl",
+        f"{script_dir}/xsdb-rst.tcl",
         args.elf_path
     ]
     if args.jtag_serial:
@@ -27,10 +27,10 @@ def xsdb_reset(args):
     if args.cpu:
         cmd.append(['--cpu', args.cpu])
     
-    print('=>', ' '.join(cmd))
+    #print('=>', ' '.join(cmd))
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    print('=>', result.stdout)
-    print('=>', result.stderr, file=sys.stderr)
+    #print('=>', result.stdout)
+    #print('=>', result.stderr, file=sys.stderr)
 def xsdb_download_test_to_system(args):
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -50,10 +50,10 @@ def xsdb_download_test_to_system(args):
     if args.dtb:
         cmd.append(['--dtb_address', args.dtb_address])
     
-    print('=>', ' '.join(cmd))
+    #print('=>', ' '.join(cmd))
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    print('=>', result.stdout)
-    print('=>', result.stderr, file=sys.stderr)
+    #print('=>', result.stdout)
+    #print('=>', result.stderr, file=sys.stderr)
 
 
 def serial_and_capture_output(args):
@@ -67,6 +67,7 @@ def serial_and_capture_output(args):
         xsdb_reset(args)
         time.sleep(2)
     else:
+        pass
         # TODO HAVE open ocd reset board
     with serial.Serial(PORT, BAUDRATE, timeout=TIMEOUT) as ser:
         # Flush any data from the reset
@@ -150,10 +151,10 @@ def main():
     parser = argparse.ArgumentParser(description="Process an ELF file with optional settings.")
 
     # Required argument for ELF file
-    parser.add_argument("elf_file", type=str, help="Path to the ELF file")
+    parser.add_argument("elf_path", type=str, help="Path to the ELF file")
 
     # Optional arguments
-    parser.add_argument("-t", "--timeout", type=int, default=180, 
+    parser.add_argument("--timeout", type=int, default=180, 
                         help="Timeout value in seconds (default: 180 seconds)")
     parser.add_argument("-t", "--tty", type=str, 
                         help="Path to the tty serial port")
@@ -172,7 +173,6 @@ def main():
     parser.add_argument("--openocd", action="store_true",
                         help="Use openocd over xsdb")
     args= parser.parse_args()
-
     #telnet_and_capture_output()
     serial_and_capture_output(args)
 
