@@ -2,19 +2,11 @@ set startTime [clock seconds]
 #puts "Start Time: [clock format $startTime -format %D\ %H:%M:%S]"
 
 # Use `lindex $argv` to get command line arguments
-set elf_filename [lindex $argv 0]
-
-if { $elf_filename eq "" } {
-    puts "Error: elf_filename is a required argument"
-    exit 1
-}
 
 # Initialize variables with default values
 set jtag_serial ""
 set jtag_ip ""
 set cpu 0
-set dtb ""
-set dtb_address 0x9F400000
 
 # Process command-line arguments
 for {set i 1} {$i < $argc} {incr i} {
@@ -53,12 +45,12 @@ for {set i 1} {$i < $argc} {incr i} {
 
 if { $jtag_ip ne "" } {
     puts "INFO: Connecting to SmartLynq programmer at $jtag_ip:3121"
-    connect -url $jtag_ip:3121 -symbols
+    connect -url $jtag_ip:3121 
     jtag target 1
     set ffast 10000000
 } else {
 #    puts "INFO: Connecting to localhost programmer (SN: $jtag_serial)"
-    connect -symbols
+    connect 
 
     # Increase JTAG Target Frequency
     if { $jtag_serial ne "" } {
@@ -83,18 +75,6 @@ catch { stop }
 after 1000
 rst
 after 2000
-
-if { $dtb ne "" } {
-    set dtb_size [file size $dtb]
-    puts "INFO: Copying DTB to board at $dtb_address: $dtb"
-    mwr -bin -size b -file $dtb $dtb_address $dtb_size
-    rwr r5 $dtb_address
-}
-
-puts "INFO: Downloading ELF file: $elf_filename"
-dow  $elf_filename
-after 2000
-con
 
 set stopTime [clock seconds]
 #puts "End Time: [clock format $stopTime -format %D\ %H:%M:%S]"

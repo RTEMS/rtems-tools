@@ -27,10 +27,11 @@ def xsdb_reset(args):
     if args.cpu:
         cmd.append(['--cpu', args.cpu])
     
-    #print('=>', ' '.join(cmd))
+    print('=>', ' '.join(cmd))
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    #print('=>', result.stdout)
-    #print('=>', result.stderr, file=sys.stderr)
+    if args.verbose > 0:
+      print('=>', result.stdout)
+      print('=>', result.stderr, file=sys.stderr)
 def xsdb_download_test_to_system(args):
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
@@ -52,8 +53,9 @@ def xsdb_download_test_to_system(args):
     
     #print('=>', ' '.join(cmd))
     result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    #print('=>', result.stdout)
-    #print('=>', result.stderr, file=sys.stderr)
+    if args.verbose > 0:
+        print('=>', result.stdout)
+        print('=>', result.stderr, file=sys.stderr)
 
 
 def serial_and_capture_output(args):
@@ -69,10 +71,21 @@ def serial_and_capture_output(args):
     else:
         pass
         # TODO HAVE open ocd reset board
+
     with serial.Serial(PORT, BAUDRATE, timeout=TIMEOUT) as ser:
         # Flush any data from the reset
         ser.flushInput()
         ser.flushOutput()
+
+
+
+    with serial.Serial(PORT, BAUDRATE, timeout=TIMEOUT) as ser:
+        # Insert a short delay before downloading to ensure we don't miss any outputs
+        if not args.openocd: # XSDB version 
+            # Download image
+            xsdb_download_test_to_system(args)
+        else:
+            print("TODO Implement Openocd version for risc-v")
 
         while True:
             data = ser.read().decode('utf-8')
@@ -96,55 +109,46 @@ def serial_and_capture_output(args):
                     print("No data received for {} seconds, exiting".format(NO_DATA_TIMEOUT))
                     break
 
-            # Insert a short delay before downloading to ensure we don't miss any outputs
-            if not hasattr(serial_and_capture_output, "downloaded"):
-                if not args.openocd: # XSDB version 
-                    # Download image
-                    xsdb_download_test_to_system(args)
+    def telnet_and_capture_output():
+        HOST = "192.168.1.25"
+        PORT = 30000
+        TIMEOUT = 0.5  # timeout for the telnet read operation
+        NO_DATA_TIMEOUT = 30  # timeout if no data received for 30 seconds
+        telnet_buffer = ""
+        no_data_time_counter = 0  # counter for no data timeout
+
+        with telnetlib.Telnet(HOST, PORT) as tn:
+            # Use select to poll the telnet connection without blocking
+            while True:
+                ready_to_read, _, _ = select.select([tn], [], [], TIMEOUT)
+                if ready_to_read:
+                    data = tn.read_eager().decode('utf-8')
+                    if not data:
+                        break
+                    # Reset the no data counter if data is received
+                    no_data_time_counter = 0
+
+                    # Buffer the data and print it out when we see a newline
+                    telnet_buffer += data
+                    # If the data contains a newline then split the data and print it out
+                    if "\n" in telnet_buffer:
+                        lines = telnet_buffer.split("\n")
+                        telnet_buffer = lines[-1]
+                        for line in lines[:-1]:
+                            print(line)
+                            if "executing thread name: " in line:
+                                return
                 else:
-                    print("TODO Implement Openocd version for risc-v")
-                serial_and_capture_output.downloaded = True
+                    no_data_time_counter += TIMEOUT
+                    if no_data_time_counter >= NO_DATA_TIMEOUT:
+                        print("No data received for {} seconds, exiting".format(NO_DATA_TIMEOUT))
+                        break
 
-def telnet_and_capture_output():
-    HOST = "192.168.1.25"
-    PORT = 30000
-    TIMEOUT = 0.5  # timeout for the telnet read operation
-    NO_DATA_TIMEOUT = 30  # timeout if no data received for 30 seconds
-    telnet_buffer = ""
-    no_data_time_counter = 0  # counter for no data timeout
-
-    with telnetlib.Telnet(HOST, PORT) as tn:
-        # Use select to poll the telnet connection without blocking
-        while True:
-            ready_to_read, _, _ = select.select([tn], [], [], TIMEOUT)
-            if ready_to_read:
-                data = tn.read_eager().decode('utf-8')
-                if not data:
-                    break
-                # Reset the no data counter if data is received
-                no_data_time_counter = 0
-
-                # Buffer the data and print it out when we see a newline
-                telnet_buffer += data
-                # If the data contains a newline then split the data and print it out
-                if "\n" in telnet_buffer:
-                    lines = telnet_buffer.split("\n")
-                    telnet_buffer = lines[-1]
-                    for line in lines[:-1]:
-                        print(line)
-                        if "executing thread name: " in line:
-                            return
-            else:
-                no_data_time_counter += TIMEOUT
-                if no_data_time_counter >= NO_DATA_TIMEOUT:
-                    print("No data received for {} seconds, exiting".format(NO_DATA_TIMEOUT))
-                    break
-
-            # Insert a short delay before downloading to ensure we don't miss any outputs
-            if not hasattr(serial_and_capture_output, "downloaded"):
-                time.sleep(2)
-                xsdb_download_test_to_system(sys.argv[1])
-                serial_and_capture_output.downloaded = True
+                # Insert a short delay before downloading to ensure we don't miss any outputs
+                if not hasattr(serial_and_capture_output, "downloaded"):
+                    time.sleep(2)
+                    xsdb_download_test_to_system(sys.argv[1])
+                    serial_and_capture_output.downloaded = True
 
 def main():
     
