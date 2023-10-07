@@ -49,7 +49,8 @@ import tester.rt.tftpserver
 class tftp(object):
     '''RTEMS Testing TFTP base.'''
 
-    def __init__(self, bsp_arch, bsp, trace = False):
+    def __init__(self, bsp_arch, bsp, session_timeout, trace = False):
+        self.session_timeout = session_timeout
         self.trace = trace
         self.lock_trace = False
         self.lock = threading.RLock()
@@ -60,7 +61,7 @@ class tftp(object):
     def __del__(self):
         self.kill()
 
-    def _init(self):
+    def _init(self, state = 'reset'):
         self.output_length = None
         self.console = None
         self.server = None
@@ -73,7 +74,7 @@ class tftp(object):
         self.running = False
         self.finished = False
         self.caught = None
-        self.target_state = 'reset'
+        self.target_state = state
 
     def _lock(self, msg):
         if self.lock_trace:
@@ -109,7 +110,8 @@ class tftp(object):
         try:
             if self.server is not None:
                 self.server.stop()
-            self.finished = Finished
+            self.finished = finished
+            self._set_target_state('finished')
         except:
             pass
 
@@ -150,14 +152,15 @@ class tftp(object):
     def _listener(self, exe):
         self.server = tester.rt.tftpserver.tftp_server(host = 'all',
                                                        port = self.port,
+                                                       session_timeout = self.session_timeout,
                                                        timeout = 10,
                                                        forced_file = exe,
                                                        sessions = 1)
         try:
-            if log.tracing:
+            if False and log.tracing:
                 self.server.trace_packets()
             self.server.start()
-            self.server.run()
+            return self.server.run() == 1
         except:
             self.server.stop()
             raise
@@ -169,22 +172,30 @@ class tftp(object):
         self.exe = None
         self._unlock('_runner')
         caught = None
+        retry = 0
+        target_loaded = False
         try:
             self._lock('_runner')
             state = self.target_state
             self._unlock('_runner')
             self._trace('runner: ' + state)
-            while state not in ['shutdown', 'finished']:
-                if state != 'running':
+            while state not in ['shutdown', 'finished', 'timeout']:
+                if state in ['booting', 'running']:
+                    time.sleep(0.25)
+                else:
                     self._trace('listening: begin: ' + state)
-                    self._listener(exe)
+                    target_loaded = self._listener(exe)
                     self._lock('_runner')
-                    if self.target_state == 'booting':
-                        self._set_target_state('loaded')
+                    if target_loaded:
+                        self._set_target_state('booting')
+                    else:
+                        retry += 1
+                        if retry > 1:
+                            self._set_target_state('timeout')
+                            self._timeout()
+                    state = self.target_state
                     self._unlock('_runner')
                     self._trace('listening: end: ' + state)
-                else:
-                    time.sleep(0.25)
                 self._lock('_runner')
                 state = self.target_state
                 self._unlock('_runner')
@@ -214,16 +225,17 @@ class tftp(object):
         self.test_too_long = timeout[3]
         self.opened = True
         self.running = True
+        self._console('tftp: exe: %s' % (executable))
         self.listener = threading.Thread(target = self._runner,
                                          name = 'tftp-listener')
+        self.listener.daemon = True
         self._unlock('_open: start listner')
-        self._console('tftp: exe: %s' % (executable))
         self.listener.start()
         self._lock('_open: start listner')
         step = 0.25
         period = timeout[0]
         seconds = timeout[1]
-        output_len = self.output_length()
+        output_length = self.output_length()
         while not self.finished and period > 0 and seconds > 0:
             if not self.running and self.caught:
                 break
@@ -250,7 +262,7 @@ class tftp(object):
             elif seconds == 0:
                 self._test_too_long()
         caught = self.caught
-        self._init()
+        self._init('finished')
         self._unlock('_open')
         if caught is not None:
             reraise.reraise(*caught)

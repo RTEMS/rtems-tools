@@ -327,7 +327,7 @@ class report(object):
             for name in results:
                 if results[name]['result'] == state:
                     l += [' %s' % (path.basename(name))]
-            return l
+            return sorted(l)
         l = []
         if self.failed:
             l += ['Failures:']

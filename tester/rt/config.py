@@ -284,7 +284,12 @@ class file(config.file):
             raise error.general('invalid %tftp port')
         self.kill_on_end = True
         if not self.opts.dry_run():
+            if self.defined('session_timeout'):
+                session_timeout = int(self.expand('%{session_timeout}'))
+            else:
+                session_timeout = 120
             self.process = tester.rt.tftp.tftp(bsp_arch, bsp,
+                                               session_timeout = session_timeout,
                                                trace = self.exe_trace('tftp'))
             if not self.in_error:
                 if self.console:
@@ -415,28 +420,41 @@ class file(config.file):
                 reset_target = True
             else:
                 reset_target = False
-            if self.target_start_regx is not None:
-                if self.target_start_regx.match(text):
-                    if self.test_started:
-                        self._capture_console('target start detected')
+            if ('*** TIMEOUT TIMEOUT' in text or \
+                '*** TEST TOO LONG' in text) and \
+                self.defined('target_reset_on_timeout'):
+                reset_target = True
+            restart = \
+                (self.target_start_regx is not None and self.target_start_regx is not None)
+            if restart:
+                if self.test_started:
+                    self._capture_console('target start detected')
+                    ok_to_kill = True
+                else:
+                    self.restarts += 1
+                    if self.restarts > self.max_restarts:
+                        self._capture_console('target restart maximum count reached')
                         ok_to_kill = True
                     else:
-                        self.restarts += 1
-                        if self.restarts > self.max_restarts:
-                            self._capture_console('target restart maximum count reached')
-                            ok_to_kill = True
-                        else:
-                            self.process.target_restart(self.test_started)
+                        self.process.target_restart(self.test_started)
             if not reset_target and self.target_reset_regx is not None:
                 if self.target_reset_regx.match(text):
                     self._capture_console('target reset condition detected')
                     self._target_command('reset')
                     self.process.target_reset(self.test_started)
             if self.kill_on_end:
-                if not ok_to_kill and '*** END OF TEST ' in text:
+                if not ok_to_kill and \
+                   ('*** END OF TEST ' in text or \
+                    '*** FATAL ***' in text or \
+                    '*** TIMEOUT TIMEOUT' in text or \
+                    '*** TEST TOO LONG' in text):
                     self._capture_console('test end: %s' % (self.test_label))
                     if self.test_label is not None:
-                        ok_to_kill = '*** END OF TEST %s ***' % (self.test_label) in text
+                        ok_to_kill = \
+                            '*** END OF TEST %s ***' % (self.test_label) in text or \
+                            '*** FATAL ***' in text or \
+                            '*** TIMEOUT TIMEOUT' in text or \
+                            '*** TEST TOO LONG' in text
                     self.process.target_end()
             text = [(self.console_prefix, l) for l in text.replace(chr(13), '').splitlines()]
             if self.output is not None:
