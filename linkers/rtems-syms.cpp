@@ -305,7 +305,8 @@ output_sym::operator ()(const rld::symbols::symtab::value_type& value)
             val = sym.name ();
           } else {
             std::stringstream oss;
-            oss << std::hex << std::setfill ('0') << std::setw (8) << sym.value ();
+            oss << std::hex << std::showbase << std::internal <<
+              std::setfill ('0') << std::setw (10) << sym.value ();
             val = oss.str ();
           }
         }
