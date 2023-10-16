@@ -142,7 +142,7 @@ static const char* c_rtl_call_body[] =
   "{",
   "  rtems_rtl_base_sym_global_add (&rtems__rtl_base_globals[0],",
   "                                 rtems__rtl_base_globals_size[0],",
-  "                                 NULL",
+  "                                 NULL,",
   "                                 0);",
   "}",
   0
