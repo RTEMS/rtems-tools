@@ -57,7 +57,7 @@ class configuration:
         else:
             self.config = configparser.ConfigParser()
         self.ini = None
-        self.macro_filter = re.compile('\$\{[^\}]+\}')
+        self.macro_filter = re.compile(r'\$\{[^\}]+\}')
 
     def __str__(self):
         if self.ini is None:

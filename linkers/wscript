@@ -178,4 +178,4 @@ def build(bld):
                 use = modules)
 
 def tags(ctx):
-    ctx.exec_command('etags $(find . -name \*.[sSch])', shell = True)
+    ctx.exec_command('etags $(find . -name \\*.[sSch])', shell = True)

@@ -116,7 +116,7 @@ def _load_released_version_config():
                 os.path.join('..', 'VERSION'),
                 rtems.configuration_file('rtems-version.ini')]:
         if path.exists(path.join(ver)):
-            v = configparser.SafeConfigParser()
+            v = configparser.ConfigParser()
             try:
                 v.read(path.host(ver))
             except Exception as e:
