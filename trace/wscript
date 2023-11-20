@@ -101,4 +101,4 @@ def build(bld):
                 lib = conf['lib'])
 
 def tags(ctx):
-    ctx.exec_command('etags $(find . -name \*.[sSch])', shell = True)
+    ctx.exec_command('etags $(find . -name \\*.[sSch])', shell = True)
