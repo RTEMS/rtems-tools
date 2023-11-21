@@ -1,6 +1,6 @@
 /* memory allocation routines with error checking.
-   Copyright (C) 1989-2017 Free Software Foundation, Inc.
-
+   Copyright (C) 1989-2023 Free Software Foundation, Inc.
+   
 This file is part of the libiberty library.
 Libiberty is free software; you can redistribute it and/or
 modify it under the terms of the GNU Library General Public
@@ -68,7 +68,6 @@ function will be called to print an error message and terminate execution.
 #include "environ.h"
 
 #include <stdio.h>
-#include <stdlib.h>
 
 #include <stddef.h>
 
@@ -88,7 +87,9 @@ extern "C" {
 void *malloc (size_t);
 void *realloc (void *, size_t);
 void *calloc (size_t, size_t);
+#ifdef HAVE_SBRK
 void *sbrk (ptrdiff_t);
+#endif
 #    ifdef __cplusplus
 }
 #    endif /* __cplusplus */
@@ -135,13 +136,13 @@ xmalloc_failed (size_t size)
 	   name, *name ? ": " : "",
 	   (unsigned long) size);
 #endif /* HAVE_SBRK */
-  exit (1);
-}
+  xexit (1);
+}  
 
-PTR
+void *
 xmalloc (size_t size)
 {
-  PTR newmem;
+  void *newmem;
 
   if (size == 0)
     size = 1;
@@ -152,10 +153,10 @@ xmalloc (size_t size)
   return (newmem);
 }
 
-PTR
+void *
 xcalloc (size_t nelem, size_t elsize)
 {
-  PTR newmem;
+  void *newmem;
 
   if (nelem == 0 || elsize == 0)
     nelem = elsize = 1;
@@ -167,10 +168,10 @@ xcalloc (size_t nelem, size_t elsize)
   return (newmem);
 }
 
-PTR
-xrealloc (PTR oldmem, size_t size)
+void *
+xrealloc (void *oldmem, size_t size)
 {
-  PTR newmem;
+  void *newmem;
 
   if (size == 0)
     size = 1;
