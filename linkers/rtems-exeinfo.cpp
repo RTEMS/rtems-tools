@@ -223,8 +223,7 @@ namespace rld
      * Helper for for_each to filter and load the sections we wish to
      * dump.
      */
-    class section_loader:
-      public std::unary_function < const files::section, void >
+    class section_loader
     {
     public:
 

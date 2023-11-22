@@ -696,8 +696,7 @@ namespace rld
      * Helper for for_each to merge the related object sections into the RAP
      * section.
      */
-    class section_merge:
-      public std::unary_function < const files::section, void >
+    class section_merge
     {
     public:
 
@@ -1191,8 +1190,7 @@ namespace rld
     /**
      * Helper for for_each to write out the various sections.
      */
-    class section_writer:
-      public std::unary_function < object, void >
+    class section_writer
     {
     public:
 
@@ -1364,8 +1362,6 @@ namespace rld
     void
     image::write_relocations (compress::compressor& comp)
     {
-      uint32_t rr = 0;
-
       for (int s = 0; s < rap_secs; ++s)
       {
         uint32_t count = get_relocations (s);
@@ -1515,7 +1511,6 @@ namespace rld
 
             ++rc;
             ++sr;
-            ++rr;
           }
         }
       }

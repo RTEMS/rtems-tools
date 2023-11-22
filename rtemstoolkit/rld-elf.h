@@ -175,11 +175,6 @@ namespace rld
       section (file& file_, int index);
 
       /**
-       * Copy constructor.
-       */
-      section (const section& orig);
-
-      /**
        * Default constructor.
        */
       section ();

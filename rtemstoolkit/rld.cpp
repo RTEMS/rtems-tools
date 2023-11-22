@@ -106,9 +106,10 @@ namespace rld
   ltrim (const std::string& s)
   {
     std::string t = s;
-    t.erase (t.begin (),
-             std::find_if (t.begin (), t.end (),
-                         std::not1 (std::ptr_fun < int, int > (std::isspace))));
+    auto non_space =
+      std::find_if (t.begin (), t.end (),
+                    [](unsigned char c) { return !std::isspace (c); });
+    t.erase (t.begin (), non_space);
     return t;
   }
 
@@ -116,9 +117,10 @@ namespace rld
   rtrim (const std::string& s)
   {
     std::string t = s;
-    t.erase (std::find_if (t.rbegin (), t.rend (),
-                           std::not1 (std::ptr_fun < int, int > (std::isspace))).base(),
-             t.end());
+    auto last_space =
+      std::find_if (t.rbegin (), t.rend (),
+                    [](unsigned char c) { return !std::isspace (c); }).base();
+    t.erase (last_space, t.end());
     return t;
   }
 

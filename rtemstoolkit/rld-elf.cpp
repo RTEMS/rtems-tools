@@ -200,18 +200,6 @@ namespace rld
                   << std::endl;
     }
 
-    section::section (const section& orig)
-      : file_ (orig.file_),
-        index_ (orig.index_),
-        name_ (orig.name_),
-        scn (orig.scn),
-        shdr (orig.shdr),
-        data_ (orig.data_),
-        rela (orig.rela),
-        relocs (orig.relocs)
-    {
-    }
-
     section::section ()
       : file_ (0),
         index_ (-1),
