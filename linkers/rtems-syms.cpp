@@ -77,7 +77,7 @@ static const char* c_header[] =
   "void rtems_rtl_base_sym_global_add (const unsigned char* , unsigned int,",
   "                                    rtems_rtl_tls_offset*, size_t );",
   "",
-  "asm(\".section \\\".rodata\\\"\");",
+  "asm(\".pushsection \\\".rodata\\\"\");",
   "",
   "asm(\"  .align   4\");",
   "asm(\"  .local   rtems__rtl_base_globals\");",
@@ -122,6 +122,7 @@ static const char* c_trailer[] =
   "asm(\"  .local   rtems__rtl_base_globals_size\");",
   "asm(\"rtems__rtl_base_globals_size:\");",
   "asm(\"  .long rtems__rtl_base_globals_size - rtems__rtl_base_globals\");",
+  "asm(\"  .popsection\");",
   "",
   0
 };
