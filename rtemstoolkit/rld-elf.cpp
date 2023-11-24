@@ -1178,6 +1178,7 @@ namespace rld
         { "m68k",    EM_COLDFIRE },
         { "mips",    EM_MIPS },
         { "powerpc", EM_PPC },
+        { "powerpc", EM_PPC64 },
 #ifndef EM_RISCV
         { "riscv",   243 }, /* If not in libelf yet */
 #else
