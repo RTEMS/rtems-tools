@@ -399,9 +399,9 @@ def conf_libiberty(conf):
 def bld_libiberty(bld, conf):
     defines = ['HAVE_CONFIG_H=1']
     if bld.env.DEST_OS == 'win32':
-        pex_host = 'libiberty/pex-win32.c'
+        pex_host = ['libiberty/pex-win32.c','libiberty/argv.c']
     else:
-        pex_host = 'libiberty/pex-unix.c'
+        pex_host = ['libiberty/pex-unix.c']
         if bld.env.DEST_OS == 'darwin':
             defines += ['HAVE_SPAWN_H=1', 'HAVE_POSIX_SPAWN=1', 'HAVE_POSIX_SPAWNP=1']
     bld.stlib(target = 'iberty',
@@ -410,8 +410,7 @@ def bld_libiberty(bld, conf):
               includes = ['libiberty'],
               cflags = conf['cflags'],
               defines = defines,
-              source =['libiberty/argv.c',
-                       'libiberty/concat.c',
+              source =['libiberty/concat.c',
                        'libiberty/cplus-dem.c',
                        'libiberty/cp-demangle.c',
                        'libiberty/d-demangle.c',
@@ -426,8 +425,7 @@ def bld_libiberty(bld, conf):
                        'libiberty/xmalloc.c',
                        'libiberty/xmemdup.c',
                        'libiberty/xstrdup.c',
-                       'libiberty/xstrerror.c',
-                       pex_host])
+                       'libiberty/xstrerror.c'] + pex_host)
 
 #
 # The doxy command.
