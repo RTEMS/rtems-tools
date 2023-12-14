@@ -425,7 +425,7 @@ class file(config.file):
                 self.defined('target_reset_on_timeout'):
                 reset_target = True
             restart = \
-                (self.target_start_regx is not None and self.target_start_regx is not None)
+                (self.target_start_regx is not None and self.target_start_regx.match(text))
             if restart:
                 if self.test_started:
                     self._capture_console('target start detected')
