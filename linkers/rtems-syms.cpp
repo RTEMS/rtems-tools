@@ -53,7 +53,7 @@
 /**
  * Header text.
  */
-static const char* c_header[] =
+static const char* const c_header[] =
 {
   "/*",
   " * RTEMS Global Symbol Table",
@@ -90,7 +90,7 @@ static const char* c_header[] =
   0
 };
 
-static const char* c_sym_table_end[] =
+static const char* const c_sym_table_end[] =
 {
   "asm(\"  .byte    0\");",
   "asm(\"  .ascii   \\\"\\xde\\xad\\xbe\\xef\\\"\");",
@@ -98,13 +98,13 @@ static const char* c_sym_table_end[] =
   0
 };
 
-static const char* c_tls_call_table_start[] =
+static const char* const c_tls_call_table_start[] =
 {
   "rtems_rtl_tls_offset rtems_rtl_tls_offsets[] = {",
   0
 };
 
-static const char* c_tls_call_table_end[] =
+static const char* const c_tls_call_table_end[] =
 {
   "};",
   "#define RTEMS_RTL_TLS_OFFSETS_NUM " \
@@ -113,7 +113,7 @@ static const char* c_tls_call_table_end[] =
   0
 };
 
-static const char* c_trailer[] =
+static const char* const c_trailer[] =
 {
   "/*",
   " * Symbol table size.",
@@ -127,7 +127,7 @@ static const char* c_trailer[] =
   0
 };
 
-static const char* c_rtl_call_body_embeded[] =
+static const char* const c_rtl_call_body_embeded[] =
 {
   "{",
   "  rtems_rtl_base_sym_global_add (&rtems__rtl_base_globals[0],",
@@ -138,7 +138,7 @@ static const char* c_rtl_call_body_embeded[] =
   0
 };
 
-static const char* c_rtl_call_body[] =
+static const char* const c_rtl_call_body[] =
 {
   "{",
   "  rtems_rtl_base_sym_global_add (&rtems__rtl_base_globals[0],",
@@ -153,7 +153,7 @@ static const char* c_rtl_call_body[] =
  * Paint the data to the temporary file.
  */
 static void
-temporary_file_paint (rld::process::tempfile& t, const char* lines[])
+temporary_file_paint (rld::process::tempfile& t, const char* const lines[])
 {
   for (int l = 0; lines[l]; ++l)
     t.write_line (lines[l]);
