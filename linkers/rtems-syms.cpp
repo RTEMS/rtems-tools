@@ -345,6 +345,10 @@ generate_c (rld::process::tempfile& c,
             rld::symbols::symtab&   symbols,
             bool                    embed)
 {
+  if (rld::verbose ())
+    std::cout << "symbol C file: " << c.name () << std::endl;
+
+  c.open (true);
   temporary_file_paint (c, c_header);
 
   /*
@@ -390,11 +394,6 @@ generate_symmap (rld::process::tempfile& c,
                  rld::symbols::symtab&   symbols,
                  bool                    embed)
 {
-  c.open (true);
-
-  if (rld::verbose ())
-    std::cout << "symbol C file: " << c.name () << std::endl;
-
   generate_c (c, symbols, embed);
 
   if (rld::verbose ())
@@ -622,8 +621,8 @@ main (int argc, char* argv[])
       throw rld::error ("no kernel file", "options");
     if (argc != 1)
       throw rld::error ("only one kernel file", "options");
-    if (output.empty () && map.empty ())
-      throw rld::error ("no output or map", "options");
+    if (output.empty () && symc.empty() && map.empty ())
+      throw rld::error ("no output, symbol C file, or map", "options");
 
     kernel_name = *argv;
 
@@ -683,7 +682,7 @@ main (int argc, char* argv[])
       /*
        * Create an output file if asked too.
        */
-      if (!output.empty ())
+      if (!output.empty () || !symc.empty())
       {
         rld::process::tempfile c (".c");
 
@@ -694,9 +693,12 @@ main (int argc, char* argv[])
         }
 
         /*
-         * Generate and compile the symbol map.
+         * Generate and if requested compile the symbol map.
          */
-        generate_symmap (c, output, filter_symbols, embed);
+        if (output.empty())
+          generate_c (c, filter_symbols, embed);
+        else
+          generate_symmap (c, output, filter_symbols, embed);
       }
 
       kernel.close ();
