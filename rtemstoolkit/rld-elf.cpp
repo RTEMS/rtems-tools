@@ -1167,6 +1167,7 @@ namespace rld
       };
       types_and_labels types_to_labels[] =
       {
+        { "aarch64", EM_AARCH64 },
         { "arm",     EM_ARM },
         { "avr",     EM_AVR },
         { "bfin",    EM_BLACKFIN },
