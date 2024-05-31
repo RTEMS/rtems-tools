@@ -145,7 +145,7 @@ class file(config.file):
             if exe is not None and '@EXE@' in cmd:
                 cmd = cmd.replace('@EXE@', exe)
             if fexe is not None and '@FEXE@' in cmd:
-                cmd = cmd.replace('@FEXE@', exe)
+                cmd = cmd.replace('@FEXE@', fexe)
             if len(cmd) > 0:
                 output = ''
                 if not self.opts.dry_run():
