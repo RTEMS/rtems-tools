@@ -402,6 +402,8 @@ elftc_reloc_type_str(unsigned int mach, unsigned int type)
 		case 22: return "R_MIPS_GOT_HI16";
 		case 23: return "R_MIPS_GOT_LO16";
 		case 24: return "R_MIPS_SUB";
+		case 28: return "R_MIPS_HIGHER";
+		case 29: return "R_MIPS_HIGHEST";
 		case 30: return "R_MIPS_CALLHI16";
 		case 31: return "R_MIPS_CALLLO16";
 		case 37: return "R_MIPS_JALR";
@@ -662,6 +664,16 @@ elftc_reloc_type_str(unsigned int mach, unsigned int type)
 		case 46: return "R_RISCV_RVC_LUI";
 		case 47: return "R_RISCV_GPREL_I";
 		case 48: return "R_RISCV_GPREL_S";
+		case 49: return "R_RISCV_TPREL_I";
+		case 50: return "R_RISCV_TPREL_S";
+		case 51: return "R_RISCV_RELAX";
+		case 52: return "R_RISCV_SUB6";
+		case 53: return "R_RISCV_SET6";
+		case 54: return "R_RISCV_SET8";
+		case 55: return "R_RISCV_SET16";
+		case 56: return "R_RISCV_SET32";
+		case 57: return "R_RISCV_32_PCREL";
+		case 58: return "R_RISCV_IRELATIVE";
 		}
 		break;
 	case EM_S390:

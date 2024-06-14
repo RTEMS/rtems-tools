@@ -24,6 +24,8 @@
  * SUCH DAMAGE.
  */
 
+/*@ELFTC-INCLUDE-SYS-CDEFS@*/
+
 #include <assert.h>
 #include <gelf.h>
 #include <libelf.h>
@@ -33,7 +35,9 @@
 
 #include "_libelf.h"
 
-ELFTC_VCSID("$Id: gelf_ehdr.c 3177 2015-03-30 18:19:41Z emaste $");
+ELFTC_VCSID("$Id: gelf_ehdr.c 3977 2022-05-01 06:45:34Z jkoshy $");
+
+/*@ELFTC-USE-DOWNSTREAM-VCSID@*/
 
 Elf32_Ehdr *
 elf32_getehdr(Elf *e)

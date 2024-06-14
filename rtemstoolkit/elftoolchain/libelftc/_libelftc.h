@@ -24,7 +24,7 @@
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
- * $Id: _libelftc.h 3531 2017-06-05 05:08:43Z kaiwang27 $
+ * $Id: _libelftc.h 3877 2020-11-03 18:28:08Z jkoshy $
  */
 
 #ifndef	__LIBELFTC_H_
@@ -56,6 +56,7 @@ struct vector_str {
 };
 
 #define BUFFER_GROWFACTOR	1.618
+#define BUFFER_GROW(x)		(((x)+0.5)*BUFFER_GROWFACTOR)
 
 #define	ELFTC_FAILURE		0
 #define	ELFTC_ISDIGIT(C) 	(isdigit((C) & 0xFF))

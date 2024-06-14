@@ -24,11 +24,15 @@
  * SUCH DAMAGE.
  */
 
+/*@ELFTC-INCLUDE-SYS-CDEFS@*/
+
 #include <libelf.h>
 
 #include "_libelf.h"
 
-ELFTC_VCSID("$Id: elf_memory.c 3013 2014-03-23 06:16:59Z jkoshy $");
+ELFTC_VCSID("$Id: elf_memory.c 3977 2022-05-01 06:45:34Z jkoshy $");
+
+/*@ELFTC-USE-DOWNSTREAM-VCSID@*/
 
 Elf *
 elf_memory(char *image, size_t sz)

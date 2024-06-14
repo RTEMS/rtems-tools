@@ -24,6 +24,7 @@
  * SUCH DAMAGE.
  */
 
+/*@ELFTC-INCLUDE-SYS-CDEFS@*/
 #include <sys/queue.h>
 
 #include <assert.h>
@@ -36,7 +37,9 @@
 
 #include "_libelf.h"
 
-ELFTC_VCSID("$Id: elf_scn.c 3177 2015-03-30 18:19:41Z emaste $");
+ELFTC_VCSID("$Id: elf_scn.c 3977 2022-05-01 06:45:34Z jkoshy $");
+
+/*@ELFTC-USE-DOWNSTREAM-VCSID@*/
 
 /*
  * Load an ELF section table and create a list of Elf_Scn structures.
@@ -51,22 +54,22 @@ _libelf_load_section_headers(Elf *e, void *ehdr)
 	int ec, swapbytes;
 	unsigned char *src;
 	size_t fsz, i, shnum;
-	int (*xlator)(unsigned char *_d, size_t _dsz, unsigned char *_s,
-	    size_t _c, int _swap);
+	_libelf_translator_function *xlator;
 
 	assert(e != NULL);
 	assert(ehdr != NULL);
 	assert((e->e_flags & LIBELF_F_SHDRS_LOADED) == 0);
 
 #define	CHECK_EHDR(E,EH)	do {				\
-		if (shoff > e->e_rawsize ||			\
+		uintmax_t rawsize = (uintmax_t) e->e_rawsize;	\
+		if (shoff > (uintmax_t) e->e_rawsize ||		\
 		    fsz != (EH)->e_shentsize ||			\
 		    shnum > SIZE_MAX / fsz ||			\
-		    fsz * shnum > e->e_rawsize - shoff) {	\
+		    fsz * shnum > rawsize - shoff) {		\
 			LIBELF_SET_ERROR(HEADER, 0);		\
 			return (0);				\
 		}						\
-	} while (0)
+	} while (/* CONSTCOND */ 0)
 
 	ec = e->e_class;
 	fsz = _libelf_fsize(ELF_T_SHDR, ec, e->e_version, (size_t) 1);
@@ -84,7 +87,8 @@ _libelf_load_section_headers(Elf *e, void *ehdr)
 		CHECK_EHDR(e, eh64);
 	}
 
-	xlator = _libelf_get_translator(ELF_T_SHDR, ELF_TOMEMORY, ec);
+	xlator = _libelf_get_translator(ELF_T_SHDR, ELF_TOMEMORY, ec,
+	    _libelf_elfmachine(e));
 
 	swapbytes = e->e_byteorder != LIBELF_PRIVATE(byteorder);
 	src = e->e_rawfile + shoff;

@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2009,2010 Kai Wang
+ * Copyright (c) 2009,2010,2023 Kai Wang
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
 
 #include "_libdwarf.h"
 
-ELFTC_VCSID("$Id: libdwarf_str.c 2070 2011-10-27 03:05:32Z jkoshy $");
+ELFTC_VCSID("$Id: libdwarf_str.c 4039 2024-03-15 04:07:32Z kaiwang27 $");
 
 #define	_INIT_DWARF_STRTAB_SIZE 1024
 
@@ -52,7 +52,7 @@ _dwarf_strtab_add(Dwarf_Debug dbg, char *string, uint64_t *off,
 	if (off != NULL)
 		*off = dbg->dbg_strtab_size;
 
-	strncpy(&dbg->dbg_strtab[dbg->dbg_strtab_size], string, len - 1);
+	memcpy(&dbg->dbg_strtab[dbg->dbg_strtab_size], string, len - 1);
 	dbg->dbg_strtab_size += len;
 	dbg->dbg_strtab[dbg->dbg_strtab_size - 1] = '\0';
 
@@ -66,6 +66,133 @@ _dwarf_strtab_get_table(Dwarf_Debug dbg)
 	assert(dbg != NULL);
 
 	return (dbg->dbg_strtab);
+}
+
+char *
+_dwarf_strtab_get_line_table(Dwarf_Debug dbg)
+{
+
+	assert(dbg != NULL);
+
+	return (dbg->dbg_line_strtab);
+}
+
+static int
+_dwarf_str_offsets_init(Dwarf_Debug dbg, Dwarf_Error *error)
+{
+	Dwarf_Section *ds;
+	Dwarf_StrOffsets *str_off;
+	Dwarf_Half version;
+	uint64_t offset, length;
+	int dwarf_size;
+
+	assert(dbg != NULL);
+
+	dbg->dbg_str_offsets = NULL;
+
+	if ((ds = _dwarf_find_section(dbg, ".debug_str_offsets")) == NULL)
+		return (DW_DLE_NONE);
+
+	offset = 0;
+
+	/* Read in the table header. */
+	length = dbg->read(ds->ds_data, &offset, 4);
+	if (length == 0xffffffff) {
+		dwarf_size = 8;
+		length = dbg->read(ds->ds_data, &offset, 8);
+	} else
+		dwarf_size = 4;
+
+	version = dbg->read(ds->ds_data, &offset, 2);
+	if (version != 5) {
+		DWARF_SET_ERROR(dbg, error, DW_DLE_VERSION_STAMP_ERROR);
+		return (DW_DLE_VERSION_STAMP_ERROR);
+	}
+
+	if ((str_off = calloc(1, sizeof(*str_off))) == NULL) {
+		DWARF_SET_ERROR(dbg, error, DW_DLE_MEMORY);
+		return (DW_DLE_MEMORY);
+	}
+
+	/* 2 byte padding. */
+	offset += 2;
+
+	str_off->so_length = length;
+	str_off->so_version = version;
+	str_off->so_header_size = offset;
+	str_off->so_dwarf_size = dwarf_size;
+	str_off->so_data = ds->ds_data;
+
+	dbg->dbg_str_offsets = str_off;
+
+	return (DW_DLE_NONE);
+}
+
+static int
+_dwarf_find_cu_str_offsets_base(Dwarf_Debug dbg, Dwarf_CU cu,
+    uint64_t *offset_basep, Dwarf_Error *error)
+{
+	Dwarf_Attribute at;
+	Dwarf_Die cu_die;
+	int ret;
+
+	assert(dbg->dbg_str_offsets != NULL);
+
+	if (!cu->cu_stroff_base_valid) {
+		if ((ret = dwarf_siblingof(dbg, 0, &cu_die, error)) !=
+		    DW_DLV_OK) {
+			DWARF_SET_ERROR(dbg, error, DW_DLE_NO_ENTRY);
+			return (DW_DLE_NO_ENTRY);
+		}
+
+		if ((at = _dwarf_attr_find(cu_die, DW_AT_str_offsets_base)) !=
+		    NULL) {
+			cu->cu_stroff_base = at->u[0].u64;
+		} else {
+			/*
+			 * No DW_AT_str_offsets_base found. Use header size
+			 * instead.
+			 */
+			cu->cu_stroff_base =
+			    dbg->dbg_str_offsets->so_header_size;
+		}
+		cu->cu_stroff_base_valid = 1;
+		dwarf_dealloc(dbg, cu_die, DW_DLA_DIE);
+	}
+	*offset_basep = cu->cu_stroff_base;
+
+	return (DW_DLE_NONE);
+}
+
+int
+_dwarf_read_indexed_str(Dwarf_Debug dbg, Dwarf_CU cu, uint64_t index,
+    char **str_p, Dwarf_Error *error)
+{
+	Dwarf_StrOffsets *so;
+	uint64_t offset, offsets_base, strtab_offset;
+	int ret;
+
+	if (dbg->dbg_str_offsets == NULL) {
+		if ((ret = _dwarf_str_offsets_init(dbg, error)) != DW_DLE_NONE)
+			return (ret);
+		if (dbg->dbg_str_offsets == NULL) {
+			DWARF_SET_ERROR(dbg, error, DW_DLE_NO_ENTRY);
+			return (DW_DLE_NO_ENTRY);
+		}
+	}
+
+	if ((ret = _dwarf_find_cu_str_offsets_base(dbg, cu, &offsets_base,
+	    error)) != DW_DLE_NONE)
+		return (ret);
+
+	so = dbg->dbg_str_offsets;
+	/* Caculate where to read from string offsets array. */
+	offset = offsets_base + so->so_dwarf_size * index;
+	/* Read from the str offsets array to get offset into string table. */
+	strtab_offset = dbg->read(so->so_data, &offset, so->so_dwarf_size);
+	*str_p = _dwarf_strtab_get_table(dbg) + strtab_offset;
+
+	return (DW_DLE_NONE);
 }
 
 int
@@ -94,6 +221,11 @@ _dwarf_strtab_init(Dwarf_Debug dbg, Dwarf_Error *error)
 			memcpy(dbg->dbg_strtab, ds->ds_data, ds->ds_size);
 		} else
 			dbg->dbg_strtab = (char *) ds->ds_data;
+
+		ds = _dwarf_find_section(dbg, ".debug_line_str");
+		if (ds != NULL) {
+			dbg->dbg_line_strtab = (char *) ds->ds_data;
+		}
 	} else {
 		/* DW_DLC_WRITE */
 
@@ -110,6 +242,16 @@ _dwarf_strtab_init(Dwarf_Debug dbg, Dwarf_Error *error)
 	}
 
 	return (DW_DLE_NONE);
+}
+
+void
+_dwarf_str_offsets_cleanup(Dwarf_Debug dbg)
+{
+
+	assert(dbg != NULL);
+
+	if (dbg->dbg_str_offsets)
+		free(dbg->dbg_str_offsets);
 }
 
 void

@@ -24,12 +24,16 @@
  * SUCH DAMAGE.
  */
 
+/*@ELFTC-INCLUDE-SYS-CDEFS@*/
+
 #include <assert.h>
 #include <gelf.h>
 
 #include "_libelf.h"
 
-ELFTC_VCSID("$Id: gelf_syminfo.c 3174 2015-03-27 17:13:41Z emaste $");
+ELFTC_VCSID("$Id: gelf_syminfo.c 3977 2022-05-01 06:45:34Z jkoshy $");
+
+/*@ELFTC-USE-DOWNSTREAM-VCSID@*/
 
 GElf_Syminfo *
 gelf_getsyminfo(Elf_Data *ed, int ndx, GElf_Syminfo *dst)
@@ -65,9 +69,9 @@ gelf_getsyminfo(Elf_Data *ed, int ndx, GElf_Syminfo *dst)
 		return (NULL);
 	}
 
-	msz = _libelf_msize(ELF_T_SYMINFO, ec, e->e_version);
+	if ((msz = _libelf_msize(ELF_T_SYMINFO, ec, e->e_version)) == 0)
+		return (NULL);
 
-	assert(msz > 0);
 	assert(ndx >= 0);
 
 	if (msz * (size_t) ndx >= d->d_data.d_size) {
@@ -126,9 +130,9 @@ gelf_update_syminfo(Elf_Data *ed, int ndx, GElf_Syminfo *gs)
 		return (0);
 	}
 
-	msz = _libelf_msize(ELF_T_SYMINFO, ec, e->e_version);
+	if ((msz = _libelf_msize(ELF_T_SYMINFO, ec, e->e_version)) == 0)
+		return (0);
 
-	assert(msz > 0);
 	assert(ndx >= 0);
 
 	if (msz * (size_t) ndx >= d->d_data.d_size) {

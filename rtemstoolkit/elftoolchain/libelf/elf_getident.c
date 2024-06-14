@@ -24,13 +24,17 @@
  * SUCH DAMAGE.
  */
 
+/*@ELFTC-INCLUDE-SYS-CDEFS@*/
+
 #include <ar.h>
 #include <assert.h>
 #include <libelf.h>
 
 #include "_libelf.h"
 
-ELFTC_VCSID("$Id: elf_getident.c 3174 2015-03-27 17:13:41Z emaste $");
+ELFTC_VCSID("$Id: elf_getident.c 3977 2022-05-01 06:45:34Z jkoshy $");
+
+/*@ELFTC-USE-DOWNSTREAM-VCSID@*/
 
 char *
 elf_getident(Elf *e, size_t *sz)
@@ -54,7 +58,7 @@ elf_getident(Elf *e, size_t *sz)
 		else if (e->e_kind == ELF_K_ELF)
 			*sz = EI_NIDENT;
 		else
-			*sz = e->e_rawsize;
+			*sz = (size_t) e->e_rawsize;
 	}
 
 	return ((char *) e->e_rawfile);

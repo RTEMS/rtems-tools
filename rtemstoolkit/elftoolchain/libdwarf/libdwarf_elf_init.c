@@ -1,5 +1,5 @@
 /*-
- * Copyright (c) 2009 Kai Wang
+ * Copyright (c) 2009,2023 Kai Wang
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -26,7 +26,7 @@
 
 #include "_libdwarf.h"
 
-ELFTC_VCSID("$Id: libdwarf_elf_init.c 3475 2016-05-18 18:11:26Z emaste $");
+ELFTC_VCSID("$Id: libdwarf_elf_init.c 4039 2024-03-15 04:07:32Z kaiwang27 $");
 
 static const char *debug_name[] = {
 	".debug_abbrev",
@@ -39,6 +39,8 @@ static const char *debug_name[] = {
 	".eh_frame",
 	".debug_macinfo",
 	".debug_str",
+	".debug_str_offsets",
+	".debug_line_str",
 	".debug_loc",
 	".debug_pubtypes",
 	".debug_ranges",

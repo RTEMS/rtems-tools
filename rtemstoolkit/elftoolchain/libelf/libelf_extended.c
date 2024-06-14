@@ -24,12 +24,16 @@
  * SUCH DAMAGE.
  */
 
+/*@ELFTC-INCLUDE-SYS-CDEFS@*/
+
 #include <assert.h>
 #include <libelf.h>
 
 #include "_libelf.h"
 
-ELFTC_VCSID("$Id: libelf_extended.c 3174 2015-03-27 17:13:41Z emaste $");
+ELFTC_VCSID("$Id: libelf_extended.c 3977 2022-05-01 06:45:34Z jkoshy $");
+
+/*@ELFTC-USE-DOWNSTREAM-VCSID@*/
 
 /*
  * Retrieve section #0, allocating a new section if needed.
@@ -57,7 +61,7 @@ _libelf_setshnum(Elf *e, void *eh, int ec, size_t shnum)
 		assert(scn->s_ndx == SHN_UNDEF);
 
 		if (ec == ELFCLASS32)
-			scn->s_shdr.s_shdr32.sh_size = shnum;
+			scn->s_shdr.s_shdr32.sh_size = (Elf32_Word) shnum;
 		else
 			scn->s_shdr.s_shdr64.sh_size = shnum;
 
@@ -87,9 +91,9 @@ _libelf_setshstrndx(Elf *e, void *eh, int ec, size_t shstrndx)
 		assert(scn->s_ndx == SHN_UNDEF);
 
 		if (ec == ELFCLASS32)
-			scn->s_shdr.s_shdr32.sh_link = shstrndx;
+			scn->s_shdr.s_shdr32.sh_link = (Elf32_Word) shstrndx;
 		else
-			scn->s_shdr.s_shdr64.sh_link = shstrndx;
+			scn->s_shdr.s_shdr64.sh_link = (Elf64_Word) shstrndx;
 
 		(void) elf_flagshdr(scn, ELF_C_SET, ELF_F_DIRTY);
 
@@ -116,9 +120,9 @@ _libelf_setphnum(Elf *e, void *eh, int ec, size_t phnum)
 		assert(scn->s_ndx == SHN_UNDEF);
 
 		if (ec == ELFCLASS32)
-			scn->s_shdr.s_shdr32.sh_info = phnum;
+			scn->s_shdr.s_shdr32.sh_info = (Elf32_Word) phnum;
 		else
-			scn->s_shdr.s_shdr64.sh_info = phnum;
+			scn->s_shdr.s_shdr64.sh_info = (Elf64_Word) phnum;
 
 		(void) elf_flagshdr(scn, ELF_C_SET, ELF_F_DIRTY);
 

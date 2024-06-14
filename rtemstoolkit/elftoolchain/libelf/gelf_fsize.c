@@ -24,12 +24,16 @@
  * SUCH DAMAGE.
  */
 
+/*@ELFTC-INCLUDE-SYS-CDEFS@*/
+
 #include <gelf.h>
 #include <libelf.h>
 
 #include "_libelf.h"
 
-ELFTC_VCSID("$Id: gelf_fsize.c 3174 2015-03-27 17:13:41Z emaste $");
+ELFTC_VCSID("$Id: gelf_fsize.c 3977 2022-05-01 06:45:34Z jkoshy $");
+
+/*@ELFTC-USE-DOWNSTREAM-VCSID@*/
 
 size_t
 elf32_fsize(Elf_Type t, size_t c, unsigned int v)

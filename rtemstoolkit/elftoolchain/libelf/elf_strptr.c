@@ -24,6 +24,7 @@
  * SUCH DAMAGE.
  */
 
+/*@ELFTC-INCLUDE-SYS-CDEFS@*/
 #include <sys/param.h>
 
 #include <assert.h>
@@ -31,7 +32,9 @@
 
 #include "_libelf.h"
 
-ELFTC_VCSID("$Id: elf_strptr.c 2990 2014-03-17 09:56:58Z jkoshy $");
+ELFTC_VCSID("$Id: elf_strptr.c 3977 2022-05-01 06:45:34Z jkoshy $");
+
+/*@ELFTC-USE-DOWNSTREAM-VCSID@*/
 
 /*
  * Convert an ELF section#,offset pair to a string pointer.

@@ -24,19 +24,21 @@
  * SUCH DAMAGE.
  */
 
+/*@ELFTC-INCLUDE-SYS-CDEFS@*/
+
 #include <libelf.h>
 
 #include "_libelf.h"
 
-ELFTC_VCSID("$Id: elf_rawfile.c 3174 2015-03-27 17:13:41Z emaste $");
+ELFTC_VCSID("$Id: elf_rawfile.c 3977 2022-05-01 06:45:34Z jkoshy $");
+
+/*@ELFTC-USE-DOWNSTREAM-VCSID@*/
 
 char *
 elf_rawfile(Elf *e, size_t *sz)
 {
-	size_t size;
 	unsigned char *ptr;
 
-	size = e ? e->e_rawsize : 0;
 	ptr = NULL;
 
 	if (e == NULL)
@@ -45,7 +47,7 @@ elf_rawfile(Elf *e, size_t *sz)
 		LIBELF_SET_ERROR(SEQUENCE, 0);
 
 	if (sz)
-		*sz = size;
+		*sz = e ? (size_t) e->e_rawsize : 0;
 
 	return ((char *) ptr);
 }

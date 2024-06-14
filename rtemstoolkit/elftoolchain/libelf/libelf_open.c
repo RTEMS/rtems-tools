@@ -24,6 +24,7 @@
  * SUCH DAMAGE.
  */
 
+/*@ELFTC-INCLUDE-SYS-CDEFS@*/
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -39,7 +40,9 @@
 #include <sys/mman.h>
 #endif
 
-ELFTC_VCSID("$Id: libelf_open.c 3007 2014-03-22 08:10:14Z jkoshy $");
+ELFTC_VCSID("$Id: libelf_open.c 3977 2022-05-01 06:45:34Z jkoshy $");
+
+/*@ELFTC-USE-DOWNSTREAM-VCSID@*/
 
 #define	_LIBELF_INITSIZE	(64*1024)
 

@@ -24,11 +24,15 @@
  * SUCH DAMAGE.
  */
 
+/*@ELFTC-INCLUDE-SYS-CDEFS@*/
+
 #include <libelf.h>
 
 #include "_libelf.h"
 
-ELFTC_VCSID("$Id$");
+ELFTC_VCSID("$Id: elf_open.c 3977 2022-05-01 06:45:34Z jkoshy $");
+
+/*@ELFTC-USE-DOWNSTREAM-VCSID@*/
 
 /*
  * Extension API: open a file for reading, ignoring parse errors.

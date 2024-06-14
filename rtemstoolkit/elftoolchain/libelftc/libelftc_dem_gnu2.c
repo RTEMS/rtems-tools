@@ -37,7 +37,7 @@
 
 #include "_libelftc.h"
 
-ELFTC_VCSID("$Id: libelftc_dem_gnu2.c 3513 2016-12-29 07:04:22Z kaiwang27 $");
+ELFTC_VCSID("$Id: libelftc_dem_gnu2.c 3806 2020-02-07 02:13:49Z emaste $");
 
 /**
  * @file cpp_demangle_gnu2.c
@@ -216,11 +216,13 @@ cpp_demangle_gnu2(const char *org)
 			break;
 
 		if ((arg = vector_str_substr(&d.vec, arg_begin, d.vec.size - 1,
-			    &arg_len)) == NULL)
+		    &arg_len)) == NULL)
 			goto clean;
 
-		if (vector_str_push(&d.arg, arg, arg_len) == false)
+		if (vector_str_push(&d.arg, arg, arg_len) == false) {
+			free(arg);
 			goto clean;
+		}
 
 		free(arg);
 
@@ -387,12 +389,11 @@ init_demangle_data(struct demangle_data *d)
 
 	d->type = ENCODE_FUNC;
 
-	if (vector_str_init(&d->vec) == false)
+	if (!vector_str_init(&d->vec))
 		return (false);
 
-	if (vector_str_init(&d->arg) == false) {
+	if (!vector_str_init(&d->arg)) {
 		vector_str_dest(&d->vec);
-
 		return (false);
 	}
 

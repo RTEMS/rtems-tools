@@ -30,7 +30,7 @@
 
 #include "_libelftc.h"
 
-ELFTC_VCSID("$Id: elftc_bfdtarget.c 3174 2015-03-27 17:13:41Z emaste $");
+ELFTC_VCSID("$Id: elftc_bfdtarget.c 3871 2020-08-21 23:28:19Z emaste $");
 
 Elftc_Bfd_Target *
 elftc_bfd_find_target(const char *tgt_name)
@@ -70,4 +70,11 @@ elftc_bfd_target_machine(Elftc_Bfd_Target *tgt)
 {
 
 	return (tgt->bt_machine);
+}
+
+unsigned int
+elftc_bfd_target_osabi(Elftc_Bfd_Target *tgt)
+{
+
+	return (tgt->bt_osabi);
 }

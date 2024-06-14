@@ -30,7 +30,9 @@
 
 #include "_libelf.h"
 
-ELFTC_VCSID("$Id: libelf_align.c 3174 2015-03-27 17:13:41Z emaste $");
+ELFTC_VCSID("$Id: libelf_align.c 3977 2022-05-01 06:45:34Z jkoshy $");
+
+/*@ELFTC-USE-DOWNSTREAM-VCSID@*/
 
 struct align {
 	unsigned int a32;
@@ -50,6 +52,10 @@ struct align {
 		.a32 = __alignof__(int32_t),			\
 		.a64 = __alignof__(int64_t)			\
 	    }
+#elif defined(__lint__)
+#define MALIGN(N)	{ .a32 = 0, .a64 = 0 }
+#define MALIGN64(N)	{ .a32 = 0, .a64 = 0 }
+#define MALIGN_WORD(N)	{ .a32 = 0, .a64 = 0 }
 #else
 #error	Need the __alignof__ builtin.
 #endif

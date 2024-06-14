@@ -26,13 +26,13 @@
 
 #include "_libdwarf.h"
 
-ELFTC_VCSID("$Id: dwarf_sections.c 3226 2015-06-23 13:00:16Z emaste $");
+ELFTC_VCSID("$Id: dwarf_sections.c 3902 2020-11-24 21:17:41Z jkoshy $");
 
 #define	SET(N, V)				\
 	do {					\
 		if ((N) != NULL)		\
 			*(N) = (V);		\
-	} while (0)
+	} while (/* CONSTCOND */ 0)
 
 int
 dwarf_get_section_max_offsets_b(Dwarf_Debug dbg, Dwarf_Unsigned *debug_info,

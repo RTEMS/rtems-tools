@@ -1,6 +1,6 @@
 /*-
  * Copyright (c) 2007 John Birrell (jb@freebsd.org)
- * Copyright (c) 2009-2011 Kai Wang
+ * Copyright (c) 2009-2011,2023 Kai Wang
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -27,7 +27,7 @@
 
 #include "_libdwarf.h"
 
-ELFTC_VCSID("$Id: libdwarf_attr.c 3064 2014-06-06 19:35:55Z kaiwang27 $");
+ELFTC_VCSID("$Id: libdwarf_attr.c 4039 2024-03-15 04:07:32Z kaiwang27 $");
 
 int
 _dwarf_attr_alloc(Dwarf_Die die, Dwarf_Attribute *atp, Dwarf_Error *error)
@@ -100,7 +100,6 @@ _dwarf_attr_init(Dwarf_Debug dbg, Dwarf_Section *ds, uint64_t *offsetp,
     uint64_t form, int indirect, Dwarf_Error *error)
 {
 	struct _Dwarf_Attribute atref;
-	Dwarf_Section *str;
 	int ret;
 
 	ret = DW_DLE_NONE;
@@ -149,10 +148,12 @@ _dwarf_attr_init(Dwarf_Debug dbg, Dwarf_Section *ds, uint64_t *offsetp,
 		break;
 	case DW_FORM_data4:
 	case DW_FORM_ref4:
+	case DW_FORM_ref_sup4:
 		atref.u[0].u64 = dbg->read(ds->ds_data, offsetp, 4);
 		break;
 	case DW_FORM_data8:
 	case DW_FORM_ref8:
+	case DW_FORM_ref_sup8:
 		atref.u[0].u64 = dbg->read(ds->ds_data, offsetp, 8);
 		break;
 	case DW_FORM_indirect:
@@ -169,6 +170,8 @@ _dwarf_attr_init(Dwarf_Debug dbg, Dwarf_Section *ds, uint64_t *offsetp,
 		break;
 	case DW_FORM_ref_udata:
 	case DW_FORM_udata:
+	case DW_FORM_loclistx:
+	case DW_FORM_rnglistx:
 		atref.u[0].u64 = _dwarf_read_uleb128(ds->ds_data, offsetp);
 		break;
 	case DW_FORM_sdata:
@@ -183,9 +186,7 @@ _dwarf_attr_init(Dwarf_Debug dbg, Dwarf_Section *ds, uint64_t *offsetp,
 		break;
 	case DW_FORM_strp:
 		atref.u[0].u64 = dbg->read(ds->ds_data, offsetp, dwarf_size);
-		str = _dwarf_find_section(dbg, ".debug_str");
-		assert(str != NULL);
-		atref.u[1].s = (char *) str->ds_data + atref.u[0].u64;
+		atref.u[1].s = _dwarf_strtab_get_table(dbg) + atref.u[0].u64;
 		break;
 	case DW_FORM_ref_sig8:
 		atref.u[0].u64 = 8;
@@ -196,6 +197,61 @@ _dwarf_attr_init(Dwarf_Debug dbg, Dwarf_Section *ds, uint64_t *offsetp,
 		/* This form has no value encoded in the DIE. */
 		atref.u[0].u64 = 1;
 		break;
+	case DW_FORM_strx:
+		atref.u[0].u64 = _dwarf_read_uleb128(ds->ds_data, offsetp);
+		break;
+	case DW_FORM_addrx:
+		atref.u[0].u64 = _dwarf_read_uleb128(ds->ds_data, offsetp);
+		/* TODO: .debug_addr */
+		break;
+	case DW_FORM_strp_sup:
+		atref.u[0].u64 = dbg->read(ds->ds_data, offsetp, dwarf_size);
+		/* TODO: supplementary object file. */
+		break;
+	case DW_FORM_data16:
+		atref.u[0].u64 = 16;
+		atref.u[1].u8p = _dwarf_read_block(ds->ds_data, offsetp,
+		    atref.u[0].u64);
+		break;
+	case DW_FORM_line_strp:
+		atref.u[0].u64 = dbg->read(ds->ds_data, offsetp, dwarf_size);
+		atref.u[1].s = _dwarf_strtab_get_line_table(dbg) +
+		    atref.u[0].u64;
+		break;
+	case DW_FORM_implicit_const:
+		/* DWARF5 7.5.3 Implicit constant stored in attrdef.
+		   This form has no value encoded in the DIE. */
+		atref.u[0].s64 = ad->ad_const;
+		break;
+	case DW_FORM_strx1:
+		atref.u[0].u64 = dbg->read(ds->ds_data, offsetp, 1);
+		break;
+	case DW_FORM_strx2:
+		atref.u[0].u64 = dbg->read(ds->ds_data, offsetp, 1);
+		break;
+	case DW_FORM_strx3:
+		atref.u[0].u64 = dbg->read(ds->ds_data, offsetp, 3);
+		break;
+	case DW_FORM_strx4:
+		atref.u[0].u64 = dbg->read(ds->ds_data, offsetp, 4);
+		break;
+	case DW_FORM_addrx1:
+		atref.u[0].u64 = dbg->read(ds->ds_data, offsetp, 1);
+		/* TODO: .debug_addr */
+		break;
+	case DW_FORM_addrx2:
+		atref.u[0].u64 = dbg->read(ds->ds_data, offsetp, 2);
+		/* TODO: .debug_addr */
+		break;
+	case DW_FORM_addrx3:
+		atref.u[0].u64 = dbg->read(ds->ds_data, offsetp, 3);
+		/* TODO: .debug_addr */
+		break;
+	case DW_FORM_addrx4:
+		atref.u[0].u64 = dbg->read(ds->ds_data, offsetp, 4);
+		/* TODO: .debug_addr */
+		break;
+
 	default:
 		DWARF_SET_ERROR(dbg, error, DW_DLE_ATTR_FORM_BAD);
 		ret = DW_DLE_ATTR_FORM_BAD;

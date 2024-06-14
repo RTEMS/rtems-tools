@@ -1,6 +1,6 @@
 /*-
  * Copyright (c) 2007 John Birrell (jb@freebsd.org)
- * Copyright (c) 2009-2011,2014 Kai Wang
+ * Copyright (c) 2009-2011,2014,2023 Kai Wang
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -24,7 +24,7 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- * $Id: libdwarf.h 3578 2017-09-14 02:21:28Z emaste $
+ * $Id: libdwarf.h 4019 2023-10-22 03:06:17Z kaiwang27 $
  */
 
 #ifndef	_LIBDWARF_H_
@@ -125,6 +125,10 @@ typedef struct {
 typedef struct {
 	char signature[8];
 } Dwarf_Sig8;
+
+typedef struct {
+	unsigned char fd_data[16];
+} Dwarf_Form_Data16;
 
 typedef struct {
 	Dwarf_Unsigned	bl_len;
@@ -335,6 +339,9 @@ enum {
 	DW_DLE_ARANGE_OFFSET_BAD,	/* Invalid arange offset. */
 	DW_DLE_DEBUG_MACRO_INCONSISTENT,/* Invalid macinfo data. */
 	DW_DLE_ELF_SECT_ERR,		/* Application callback failed. */
+	DW_DLE_DIR_COUNT_BAD,		/* Invalid directory count. */
+	DW_DLE_FILE_COUNT_BAD,		/* Invalid filename count. */
+	DW_DLE_LNCT_DESC_BAD,		/* Invalid LNCT descriptor. */
 	DW_DLE_NUM			/* Max error number. */
 };
 
@@ -599,6 +606,7 @@ int		dwarf_get_MACINFO_name(unsigned, const char **);
 int		dwarf_get_OP_name(unsigned, const char **);
 int		dwarf_get_ORD_name(unsigned, const char **);
 int		dwarf_get_TAG_name(unsigned, const char **);
+int		dwarf_get_UT_name(unsigned, const char **);
 int		dwarf_get_VIRTUALITY_name(unsigned, const char **);
 int		dwarf_get_VIS_name(unsigned, const char **);
 int		dwarf_get_abbrev(Dwarf_Debug, Dwarf_Unsigned, Dwarf_Abbrev *,
@@ -761,6 +769,10 @@ int		dwarf_next_cu_header_c(Dwarf_Debug, Dwarf_Bool,
 		    Dwarf_Unsigned *, Dwarf_Half *, Dwarf_Off *, Dwarf_Half *,
 		    Dwarf_Half *, Dwarf_Half *, Dwarf_Sig8 *, Dwarf_Unsigned *,
 		    Dwarf_Unsigned *, Dwarf_Error *);
+int		dwarf_next_cu_header_d(Dwarf_Debug, Dwarf_Bool,
+		    Dwarf_Unsigned *, Dwarf_Half *, Dwarf_Off *, Dwarf_Half *,
+		    Dwarf_Half *, Dwarf_Half *, Dwarf_Sig8 *, Dwarf_Unsigned *,
+		    Dwarf_Unsigned *, Dwarf_Half *, Dwarf_Error *);
 int		dwarf_next_types_section(Dwarf_Debug, Dwarf_Error *);
 int		dwarf_object_finish(Dwarf_Debug, Dwarf_Error *);
 int		dwarf_object_init(Dwarf_Obj_Access_Interface *, Dwarf_Handler,

@@ -22,11 +22,11 @@
 .\" OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
 .\" SUCH DAMAGE.
 .\"
-.\" $Id: dwarf_end_macro_file.3 2073 2011-10-27 03:30:47Z jkoshy $
+.\" $Id: dwarf_end_macro_file.3 3962 2022-03-12 15:56:10Z jkoshy $
 .\"
 .Dd September 25, 2011
-.Os
 .Dt DWARF_END_MACRO_FILE 3
+.Os
 .Sh NAME
 .Nm dwarf_end_macro_file
 .Nd mark the end of the current source file inclusion
@@ -38,7 +38,6 @@
 .Fo dwarf_end_macro_file
 .Fa "Dwarf_P_Debug dbg"
 .Fa "Dwarf_Error *err"
-.Fa
 .Fc
 .Sh DESCRIPTION
 Function
@@ -46,16 +45,17 @@ Function
 marks the end of the current source file inclusion.
 .Pp
 Argument
-.Ar dbg
+.Fa dbg
 should reference a DWARF producer instance allocated using
 .Xr dwarf_producer_init 3
 or
 .Xr dwarf_producer_init_b 3 .
 .Pp
 If argument
-.Ar err
-is not NULL, it will be used to store error information in case of an
-error.
+.Fa err
+is not
+.Dv NULL ,
+it will be used to store error information in case of an error.
 .Sh RETURN VALUES
 On success, function
 .Fn dwarf_end_macro_file
@@ -66,7 +66,7 @@ In case of an error, function
 returns
 .Dv DW_DLV_ERROR
 and sets the argument
-.Ar err .
+.Fa err .
 .Sh ERRORS
 Function
 .Fn dwarf_end_macro_file
@@ -74,8 +74,9 @@ can fail with:
 .Bl -tag -width ".Bq Er DW_DLE_ARGUMENT"
 .It Bq Er DW_DLE_ARGUMENT
 Argument
-.Ar dbg
-was NULL.
+.Fa dbg
+was
+.Dv NULL .
 .It Bq Er DW_DLE_MEMORY
 An out of memory condition was encountered during the execution of the
 function.

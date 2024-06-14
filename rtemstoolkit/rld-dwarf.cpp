@@ -332,7 +332,7 @@ namespace rld
         dranges (nullptr),
         dranges_count (0)
     {
-      load (die);
+      load (die, false);
     }
 
     address_ranges::address_ranges (file& debug, dwarf_offset offset)
@@ -341,7 +341,7 @@ namespace rld
         dranges (nullptr),
         dranges_count (0)
     {
-      load (offset);
+      load (offset, false);
     }
 
     address_ranges::address_ranges (const address_ranges& orig)
@@ -350,7 +350,7 @@ namespace rld
         dranges (nullptr),
         dranges_count (0)
     {
-      load (orig.offset);
+      load (orig.offset, false);
     }
 
     address_ranges::~address_ranges ()
@@ -384,7 +384,7 @@ namespace rld
           return false;
         libdwarf_error_check ("rld:dwarf::address_ranges:load", dr, de);
       }
-      load (offset);
+      load (offset, error);
       return true;
     }
 
@@ -1388,6 +1388,8 @@ namespace rld
       dr = ::dwarf_siblingof (debug, die, ret_die, &de);
       if (dr == DW_DLV_NO_ENTRY)
         return false;
+      if (dr == DW_DLV_ERROR && de.err_error == DW_DLE_DIE_NO_CU_CONTEXT)
+        return false;
       libdwarf_error_check ("compilation_unit::sibling", dr, de);
       sibling_die = ret_die;
       return true;
@@ -1560,7 +1562,7 @@ namespace rld
                   dr = ::dwarf_global_formref (attributes[a], &v_offset, &de);
                   libdwarf_error_check ("debug_info_entry::dump", dr, de);
                   out << ' ';
-                  v_ranges.load (v_offset);
+                  v_ranges.load (v_offset, false);
                   v_ranges.dump (out);
                   break;
                 default:
@@ -1629,9 +1631,9 @@ namespace rld
         die_offset (die.offset ()),
         source_ (debug, die_offset)
     {
-      die.attribute (DW_AT_name, name_);
+      die.attribute (DW_AT_name, name_, false);
 
-      die.attribute (DW_AT_producer, producer_);
+      die.attribute (DW_AT_producer, producer_, false);
 
       ranges_.load (die, false);
 
@@ -2127,7 +2129,7 @@ namespace rld
 
           if (ret_die.tag () == DW_TAG_compile_unit)
           {
-            cus.push_back (compilation_unit (*this, ret_die, cu_offset));
+            cus.emplace_back (*this, ret_die, cu_offset);
             break;
           }
 

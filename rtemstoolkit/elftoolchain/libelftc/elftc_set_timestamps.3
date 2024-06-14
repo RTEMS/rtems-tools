@@ -24,8 +24,8 @@
 .\" $Id$
 .\"
 .Dd December 15, 2011
-.Os
 .Dt ELFTC_SET_TIMESTAMPS 3
+.Os
 .Sh NAME
 .Nm elftc_set_timestamps
 .Nd set file timestamps
@@ -44,11 +44,11 @@ based on the contents of a
 descriptor.
 .Pp
 Argument
-.Ar filename
+.Fa filename
 names an existing file in the file system.
 .Pp
 Argument
-.Ar sb
+.Fa sb
 points to structure of type
 .Vt "struct stat"
 populated by a prior call to
@@ -81,4 +81,4 @@ if (elftc_set_timestamps(new_filename, &sb) < 0)
 .Xr fstat 2 ,
 .Xr stat 2 ,
 .Xr utime 2 ,
-.Xr utimes 2 .
+.Xr utimes 2

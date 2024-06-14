@@ -24,6 +24,8 @@
  * SUCH DAMAGE.
  */
 
+/*@ELFTC-INCLUDE-SYS-CDEFS@*/
+
 #include <gelf.h>
 #include <libelf.h>
 #include <limits.h>
@@ -31,7 +33,9 @@
 
 #include "_libelf.h"
 
-ELFTC_VCSID("$Id: gelf_phdr.c 3576 2017-09-14 02:15:29Z emaste $");
+ELFTC_VCSID("$Id: gelf_phdr.c 3977 2022-05-01 06:45:34Z jkoshy $");
+
+/*@ELFTC-USE-DOWNSTREAM-VCSID@*/
 
 Elf32_Phdr *
 elf32_getphdr(Elf *e)

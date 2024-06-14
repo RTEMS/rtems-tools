@@ -26,7 +26,7 @@
 
 #include "_libdwarf.h"
 
-ELFTC_VCSID("$Id: libdwarf_frame.c 3589 2018-03-13 20:34:33Z kaiwang27 $");
+ELFTC_VCSID("$Id: libdwarf_frame.c 3804 2020-02-07 02:13:34Z emaste $");
 
 static int
 _dwarf_frame_find_cie(Dwarf_FrameSec fs, Dwarf_Unsigned offset,
@@ -468,9 +468,9 @@ _dwarf_frame_section_init(Dwarf_Debug dbg, Dwarf_FrameSec *frame_sec,
 
 		if (length > ds->ds_size - offset ||
 		    (length == 0 && !eh_frame)) {
-			DWARF_SET_ERROR(dbg, error,
-			    DW_DLE_DEBUG_FRAME_LENGTH_BAD);
-			return (DW_DLE_DEBUG_FRAME_LENGTH_BAD);
+			ret = DW_DLE_DEBUG_FRAME_LENGTH_BAD;
+			DWARF_SET_ERROR(dbg, error, ret);
+			goto fail_cleanup;
 		}
 
 		/* Check terminator for .eh_frame */
