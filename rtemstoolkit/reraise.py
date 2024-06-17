@@ -33,7 +33,8 @@ from __future__ import print_function
 import sys
 
 #
-# The following fragment is taken from https://bitbucket.org/gutworth/six
+# The following fragment is taken from
+# https://github.com/benjaminp/six/blob/master/six.py#L710
 # to raise an exception. The python2 code cause a syntax error with python3.
 #
 # Copyright (c) 2010-2016 Benjamin Peterson
@@ -56,13 +57,31 @@ import sys
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 #
-# Taken from six.
 #
-if sys.version_info[0] == 3:
-    def reraise(tp, value, tb = None):
-        raise value.with_traceback(tb)
+import sys
+
+PY3 = sys.version_info[0] == 3
+
+
+if PY3:
+# Not sure why this is here the default 'exec' in Python 3 will work fine
+# moves is an internal class to Six that we do not need.  It's also not used.
+#    exec_ = getattr(moves.builtins, "exec")
+
+    def reraise(tp, value, tb=None):
+        try:
+            if value is None:
+                value = tp()
+            if value.__traceback__ is not tb:
+                raise value.with_traceback(tb)
+            raise value
+        finally:
+            value = None
+            tb = None
+
 else:
-    def exec_(_code_, _globs_ = None, _locs_ = None):
+    def exec_(_code_, _globs_=None, _locs_=None):
+        """Execute code in a namespace."""
         if _globs_ is None:
             frame = sys._getframe(1)
             _globs_ = frame.f_globals
@@ -73,8 +92,11 @@ else:
             _locs_ = _globs_
         exec("""exec _code_ in _globs_, _locs_""")
 
-    exec_("""def reraise(tp, value, tb = None):
-    raise tp, value, tb
+    exec_("""def reraise(tp, value, tb=None):
+    try:
+        raise tp, value, tb
+    finally:
+        tb = None
 """)
 
 if __name__ == "__main__":
