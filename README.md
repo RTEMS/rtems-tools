@@ -40,7 +40,7 @@ To build and install:
 Testing
 -------
 
-To run the tests:
+To run the tests first install pytest https://pytest.org/ and then:
 
 ```
   # ./waf configure
