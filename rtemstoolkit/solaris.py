@@ -82,8 +82,3 @@ def overrides():
     defines['_build_arch']   = defines['_host_arch']
 
     return defines
-
-if __name__ == '__main__':
-    import pprint
-    pprint.pprint(cpus())
-    pprint.pprint(overrides())

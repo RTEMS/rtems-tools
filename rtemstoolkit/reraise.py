@@ -98,32 +98,3 @@ else:
     finally:
         tb = None
 """)
-
-if __name__ == "__main__":
-    try:
-        import threading
-        import time
-        result = None
-        finished = False
-        def _thread():
-            global finished
-            global result
-            try:
-                raise ValueError('raised inside a thread, reaise is working')
-            except:
-                result = sys.exc_info()
-            finished = True
-        thread = threading.Thread(target = _thread, name = 'test')
-        thread.start()
-        while not finished:
-            time.sleep(0.05)
-        if result is not None:
-            reraise(*result)
-        else:
-            print('error: no exception raised and caught')
-    except ValueError as ve:
-        print('exception caught: %s' % (str(ve)))
-    except KeyboardInterrupt:
-        print('abort: user terminated')
-    except:
-        print('unknown exception caught')

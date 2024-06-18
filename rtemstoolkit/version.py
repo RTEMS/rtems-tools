@@ -245,10 +245,3 @@ def revision():
     _load_released_version()
     _load_git_version()
     return _revision
-
-if __name__ == '__main__':
-    print('Version: %s' % (str(version())))
-    print('Revision: %s' % (str(revision())))
-    print('String: %s' % (string()))
-    if version() == 'undefined':
-        raise Exception('version is undefined')

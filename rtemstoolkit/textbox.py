@@ -96,19 +96,3 @@ def merge_columns(columns):
                 else:
                     columns[c] = columns[c][1:]
     return cols
-
-if __name__ == '__main__':
-    width = 75
-    cols_1 = [width]
-    cols_2 = [10, width - 10]
-    cols_3 = even_columns(3, width = width)
-    cols_4 = even_columns(4, width = width)
-    print(line(cols_1, marker = 'X', linesep = ''))
-    print(line(cols_1, marker = '+', indent = 1, linesep = ''))
-    print(line(cols_1, marker = '+', indent = 2, linesep = ''))
-    print(line(cols_2, marker = '+', indent = 2, linesep = ''))
-    print(line(cols_3, marker = '+', indent = 2, linesep = ''))
-    print(line(cols_4, marker = '+', indent = 2, linesep = ''))
-    print(row(cols_4, [' %d' % (i) for i in [1, 2, 3, 4]], indent = 2, linesep = ''))
-    print(line(cols_4, marker = '+', indent = 2, linesep = ''))
-    print(line(merge_columns([cols_2, cols_3, cols_4]), indent = 2, linesep = ''))

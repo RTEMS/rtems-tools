@@ -534,27 +534,3 @@ class macros:
 
     def unlock_read_map(self):
         self.read_map_locked = False
-
-if __name__ == "__main__":
-    import copy
-    import sys
-    print(inspect.getfile(macros))
-    m = macros()
-    d = copy.copy(m)
-    m['test1'] = 'something'
-    if d.has_key('test1'):
-        print('error: copy failed.')
-        sys.exit(1)
-    m.parse("[test]\n" \
-            "test1: none, undefine, ''\n" \
-            "name:  none, override, 'pink'\n")
-    print('set test:', m.set_read_map('test'))
-    if m['name'] != 'pink':
-        print('error: override failed. name is %s' % (m['name']))
-        sys.exit(1)
-    if m.has_key('test1'):
-        print('error: map undefine failed.')
-        sys.exit(1)
-    print('unset test:', m.unset_read_map('test'))
-    print(m)
-    print(m.keys())

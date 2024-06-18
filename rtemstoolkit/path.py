@@ -430,20 +430,3 @@ def get_humanize_size(path, depth = -1):
             return "%5.3f%sB" % (size, unit)
         size /= 1024.0
     return "%.3f%sB" % (size, 'Y')
-
-if __name__ == '__main__':
-    print(host('/a/b/c/d-e-f'))
-    print(host('//a/b//c/d-e-f'))
-    print(shell('/w/x/y/z'))
-    print(basename('/as/sd/df/fg/me.txt'))
-    print(dirname('/as/sd/df/fg/me.txt'))
-    print(join('/d', 'g', '/tyty/fgfg'))
-    windows = True
-    print(host('/a/b/c/d-e-f'))
-    print(host('//a/b//c/d-e-f'))
-    print(shell('/w/x/y/z'))
-    print(shell('w:/x/y/z'))
-    print(basename('x:/sd/df/fg/me.txt'))
-    print(dirname('x:/sd/df/fg/me.txt'))
-    print(join('s:/d/', '/g', '/tyty/fgfg'))
-    print(join('s:/d/e\\f/g', '/h', '/tyty/zxzx', '\\mm\\nn/p'))

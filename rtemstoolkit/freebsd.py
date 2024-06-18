@@ -96,8 +96,3 @@ def overrides():
             break
 
     return defines
-
-if __name__ == '__main__':
-    import pprint
-    pprint.pprint(cpus())
-    pprint.pprint(overrides())

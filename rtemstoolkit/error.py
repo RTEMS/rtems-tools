@@ -55,13 +55,3 @@ class exit(error):
     """Raise for to exit."""
     def __init__(self):
         pass
-
-if __name__ == '__main__':
-    try:
-        raise general('a general error')
-    except general as gerr:
-        print('caught:', gerr)
-    try:
-        raise internal('an internal error')
-    except internal as ierr:
-        print('caught:', ierr)

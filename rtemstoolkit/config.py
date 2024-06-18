@@ -828,35 +828,3 @@ class file(object):
 
     def file_name(self):
         return self.init_name
-
-def run():
-    import sys
-    try:
-        #
-        # Run where defaults.mc is located
-        #
-        long_opts = {
-            # key              macro        handler   param  defs   init
-            '--file'  :      ('_file',      'path',   True,  None,  False)
-        }
-        opts = options.command_line(base_path = '.',
-                                    argv = sys.argv,
-                                    long_opts = long_opts)
-        options.load(opts)
-        s = file(opts.defaults['_file'], opts)
-        s.load(opts.defaults['_file'])
-        print(s)
-        del s
-    except error.general as gerr:
-        print(gerr)
-        sys.exit(1)
-    except error.internal as ierr:
-        print(ierr)
-        sys.exit(1)
-    except KeyboardInterrupt:
-        log.notice('abort: user terminated')
-        sys.exit(1)
-    sys.exit(0)
-
-if __name__ == "__main__":
-    run()

@@ -149,31 +149,3 @@ def check_exe(label, exe, silent = True):
 
 def check_dir(label, path, silent = True):
     return _check_dir(None, label, path, 'required', silent)
-
-
-def run(args):
-    import sys
-    try:
-        _opts = options.command_line(argv = args)
-        options.load(_opts)
-        log.notice('RTEMS Toolkit - Check, v%s' % (version.string()))
-        if host_setup(_opts):
-            print('Environment is ok')
-        else:
-            print('Environment is not correctly set up')
-    except error.general as gerr:
-        print(gerr)
-        sys.exit(1)
-    except error.internal as ierr:
-        print (ierr)
-        sys.exit(1)
-    except error.exit:
-        pass
-    except KeyboardInterrupt:
-        log.notice('abort: user terminated')
-        sys.exit(1)
-    sys.exit(0)
-
-
-if __name__ == '__main__':
-    run(['tester'])

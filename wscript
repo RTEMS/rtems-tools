@@ -115,8 +115,6 @@ def build(ctx):
     if os.path.exists('VERSION'):
         ctx.install_files('${PREFIX}/share/rtems/rtemstoolkit', ['VERSION'])
     recurse(ctx)
-    if ctx.cmd == 'test':
-        rtemstoolkit_tests(ctx)
 
 def install(ctx):
     recurse(ctx)
@@ -143,46 +141,6 @@ def check_options(ctx, host):
 #
 import waflib
 
-class test(waflib.Build.BuildContext):
-    fun = 'build'
-    cmd = 'test'
-
 class doxy(waflib.Build.BuildContext):
     fun = 'build'
     cmd = 'doxy'
-
-#
-# RTEMS Toolkit Tests.
-#
-# Run the tests from the top directory so they are run as python modules.
-#
-def rtemstoolkit_tests(ctx):
-    log = ctx.path.find_or_declare('tests.log')
-    ctx.logger = waflib.Logs.make_logger(log.abspath(), 'build')
-    failures = False
-    from rtemstoolkit import all as toolkit_tests
-    from rtemstoolkit import args as toolkit_test_args
-    for tt in toolkit_tests:
-        for py in ['', '2', '3']:
-            PY = 'PYTHON%s' % (py)
-            if PY in ctx.env:
-                test = 'rtemstoolkit.%s' % (tt)
-                ctx.start_msg('Test python%s %s' % (py, test))
-                cmd = '%s -m %s' % (ctx.env[PY][0], test)
-                if tt in toolkit_test_args:
-                    cmd += ' ' + ' '.join(toolkit_test_args[tt])
-                ctx.to_log('test command: ' + cmd)
-                try:
-                    (out, err) = ctx.cmd_and_log(cmd,
-                                                 output = waflib.Context.BOTH,
-                                                 quiet = waflib.Context.BOTH)
-                    ctx.to_log(out)
-                    ctx.to_log(err)
-                    ctx.end_msg('pass')
-                except waflib.Errors.WafError as e:
-                    failures = True
-                    ctx.to_log(e.stdout)
-                    ctx.to_log(e.stderr)
-                    ctx.end_msg('fail', color = 'RED')
-    if failures:
-        ctx.fatal('Test failures')

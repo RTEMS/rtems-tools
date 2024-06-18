@@ -227,22 +227,3 @@ class mail:
         if intro is not None:
             body = intro + body
         self.send(to_addr, from_addr, body)
-
-if __name__ == '__main__':
-    import sys
-    from rtemstoolkit import macros
-    optargs = {}
-    rtdir = 'rtemstoolkit'
-    defaults = '%s/defaults.mc' % (rtdir)
-    append_options(optargs)
-    opts = options.command_line(base_path = '.',
-                                argv = sys.argv,
-                                optargs = optargs,
-                                defaults = macros.macros(name = defaults, rtdir = rtdir),
-                                command_path = '.')
-    options.load(opts)
-    m = mail(opts)
-    print('From: %s' % (m.from_address()))
-    print('SMTP Host: %s' % (m.smtp_host()))
-    if '--mail' in sys.argv:
-        m.send(m.from_address(), 'Test mailer.py', 'This is a test')

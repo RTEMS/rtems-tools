@@ -210,22 +210,3 @@ class repo:
             if l1.startswith('commit '):
                 hash = l1[len('commit '):]
         return hash
-
-if __name__ == '__main__':
-    import sys
-    from rtemstoolkit import options
-    long_opts = {
-       # key              macro        handler   param  defs   init
-    }
-    opts = options.command_line(base_path = '.',
-                                argv = sys.argv,
-                                long_opts = long_opts)
-    options.load(opts)
-    g = repo('.', opts)
-    print('version:', g.git_version())
-    print('valid:', g.valid())
-    print('status:', g.status())
-    print('dirty:', g.dirty())
-    print('remotes:', g.remotes())
-    print('email:', g.email())
-    print('head:', g.head())

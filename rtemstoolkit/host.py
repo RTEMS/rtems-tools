@@ -103,17 +103,3 @@ def label(mode = 'all'):
     if mode == 'all':
         return '%s (%s)' % (compact, extended)
     raise error.general('invalid platform mode: %s' % (mode))
-
-if __name__ == '__main__':
-    import pprint
-    print('Python\'s OS name: %s' % (os.name))
-    load()
-    print('Name      : %s' % (name))
-    if is_windows:
-        status = 'Yes'
-    else:
-        status = 'No'
-    print('Windows   : %s' % (status))
-    print('CPUs      : %d' % (cpus()))
-    print('Overrides :')
-    pprint.pprint(overrides())

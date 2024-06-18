@@ -132,8 +132,3 @@ def overrides():
         '___setup_shell': ('exe',     'required', '%{__sh}')
         }
     return defines
-
-if __name__ == '__main__':
-    import pprint
-    pprint.pprint(cpus())
-    pprint.pprint(overrides())
