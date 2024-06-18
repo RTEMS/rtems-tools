@@ -24,13 +24,14 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-
 import pytest
 import sys
 import os
 
+
 def _get_top():
     return os.path.dirname(os.path.abspath(__file__))
+
 
 ALL = set("darwin linux win32".split())
 
@@ -53,6 +54,15 @@ def pytest_runtest_setup(item):
 def rt_topdir():
     """Top rtems-tools directory"""
     return _get_top()
+
+
+@pytest.fixture()
+def patch_argv(rt_topdir):
+    """Fake running as an executable file"""
+    sys.argv = [os.path.join(rt_topdir, "somefile")]
+
+    # Used for nicer debug output
+    return rt_topdir
 
 
 def pytest_configure(config):

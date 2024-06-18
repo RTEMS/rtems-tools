@@ -27,26 +27,20 @@
 import os
 import re
 import sys
-
 import pytest
 
+
+from rtemstoolkit import version
 
 @pytest.skip("rtemstoolkit/version.py uses globals", allow_module_level=True)
 # Since we aren't executing this from a binary we need to hack
 # a file path in.
 
-@pytest.fixture(autouse=True)
-def patch_argv(rt_topdir):
-    sys.argv = os.path.join(rt_topdir, "somefile")
-
-
 def test_version(rt_topdir, patch_argv):
-    sys.argv = os.path.join(rt_topdir, "somefile")
-
-    from rtemstoolkit import version
     assert type(version.version()) is int
 
-def test_revision():
+
+def test_revision(patch_argv):
     revision = version.revision()
 
     # The version can sometimes have -modified at the end if there are changes
@@ -55,9 +49,9 @@ def test_revision():
     assert len(revision) == 12 or 21
 
 
-def test_string():
+def test_string(patch_argv):
     assert re.match("^[0-9]* \\([a-z0-9].*\\)$", version.string())
 
 
-def test_undefined():
+def test_undefined(patch_argv):
     assert version.version() != "undefined"
