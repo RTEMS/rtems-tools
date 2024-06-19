@@ -32,14 +32,13 @@ import pytest
 
 from rtemstoolkit import version
 
-@pytest.skip("rtemstoolkit/version.py uses globals", allow_module_level=True)
-# Since we aren't executing this from a binary we need to hack
-# a file path in.
 
+@pytest.mark.xfail(reason="Failure due to globals")
 def test_version(rt_topdir, patch_argv):
     assert type(version.version()) is int
 
 
+@pytest.mark.xfail(reason="Failure due to globals")
 def test_revision(patch_argv):
     revision = version.revision()
 
@@ -49,9 +48,11 @@ def test_revision(patch_argv):
     assert len(revision) == 12 or 21
 
 
+@pytest.mark.xfail(reason="Failure due to globals")
 def test_string(patch_argv):
     assert re.match("^[0-9]* \\([a-z0-9].*\\)$", version.string())
 
 
+@pytest.mark.xfail(reason="Failure due to globals")
 def test_undefined(patch_argv):
     assert version.version() != "undefined"
