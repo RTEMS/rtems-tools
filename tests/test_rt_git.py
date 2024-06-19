@@ -33,6 +33,7 @@ from rtemstoolkit import git
 from rtemstoolkit import options
 
 
+@pytest.mark.git
 class TestClass:
 
     @classmethod

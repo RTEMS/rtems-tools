@@ -33,13 +33,18 @@ def _get_top():
     return os.path.dirname(os.path.abspath(__file__))
 
 
-ALL = set("darwin linux win32".split())
+def _get_git():
+    if os.path.exists(os.path.join(_get_top(), "VERSION")):
+        return False
+    return True
 
 
 # Always find the parent directory of rtemstoolkit/ no matter where
 # pytest is run.
 def pytest_runtest_setup(item):
     sys.path.append(_get_top())
+
+    git = _get_git()
 
     mark_map = [mark.name for mark in item.iter_markers()]
 
@@ -48,6 +53,9 @@ def pytest_runtest_setup(item):
 
     if "unix" in mark_map and sys.platform == "win32":
         pytest.skip("Skipping UNIX test")
+
+    if "git" in mark_map and not _get_git():
+        pytest.skip("Skipping Git tests in release version")
 
 
 @pytest.fixture
@@ -68,3 +76,5 @@ def patch_argv(rt_topdir):
 def pytest_configure(config):
     config.addinivalue_line("markers", "win32: Only run test on Windows")
     config.addinivalue_line("markers", "unix: Only run test on UNIX")
+    config.addinivalue_line("markers",
+                            "git: Git tests only run in devel version")
