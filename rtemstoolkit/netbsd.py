@@ -65,7 +65,6 @@ def overrides():
         '__bash':            ('exe',     'optional', '/usr/pkg/bin/bash'),
         '__bison':           ('exe',     'required', '/usr/pkg/bin/bison'),
         '__git':             ('exe',     'required', '/usr/pkg/bin/git'),
-        '__svn':             ('exe',     'required', '/usr/pkg/bin/svn'),
         '__xz':              ('exe',     'optional', '/usr/pkg/bin/xz'),
         '__make':            ('exe',     'required', 'gmake'),
         '__patch_opts':      ('none',     'none',    '-E')
