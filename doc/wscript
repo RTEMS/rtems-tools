@@ -3,7 +3,6 @@
 #
 
 import os
-import os.path
 
 version = "1.0.0"
 
@@ -14,12 +13,42 @@ def configure(ctx):
     ctx.env.ASCIIDOC_FLAGS = ['-b', 'html5', '-a', 'data-uri',
                               '-a', 'icons', '-a', 'max-width=55em-a']
 
+    ctx.env.BIN_PDOC = ctx.find_program(['pdoc'], mandatory=False)
+
+    ctx.env.BIN_PYTHON = ctx.find_program(['python'], mandatory=False)
+
+
+def options(ctx):
+    ctx.load('python')
+
+
+def api_doc(ctx):
+    ctx(
+        rule = '${BIN_PDOC} --logo rtemswhitebg.jpg ${SRC} -o api',
+        source=ctx.path.parent.ant_glob('rtemstoolkit/*.py'),
+        target='api/rtemstoolkit.html',
+    )
+
+    ctx(
+        features='subst',
+        source='images/rtemswhitebg.jpg',
+        target='api/rtemswhitebg.jpg',
+        is_copy=True
+    )
+
+
 def build(ctx):
-    ctx(target = 'rtems-tester.html', source = 'rtems-tester.txt')
+    if ctx.env.BIN_PYTHON:
+        ctx(target = 'rtems-tester.html', source = 'rtems-tester.txt')
+
+    if ctx.env.BIN_PDOC:
+        api_doc(ctx)
+
+
 
 import waflib.TaskGen
 waflib.TaskGen.declare_chain(name      = 'html',
-                             rule      = 'python ${ASCIIDOC} ${ASCIIDOC_FLAGS} -o ${TGT} ${SRC}',
+                             rule      = '${BIN_PYTHON} ${ASCIIDOC} ${ASCIIDOC_FLAGS} -o ${TGT} ${SRC}',
                              shell     = False,
                              ext_in    = '.txt',
                              ext_out   = '.html',
