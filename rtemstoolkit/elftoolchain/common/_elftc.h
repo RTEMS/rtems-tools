@@ -300,13 +300,18 @@ struct name {							\
 #define	ELFTC_VCSID(ID)		__FBSDID(ID)
 
 #elif defined(__APPLE__) || defined(__OpenBSD__) || defined(__GLIBC__) || \
-    defined(__GNU__) || defined(__linux__) || defined(__minix)
+    defined(__GNU__) || defined(__linux__) || defined(__minix) || \
+    defined(__CYGWIN__)
 
 #if defined(__GNUC__)
 #define	ELFTC_VCSID(ID)		__asm__(".ident\t\"" ID "\"")
 #else
 #define	ELFTC_VCSID(ID)		/**/
 #endif
+
+#else
+
+#define	ELFTC_VCSID(ID)		/**/
 
 #endif
 
