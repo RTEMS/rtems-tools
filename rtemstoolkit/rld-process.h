@@ -131,9 +131,9 @@ namespace rld
 
       /**
        * Override the temp file name automatically assigned with this name. The
-       * suffix is appended.
+       * suffix is appended if requested.
        */
-      void override (const std::string& name);
+      void override (const std::string& name, bool append_suffix = true);
 
       /**
        * Set the temp file keep state to true so it is not deleted.

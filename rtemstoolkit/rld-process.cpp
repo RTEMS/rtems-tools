@@ -219,13 +219,15 @@ namespace rld
     }
 
     void
-    tempfile::override (const std::string& name_)
+    tempfile::override (const std::string& name_, bool append_suffix)
     {
       if (fd >= 0)
         throw rld::error ("Already open", "tempfile override");
       rld::path::unlink (_name);
       overridden = true;
-      _name = name_ + suffix;
+      _name = name_;
+      if (append_suffix)
+        _name += suffix;
     }
 
     void
