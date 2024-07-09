@@ -688,7 +688,7 @@ main (int argc, char* argv[])
 
         if (!symc.empty ())
         {
-          c.override (symc);
+          c.override (symc, false);
           c.keep ();
         }
 
