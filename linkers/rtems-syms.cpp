@@ -321,8 +321,8 @@ output_sym::operator ()(const rld::symbols::symtab::value_type& value)
     case output_mode::tls_func:
       if (sym.type () == STT_TLS) {
         c.write_line ("#define RTEMS_TLS_INDEX_" + sym.name () + " " + std::to_string(index));
+        c.write_line ("extern __thread char "  + sym.name () +  "[];");
         c.write_line ("static size_t rtems_rtl_tls_" + sym.name () + "(void) {");
-        c.write_line ("  extern __thread char "  + sym.name () +  "[];");
         c.write_line ("  size_t tls_base = (size_t) rtems_rtl_tls_get_base ();");
         c.write_line ("  size_t tls_addr = (size_t) "  + sym.name () +  ";");
         c.write_line ("  return tls_addr - tls_base;");
