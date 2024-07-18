@@ -95,6 +95,15 @@ static const char* const c_sym_table_end[] =
   "asm(\"  .byte    0\");",
   "asm(\"  .ascii   \\\"\\xde\\xad\\xbe\\xef\\\"\");",
   "",
+  "/*",
+  " * Symbol table size.",
+  " */",
+  "asm(\"  .align   4\");",
+  "asm(\"  .local   rtems__rtl_base_globals_size\");",
+  "asm(\"rtems__rtl_base_globals_size:\");",
+  "asm(\"  .long rtems__rtl_base_globals_size - rtems__rtl_base_globals\");",
+  "asm(\"  .popsection\");",
+  "",
   0
 };
 
@@ -115,15 +124,6 @@ static const char* const c_tls_call_table_end[] =
 
 static const char* const c_trailer[] =
 {
-  "/*",
-  " * Symbol table size.",
-  " */",
-  "asm(\"  .align   4\");",
-  "asm(\"  .local   rtems__rtl_base_globals_size\");",
-  "asm(\"rtems__rtl_base_globals_size:\");",
-  "asm(\"  .long rtems__rtl_base_globals_size - rtems__rtl_base_globals\");",
-  "asm(\"  .popsection\");",
-  "",
   0
 };
 
