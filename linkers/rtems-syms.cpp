@@ -75,7 +75,7 @@ static const char* const c_header[] =
   "} rtems_rtl_tls_offset;",
   "",
   "void rtems_rtl_base_sym_global_add (const unsigned char* , unsigned int,",
-  "                                    rtems_rtl_tls_offset*, size_t );",
+  "                                    const rtems_rtl_tls_offset*, size_t );",
   "",
   "asm(\".pushsection \\\".rodata\\\"\");",
   "",
@@ -100,7 +100,7 @@ static const char* const c_sym_table_end[] =
 
 static const char* const c_tls_call_table_start[] =
 {
-  "rtems_rtl_tls_offset rtems_rtl_tls_offsets[] = {",
+  "const rtems_rtl_tls_offset rtems_rtl_tls_offsets[] = {",
   0
 };
 
