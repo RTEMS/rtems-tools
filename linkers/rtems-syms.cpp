@@ -77,32 +77,39 @@ static const char* const c_header[] =
   "void rtems_rtl_base_sym_global_add (const unsigned char* , unsigned int,",
   "                                    const rtems_rtl_tls_offset*, size_t );",
   "",
-  "asm(\".pushsection \\\".rodata\\\"\");",
-  "",
-  "asm(\"  .align   4\");",
-  "asm(\"  .local   rtems__rtl_base_globals\");",
-  "asm(\"rtems__rtl_base_globals:\");",
-  "#if __mips__",
-  " asm(\"  .align 0\");",
+  "#if __SIZEOF_POINTER__ == 8",
+  "#define SYM_VALUE \".quad\"",
   "#else",
-  " asm(\"  .balign 1\");",
+  "#define SYM_VALUE \".long\"",
+  "#endif",
+  "",
+  "asm(",
+  "\"  .pushsection \\\".rodata\\\"\\n\"",
+  "\"  .align   4\\n\"",
+  "\"  .local   rtems__rtl_base_globals\\n\"",
+  "\"rtems__rtl_base_globals:\\n\"",
+  "#if __mips__",
+  "\"  .align 0\\n\"",
+  "#else",
+  "\"  .balign 1\\n\"",
   "#endif",
   0
 };
 
 static const char* const c_sym_table_end[] =
 {
-  "asm(\"  .byte    0\");",
-  "asm(\"  .ascii   \\\"\\xde\\xad\\xbe\\xef\\\"\");",
+  "\"  .byte    0\\n\"",
+  "\"  .ascii   \\\"\\xde\\xad\\xbe\\xef\\\"\\n\"",
   "",
   "/*",
   " * Symbol table size.",
   " */",
-  "asm(\"  .align   4\");",
-  "asm(\"  .local   rtems__rtl_base_globals_size\");",
-  "asm(\"rtems__rtl_base_globals_size:\");",
-  "asm(\"  .long rtems__rtl_base_globals_size - rtems__rtl_base_globals\");",
-  "asm(\"  .popsection\");",
+  "\"  .align   4\\n\"",
+  "\"  .local   rtems__rtl_base_globals_size\\n\"",
+  "\"rtems__rtl_base_globals_size:\\n\"",
+  "\"  .long rtems__rtl_base_globals_size - rtems__rtl_base_globals\\n\"",
+  "\"  .popsection\\n\"",
+  ");",
   "",
   0
 };
@@ -296,7 +303,7 @@ output_sym::operator ()(const rld::symbols::symtab::value_type& value)
        * Set TLS value to 0. It is filled in at run time by the call
        * table.
        */
-      c.write_line ("asm(\"  .asciz \\\"" + sym.name () + "\\\"\");");
+      c.write_line ("\"  .asciz \\\"" + sym.name () + "\\\"\\n\"");
       {
         std::string val;
         if (sym.type () == STT_TLS) {
@@ -311,11 +318,7 @@ output_sym::operator ()(const rld::symbols::symtab::value_type& value)
             val = oss.str ();
           }
         }
-        c.write_line ("#if __SIZEOF_POINTER__ == 8");
-        c.write_line ("asm(\"  .quad " + val + "\");");
-        c.write_line ("#else");
-        c.write_line ("asm(\"  .long " + val + "\");");
-        c.write_line ("#endif");
+        c.write_line ("\"  \" SYM_VALUE \" " + val + "\\n\"");
       }
       break;
     case output_mode::tls_func:
