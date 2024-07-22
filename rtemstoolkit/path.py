@@ -39,6 +39,7 @@ from __future__ import print_function
 import glob
 import os
 import shutil
+import stat
 import string
 import sys
 
