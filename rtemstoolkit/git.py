@@ -100,6 +100,18 @@ class repo:
             args = [args]
         ec, output = self._run(['reset'] + args, check = True)
 
+    def log(self, args):
+        if type(args) == str:
+            args = [args]
+        ec, output = self._run(['log'] + args, check = True)
+        return output
+
+    def show(self, args):
+        if type(args) == str:
+            args = [args]
+        ec, output = self._run(['show'] + args, check = True)
+        return output
+
     def branch(self):
         ec, output = self._run(['branch'])
         if ec == 0:
@@ -210,3 +222,12 @@ class repo:
             if l1.startswith('commit '):
                 hash = l1[len('commit '):]
         return hash
+
+    def validate_commit_hash(self, commit_hash):
+        #
+        # Returns true if valid and not ambiguous
+        #
+        ec, output = self._run(['cat-file', '-e', commit_hash])
+        if ec == 0:
+            return True
+        return False
