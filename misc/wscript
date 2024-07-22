@@ -79,6 +79,7 @@ def build(bld):
                   'tools/__init__.py',
                   'tools/boot.py',
                   'tools/tftpproxy.py',
+                  'tools/gen_acpica_patches.py',
                   'tools/getmac/__init__.py',
                   'tools/getmac/getmac.py'],
         install_from = '.',
@@ -86,6 +87,7 @@ def build(bld):
     bld.install_files('${PREFIX}/bin',
                       ['rtems-boot-image',
                        'rtems-tftp-proxy',
+                       'rtems-gen-acpica-patches',
                        'tools/mkimage.py'],
                       chmod = 0o755)
     bld.install_files('${PREFIX}/share/rtems/tools/config',
