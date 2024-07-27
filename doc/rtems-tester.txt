@@ -81,8 +81,8 @@ $ cd development/rtems/test
 First fetch the RTEMS tester from the RTEMS Tools repository:
 
 -------------------------------------------------------------
-$ git clone git://git.rtems.org/rtems-tools.git rtems-tools.git
-$ cd rtems-tools.git/tester
+$ git clone https://gitlab.rtems.org/rtems/tools/rtems-tools.git
+$ cd rtems-tools/tester
 -------------------------------------------------------------
 
 Available BSP testers
@@ -139,13 +139,13 @@ $ cd
 $ export PATH=$HOME/development/rtems/4.11/bin:$PATH
 $ mkdir -p development/rtems/kernel
 $ cd development/rtems/kernel
-$ git clone git://git.rtems.org/rtems.git rtems.git
-$ cd rtems.git
+$ git clone https://gitlab.rtems.org/rtems/rtos/rtems.git
+$ cd rtems
 $ ./bootstrap -c && ./bootstrap -p && ./bootstrap
 $ cd ..
 $ mkdir -p builds/sis
 $ cd builds/sis
-$ ../../rtems.git/configure --target=sparc-rtems4.11 \
+$ ../../rtems/configure --target=sparc-rtems4.11 \
                     --enable-tests --enable-rtemsbsp=sis
 $ make <1>
 -------------------------------------------------------------
@@ -225,7 +225,7 @@ To run the SIS tests enter the following command from the top of the SIS BSP
 build tree:
 
 -------------------------------------------------------------
-$ ~/development/rtems/test/rtems-tools.git/tester/rtems-test <1> \
+$ ~/development/rtems/test/rtems-tools/tester/rtems-test <1> \
              --log=log_sis_run <2> \
              --rtems-bsp=sis-run <3> \
              --rtems-tools=$HOME/development/rtems/4.11 <4> \
@@ -495,7 +495,7 @@ The RTEMS Tester is based on a refactored base of Python code used in the RTEMS
 Source Builder. This code provided a working tested base that has been extended
 and expanded to meet the requirements for the RTEMS Tester. The tester uses the
 specifics found in the various scripts and configurations in the
-rtems-testing.git repo that has been accumulated over many years. The shell
+rtems-testing repo that has been accumulated over many years. The shell
 script implementation is restricted in what it can do and, per BSP script, is a
 maintenance burden. For example the command lines and options vary between each
 script.
