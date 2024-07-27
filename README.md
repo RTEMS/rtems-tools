@@ -23,8 +23,9 @@ If you have a problem or questions join us on our Discord at
 https://www.rtems.org/discord and post in #general  You are welcome to come and 
 chat to share how you use these tools as well.
 
-If you have any patches please post them to the devel@rtems.org mailing list in
-git format patches with your details.
+If you have any patches please submit a merge request to:
+
+  https://gitlab.rtems.org/rtems/tools/rtems-tools
 
 
 Building
