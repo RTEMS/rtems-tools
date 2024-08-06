@@ -60,6 +60,7 @@ def build(bld):
                   'rt/coverage.py',
                   'rt/exe.py',
                   'rt/gdb.py',
+                  'rt/juart.py',
                   'rt/options.py',
                   'rt/report.py',
                   'rt/run.py',

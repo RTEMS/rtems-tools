@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2017 Chris Johns (chrisj@rtems.org)
+# Copyright 2010-2017 Chris Johns (chrisj@rtems.printorg)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -561,7 +561,7 @@ class execute(object):
         self.lock.acquire()
         try:
             if self.proc is not None:
-                print("sending sig")
+                #print("sending sig")
                 self.proc.send_signal(signal)
         except:
             raise

@@ -42,6 +42,7 @@ import time
 from rtemstoolkit import path
 
 import tester.rt.telnet
+import tester.rt.juart
 
 #
 # Not available on Windows. Not sure what this means.
@@ -98,9 +99,9 @@ class tty(console):
 
     def __del__(self):
         super(tty, self).__del__()
-        self.close()
+        self.close(0, 0)
 
-    def open(self):
+    def open(self, index, total):
         def _readthread(me, x):
             line = ''
             while me.running:
@@ -121,10 +122,12 @@ class tty(console):
                         if c == '\n':
                             me.output(line)
                             line = ''
-        if stty and path.exists(self.dev):
-            self.tty = stty.tty(self.dev)
+        if "juart-terminal.exe" in self.dev:
+            self.tty = tester.rt.juart.tty(self.dev, index, total)
+        elif stty and path.exists(self.dev):
+            self.tty = stty.tty(self.dev, index, total)
         else:
-            self.tty = tester.rt.telnet.tty(self.dev)
+            self.tty = tester.rt.telnet.tty(self.dev, index, total)
         self.tty.set(self.setup)
         self.tty.on()
         self.read_thread = threading.Thread(target = _readthread,
@@ -134,10 +137,11 @@ class tty(console):
         self.running = True
         self.read_thread.start()
 
-    def close(self):
+    def close(self, index, total):
         if self.tty:
             time.sleep(1)
             if self.read_thread:
                 self.running = False
                 self.read_thread.join(1)
+                self.tty.close(index, total)
             self.tty = None

@@ -43,6 +43,7 @@ except ImportError:
     import queue
 import sys
 import threading
+import signal
 import time
 
 from rtemstoolkit import error
@@ -176,11 +177,11 @@ class gdb(object):
     def _gdb_quit(self, backtrace = False):
         self._lock('_gdb_quit')
         try:
-            self._put('-exec-interrupt')
+            self.process.send_signal(signal.SIGINT)
             if backtrace:
                 self._put('bt')
+            self._put('disconnect')
             self._put('quit')
-            self._put('None')
             if self.script:
                 self.script_line = len(self.script)
         finally:
@@ -280,7 +281,7 @@ class gdb(object):
     def kill(self):
         self._lock('_kill')
         try:
-            self._kill()
+            self._stop()
         finally:
             self._unlock('_kill')
 
