@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2017 Chris Johns (chrisj@rtems.printorg)
+# Copyright 2010-2017 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
