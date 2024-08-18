@@ -35,6 +35,6 @@ def get_architure():
     arch = frame.architecture()
     return arch.name()
 
-_cmds = rtems.create()
+#_cmds = rtems.create()
 
 print('RTEMS GDB Support')
