@@ -20,6 +20,16 @@
 
 # This script is responsible for registering the pretty-printers provided and
 # maintained by GCC (present in stdcxx.py) 
+# It also registers all RTEMS pretty-printers, maintained in rtems_pprinters.py
 
 from . import stdcxx
+import gdb.printing 
+import rtems_pprinters as rtems_library
 
+def register_rtems_printers():
+    gdb.printing.register_pretty_printer(
+        gdb.current_objfile(), 
+        rtems_library.build_pretty_printer()
+        )
+
+register_rtems_printers()
