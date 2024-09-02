@@ -99,9 +99,9 @@ class tty(console):
 
     def __del__(self):
         super(tty, self).__del__()
-        self.close(0, 0)
+        self.close()
 
-    def open(self, index, total):
+    def open(self):
         def _readthread(me, x):
             line = ''
             while me.running:
@@ -123,11 +123,11 @@ class tty(console):
                             me.output(line)
                             line = ''
         if "juart-terminal.exe" in self.dev:
-            self.tty = tester.rt.juart.tty(self.dev, index, total)
+            self.tty = tester.rt.juart.tty(self.dev)
         elif stty and path.exists(self.dev):
-            self.tty = stty.tty(self.dev, index, total)
+            self.tty = stty.tty(self.dev)
         else:
-            self.tty = tester.rt.telnet.tty(self.dev, index, total)
+            self.tty = tester.rt.telnet.tty(self.dev)
         self.tty.set(self.setup)
         self.tty.on()
         self.read_thread = threading.Thread(target = _readthread,
@@ -137,11 +137,10 @@ class tty(console):
         self.running = True
         self.read_thread.start()
 
-    def close(self, index, total):
+    def close(self):
         if self.tty:
             time.sleep(1)
             if self.read_thread:
                 self.running = False
                 self.read_thread.join(1)
-                self.tty.close(index, total)
             self.tty = None

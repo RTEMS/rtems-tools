@@ -237,7 +237,7 @@ class file(config.file):
         self.process = tester.rt.exe.exe(bsp_arch, bsp, trace = self.exe_trace('exe'))
         if not self.in_error:
             if self.console:
-                self.console.open(index, total)
+                self.console.open()
             if not self.opts.dry_run():
                 self.process.open(data,
                                   ignore_exit_code = self.defined('exe_ignore_ret'),
@@ -248,7 +248,7 @@ class file(config.file):
                                              self._timeout,
                                              self._test_too_long))
             if self.console:
-                self.console.close(index, total)
+                self.console.close()
 
     def _dir_gdb(self, data, total, index, exe, bsp_arch, bsp):
         if len(data) < 3 or len(data) > 4:
@@ -262,7 +262,7 @@ class file(config.file):
         self.kill_on_end = True
         if not self.in_error:
             if self.console:
-                self.console.open(index, total)
+                self.console.open()
             if not self.opts.dry_run():
                 self.process.open(data[0], data[1],
                                   script = script,
@@ -273,7 +273,7 @@ class file(config.file):
                                              self._timeout,
                                              self._test_too_long))
             if self.console:
-                self.console.close(index, total)
+                self.console.close()
 
     def _dir_tftp(self, data, total, index, exe, bsp_arch, bsp):
         if len(data) != 2:
@@ -293,7 +293,7 @@ class file(config.file):
                                                trace = self.exe_trace('tftp'))
             if not self.in_error:
                 if self.console:
-                    self.console.open(index, total)
+                    self.console.open()
                 self.process.open(executable = exe,
                                   port = port,
                                   output_length = self._output_length,
@@ -303,7 +303,7 @@ class file(config.file):
                                              self._timeout,
                                              self._test_too_long))
                 if self.console:
-                    self.console.close(index, total)
+                    self.console.close()
 
     def _dir_wait(self, data, total, index, exe, bsp_arch, bsp):
         if len(data) != 0:
@@ -314,7 +314,7 @@ class file(config.file):
                                                trace = self.exe_trace('wait'))
             if not self.in_error:
                 if self.console:
-                    self.console.open(index, total)
+                    self.console.open()
                 self.process.open(output_length = self._output_length,
                                   console = self.capture_console,
                                   timeout = (int(self.expand('%{timeout}')),
@@ -322,7 +322,7 @@ class file(config.file):
                                              self._timeout,
                                              self._test_too_long))
                 if self.console:
-                    self.console.close(index, total)
+                    self.console.close()
 
     def _directive_filter(self, results, directive, info, data):
         if results[0] == 'directive':

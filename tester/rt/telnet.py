@@ -113,8 +113,6 @@ class tty:
             self._reopen()
         return data
 
-    def close(self):
-        pass
 
 if __name__ == "__main__":
     if len(sys.argv) == 2:

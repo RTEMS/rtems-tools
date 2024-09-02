@@ -64,16 +64,17 @@ class tty:
     lc = 0
     juart_thread = None
 
-    def __init__(self, dev, index, total):
-        if not tty.juart_active and index == 1:
-            tty.juart_active = True
-            tty.dev = dev
-            tty.lock = threading.RLock()
-            tty.juart_thread = threading.Thread(target=self._juart_run, args=[tty.dev])
-            tty.juart_thread.start()
+    def __init__(self, dev):
+        if tty.juart_active:
+            self.close()
+        tty.juart_active = True
+        tty.dev = dev
+        tty.lock = threading.RLock()
+        tty.juart_thread = threading.Thread(target=self._juart_run, args=[tty.dev])
+        tty.juart_thread.start()
 
     def __del__(self):
-        pass
+        self.close()
 
     def __str__(self):
         s = 'dev: %s' % ((tty.dev))
@@ -201,8 +202,8 @@ class tty:
             outs = ''
         return outs
 
-    def close(self, index, total):
-        if index == total and tty.running and tty.juart_thread:
+    def close(self):
+        if tty.running and tty.juart_thread:
             try:
                 if tty.trace:
                     print('stopping...')
