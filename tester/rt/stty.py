@@ -74,11 +74,11 @@ class tty(object):
         if not path.exists(dev):
             raise error.general('dev not found: %s' % (dev))
         try:
-            self.fd = open(dev, 'rw')
+            self.fd = open(dev, 'r')
         except IOError as ioe:
             raise error.general('opening tty dev: %s: %s' % (dev, ioe))
-        except:
-            raise error.general('opening tty dev: %s: unknown' % (dev))
+        except Exception as exp:
+            raise error.general('opening tty dev: %s: %s' % (dev, exp))
         try:
             self.default_attr = termios.tcgetattr(self.fd)
         except:
@@ -558,7 +558,11 @@ class tty(object):
         self._update()
 
     def read(self):
-        return self.fd.read()
+        try:
+            data = self.fd.read()
+        except:
+            data = b""
+        return data
 
 
 if __name__ == "__main__":
