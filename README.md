@@ -34,7 +34,7 @@ Building
 To build and install:
 
 ```
-  # ./waf configure --prefix=$HOME/development/rtems/5
+  # ./waf configure --prefix=$HOME/development/rtems/6
   # ./waf build install
 ```
 
