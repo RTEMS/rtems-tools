@@ -22,6 +22,7 @@
 # RTEMS Toolkit build script.
 #
 import sys
+import os
 
 #
 # Waf system setup. Allow more than one build in the same tree.
@@ -43,6 +44,7 @@ def configure(conf):
     conf_elftoolchain(conf)
 
     conf.find_program('m4')
+    conf.find_program('sh')
 
     conf.check(header_name = 'sys/wait.h',  features = 'c', mandatory = False)
     conf.check_cc(fragment = '''
@@ -68,6 +70,9 @@ def build(bld):
                         'libiberty']
     if bld.env.DEST_OS == 'win32':
         conf['includes'] += ['win32']
+        if os.name != 'posix':
+            # MSYS2 needs some customization of sys/types.h, find it here.
+            conf['includes'] += ['win32/msys']
 
     #
     # Build flags.
@@ -184,6 +189,13 @@ def bld_elftoolchain(bld, conf):
     libdwarf_m4_rule = '${M4} -D SRCDIR=../rtemstoolkit/' + libdwarf[:-1] + ' ${SRC} > ${TGT}'
     if bld.env.DEST_OS == 'win32':
         includes = ['win32']
+        # on windows we need to invoke through sh for the stdout redirection to work
+        if os.name != 'posix':
+            includes += ['win32/msys']
+            # MSYS2 does not handle the \\ pathing properly, so hack the path to m4 here.
+            bld.env.M4 = ''.join(_ + "/" for _ in bld.env.M4[0].split("\\"))
+        libelf_m4_rule = '${SH} -c "%s"' % libelf_m4_rule
+        libdwarf_m4_rule = '${SH} -c "%s"' % libdwarf_m4_rule
     else:
         includes = []
 
@@ -191,7 +203,8 @@ def bld_elftoolchain(bld, conf):
                         'libelf_fsize.c',
                         'libelf_msize.c']
     for s in libelf_m4_source:
-        bld(target = s, source = libelf + s[:-2] + '.m4', rule = libelf_m4_rule)
+        bld(target = s, source = libelf + s[:-2] + '.m4', rule = libelf_m4_rule,
+            stdin = sys.stdin, stdout = sys.stdout)
 
     host_source = []
 
@@ -281,7 +294,8 @@ def bld_elftoolchain(bld, conf):
                           'dwarf_vars.c',
                           'dwarf_weaks.c']
     for s in libdwarf_m4_source:
-        bld(target = s, source = libdwarf + s[:-2] + '.m4', rule = libdwarf_m4_rule)
+        bld(target = s, source = libdwarf + s[:-2] + '.m4', rule = libdwarf_m4_rule,
+            stdin = sys.stdin, stdout = sys.stdout)
 
     bld.stlib(target = 'dwarf',
               features = 'c',

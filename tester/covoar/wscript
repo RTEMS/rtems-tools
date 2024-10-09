@@ -40,6 +40,8 @@
 VERSION='0.0.1'
 APPNAME='covoar'
 
+import os
+
 #
 # These variables are mandatory ('/' are converted automatically)
 #
@@ -75,6 +77,8 @@ def build(bld):
 		    rtemstoolkit + '/libiberty']
     if bld.env.DEST_OS == 'win32':
         rtl_includes += [rtemstoolkit + '/win32']
+        if os.name != 'posix':
+            rtl_includes += [rtemstoolkit + '/win32/msys']
 
     #
     # The list of modules.

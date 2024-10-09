@@ -22,6 +22,7 @@
 # RTEMS Linker build script.
 #
 import sys
+import os
 
 def init(ctx):
     pass
@@ -61,6 +62,8 @@ def build(bld):
                         rtemstoolkit + '/libiberty']
     if bld.env.DEST_OS == 'win32':
         conf['includes'] += [rtemstoolkit + '/win32']
+        if os.name != 'posix':
+            conf['includes'] += [rtemstoolkit + '/win32/msys']
     conf['warningflags'] = ['-Wall', '-Wextra', '-pedantic']
     conf['optflags'] = bld.env.C_OPTS
     conf['cflags'] = ['-pipe', '-g'] + conf['optflags']
