@@ -63,6 +63,9 @@ __MINGW_EXTENSION
 typedef __int64	_pid_t;
 #endif
 
+typedef int gid_t;
+typedef int uid_t;
+
 #ifndef	NO_OLDNAMES
 #undef pid_t
 typedef _pid_t	pid_t;
