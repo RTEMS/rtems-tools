@@ -522,10 +522,12 @@ void LTTNGClient::PrintItem(const ClientItem& item) {
     case RTEMS_RECORD_PROCESSOR_MAXIMUM:
       OpenStreamFiles(item.data);
       break;
+    case RTEMS_RECORD_PROCESSOR:
+      break;
+    case RTEMS_RECORD_VERSION:
+      break;
     default:
-      if (item.ns != 0) {
-        WriteRecordItem(&pcpu, item);
-      }
+      WriteRecordItem(&pcpu, item);
       break;
   }
 }
