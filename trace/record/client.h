@@ -48,6 +48,8 @@
 #include <zlib.h>
 #endif
 
+enum { kReadBufferSize = 65536 };
+
 class ErrnoException : public std::runtime_error {
  public:
   ErrnoException(std::string msg)
@@ -133,8 +135,9 @@ class Base64Filter : public Filter {
   int digits_ = 0;
   bool seen_end_ = false;
   int val_[4];
+  alignas(8) char buf_[kReadBufferSize];
 
-  bool DecodeChar(int c, char **target);
+  bool DecodeChar(int c, char** target);
 };
 
 #ifdef HAVE_ZLIB_H

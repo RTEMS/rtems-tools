@@ -77,18 +77,18 @@ bool Base64Filter::DecodeChar(int c, char **target) {
 }
 
 bool Base64Filter::Run(void** buf, size_t* n) {
-  char* begin = static_cast<char*>(*buf);
-  const char* in = begin;
+  const char* in = static_cast<char*>(*buf);
   const char* end = in + *n;
 
-  if (begin == end) {
+  if (in == end) {
     return digits_ == 0;
   }
 
-  char* target = begin;
+  char* target = &buf_[0];
   while (in != end) {
     int c = *in;
     ++in;
+
     if (c == ' ' || c == '\t' || c == '\n' || c == '\r') {
       continue;
     }
@@ -98,6 +98,7 @@ bool Base64Filter::Run(void** buf, size_t* n) {
     };
   }
 
-  *n = static_cast<size_t>(target - begin);
+  *buf = &buf_[0];
+  *n = static_cast<size_t>(target - &buf_[0]);
   return true;
 }
