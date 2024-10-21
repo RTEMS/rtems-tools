@@ -34,24 +34,33 @@
 
 from __future__ import print_function
 
+
 class error(Exception):
     """Base class for Builder exceptions."""
+
     def set_output(self, msg):
         self.msg = msg
+
     def __str__(self):
         return self.msg
 
+
 class general(error):
     """Raise for a general error."""
+
     def __init__(self, what):
         self.set_output('error: ' + what)
 
+
 class internal(error):
     """Raise for an internal error."""
+
     def __init__(self, what):
         self.set_output('internal error: ' + what)
 
+
 class exit(error):
     """Raise for to exit."""
+
     def __init__(self):
         pass

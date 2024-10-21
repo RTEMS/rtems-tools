@@ -45,10 +45,12 @@ import sys
 
 from rtemstoolkit import error
 from rtemstoolkit import log
+
 windows_posix = sys.platform == 'msys'
 windows = os.name == 'nt'
 
 win_maxpath = 254
+
 
 def host(path):
     if path is not None:
@@ -67,6 +69,7 @@ def host(path):
                 path = u'\\'.join([u'\\\\?', path])
     return path
 
+
 def shell(path):
     if isinstance(path, bytes):
         path = path.decode('ascii')
@@ -82,18 +85,22 @@ def shell(path):
             path = path.replace('//', '/')
     return path
 
+
 def basename(path):
     path = shell(path)
     return shell(os.path.basename(path))
+
 
 def dirname(path):
     path = shell(path)
     return shell(os.path.dirname(path))
 
+
 def is_abspath(path):
     if path is not None and len(path) > 0:
         return '/' == path[0]
     return False
+
 
 def join(path, *args):
     path = shell(path)
@@ -104,11 +111,13 @@ def join(path, *args):
             path = shell(arg)
     return shell(path)
 
+
 def abspath(path):
     path = shell(path)
     return shell(os.path.abspath(host(path)))
 
-def relpath(path, start = None):
+
+def relpath(path, start=None):
     path = shell(path)
     if start is None:
         path = os.path.relpath(host(path))
@@ -116,12 +125,14 @@ def relpath(path, start = None):
         path = os.path.relpath(host(path), start)
     return shell(path)
 
+
 def splitext(path):
     path = shell(path)
     root, ext = os.path.splitext(host(path))
     return shell(root), ext
 
-def listdir(path, error = True):
+
+def listdir(path, error=True):
     path = host(path)
     files = []
     if not os.path.exists(path):
@@ -137,23 +148,28 @@ def listdir(path, error = True):
             except IOError:
                 raise error.general('Could not list files: %s' % (path))
             except OSError as e:
-                raise error.general('Could not list files: %s: %s' % (path, str(e)))
+                raise error.general('Could not list files: %s: %s' %
+                                    (path, str(e)))
             except WindowsError as e:
-                raise error.general('Could not list files: %s: %s' % (path, str(e)))
+                raise error.general('Could not list files: %s: %s' %
+                                    (path, str(e)))
         else:
             try:
                 files = os.listdir(host(path))
             except IOError:
                 raise error.general('Could not list files: %s' % (path))
             except OSError as e:
-                raise error.general('Could not list files: %s: %s' % (path, str(e)))
+                raise error.general('Could not list files: %s: %s' %
+                                    (path, str(e)))
     return files
 
+
 def exists(paths):
+
     def _exists(p):
         if not is_abspath(p):
             p = shell(join(os.getcwd(), host(p)))
-        return basename(p) in ['.'] + listdir(dirname(p), error = False)
+        return basename(p) in ['.'] + listdir(dirname(p), error=False)
 
     if type(paths) == list:
         results = []
@@ -162,29 +178,36 @@ def exists(paths):
         return results
     return _exists(shell(paths))
 
+
 def isdir(path):
     path = shell(path)
     return os.path.isdir(host(path))
+
 
 def isfile(path):
     path = shell(path)
     return os.path.isfile(host(path))
 
+
 def isabspath(path):
     path = shell(path)
     return path[0] == '/'
+
 
 def isreadable(path):
     path = shell(path)
     return os.access(host(path), os.R_OK)
 
+
 def iswritable(path):
     path = shell(path)
     return os.access(host(path), os.W_OK)
 
+
 def isreadwritable(path):
     path = shell(path)
     return isreadable(path) and iswritable(path)
+
 
 def ispathwritable(path):
     path = host(path)
@@ -194,11 +217,13 @@ def ispathwritable(path):
         path = os.path.dirname(path)
     return False
 
+
 def mkdir(path):
     path = host(path)
     if exists(path):
         if not isdir(path):
-            raise error.general('path exists and is not a directory: %s' % (path))
+            raise error.general('path exists and is not a directory: %s' %
+                                (path))
     else:
         if windows:
             try:
@@ -206,20 +231,25 @@ def mkdir(path):
             except IOError:
                 raise error.general('cannot make directory: %s' % (path))
             except OSError as e:
-                raise error.general('cannot make directory: %s: %s' % (path, str(e)))
+                raise error.general('cannot make directory: %s: %s' %
+                                    (path, str(e)))
             except WindowsError as e:
-                raise error.general('cannot make directory: %s: %s' % (path, str(e)))
+                raise error.general('cannot make directory: %s: %s' %
+                                    (path, str(e)))
         else:
             try:
                 os.makedirs(host(path))
             except IOError:
                 raise error.general('cannot make directory: %s' % (path))
             except OSError as e:
-                raise error.general('cannot make directory: %s: %s' % (path, str(e)))
+                raise error.general('cannot make directory: %s: %s' %
+                                    (path, str(e)))
+
 
 def chdir(path):
     path = shell(path)
     os.chdir(host(path))
+
 
 def removeall(path):
     #
@@ -262,16 +292,19 @@ def removeall(path):
         _remove(path)
         _remove_node(path)
 
+
 def expand(name, paths):
     l = []
     for p in paths:
         l += [join(shell(p), name)]
     return l
 
+
 def expanduser(path):
     path = host(path)
     path = os.path.expanduser(path)
     return shell(path)
+
 
 def collect_files(path_):
     #
@@ -295,6 +328,7 @@ def collect_files(path_):
         files = [host(path_)]
     return sorted(files)
 
+
 def copy(src, dst):
     src = shell(src)
     dst = shell(dst)
@@ -307,7 +341,9 @@ def copy(src, dst):
             if WindowsError is not None and isinstance(why, WindowsError):
                 pass
         else:
-            raise error.general('copying tree (1): %s -> %s: %s' % (hsrc, hdst, str(why)))
+            raise error.general('copying tree (1): %s -> %s: %s' %
+                                (hsrc, hdst, str(why)))
+
 
 def copy_tree(src, dst):
     trace = False
@@ -378,9 +414,11 @@ def copy_tree(src, dst):
             if WindowsError is not None and isinstance(why, WindowsError):
                 pass
         else:
-            raise error.general('copying tree (4): %s -> %s: %s' % (hsrc, hdst, str(why)))
+            raise error.general('copying tree (4): %s -> %s: %s' %
+                                (hsrc, hdst, str(why)))
 
-def get_size(path, depth = -1):
+
+def get_size(path, depth=-1):
     #
     # Get the size the directory tree manually to the required depth.
     # This makes sure on Windows the files are correctly encoded to avoid
@@ -398,7 +436,7 @@ def get_size(path, depth = -1):
             size = os.path.getsize(hpath)
         return size
 
-    def _get_size(path, depth, level = 0):
+    def _get_size(path, depth, level=0):
         level += 1
         dirs = []
         size = 0
@@ -424,9 +462,10 @@ def get_size(path, depth = -1):
 
     return size
 
-def get_humanize_size(path, depth = -1):
+
+def get_humanize_size(path, depth=-1):
     size = get_size(path, depth)
-    for unit in ['','K','M','G','T','P','E','Z']:
+    for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
         if abs(size) < 1024.0:
             return "%5.3f%sB" % (size, unit)
         size /= 1024.0

@@ -44,12 +44,14 @@ from rtemstoolkit import error
 from rtemstoolkit import log
 from rtemstoolkit import path
 
+
 #
 # Macro tables
 #
 class macros:
 
     class macro_iterator:
+
         def __init__(self, keys):
             self.keys = keys
             self.index = 0
@@ -80,7 +82,11 @@ class macros:
             pass
         return us
 
-    def __init__(self, name = None, original = None, rtdir = '.', show_minimal = False):
+    def __init__(self,
+                 name=None,
+                 original=None,
+                 rtdir='.',
+                 show_minimal=False):
         self.files = []
         self.str_show_minimal = show_minimal
         self.macro_filter = re.compile(r'%{[^}]+}')
@@ -96,13 +102,12 @@ class macros:
                 self.prefix = '.'
             self.macros['global'] = {}
             self.macros['global']['nil'] = ('none', 'none', '')
-            self.macros['global']['_cwd'] = ('dir',
-                                             'required',
+            self.macros['global']['_cwd'] = ('dir', 'required',
                                              path.abspath(os.getcwd()))
             self.macros['global']['_prefix'] = ('dir', 'required', self.prefix)
-            self.macros['global']['_rtdir'] = ('dir',
-                                               'required',
-                                               path.abspath(self.expand(rtdir)))
+            self.macros['global']['_rtdir'] = ('dir', 'required',
+                                               path.abspath(
+                                                   self.expand(rtdir)))
             self.macros['global']['_rttop'] = ('dir', 'required', self.prefix)
         else:
             self.macros = {}
@@ -118,7 +123,7 @@ class macros:
             self.load(name)
 
     def __copy__(self):
-        return macros(original = self)
+        return macros(original=self)
 
     def __str__(self):
         text_len = 80
@@ -127,7 +132,7 @@ class macros:
             text += '> %s%s' % (f, os.linesep)
         max_key_size = 0
         for map in self.macros:
-            size = len(max(self.macros[map].keys(), key = lambda x: len(x)))
+            size = len(max(self.macros[map].keys(), key=lambda x: len(x)))
             if size > max_key_size:
                 max_key_size = size
         maps = sorted(self.macros)
@@ -172,7 +177,8 @@ class macros:
                             if self.str_show_minimal:
                                 text += ' %s  ' % (' ' * max_key_size)
                             else:
-                                text += ' %s  %10s %12s' % (' ' * max_key_size, ' ', ' ')
+                                text += ' %s  %10s %12s' % (' ' * max_key_size,
+                                                            ' ', ' ')
                         indent = True
                         text += l[0:text_len]
                         l = l[text_len:]
@@ -211,15 +217,20 @@ class macros:
                  self._unicode_to_str(value[1]),
                  self._unicode_to_str(value[2]))
         if type(value[0]) is not str:
-            raise TypeError('bad value tuple type field: %s' % (type(value[0])))
+            raise TypeError('bad value tuple type field: %s' %
+                            (type(value[0])))
         if type(value[1]) is not str:
-            raise TypeError('bad value tuple attrib field: %s' % (type(value[1])))
+            raise TypeError('bad value tuple attrib field: %s' %
+                            (type(value[1])))
         if type(value[2]) is not str:
-            raise TypeError('bad value tuple value field: %s' % (type(value[2])))
+            raise TypeError('bad value tuple value field: %s' %
+                            (type(value[2])))
         if value[0] not in ['none', 'triplet', 'dir', 'file', 'exe']:
             raise TypeError('bad value tuple (type field): %s' % (value[0]))
-        if value[1] not in ['none', 'optional', 'required',
-                            'override', 'undefine', 'convert']:
+        if value[1] not in [
+                'none', 'optional', 'required', 'override', 'undefine',
+                'convert'
+        ]:
             raise TypeError('bad value tuple (attrib field): %s' % (value[1]))
         if value[1] == 'convert':
             value = self.expand(value)
@@ -301,7 +312,8 @@ class macros:
                     if not (state == 'key' and len(token) == 0) and \
                             not state.startswith('value-multiline'):
                         self.macros = orig_macros
-                        raise error.general('malformed macro line:%d: %s' % (lc, l))
+                        raise error.general('malformed macro line:%d: %s' %
+                                            (lc, l))
                 if state == 'key':
                     if c not in string.whitespace:
                         if c == '[':
@@ -327,7 +339,8 @@ class macros:
                         token += c
                     else:
                         self.macros = orig_macros
-                        raise error.general('invalid macro map:%d: %s' % (lc, l))
+                        raise error.general('invalid macro map:%d: %s' %
+                                            (lc, l))
                 elif state == 'directive':
                     if c in string.whitespace:
                         if token == 'include':
@@ -339,7 +352,8 @@ class macros:
                         token += c
                     else:
                         self.macros = orig_macros
-                        raise error.general('invalid macro directive:%d: %s' % (lc, l))
+                        raise error.general('invalid macro directive:%d: %s' %
+                                            (lc, l))
                 elif state == 'include':
                     if c is string.whitespace:
                         if token == 'include':
@@ -348,7 +362,8 @@ class macros:
                         token += c
                     else:
                         self.macros = orig_macros
-                        raise error.general('invalid macro directive:%d: %s' % (lc, l))
+                        raise error.general('invalid macro directive:%d: %s' %
+                                            (lc, l))
                 elif state == 'attribs':
                     if c not in string.whitespace:
                         if c == ',':
@@ -401,7 +416,8 @@ class macros:
                     self.macros = orig_macros
                     raise error.internal('bad state: %s' % (state))
                 if state == 'macro':
-                    self.macros[map][macro[0].lower()] = (macro[1], macro[2], macro[3])
+                    self.macros[map][macro[0].lower()] = (macro[1], macro[2],
+                                                          macro[3])
                     macro = []
                     token = ''
                     state = 'key'
@@ -455,7 +471,7 @@ class macros:
     def overridden(self, key):
         return self.get_attribute(key) == 'override'
 
-    def define(self, key, value = '1'):
+    def define(self, key, value='1'):
         if type(key) is not str:
             raise TypeError('bad key type: %s' % (type(key)))
         self.__setitem__(key, ('none', 'none', value))
@@ -483,8 +499,8 @@ class macros:
                 name = m[2:-1]
                 macro = self.get(name)
                 if macro is None:
-                    raise error.general('cannot expand default macro: %s in "%s"' %
-                                        (m, _str))
+                    raise error.general(
+                        'cannot expand default macro: %s in "%s"' % (m, _str))
                 _str = _str.replace(m, macro[2])
                 expanded = True
         return _str
@@ -515,7 +531,7 @@ class macros:
                 return True
         return False
 
-    def set_write_map(self, _map, add = False):
+    def set_write_map(self, _map, add=False):
         if _map in self.macros:
             self.write_map = _map
             return True

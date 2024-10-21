@@ -28,30 +28,17 @@
 # POSSIBILITY OF SUCH DAMAGE.
 #
 
-all = ['check',
-       'config',
-       'configuration',
-       'error',
-       'execute',
-       'git',
-       'host',
-       'log',
-       'macros',
-       'mailer',
-       'options',
-       'path',
-       'reraise',
-       'rtems',
-       'stacktraces',
-       'textbox',
-       'version']
+all = [
+    'check', 'config', 'configuration', 'error', 'execute', 'git', 'host',
+    'log', 'macros', 'mailer', 'options', 'path', 'reraise', 'rtems',
+    'stacktraces', 'textbox', 'version'
+]
 
 args = {
-    'config': ['--file', 'tester/rtems/version.cfg',
-               '--jobs', 'half',
-               '--no-clean'],
-    'mailer': ['--smtp-host=1.2.3.4',
-               '--mail-to=foo@bar.none',
-               '--mail-from=me@here.there']
-
+    'config':
+    ['--file', 'tester/rtems/version.cfg', '--jobs', 'half', '--no-clean'],
+    'mailer': [
+        '--smtp-host=1.2.3.4', '--mail-to=foo@bar.none',
+        '--mail-from=me@here.there'
+    ]
 }

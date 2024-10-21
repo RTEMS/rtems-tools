@@ -52,14 +52,17 @@ if os.name != 'nt':
 else:
     stty = None
 
+
 def save():
     if stty is not None:
         return stty.save()
     return None
 
+
 def restore(attributes):
     if attributes is not None and stty is not None:
         stty.restore(attributes)
+
 
 class console(object):
     '''RTEMS Testing console base.'''
@@ -80,16 +83,18 @@ class console(object):
     def close(self):
         pass
 
+
 class stdio(console):
     '''STDIO console.'''
 
-    def __init__(self, trace = False):
+    def __init__(self, trace=False):
         super(stdio, self).__init__('stdio', trace)
+
 
 class tty(console):
     '''TTY console connects to the target's console.'''
 
-    def __init__(self, dev, output, setup = None, trace = False):
+    def __init__(self, dev, output, setup=None, trace=False):
         self.tty = None
         self.read_thread = None
         self.dev = dev
@@ -102,6 +107,7 @@ class tty(console):
         self.close()
 
     def open(self):
+
         def _readthread(me, x):
             line = ''
             while me.running:
@@ -122,6 +128,7 @@ class tty(console):
                         if c == '\n':
                             me.output(line)
                             line = ''
+
         if "juart-terminal.exe" in self.dev:
             self.tty = tester.rt.juart.tty(self.dev)
         elif stty and path.exists(self.dev):
@@ -130,9 +137,9 @@ class tty(console):
             self.tty = tester.rt.telnet.tty(self.dev)
         self.tty.set(self.setup)
         self.tty.on()
-        self.read_thread = threading.Thread(target = _readthread,
-                                            name = 'tty[%s]' % (self.dev),
-                                            args = (self, 0))
+        self.read_thread = threading.Thread(target=_readthread,
+                                            name='tty[%s]' % (self.dev),
+                                            args=(self, 0))
         self.read_thread.daemon = True
         self.running = True
         self.read_thread.start()

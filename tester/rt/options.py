@@ -54,30 +54,36 @@ from rtemstoolkit import version
 #
 defaults_mc = 'rtems/testing/defaults.mc'
 
+
 class command_line(options.command_line):
     """Process the command line in a common way for all Tool Builder commands."""
 
-    def __init__(self, argv = None, optargs = None, defaults = None, command_path = None):
+    def __init__(self,
+                 argv=None,
+                 optargs=None,
+                 defaults=None,
+                 command_path=None):
         if argv is None:
             return
         long_opts = {
             # key             macro            handler      param  defs   init
-            '--target'     : ('_target',       "triplet",   True,  None,  False),
-            '--timeout'    : ('timeout',       "int",       True,  None,  False),
+            '--target': ('_target', "triplet", True, None, False),
+            '--timeout': ('timeout', "int", True, None, False),
         }
         long_opts_help = {
             '--target': 'Set the target triplet',
-            '--timeout': 'Set the test timeout in seconds (default 180 seconds)'
+            '--timeout':
+            'Set the test timeout in seconds (default 180 seconds)'
         }
-        super(command_line, self).__init__('rt', argv, optargs, defaults,
-                                           long_opts, long_opts_help, command_path);
+        super(command_line,
+              self).__init__('rt', argv, optargs, defaults, long_opts,
+                             long_opts_help, command_path)
 
     def __copy__(self):
         return super(command_line, self).__copy__()
 
-def load(args, optargs = None,
-         command_path = None,
-         defaults = '%s' % (defaults_mc)):
+
+def load(args, optargs=None, command_path=None, defaults='%s' % (defaults_mc)):
     #
     # The path to this command if not supplied by the upper layers.
     #
@@ -99,16 +105,16 @@ def load(args, optargs = None,
     # The command line contains the base defaults object all build objects copy
     # and modify by loading a configuration.
     #
-    opts = command_line(args,
-                        optargs,
-                        macros.macros(name = defaults, rtdir = rtdir),
+    opts = command_line(args, optargs, macros.macros(name=defaults,
+                                                     rtdir=rtdir),
                         command_path)
     options.load(opts)
     return opts
 
+
 def run(args):
     try:
-        _opts = load(args = args, defaults = defaults_mc)
+        _opts = load(args=args, defaults=defaults_mc)
         log.notice('RTEMS Test - Defaults, v%s' % (version.string()))
         _opts.log_info()
         log.notice('Options:')
@@ -116,10 +122,10 @@ def run(args):
         log.notice('Defaults:')
         log.notice(str(_opts.defaults))
     except error.general as gerr:
-        print(gerr, file = sys.stderr)
+        print(gerr, file=sys.stderr)
         sys.exit(1)
     except error.internal as ierr:
-        print(ierr, file = sys.stderr)
+        print(ierr, file=sys.stderr)
         sys.exit(1)
     except error.exit:
         pass
@@ -127,6 +133,7 @@ def run(args):
         log.notice('abort: user terminated')
         sys.exit(1)
     sys.exit(0)
+
 
 if __name__ == '__main__':
     import sys

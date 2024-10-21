@@ -41,5 +41,5 @@ try:
     import misc.tools.tftpproxy
     misc.tools.tftpproxy.run(sys.argv)
 except ImportError:
-    print("Incorrect RTEMS Tools installation", file = sys.stderr)
+    print("Incorrect RTEMS Tools installation", file=sys.stderr)
     sys.exit(1)

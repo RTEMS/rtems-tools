@@ -53,10 +53,11 @@ from rtemstoolkit import path
 
 import tester.rt.pygdb
 
+
 class gdb(object):
     '''RTEMS Testing GDB base.'''
 
-    def __init__(self, bsp_arch, bsp, trace = False, mi_trace = False):
+    def __init__(self, bsp_arch, bsp, trace=False, mi_trace=False):
         self.session = tester.rt.pygdb.mi_parser.session()
         self.trace = trace
         self.mi_trace = mi_trace
@@ -107,7 +108,7 @@ class gdb(object):
             if self.trace:
                 print('... input empty ', self.input.empty())
             if self.input.empty():
-                line = self.commands.get(block = False)
+                line = self.commands.get(block=False)
                 if self.trace:
                     print('+++', line)
                 self.input.put(line)
@@ -141,7 +142,7 @@ class gdb(object):
                         return None
                 finally:
                     self._unlock('_writer')
-                line = self.input.get(timeout = 0.5)
+                line = self.input.get(timeout=0.5)
                 if self.trace:
                     print('>>> input: queue=%d' % (self.input.qsize()), line)
             except queue.Empty:
@@ -174,7 +175,7 @@ class gdb(object):
         finally:
             self._unlock('_cleanup')
 
-    def _gdb_quit(self, backtrace = False):
+    def _gdb_quit(self, backtrace=False):
         self._lock('_gdb_quit')
         try:
             self.process.send_signal(signal.SIGINT)
@@ -248,16 +249,19 @@ class gdb(object):
             elif seconds == 0:
                 self._test_too_long()
 
-    def open(self, command, executable,
-             output, gdb_console, timeout,
-             script = None, tty = None):
+    def open(self,
+             command,
+             executable,
+             output,
+             gdb_console,
+             timeout,
+             script=None,
+             tty=None):
         self._lock('_open')
         self.timeout = timeout[2]
         self.test_too_long = timeout[3]
         try:
-            cmds = execute.arg_list(command) + ['-i=mi',
-                                                '--nx',
-                                                '--quiet']
+            cmds = execute.arg_list(command) + ['-i=mi', '--nx', '--quiet']
             if tty:
                 cmds += ['--tty=%s' % tty]
             if executable:
@@ -265,16 +269,16 @@ class gdb(object):
             self.output = output
             self.gdb_console = gdb_console
             self.script = script
-            self.process = execute.execute(output = self._reader,
-                                           input = self._writer,
-                                           cleanup = self._cleanup)
+            self.process = execute.execute(output=self._reader,
+                                           input=self._writer,
+                                           cleanup=self._cleanup)
             exec_thread = threading.Thread(target=self._execute_gdb,
                                            args=[cmds])
             exec_thread.start()
             self._monitor(timeout)
             if self.ecode is not None and self.ecode > 0:
-                raise error.general('gdb exec: %s: %s' % (cmds[0],
-                                                          os.strerror(self.ecode)))
+                raise error.general('gdb exec: %s: %s' %
+                                    (cmds[0], os.strerror(self.ecode)))
         finally:
             self._unlock('_open')
 
@@ -338,9 +342,11 @@ class gdb(object):
                         #self._put('-data-list-register-values')
                 elif rec.type == 'breakpoint':
                     if rec.class_ == 'breakpoint-created':
-                        self.breakpoints[rec.result.bkpt.number] = rec.result.bkpt
+                        self.breakpoints[
+                            rec.result.bkpt.number] = rec.result.bkpt
                     elif rec.class_ == 'breakpoint-modified':
-                        self.breakpoints[rec.result.bkpt.number] = rec.result.bkpt
+                        self.breakpoints[
+                            rec.result.bkpt.number] = rec.result.bkpt
                     elif rec.class_ == 'breakpoint-deleted':
                         if rec.result.id in self.breakpoints:
                             del self.breakpoints[rec.result.id]
@@ -367,26 +373,29 @@ class gdb(object):
             for line in lines.splitlines():
                 self.output(line)
 
+
 if __name__ == "__main__":
     import tester.rt.console
     stdtty = tester.rt.console.save()
     try:
+
         def output(text):
             print(']', text)
+
         def gdb_console(text):
             print('>', text)
+
         script = ['target sim']
         if len(sys.argv) > 1:
             executable = sys.argv[1]
-            script += ['load',
-                       'run',
-                       'info reg',
-                       '-stack-list-frames',
-                       '-stack-list-arguments --all-values']
+            script += [
+                'load', 'run', 'info reg', '-stack-list-frames',
+                '-stack-list-arguments --all-values'
+            ]
         else:
             executable = None
         script += ['quit']
-        g = gdb('sparc', 'sis', mi_trace = True)
+        g = gdb('sparc', 'sis', mi_trace=True)
         g.open('sparc-rtems4.11-gdb', executable, output, gdb_console, script)
     except:
         tester.rt.console.restore(stdtty)

@@ -53,12 +53,19 @@ from rtemstoolkit import version
 
 basepath = 'tb'
 
+
 class command_line(object):
     """Process the command line in a common way for all Tool Builder commands."""
 
-    def __init__(self, base_path = None, argv = None, optargs = None,
-                 defaults = None, long_opts = None, long_opts_help = None,
-                 command_path = '', log_default = None):
+    def __init__(self,
+                 base_path=None,
+                 argv=None,
+                 optargs=None,
+                 defaults=None,
+                 long_opts=None,
+                 long_opts_help=None,
+                 command_path='',
+                 log_default=None):
 
         if argv is None:
             return
@@ -79,34 +86,38 @@ class command_line(object):
 
         self.long_opts = {
             # key                 macro                handler            param  defs       init
-            '--jobs'           : ('_jobs',             self._lo_jobs,     True,  'default', True),
-            '--log'            : ('_logfile',          self._lo_string,   True,  None,      False),
-            '--macros'         : ('_macros',           self._lo_string,   True,  None,      False),
-            '--force'          : ('_force',            self._lo_bool,     False, '0',       True),
-            '--quiet'          : ('_quiet',            self._lo_bool,     False, '0',       True),
-            '--trace'          : ('_trace',            self._lo_bool,     False, '0',       True),
-            '--dry-run'        : ('_dry_run',          self._lo_bool,     False, '0',       True),
-            '--warn-all'       : ('_warn_all',         self._lo_bool,     False, '0',       True),
-            '--no-clean'       : ('_no_clean',         self._lo_bool,     False, '0',       True),
-            '--keep-going'     : ('_keep_going',       self._lo_bool,     False, '0',       True),
-            '--always-clean'   : ('_always_clean',     self._lo_bool,     False, '0',       True),
-            '--no-install'     : ('_no_install',       self._lo_bool,     False, '0',       True),
-            '--help'           : (None,                self._lo_help,     False, None,      False)
+            '--jobs': ('_jobs', self._lo_jobs, True, 'default', True),
+            '--log': ('_logfile', self._lo_string, True, None, False),
+            '--macros': ('_macros', self._lo_string, True, None, False),
+            '--force': ('_force', self._lo_bool, False, '0', True),
+            '--quiet': ('_quiet', self._lo_bool, False, '0', True),
+            '--trace': ('_trace', self._lo_bool, False, '0', True),
+            '--dry-run': ('_dry_run', self._lo_bool, False, '0', True),
+            '--warn-all': ('_warn_all', self._lo_bool, False, '0', True),
+            '--no-clean': ('_no_clean', self._lo_bool, False, '0', True),
+            '--keep-going': ('_keep_going', self._lo_bool, False, '0', True),
+            '--always-clean':
+            ('_always_clean', self._lo_bool, False, '0', True),
+            '--no-install': ('_no_install', self._lo_bool, False, '0', True),
+            '--help': (None, self._lo_help, False, None, False)
         }
         self.long_opts_help = {
-            '--force':                      'Force the build to proceed',
-            '--quiet':                      'Quiet output (not used)',
-            '--trace':                      'Trace the execution',
-            '--dry-run':                    'Do everything but actually run the build',
-            '--warn-all':                   'Generate warnings',
-            '--no-clean':                   'Do not clean up the build tree',
-            '--always-clean':               'Always clean the build tree, even with an error',
-            '--keep-going':                 'Do not stop on an error.',
-            '--jobs=[0..n,none,half,max]':  'Run with specified number of jobs, default: num CPUs.',
-            '--macros file[,file]':         'Macro format files to load after the defaults',
-            '--log file':                   'Log file where all build output is written to',
+            '--force': 'Force the build to proceed',
+            '--quiet': 'Quiet output (not used)',
+            '--trace': 'Trace the execution',
+            '--dry-run': 'Do everything but actually run the build',
+            '--warn-all': 'Generate warnings',
+            '--no-clean': 'Do not clean up the build tree',
+            '--always-clean':
+            'Always clean the build tree, even with an error',
+            '--keep-going': 'Do not stop on an error.',
+            '--jobs=[0..n,none,half,max]':
+            'Run with specified number of jobs, default: num CPUs.',
+            '--macros file[,file]':
+            'Macro format files to load after the defaults',
+            '--log file': 'Log file where all build output is written to',
         }
-        self.opts = { 'params' : [] }
+        self.opts = {'params': []}
         self.command_path = command_path
         self.command_name = path.basename(argv[0])
         self.argv = argv
@@ -116,13 +127,15 @@ class command_line(object):
         for lo in self.long_opts:
             self.opts[lo[2:]] = self.long_opts[lo][3]
             if self.long_opts[lo][4]:
-                self.defaults[self.long_opts[lo][0]] = ('none', 'none', self.long_opts[lo][3])
+                self.defaults[self.long_opts[lo][0]] = ('none', 'none',
+                                                        self.long_opts[lo][3])
         for lo in long_opts:
             if lo in self.long_opts:
                 raise error.general('suplicate option: %s' % (lo))
             self.opts[lo[2:]] = long_opts[lo][3]
             if long_opts[lo][4]:
-                self.defaults[long_opts[lo][0]] = ('none', 'none', long_opts[lo][3])
+                self.defaults[long_opts[lo][0]] = ('none', 'none',
+                                                   long_opts[lo][3])
             if long_opts[lo][1] == 'int':
                 handler = self._lo_int
             elif long_opts[lo][1] == 'string':
@@ -136,9 +149,10 @@ class command_line(object):
             elif long_opts[lo][1] == 'triplet':
                 handler = self._lo_triplets
             else:
-                raise error.general('invalid option handler: %s: %s' % (lo, long_opts[lo][1]))
+                raise error.general('invalid option handler: %s: %s' %
+                                    (lo, long_opts[lo][1]))
             self.long_opts[lo] = (long_opts[lo][0], handler, long_opts[lo][2],
-                                   long_opts[lo][3], long_opts[lo][4])
+                                  long_opts[lo][3], long_opts[lo][4])
             if long_opts_help is not None:
                 if lo not in long_opts_help:
                     raise error.general('no help for option: %s' % (lo))
@@ -158,6 +172,7 @@ class command_line(object):
         return new
 
     def __str__(self):
+
         def _dict(dd):
             s = ''
             ddl = list(dd.keys())
@@ -230,8 +245,7 @@ class command_line(object):
         # is ok. The target triplet is 'cpu-vendor-os'.
         #
         e = execute.capture_execution()
-        config_sub = path.join(self.command_path,
-                               basepath, 'config.sub')
+        config_sub = path.join(self.command_path, basepath, 'config.sub')
         exit_code, proc, output = e.shell(config_sub + ' ' + value)
         if exit_code == 0:
             value = output
@@ -254,10 +268,10 @@ class command_line(object):
             value = value[dash + 1:]
         if len(value):
             _os_value = value
-        self.defaults[_cpu]    = _arch_value
-        self.defaults[_arch]   = _arch_value
+        self.defaults[_cpu] = _arch_value
+        self.defaults[_arch] = _arch_value
         self.defaults[_vendor] = _vendor_value
-        self.defaults[_os]     = _os_value
+        self.defaults[_os] = _os_value
 
     def _lo_help(self, opt, macro, value):
         self.help()
@@ -287,7 +301,7 @@ class command_line(object):
             elif self.optargs:
                 h = self.optargs[o]
             else:
-                raise error.general('invalid help data: %s' %(o))
+                raise error.general('invalid help data: %s' % (o))
             print('%-*s : %s' % (indent, o, h))
         raise error.exit()
 
@@ -305,7 +319,8 @@ class command_line(object):
                     if len(los) == 1:
                         if long_opt[2]:
                             if arg == len(self.args) - 1:
-                                raise error.general('option requires a parameter: %s' % (lo))
+                                raise error.general(
+                                    'option requires a parameter: %s' % (lo))
                             arg += 1
                             value = self.args[arg]
                         else:
@@ -337,7 +352,8 @@ class command_line(object):
         if um:
             checked = path.exists(um)
             if False in checked:
-                raise error.general('macro file not found: %s' % (um[checked.index(False)]))
+                raise error.general('macro file not found: %s' %
+                                    (um[checked.index(False)]))
             for m in um:
                 self.defaults.load(m)
         # Check if the user has a private set of macros to load
@@ -366,9 +382,9 @@ class command_line(object):
             repo_id = 'no-repo'
             repo_mail = None
         self.defaults['_local_git_valid'] = repo_valid
-        self.defaults['_local_git_head']  = repo_head
+        self.defaults['_local_git_head'] = repo_head
         self.defaults['_local_git_clean'] = str(repo_clean)
-        self.defaults['_local_git_id']    = repo_id
+        self.defaults['_local_git_id'] = repo_id
         if repo_mail is not None:
             self.defaults['_localgit_mail'] = repo_mail
 
@@ -446,7 +462,8 @@ class command_line(object):
                     try:
                         cpus = int(_jobs)
                     except:
-                        raise error.general('invalid %%{jobs} value: %s' % (_jobs))
+                        raise error.general('invalid %%{jobs} value: %s' %
+                                            (_jobs))
             else:
                 opt_jobs = 'max'
         if opt_jobs != 'default':
@@ -472,7 +489,8 @@ class command_line(object):
                     except:
                         pass
                     if not ok:
-                        raise error.internal('bad jobs option: %s' % (opt_jobs))
+                        raise error.internal('bad jobs option: %s' %
+                                             (opt_jobs))
         if cpus <= 0:
             cpu = 1
         return cpus
@@ -511,19 +529,13 @@ class command_line(object):
         # Filter potentially sensitive mail options out.
         filtered_args = [
             arg for arg in self.argv
-            if all(
-                smtp_opt not in arg
-                for smtp_opt in [
-                    '--smtp-host',
-                    '--mail-to',
-                    '--mail-from',
-                    '--smtp-user',
-                    '--smtp-password',
-                    '--smtp-port'
-                ]
-            )
+            if all(smtp_opt not in arg for smtp_opt in [
+                '--smtp-host', '--mail-to', '--mail-from', '--smtp-user',
+                '--smtp-password', '--smtp-port'
+            ])
         ]
         log.output(log.info(filtered_args))
+
 
 def load(opts):
     """

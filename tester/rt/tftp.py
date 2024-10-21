@@ -46,10 +46,11 @@ from rtemstoolkit import reraise
 
 import tester.rt.tftpserver
 
+
 class tftp(object):
     '''RTEMS Testing TFTP base.'''
 
-    def __init__(self, bsp_arch, bsp, session_timeout, trace = False):
+    def __init__(self, bsp_arch, bsp, session_timeout, trace=False):
         self.session_timeout = session_timeout
         self.trace = trace
         self.lock_trace = False
@@ -61,7 +62,7 @@ class tftp(object):
     def __del__(self):
         self.kill()
 
-    def _init(self, state = 'reset'):
+    def _init(self, state='reset'):
         self.output_length = None
         self.console = None
         self.server = None
@@ -106,7 +107,7 @@ class tftp(object):
         self.server = None
         self.exe = None
 
-    def _stop(self, finished = True):
+    def _stop(self, finished=True):
         try:
             if self.server is not None:
                 self.server.stop()
@@ -150,12 +151,13 @@ class tftp(object):
         return None
 
     def _listener(self, exe):
-        self.server = tester.rt.tftpserver.tftp_server(host = 'all',
-                                                       port = self.port,
-                                                       session_timeout = self.session_timeout,
-                                                       timeout = 10,
-                                                       forced_file = exe,
-                                                       sessions = 1)
+        self.server = tester.rt.tftpserver.tftp_server(
+            host='all',
+            port=self.port,
+            session_timeout=self.session_timeout,
+            timeout=10,
+            forced_file=exe,
+            sessions=1)
         try:
             if False and log.tracing:
                 self.server.trace_packets()
@@ -226,8 +228,8 @@ class tftp(object):
         self.opened = True
         self.running = True
         self._console('tftp: exe: %s' % (executable))
-        self.listener = threading.Thread(target = self._runner,
-                                         name = 'tftp-listener')
+        self.listener = threading.Thread(target=self._runner,
+                                         name='tftp-listener')
         self.listener.daemon = True
         self._unlock('_open: start listner')
         self.listener.start()
@@ -281,7 +283,7 @@ class tftp(object):
             if not started:
                 if self.server is not None:
                     self._trace('server: stop')
-                    self._stop(finished = False)
+                    self._stop(finished=False)
                     self._trace('server: stop done')
                 state = 'booting'
             else:
@@ -316,6 +318,7 @@ class tftp(object):
         self._lock('target_end')
         self._set_target_state('finished')
         self._unlock('target_end')
+
 
 if __name__ == "__main__":
     import sys

@@ -381,6 +381,7 @@ class tftp_session(object):
 
 class udp_handler(socketserver.BaseRequestHandler):
     '''TFTP UDP handler for a TFTP session.'''
+
     def _notice(self, text):
         if self.server.tftp.notices:
             log.notice(text)
@@ -427,7 +428,8 @@ class udp_handler(socketserver.BaseRequestHandler):
                                 ' > ' +
                                 session.decode(address[0], address[1], data))
                     except socket.timeout as sto:
-                        self._notice('] tftp: %d: timeout: %s' % (index, client))
+                        self._notice('] tftp: %d: timeout: %s' %
+                                     (index, client))
                         continue
                     except socket.error as serr:
                         log._notice('] tftp: %d: sock receive: %s: error: %s' \
@@ -459,6 +461,7 @@ class udp_handler(socketserver.BaseRequestHandler):
         '''The UDP server handle method.'''
         if self.server.tftp.sessions_available():
             self.handle_session(self.server.tftp.next_session())
+
 
 class udp_server(socketserver.ThreadingMixIn, socketserver.UDPServer):
     '''UDP server. Default behaviour.'''
@@ -725,7 +728,8 @@ def run(args=sys.argv, command_path=None):
         log.output(log.info(args))
         log.tracing = argopts.trace
 
-        server = tftp_server(argopts.bind, argopts.port, argopts.session_timeout, argopts.timeout,
+        server = tftp_server(argopts.bind, argopts.port,
+                             argopts.session_timeout, argopts.timeout,
                              argopts.base, argopts.force_file,
                              argopts.sessions)
         server.enable_notices()

@@ -61,6 +61,7 @@ quiet = False
 #
 lock = threading.Lock()
 
+
 def info(args):
     s = [' Command Line: %s' % (' '.join(args))]
     if hasattr(os, 'uname'):
@@ -75,11 +76,13 @@ def info(args):
     s += [' Python: %s' % (sys.version.replace('\n', ''))]
     return s
 
+
 def set_default_once(log):
     if default is None:
         default = log
 
-def _output(text = os.linesep, log = None):
+
+def _output(text=os.linesep, log=None):
     """Output the text to a log if provided else send it to stdout."""
     if text is None:
         text = os.linesep
@@ -101,17 +104,20 @@ def _output(text = os.linesep, log = None):
         capture(text)
         lock.release()
 
-def stderr(text = os.linesep, log = None):
+
+def stderr(text=os.linesep, log=None):
     lock.acquire()
     for l in text.replace(chr(13), '').splitlines():
-        print(l, file = sys.stderr)
+        print(l, file=sys.stderr)
     lock.release()
 
-def output(text = os.linesep, log = None):
+
+def output(text=os.linesep, log=None):
     if not quiet:
         _output(text, log)
 
-def notice(text = os.linesep, log = None, stdout_only = False):
+
+def notice(text=os.linesep, log=None, stdout_only=False):
     if not quiet and \
             (default is not None and not default.has_stdout() or stdout_only):
         lock.acquire()
@@ -121,23 +127,28 @@ def notice(text = os.linesep, log = None, stdout_only = False):
     if not stdout_only:
         _output(text, log)
 
-def trace(text = os.linesep, log = None):
+
+def trace(text=os.linesep, log=None):
     if tracing:
         _output(text, log)
 
-def warning(text = os.linesep, log = None):
+
+def warning(text=os.linesep, log=None):
     for l in text.replace(chr(13), '').splitlines():
         _output('warning: %s' % (l), log)
 
-def flush(log = None):
+
+def flush(log=None):
     if log:
         log.flush()
     elif default is not None:
         default.flush()
 
+
 class log:
     """Log output to stdout or a file."""
-    def __init__(self, streams = None, tail_size = 100):
+
+    def __init__(self, streams=None, tail_size=100):
         self.lock = threading.Lock()
         self.tail = []
         self.tail_size = tail_size
@@ -152,8 +163,8 @@ class log:
                     try:
                         self.fhs.append(open(s, 'w'))
                     except IOError as ioe:
-                         raise error.general("creating log file '" + s + \
-                                             "': " + str(ioe))
+                        raise error.general("creating log file '" + s + \
+                                            "': " + str(ioe))
 
     def __del__(self):
         for f in range(2, len(self.fhs)):

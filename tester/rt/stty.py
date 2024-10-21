@@ -41,6 +41,7 @@ from rtemstoolkit import error
 from rtemstoolkit import host
 from rtemstoolkit import path
 
+
 def save():
     if not host.is_windows:
         try:
@@ -52,11 +53,13 @@ def save():
             pass
     return None
 
+
 def restore(attributes):
     if attributes is not None:
         termios.tcsetattr(sys.stdin, termios.TCSANOW, attributes[0])
         termios.tcsetattr(sys.stdout, termios.TCSANOW, attributes[1])
         termios.tcsetattr(sys.stderr, termios.TCSANOW, attributes[2])
+
 
 class tty(object):
 
@@ -95,13 +98,15 @@ class tty(object):
     def __del__(self):
         if self.fd and self.default_attr:
             try:
-                fcntl.fcntl(self.fd, fcntl.F_SETFL,
-                            fcntl.fcntl(self.fd, fcntl.F_GETFL) & ~os.O_NONBLOCK)
+                fcntl.fcntl(
+                    self.fd, fcntl.F_SETFL,
+                    fcntl.fcntl(self.fd, fcntl.F_GETFL) & ~os.O_NONBLOCK)
                 self.fd.close()
             except:
                 pass
 
     def __str__(self):
+
         def _input(attr):
             s = ''
             if attr & termios.IGNBRK:
@@ -499,7 +504,7 @@ class tty(object):
     def vtime(self, _vtime):
         self.attr[6][termios.VTIME] = _vtime
 
-    def set(self, flags = None):
+    def set(self, flags=None):
         if flags is None:
             flags = self.raw
         for f in flags.split(','):
@@ -581,7 +586,9 @@ if __name__ == "__main__":
         t.vmin(1)
         t.vtime(2)
         print(t)
-        t.set('B115200,~BRKINT,IGNBRK,IGNCR,~ICANON,~ISIG,~IEXTEN,~ECHO,CLOCAL,~CRTSCTS')
+        t.set(
+            'B115200,~BRKINT,IGNBRK,IGNCR,~ICANON,~ISIG,~IEXTEN,~ECHO,CLOCAL,~CRTSCTS'
+        )
         print(t)
         t.on()
         while True:

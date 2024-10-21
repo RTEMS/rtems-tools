@@ -42,6 +42,7 @@ from rtemstoolkit import error
 from rtemstoolkit import host
 from rtemstoolkit import path
 
+
 class tty:
 
     def __init__(self, dev):
@@ -80,14 +81,13 @@ class tty:
         except IOError as ioe:
             if self.conn:
                 self.conn.close()
-            raise error.general('opening telnet: %s:%d: %s' % (self.host,
-                                                               self.port,
-                                                               ioe))
+            raise error.general('opening telnet: %s:%d: %s' %
+                                (self.host, self.port, ioe))
         except:
             if self.conn:
                 self.conn.close()
-            raise error.general('opening telnet: %s:%d: unknown' % (self.host,
-                                                                    self.port))
+            raise error.general('opening telnet: %s:%d: unknown' %
+                                (self.host, self.port))
 
     def off(self):
         self.is_on = False

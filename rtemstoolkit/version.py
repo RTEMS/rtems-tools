@@ -103,27 +103,32 @@ _released = False
 _git = False
 _is_loaded = False
 
+
 def _top():
     top = os.path.dirname(sys.argv[0])
     if len(top) == 0:
         top = '.'
     return top
 
+
 def _load_released_version_config():
     '''Local worker to load a configuration file.'''
     top = _top()
-    for ver in [os.path.join(top, 'VERSION'),
-                os.path.join('..', 'VERSION'),
-                rtems.configuration_file('rtems-version.ini')]:
+    for ver in [
+            os.path.join(top, 'VERSION'),
+            os.path.join('..', 'VERSION'),
+            rtems.configuration_file('rtems-version.ini')
+    ]:
         if path.exists(path.join(ver)):
             v = configparser.ConfigParser()
             try:
                 v.read(path.host(ver))
             except Exception as e:
-                raise error.general('Invalid version config format: %s: %s' % (ver,
-                                                                               e))
+                raise error.general('Invalid version config format: %s: %s' %
+                                    (ver, e))
             return ver, v
     return None, None
+
 
 def _load_released_version():
     '''Load the release data if present. If not found the package is not released.
@@ -152,26 +157,27 @@ def _load_released_version():
                 raise error.general('Invalid version file: %s: %s' % (vc, e))
             ver_split = ver_str.split('.')
             if len(ver_split) < 2:
-                raise error.general('Invalid version release value: %s: %s' % (vc,
-                                                                               ver_str))
+                raise error.general('Invalid version release value: %s: %s' %
+                                    (vc, ver_str))
             ver = ver_split[0]
             rev = '.'.join(ver_split[1:])
             try:
                 _version = int(ver)
             except:
-                raise error.general('Invalid version config value: %s: %s' % (vc,
-                                                                              ver))
+                raise error.general('Invalid version config value: %s: %s' %
+                                    (vc, ver))
             try:
-                _revision = int(''.join(itertools.takewhile(str.isdigit, str(rev))))
+                _revision = int(''.join(
+                    itertools.takewhile(str.isdigit, str(rev))))
             except Exception as e:
-                raise error.general('Invalid revision config value: %s: %s: %s' % (vc,
-                                                                                   rev,
-                                                                                   e))
+                raise error.general(
+                    'Invalid revision config value: %s: %s: %s' % (vc, rev, e))
             if not 'not_released' in ver:
                 _released = True
             _version_str = ver_str
             _is_loaded = True
     return _released
+
 
 def _load_git_version():
     global _version
@@ -194,7 +200,8 @@ def _load_git_version():
         _git = True
     return _git
 
-def load_release_settings(section, error = False):
+
+def load_release_settings(section, error=False):
     vc, v = _load_released_version_config()
     items = []
     if v is not None:
@@ -204,42 +211,45 @@ def load_release_settings(section, error = False):
             if not isinstance(error, bool):
                 error(e)
             elif error:
-                raise error.general('Invalid config section: %s: %s: %s' % (vc,
-                                                                            section,
-                                                                            e))
+                raise error.general('Invalid config section: %s: %s: %s' %
+                                    (vc, section, e))
     return items
 
-def load_release_setting(section, option, raw = False, error = False):
+
+def load_release_setting(section, option, raw=False, error=False):
     vc, v = _load_released_version_config()
     value = None
     if v is not None:
         try:
-            value = v.get(section, option, raw = raw)
+            value = v.get(section, option, raw=raw)
         except Exception as e:
             if not isinstance(error, bool):
                 error(e)
             elif error:
-                raise error.general('Invalid config section: %s: %s: %s.%s' % (vc,
-                                                                               section,
-                                                                               option,
-                                                                               e))
+                raise error.general('Invalid config section: %s: %s: %s.%s' %
+                                    (vc, section, option, e))
     return value
+
 
 def released():
     return _load_released_version()
 
+
 def version_control():
     return _load_git_version()
+
 
 def string():
     _load_released_version()
     _load_git_version()
     return _version_str
 
+
 def version():
     _load_released_version()
     _load_git_version()
     return _version
+
 
 def revision():
     _load_released_version()

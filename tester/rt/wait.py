@@ -124,7 +124,8 @@ class wait(object):
                 self._timeout()
             elif seconds == 0:
                 self._test_too_long()
-        self._console('wait: finished: period=%d seconds=%d' % (period, seconds))
+        self._console('wait: finished: period=%d seconds=%d' %
+                      (period, seconds))
 
     def open(self, output_length, console, timeout):
         '''Start to wait'''

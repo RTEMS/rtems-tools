@@ -57,18 +57,21 @@ import tester.rt.wait
 
 timeout = 15
 
+
 class file(config.file):
     """RTEMS Testing configuration."""
 
-    _directives = ['%execute',
-                   '%gdb',
-                   '%tftp',
-                   '%wait',
-                   '%console']
+    _directives = ['%execute', '%gdb', '%tftp', '%wait', '%console']
 
-    def __init__(self, index, total, report, name, opts,
-                 console_prefix = ']', _directives = _directives):
-        super(file, self).__init__(name, opts, directives = _directives)
+    def __init__(self,
+                 index,
+                 total,
+                 report,
+                 name,
+                 opts,
+                 console_prefix=']',
+                 _directives=_directives):
+        super(file, self).__init__(name, opts, directives=_directives)
         self.lock = threading.Lock()
         self.realtime_trace = self.exe_trace('output')
         self.console_trace = self.exe_trace('console')
@@ -135,7 +138,12 @@ class file(config.file):
                 raise error.general(msg)
         return regex
 
-    def _target_command(self, command, bsp_arch = None, bsp = None, exe = None, fexe = None):
+    def _target_command(self,
+                        command,
+                        bsp_arch=None,
+                        bsp=None,
+                        exe=None,
+                        fexe=None):
         if self.defined('target_%s_command' % (command)):
             cmd = self.expand('%%{target_%s_command}' % (command)).strip()
             if bsp_arch is not None and '@ARCH@' in cmd:
@@ -150,10 +158,11 @@ class file(config.file):
                 output = ''
                 if not self.opts.dry_run():
                     rs_proc = execute.capture_execution()
-                    ec, proc, output = rs_proc.open(cmd, shell = True)
+                    ec, proc, output = rs_proc.open(cmd, shell=True)
                 self._capture_console('target %s: %s' % (command, cmd))
                 if len(output) > 0:
-                    output = os.linesep.join([' ' + l for l in output.splitlines()])
+                    output = os.linesep.join(
+                        [' ' + l for l in output.splitlines()])
                     self._capture_console(output)
 
     def _target_exe_filter(self, exe):
@@ -212,50 +221,58 @@ class file(config.file):
 
     def _dir_console(self, data):
         if self.console is not None:
-            raise error.general(self._name_line_msg('console already configured'))
+            raise error.general(
+                self._name_line_msg('console already configured'))
         if len(data) == 0:
-            raise error.general(self._name_line_msg('no console configuration provided'))
+            raise error.general(
+                self._name_line_msg('no console configuration provided'))
         console_trace = trace = self.exe_trace('console')
         if not self.opts.dry_run():
             if data[0] == 'stdio':
-                self.console = tester.rt.console.stdio(trace = console_trace)
+                self.console = tester.rt.console.stdio(trace=console_trace)
             elif data[0] == 'tty':
                 if len(data) < 2 or len(data) > 3:
-                    raise error.general(self._name_line_msg('invalid tty configuration provided'))
+                    raise error.general(
+                        self._name_line_msg(
+                            'invalid tty configuration provided'))
                 if len(data) == 3:
                     settings = data[2]
                 else:
                     settings = None
                 self.console = tester.rt.console.tty(data[1],
-                                                     output = self.capture,
-                                                     setup = settings,
-                                                     trace = console_trace)
+                                                     output=self.capture,
+                                                     setup=settings,
+                                                     trace=console_trace)
             else:
-                raise error.general(self._name_line_msg('invalid console type'))
+                raise error.general(
+                    self._name_line_msg('invalid console type'))
 
     def _dir_execute(self, data, total, index, rexe, bsp_arch, bsp):
-        self.process = tester.rt.exe.exe(bsp_arch, bsp, trace = self.exe_trace('exe'))
+        self.process = tester.rt.exe.exe(bsp_arch,
+                                         bsp,
+                                         trace=self.exe_trace('exe'))
         if not self.in_error:
             if self.console:
                 self.console.open()
             if not self.opts.dry_run():
-                self.process.open(data,
-                                  ignore_exit_code = self.defined('exe_ignore_ret'),
-                                  output = self.capture,
-                                  console = self.capture_console,
-                                  timeout = (int(self.expand('%{timeout}')),
-                                             int(self.expand('%{max_test_period}')),
-                                             self._timeout,
-                                             self._test_too_long))
+                self.process.open(
+                    data,
+                    ignore_exit_code=self.defined('exe_ignore_ret'),
+                    output=self.capture,
+                    console=self.capture_console,
+                    timeout=(int(self.expand('%{timeout}')),
+                             int(self.expand('%{max_test_period}')),
+                             self._timeout, self._test_too_long))
             if self.console:
                 self.console.close()
 
     def _dir_gdb(self, data, total, index, exe, bsp_arch, bsp):
         if len(data) < 3 or len(data) > 4:
             raise error.general('invalid %gdb arguments')
-        self.process = tester.rt.gdb.gdb(bsp_arch, bsp,
-                                         trace = self.exe_trace('gdb'),
-                                         mi_trace = self.exe_trace('gdb-mi'))
+        self.process = tester.rt.gdb.gdb(bsp_arch,
+                                         bsp,
+                                         trace=self.exe_trace('gdb'),
+                                         mi_trace=self.exe_trace('gdb-mi'))
         script = self.expand('%%{%s}' % data[2])
         if script:
             script = [l.strip() for l in script.splitlines()]
@@ -264,14 +281,15 @@ class file(config.file):
             if self.console:
                 self.console.open()
             if not self.opts.dry_run():
-                self.process.open(data[0], data[1],
-                                  script = script,
-                                  output = self.capture,
-                                  gdb_console = self.capture_console,
-                                  timeout = (int(self.expand('%{timeout}')),
-                                             int(self.expand('%{max_test_period}')),
-                                             self._timeout,
-                                             self._test_too_long))
+                self.process.open(
+                    data[0],
+                    data[1],
+                    script=script,
+                    output=self.capture,
+                    gdb_console=self.capture_console,
+                    timeout=(int(self.expand('%{timeout}')),
+                             int(self.expand('%{max_test_period}')),
+                             self._timeout, self._test_too_long))
             if self.console:
                 self.console.close()
 
@@ -288,20 +306,21 @@ class file(config.file):
                 session_timeout = int(self.expand('%{session_timeout}'))
             else:
                 session_timeout = 120
-            self.process = tester.rt.tftp.tftp(bsp_arch, bsp,
-                                               session_timeout = session_timeout,
-                                               trace = self.exe_trace('tftp'))
+            self.process = tester.rt.tftp.tftp(bsp_arch,
+                                               bsp,
+                                               session_timeout=session_timeout,
+                                               trace=self.exe_trace('tftp'))
             if not self.in_error:
                 if self.console:
                     self.console.open()
-                self.process.open(executable = exe,
-                                  port = port,
-                                  output_length = self._output_length,
-                                  console = self.capture_console,
-                                  timeout = (int(self.expand('%{timeout}')),
-                                             int(self.expand('%{max_test_period}')),
-                                             self._timeout,
-                                             self._test_too_long))
+                self.process.open(
+                    executable=exe,
+                    port=port,
+                    output_length=self._output_length,
+                    console=self.capture_console,
+                    timeout=(int(self.expand('%{timeout}')),
+                             int(self.expand('%{max_test_period}')),
+                             self._timeout, self._test_too_long))
                 if self.console:
                     self.console.close()
 
@@ -310,17 +329,18 @@ class file(config.file):
             raise error.general('%wait has no arguments')
         self.kill_on_end = True
         if not self.opts.dry_run():
-            self.process = tester.rt.wait.wait(bsp_arch, bsp,
-                                               trace = self.exe_trace('wait'))
+            self.process = tester.rt.wait.wait(bsp_arch,
+                                               bsp,
+                                               trace=self.exe_trace('wait'))
             if not self.in_error:
                 if self.console:
                     self.console.open()
-                self.process.open(output_length = self._output_length,
-                                  console = self.capture_console,
-                                  timeout = (int(self.expand('%{timeout}')),
-                                             int(self.expand('%{max_test_period}')),
-                                             self._timeout,
-                                             self._test_too_long))
+                self.process.open(
+                    output_length=self._output_length,
+                    console=self.capture_console,
+                    timeout=(int(self.expand('%{timeout}')),
+                             int(self.expand('%{max_test_period}')),
+                             self._timeout, self._test_too_long))
                 if self.console:
                     self.console.close()
 
@@ -347,8 +367,8 @@ class file(config.file):
                     bsp_arch = self.expand('%{arch}')
                     bsp = self.expand('%{bsp}')
                     fexe = self._target_exe_filter(exe)
-                    self.report.start(index, total, exe, fexe,
-                                      bsp_arch, bsp, self.show_header)
+                    self.report.start(index, total, exe, fexe, bsp_arch, bsp,
+                                      self.show_header)
                     if self.index == 1:
                         self._target_command('on', bsp_arch, bsp, exe, fexe)
                     self._target_command('pretest', bsp_arch, bsp, exe, fexe)
@@ -363,23 +383,27 @@ class file(config.file):
                 elif _directive == '%wait':
                     self._dir_wait(ds, total, index, fexe, bsp_arch, bsp)
                 else:
-                    raise error.general(self._name_line_msg('invalid directive'))
+                    raise error.general(
+                        self._name_line_msg('invalid directive'))
                 self._lock()
                 if self.index == self.total:
                     self._target_command('off', bsp_arch, bsp, exe, fexe)
                 self._target_command('posttest', bsp_arch, bsp, exe, fexe)
                 try:
-                    status = self.report.end(exe, self.output, self.console_prefix)
-                    version = self.report.get_config('version', not_found = 'n/p')
-                    build = self.report.get_config('build', not_found = 'n/p')
-                    tools = self.report.get_config('tools', not_found = 'n/p')
+                    status = self.report.end(exe, self.output,
+                                             self.console_prefix)
+                    version = self.report.get_config('version',
+                                                     not_found='n/p')
+                    build = self.report.get_config('build', not_found='n/p')
+                    tools = self.report.get_config('tools', not_found='n/p')
                     self._capture_console('test result: %s' % (status))
                     self._capture_console('test version: %s' % (version))
                     self._capture_console('test build: %s' % (build))
                     self._capture_console('test tools: %s' % (tools))
                     if status == 'timeout':
                         if self.index != self.total:
-                            self._target_command('reset', bsp_arch, bsp, exe, fexe)
+                            self._target_command('reset', bsp_arch, bsp, exe,
+                                                 fexe)
                     self.process = None
                     self.output = None
                 finally:
@@ -411,7 +435,9 @@ class file(config.file):
                     self.test_started = True
                     e = text[s + 3:].find('***')
                     if e >= 0:
-                        self.test_label = text[s + len('*** BEGIN OF TEST '):s + e + 3 - 1]
+                        self.test_label = text[s +
+                                               len('*** BEGIN OF TEST '):s +
+                                               e + 3 - 1]
                     self._capture_console('test start: %s' % (self.test_label))
                     self.process.target_start()
             ok_to_kill = '*** TEST STATE: USER_INPUT' in text or \
@@ -433,7 +459,8 @@ class file(config.file):
                 else:
                     self.restarts += 1
                     if self.restarts > self.max_restarts:
-                        self._capture_console('target restart maximum count reached')
+                        self._capture_console(
+                            'target restart maximum count reached')
                         ok_to_kill = True
                     else:
                         self.process.target_restart(self.test_started)
@@ -458,7 +485,8 @@ class file(config.file):
                             '*** TIMEOUT TIMEOUT' in text or \
                             '*** TEST TOO LONG' in text
                     self.process.target_end()
-            text = [(self.console_prefix, l) for l in text.replace(chr(13), '').splitlines()]
+            text = [(self.console_prefix, l)
+                    for l in text.replace(chr(13), '').splitlines()]
             if self.output is not None:
                 if self.realtime_trace:
                     self._realtime_trace(text)
@@ -494,6 +522,7 @@ class file(config.file):
             except:
                 pass
 
+
 def load(bsp, opts):
     mandatory = ['bsp', 'arch', 'tester']
     cfg = configuration.configuration()
@@ -503,33 +532,38 @@ def load(bsp, opts):
         if path.exists(path.join(p, ini_name)):
             cfg.load(path.join(p, ini_name))
             if not cfg.has_section(bsp):
-                raise error.general('bsp section not found in ini: [%s]' % (bsp))
-            item_names = cfg.get_item_names(bsp, err = False)
+                raise error.general('bsp section not found in ini: [%s]' %
+                                    (bsp))
+            item_names = cfg.get_item_names(bsp, err=False)
             for m in mandatory:
                 if m not in item_names:
-                    raise error.general('mandatory item not found in bsp section: %s' % (m))
-            opts.defaults.set_write_map(bsp, add = True)
-            for i in cfg.get_items(bsp, flatten = False):
+                    raise error.general(
+                        'mandatory item not found in bsp section: %s' % (m))
+            opts.defaults.set_write_map(bsp, add=True)
+            for i in cfg.get_items(bsp, flatten=False):
                 opts.defaults[i[0]] = i[1]
             if not opts.defaults.set_read_map(bsp):
                 raise error.general('cannot set BSP read map: %s' % (bsp))
             # Get a copy of the required fields we need
-            requires = cfg.comma_list(bsp, 'requires', err = False)
+            requires = cfg.comma_list(bsp, 'requires', err=False)
             del cfg
             user_config = opts.find_arg('--user-config')
             if user_config is not None:
                 user_config = path.expanduser(user_config[1])
                 if not path.exists(user_config):
-                    raise error.general('cannot find user configuration file: %s' % (user_config))
+                    raise error.general(
+                        'cannot find user configuration file: %s' %
+                        (user_config))
             else:
                 if 'HOME' in os.environ:
-                    user_config = path.join(os.environ['HOME'], '.rtemstesterrc')
+                    user_config = path.join(os.environ['HOME'],
+                                            '.rtemstesterrc')
             if user_config:
                 if path.exists(user_config):
                     cfg = configuration.configuration()
                     cfg.load(user_config)
                     if cfg.has_section(bsp):
-                        for i in cfg.get_items(bsp, flatten = False):
+                        for i in cfg.get_items(bsp, flatten=False):
                             opts.defaults[i[0]] = i[1]
             # Check for the required values.
             for r in requires:

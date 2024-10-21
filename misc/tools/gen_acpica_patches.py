@@ -63,8 +63,7 @@ ACPICA_TO_RTEMS_TABLE = [
     [
         'source/include/platform/acgccex.h',
         'bsps/include/acpi/acpica/platform/acgccex.h'
-    ],
-    ['source/components/dispatcher', 'bsps/shared/acpi/acpica/dispatcher'],
+    ], ['source/components/dispatcher', 'bsps/shared/acpi/acpica/dispatcher'],
     ['source/components/events', 'bsps/shared/acpi/acpica/events'],
     ['source/components/executer', 'bsps/shared/acpi/acpica/executer'],
     ['source/components/hardware', 'bsps/shared/acpi/acpica/hardware'],

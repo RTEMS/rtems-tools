@@ -41,6 +41,7 @@ from rtemstoolkit import version
 
 import misc.tools.getmac
 
+
 def host_port_split(ip_port):
     ips = ip_port.split(':')
     port = 0
@@ -51,6 +52,7 @@ def host_port_split(ip_port):
         else:
             raise error.general('invalid host:port: %s' % (ip_port))
     return ip, port
+
 
 class tftp_session(object):
 
@@ -64,7 +66,8 @@ class tftp_session(object):
         self.finished = True
 
     def __str__(self):
-        return os.linesep.join([self.decode(p[0], p[1], p[2]) for p in self.packets])
+        return os.linesep.join(
+            [self.decode(p[0], p[1], p[2]) for p in self.packets])
 
     def data(self, host, port, data):
         finished = False
@@ -114,7 +117,8 @@ class tftp_session(object):
                     s += '  ' + self.opcodes[opcode] + ', '
                     s += '#' + str(block) + ', '
                     if dlen > 8:
-                        s += '%02x%02x..%02x%02x' % (data[4], data[5], data[-2], data[-1])
+                        s += '%02x%02x..%02x%02x' % (data[4], data[5],
+                                                     data[-2], data[-1])
                     else:
                         for i in range(4, dlen):
                             s += '%02x' % (data[i])
@@ -170,6 +174,7 @@ class tftp_session(object):
     def get_block_size(self):
         return self.block_size
 
+
 class udp_handler(socketserver.BaseRequestHandler):
 
     def handle(self):
@@ -183,29 +188,26 @@ class udp_handler(socketserver.BaseRequestHandler):
             host = self.server.proxy.get_host(client_ip)
             if host is not None:
                 session_count = self.server.proxy.get_session_count()
-                log.notice(' ] %6d: session: %s -> %s: start' % (session_count,
-                                                                 client,
-                                                                 host))
+                log.notice(' ] %6d: session: %s -> %s: start' %
+                           (session_count, client, host))
                 host_ip, host_server_port = host_port_split(host)
                 host_port = host_server_port
                 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
                 sock.settimeout(timeout)
-                log.trace('  > ' + session.decode(client_ip,
-                                                  client_port,
-                                                  self.request[0]))
+                log.trace(
+                    '  > ' +
+                    session.decode(client_ip, client_port, self.request[0]))
                 sock.sendto(self.request[0], (host_ip, host_port))
                 while not finished:
                     try:
                         data, address = sock.recvfrom(16 * 1024)
                     except socket.error as se:
-                        log.notice(' ] session: %s -> %s: error: %s' % (client,
-                                                                        host,
-                                                                        se))
+                        log.notice(' ] session: %s -> %s: error: %s' %
+                                   (client, host, se))
                         return
                     except socket.gaierror as se:
-                        log.notice(' ] session: %s -> %s: error: %s' % (client,
-                                                                        host,
-                                                                        se))
+                        log.notice(' ] session: %s -> %s: error: %s' %
+                                   (client, host, se))
                         return
                     except:
                         return
@@ -213,34 +215,36 @@ class udp_handler(socketserver.BaseRequestHandler):
                     if address[0] == host_ip:
                         if host_port == host_server_port:
                             host_port = address[1]
-                        if  address[1] == host_port:
-                            log.trace('  < ' + session.decode(address[0],
-                                                              address[1],
-                                                              data))
+                        if address[1] == host_port:
+                            log.trace(
+                                '  < ' +
+                                session.decode(address[0], address[1], data))
                             sock.sendto(data, (client_ip, client_port))
                     elif address[0] == client_ip and address[1] == client_port:
-                        log.trace('  > ' + session.decode(address[0],
-                                                          address[1],
-                                                          data))
+                        log.trace('  > ' +
+                                  session.decode(address[0], address[1], data))
                         sock.sendto(data, (host_ip, host_port))
-                log.notice(' ] %6d: session: %s -> %s: end' % (session_count,
-                                                               client,
-                                                               host))
+                log.notice(' ] %6d: session: %s -> %s: end' %
+                           (session_count, client, host))
             else:
-                mac = misc.tools.getmac.get_mac_address(ip = client_ip)
-                log.trace(' . request: host not found: %s (%s)' % (client, mac))
+                mac = misc.tools.getmac.get_mac_address(ip=client_ip)
+                log.trace(' . request: host not found: %s (%s)' %
+                          (client, mac))
+
 
 class udp_server(socketserver.ThreadingMixIn, socketserver.UDPServer):
     pass
 
+
 class proxy_server(object):
+
     def __init__(self, config, host, port):
         self.lock = threading.Lock()
         self.session_timeout = 10
         self.host = host
         self.port = port
         self.server = None
-        self.clients = { }
+        self.clients = {}
         self.config = configuration.configuration()
         self._load(config)
         self.session_counter = 0
@@ -254,19 +258,19 @@ class proxy_server(object):
     def _unlock(self):
         self.lock.release()
 
-    def _load_client(self, client, depth = 0):
+    def _load_client(self, client, depth=0):
         if depth > 32:
             raise error.general('\'clients\'" nesting too deep; circular?')
         if not self.config.has_section(client):
             raise error.general('client not found: %s' % (client))
-        for c in self.config.comma_list(client, 'clients', err = False):
+        for c in self.config.comma_list(client, 'clients', err=False):
             self._load_client(c, depth + 1)
         if client in self.clients:
             raise error.general('repeated client: %s' % (client))
-        host = self.config.get_item(client, 'host', err = False)
+        host = self.config.get_item(client, 'host', err=False)
         if host is not None:
-            ips = self.config.comma_list(client, 'ip', err = False)
-            macs = self.config.comma_list(client, 'mac', err = False)
+            ips = self.config.comma_list(client, 'ip', err=False)
+            macs = self.config.comma_list(client, 'mac', err=False)
             if len(ips) != 0 and len(macs) != 0:
                 raise error.general('client has ip and mac: %s' % (client))
             if len(ips) != 0:
@@ -280,9 +284,10 @@ class proxy_server(object):
 
     def _load(self, config):
         self.config.load(config)
-        clients = self.config.comma_list('default', 'clients', err = False)
+        clients = self.config.comma_list('default', 'clients', err=False)
         if len(clients) == 0:
-            raise error.general('\'clients\'" entry not found in config [defaults]')
+            raise error.general(
+                '\'clients\'" entry not found in config [defaults]')
         for client in clients:
             self._load_client(client)
 
@@ -299,7 +304,8 @@ class proxy_server(object):
         self.server.proxy = self
         self._lock()
         try:
-            self.server_thread = threading.Thread(target = self.server.serve_forever)
+            self.server_thread = threading.Thread(
+                target=self.server.serve_forever)
             self.server_thread.daemon = True
             self.server_thread.start()
         finally:
@@ -326,7 +332,7 @@ class proxy_server(object):
             if client in self.clients:
                 host = self.clients[client]
             else:
-                mac = misc.tools.getmac.get_mac_address(ip = client)
+                mac = misc.tools.getmac.get_mac_address(ip=client)
                 if mac in self.clients:
                     host = self.clients[mac]
         finally:
@@ -346,39 +352,52 @@ class proxy_server(object):
 
 def load_log(logfile):
     if logfile is None:
-        log.default = log.log(streams = ['stdout'])
+        log.default = log.log(streams=['stdout'])
     else:
-        log.default = log.log(streams = [logfile])
+        log.default = log.log(streams=[logfile])
 
-def run(args = sys.argv, command_path = None):
+
+def run(args=sys.argv, command_path=None):
     ec = 0
     notice = None
     proxy = None
     try:
-        description  = 'Proxy TFTP sessions from the host running this proxy'
+        description = 'Proxy TFTP sessions from the host running this proxy'
         description += 'to hosts and ports defined in the configuration file. '
         description += 'The tool lets you create a farm of hardware and to run '
         description += 'more than one TFTP test session on a host or multiple '
         description += 'hosts at once. This proxy service is not considered secure'
         description += 'and is for use in a secure environment.'
 
-        argsp = argparse.ArgumentParser(prog = 'rtems-tftp-proxy',
-                                        description = description)
-        argsp.add_argument('-l', '--log',
-                           help = 'log file.',
-                           type = str, default = None)
-        argsp.add_argument('-v', '--trace',
-                           help = 'enable trace logging for debugging.',
-                           action = 'store_true', default = False)
-        argsp.add_argument('-c', '--config',
-                           help = 'proxy configuation (default: %(default)s).',
-                           type = str, default = None)
-        argsp.add_argument('-B', '--bind',
-                           help = 'address to bind the proxy too (default: %(default)s).',
-                           type = str, default = 'all')
-        argsp.add_argument('-P', '--port',
-                           help = 'port to bind the proxy too(default: %(default)s).',
-                           type = int, default = '69')
+        argsp = argparse.ArgumentParser(prog='rtems-tftp-proxy',
+                                        description=description)
+        argsp.add_argument('-l',
+                           '--log',
+                           help='log file.',
+                           type=str,
+                           default=None)
+        argsp.add_argument('-v',
+                           '--trace',
+                           help='enable trace logging for debugging.',
+                           action='store_true',
+                           default=False)
+        argsp.add_argument('-c',
+                           '--config',
+                           help='proxy configuation (default: %(default)s).',
+                           type=str,
+                           default=None)
+        argsp.add_argument(
+            '-B',
+            '--bind',
+            help='address to bind the proxy too (default: %(default)s).',
+            type=str,
+            default='all')
+        argsp.add_argument(
+            '-P',
+            '--port',
+            help='port to bind the proxy too(default: %(default)s).',
+            type=int,
+            default='69')
 
         argopts = argsp.parse_args(args[1:])
 
@@ -419,6 +438,7 @@ def run(args = sys.argv, command_path = None):
     if notice is not None:
         log.stderr(notice)
     sys.exit(ec)
+
 
 if __name__ == "__main__":
     run()

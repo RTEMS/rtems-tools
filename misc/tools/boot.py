@@ -41,6 +41,7 @@ from rtemstoolkit import macros
 from rtemstoolkit import path
 from rtemstoolkit import version
 
+
 def _check_exes(exes):
     ok = True
     first = True
@@ -54,12 +55,13 @@ def _check_exes(exes):
             ok = False
     return ok
 
+
 def _command(cmd, cwd):
     e = execute.capture_execution()
     cwd = path.abspath(cwd)
     log.output('>> cwd: %s' % (cwd))
     log.output('> %s' % (cmd))
-    exit_code, proc, output = e.shell(cmd, cwd = path.host(cwd))
+    exit_code, proc, output = e.shell(cmd, cwd=path.host(cwd))
     output_split = output.split(os.linesep)
     if len(output_split) >= 1 and len(output_split[0]) > 0:
         log.output(['> ' + l for l in output_split])
@@ -69,14 +71,15 @@ def _command(cmd, cwd):
         raise error.general(err)
     return output
 
-siunits = { 'g': 1024 * 1024 * 1024,
-            'm': 1024 * 1024,
-            'k': 1024 }
+
+siunits = {'g': 1024 * 1024 * 1024, 'm': 1024 * 1024, 'k': 1024}
+
 
 def _si_units(units):
     if units not in siunits:
         raise error.general('invalid SI unit: %s' % (units))
     return siunits[units]
+
 
 def _si_parse_size(size):
     orig = size
@@ -94,13 +97,16 @@ def _si_parse_size(size):
     size = int(size)
     return size, suffix, size * units
 
+
 def _si_size(size):
     si_s, si_u, size = _si_parse_size(size)
     return size
 
+
 def _si_size_units(size):
     si_s, si_u, size = _si_parse_size(size)
     return si_s, si_u
+
 
 def _si_from_size(size):
     if isinstance(size, str):
@@ -114,20 +120,15 @@ def _si_from_size(size):
             return '%d%s' % (value, u)
     return str(size)
 
+
 class bootloader(object):
 
     mandatory_configs = [
-        'image_size',
-        'part_type',
-        'part_label',
-        'fs_format',
-        'fs_size',
-        'fs_alignment',
-        'tool_prefix',
-        'bootloaders'
+        'image_size', 'part_type', 'part_label', 'fs_format', 'fs_size',
+        'fs_alignment', 'tool_prefix', 'bootloaders'
     ]
 
-    def __init__(self, command_path, build = None, bootloader = None):
+    def __init__(self, command_path, build=None, bootloader=None):
         #
         # Check if there is a defaults.mc file under the command path. If so
         # this is the tester being run from within the git repo. If not found
@@ -141,8 +142,8 @@ class bootloader(object):
             rtdir = '%{_prefix}/share/rtems'
         boot_ini = '%s/%s' % (rtdir, boot_ini)
         self.build = None
-        self.macros = macros.macros(rtdir = rtdir, show_minimal = True)
-        self.config = configuration.configuration(raw = False)
+        self.macros = macros.macros(rtdir=rtdir, show_minimal=True)
+        self.config = configuration.configuration(raw=False)
         self.load_config(bootloader, self.macros.expand(boot_ini))
         self.clean = True
 
@@ -182,15 +183,18 @@ class bootloader(object):
         bootloaders = self.config.comma_list('default', 'bootloaders')
         for bl in bootloaders:
             if not self.config.has_section(bl):
-                raise error.general('boot config: missing bootloader section: %s' % (bl))
+                raise error.general(
+                    'boot config: missing bootloader section: %s' % (bl))
             for b in self.config.comma_list(bl, 'boards'):
                 if not self.config.has_section(b):
-                    raise error.general('boot config: missing board section: %s' % (b))
+                    raise error.general(
+                        'boot config: missing board section: %s' % (b))
         #
         # Is the bootloader valid?
         #
         if bootloader is not None and bootloader not in bootloaders:
-            raise error.general('boot config: unknown bootloader: %s' % (bootloader))
+            raise error.general('boot config: unknown bootloader: %s' %
+                                (bootloader))
         self.macros['bootloader'] = str(bootloader)
         self.macros['version_str'] = version.string()
         self.macros['version'] = str(version.version())
@@ -205,7 +209,7 @@ class bootloader(object):
         #
         for s in self.config.get_sections():
             if s != 'default':
-                self.macros.set_write_map(s, add = True)
+                self.macros.set_write_map(s, add=True)
             for i in self.config.get_items(s):
                 self.macros[i[0]] = i[1]
             self.macros.unset_write_map()
@@ -214,24 +218,25 @@ class bootloader(object):
             self.macros.set_read_map(bootloader)
 
     def list_boards(self):
-        boards = { }
+        boards = {}
         for bl in self.config.comma_list('default', 'bootloaders'):
             boards[bl] = self.config.comma_list(bl, 'boards')
         return boards
 
-    def section_macro_map(self, section, nesting_level = 0):
+    def section_macro_map(self, section, nesting_level=0):
         nesting_level += 1
         if nesting_level >= 100:
             err = 'boot config: too many map levels (looping?): %s' % (section)
             raise error.general(err)
         if section not in self.macros.maps():
-            raise error.general('boot config: maps section not found: %s' % (section))
+            raise error.general('boot config: maps section not found: %s' %
+                                (section))
         self.macros.set_read_map(section)
-        for s in self.config.comma_list(section, 'uses', err = False):
+        for s in self.config.comma_list(section, 'uses', err=False):
             self.section_macro_map(s, nesting_level)
 
     def boards(self):
-         return self.config.comma_list(self['bootloader'], 'boards')
+        return self.config.comma_list(self['bootloader'], 'boards')
 
     def log(self):
         log.output('Configuration:')
@@ -261,7 +266,9 @@ class bootloader(object):
         return _check_exes(self.get_exes())
 
     def files(self):
-        return [f.strip() for f in self.comma_split(self['files']) if len(f) > 0]
+        return [
+            f.strip() for f in self.comma_split(self['files']) if len(f) > 0
+        ]
 
     def install_files(self, image, mountpoint):
         pass
@@ -270,7 +277,8 @@ class bootloader(object):
         pass
 
     def kernel_image(self):
-        return self['kernel_image'].replace('@KERNEL@', path.basename(self['kernel']))
+        return self['kernel_image'].replace('@KERNEL@',
+                                            path.basename(self['kernel']))
 
     def fdt_image(self):
         return self['fdt_image'].replace('@FDT@', path.basename(self['fdt']))
@@ -286,7 +294,7 @@ class bootloader(object):
                 line = line.replace('@FDT@', path.basename(self['fdt']))
             if '@FDT_IMAGE@' in line:
                 line = line.replace('@FDT_IMAGE@', self.fdt_image())
-            if '@NET_SERVER_IP@' in line and self['net_server_ip']is not None:
+            if '@NET_SERVER_IP@' in line and self['net_server_ip'] is not None:
                 line = line.replace('@NET_SERVER_IP@', self['net_server_ip'])
             if '@NET_IP@' in line and self['net_ip'] is not None:
                 line = line.replace('@NET_IP@', self['net_ip'])
@@ -302,14 +310,15 @@ class bootloader(object):
             return [s.strip() for s in value.split(',')]
         return []
 
+
 class uboot_bootloader(bootloader):
 
     def __init__(self, command_path, build, convert_kernel, paths, board):
-        self.uboot = { 'paths': paths, 'board': board }
+        self.uboot = {'paths': paths, 'board': board}
         self.convert_kernel = convert_kernel
         super(uboot_bootloader, self).__init__(command_path, build, 'u-boot')
         if self.board() not in self.boards():
-            raise error.general('board not found: %s' %(self.board()))
+            raise error.general('board not found: %s' % (self.board()))
         log.output('Board: %s' % (self.board()))
         self.section_macro_map(self.board())
         self.macros.set_read_map(self['bootloader'] + '-templates')
@@ -336,22 +345,18 @@ class uboot_bootloader(bootloader):
             if paths_count == 1:
                 self.macros['ubootdir'] = path.abspath(self.uboot['paths'][0])
             elif paths_count == 2:
-                    self.macros['first_stage'] = self.uboot['paths'][0]
-                    self.macros['second_stage'] = self.uboot['paths'][1]
+                self.macros['first_stage'] = self.uboot['paths'][0]
+                self.macros['second_stage'] = self.uboot['paths'][1]
             else:
                 raise error.general('u-boot: invalid number of paths')
         self.macros['mkimage'] = 'mkimage'
 
     def get_mandatory_configs(self):
         cfgs = super(uboot_bootloader, self).get_mandatory_configs()
-        return cfgs + ['objcopy',
-                       'arch',
-                       'vendor',
-                       'board',
-                       'config_name',
-                       'first_stage',
-                       'second_stage',
-                       'kernel_converter']
+        return cfgs + [
+            'objcopy', 'arch', 'vendor', 'board', 'config_name', 'first_stage',
+            'second_stage', 'kernel_converter'
+        ]
 
     def board(self):
         return self.uboot['board']
@@ -424,6 +429,7 @@ class uboot_bootloader(bootloader):
         path.copy(fdt, dst)
         return self['fdt_image'].replace('@FDT@', dst)
 
+
 class image(object):
 
     def __init__(self, bootloader):
@@ -460,23 +466,23 @@ class image(object):
                 # Create the blank image file. This is attached as a device,
                 # partitioned, formatted and the files written to it.
                 #
-                log.notice('Create image: %s size %s' % (self.loader['output'],
-                                                         self.loader['image_size']))
+                log.notice('Create image: %s size %s' %
+                           (self.loader['output'], self.loader['image_size']))
                 self.image_create(output, self.loader['image_size'])
 
                 #
                 # Attach the image so it is a device.
                 #
-                log.notice('Attach image to device: %s' % (self.loader['output']))
+                log.notice('Attach image to device: %s' %
+                           (self.loader['output']))
                 device = self.image_attach(output)
 
                 #
                 # Partition the image. The device may change.
                 #
-                log.notice('Partition device: %s as %s' % (device,
-                                                           self.loader['part_type']))
-                device = self.partition(output,
-                                        device,
+                log.notice('Partition device: %s as %s' %
+                           (device, self.loader['part_type']))
+                device = self.partition(output, device,
                                         self.loader['part_type'],
                                         self.loader['part_label'],
                                         self.loader['fs_format'],
@@ -487,9 +493,9 @@ class image(object):
                 #
                 # Format the first partition.
                 #
-                log.notice('Format: %s as %s' % (part, self.loader['fs_format']))
-                self.format_partition(part,
-                                      self.loader['fs_format'],
+                log.notice('Format: %s as %s' %
+                           (part, self.loader['fs_format']))
+                self.format_partition(part, self.loader['fs_format'],
                                       self.loader['part_label'])
 
                 #
@@ -532,14 +538,14 @@ class image(object):
         src_base = path.basename(src)
         log.notice('Install: %s' % (src_base))
         asrc = path.abspath(src)
-        adst =  path.join(path.abspath(dst), src_base)
+        adst = path.join(path.abspath(dst), src_base)
         log.output('Copy: %s -> %s' % (asrc, adst))
         path.copy(asrc, adst)
 
     def install_text(self, text, dst):
         dst_base = path.basename(dst)
         log.notice('Install: %s' % (dst_base))
-        adst =  path.abspath(dst)
+        adst = path.abspath(dst)
         log.output('Copy: text[%d] -> %s' % (len(text), adst))
         log.output([' ] ' + l for l in text])
         with open(adst, "w") as o:
@@ -559,8 +565,8 @@ class image(object):
             self.host_image_detach(device)
 
     def partition(self, image_, device, ptype, plabel, pformat, psize, palign):
-        return self.host_partition(image_, device,
-                                   ptype, plabel, pformat, psize, palign)
+        return self.host_partition(image_, device, ptype, plabel, pformat,
+                                   psize, palign)
 
     def format_partition(self, device, pformat, plabel):
         self.host_format_partition(device, pformat, plabel)
@@ -601,7 +607,7 @@ class image(object):
     def clean_path(self, name):
         self.remove_paths += [name]
 
-    def create_path(self, where, recreate = True, cleanup = True):
+    def create_path(self, where, recreate=True, cleanup=True):
         if path.exists(where):
             log.output('remove: %s' % (where))
             path.removeall(where)
@@ -622,9 +628,8 @@ class image(object):
 
     def host_image_create(self, path_, size, exists):
         img_size, img_units = _si_size_units(size)
-        self.command('dd if=/dev/zero of=%s bs=1%s count=%d' % (path_,
-                                                                img_units,
-                                                                img_size))
+        self.command('dd if=/dev/zero of=%s bs=1%s count=%d' %
+                     (path_, img_units, img_size))
 
     def host_image_attach(self, path_):
         raise error.general('no platform support: host_image_attach')
@@ -632,7 +637,8 @@ class image(object):
     def host_image_detach(self, device):
         raise error.general('no platform support: host_image_detach')
 
-    def host_partition(self, image_, device, ptype, plabel, pformat, psize, palign):
+    def host_partition(self, image_, device, ptype, plabel, pformat, psize,
+                       palign):
         raise error.general('no platform support: host_partition')
 
     def host_format_partition(self, device, pformat, plabel):
@@ -647,17 +653,15 @@ class image(object):
     def host_unmount(self, path_):
         raise error.general('no platform support: host_unmount')
 
+
 class freebsd_image(image):
+
     def __init__(self, loader):
         super(freebsd_image, self).__init__(loader)
 
     def get_exes(self):
         exes = super(freebsd_image, self).get_exes()
-        return exes + ['mdconfig',
-                       'gpart',
-                       'newfs_msdos',
-                       'mount',
-                       'umount']
+        return exes + ['mdconfig', 'gpart', 'newfs_msdos', 'mount', 'umount']
 
     def host_image_attach(self, path_):
         return self.command('sudo mdconfig -f %s' % (path_))
@@ -665,74 +669,70 @@ class freebsd_image(image):
     def host_image_detach(self, device):
         self.command('sudo mdconfig -d -u %s' % (device))
 
-    def host_partition(self, image_, device, ptype, plabel, pformat, psize, palign):
-        types = { 'MBR': 'MBR' }
-        formats = { 'fat16': 'fat16',
-                    'fat32': 'fat32' }
+    def host_partition(self, image_, device, ptype, plabel, pformat, psize,
+                       palign):
+        types = {'MBR': 'MBR'}
+        formats = {'fat16': 'fat16', 'fat32': 'fat32'}
         if ptype not in types:
             err = 'unknown type of partitioning: %s' % (ptype)
             raise error.general(err)
         if pformat not in formats:
             raise error.general('unknown format: %s' % (pformat))
         self.command('sudo gpart create -s %s %s' % (types[ptype], device))
-        self.command('sudo gpart add -s %s -t %s -a %s %s' % (_si_from_size(psize),
-                                                              formats[pformat],
-                                                              palign,
-                                                              device))
+        self.command('sudo gpart add -s %s -t %s -a %s %s' %
+                     (_si_from_size(psize), formats[pformat], palign, device))
         self.command('sudo gpart set -a active -i 1 %s' % (device))
         return device
 
     def host_format_partition(self, device, pformat, plabel):
-        formats = { 'fat16': ('newfs_msdos', '16'),
-                    'fat32': ('newfs_msdos', '32') }
+        formats = {
+            'fat16': ('newfs_msdos', '16'),
+            'fat32': ('newfs_msdos', '32')
+        }
         if pformat not in formats:
             raise error.general('unknown format: %s' % (pformat))
-        self.command('sudo %s -F %s %s' % (formats[pformat][0],
-                                           formats[pformat][1],
-                                           device))
+        self.command('sudo %s -F %s %s' %
+                     (formats[pformat][0], formats[pformat][1], device))
 
     def host_device_partition(self, device, pindex):
         return '/dev/%ss%d' % (device, pindex)
 
     def host_mount(self, pformat, device, path_):
-        formats = { 'fat16': 'msdos',
-                    'fat32': 'msdos' }
+        formats = {'fat16': 'msdos', 'fat32': 'msdos'}
         if pformat not in formats:
             raise error.general('unknown format: %s' % (pformat))
-        self.command('sudo mount -t %s %s %s' % (formats[pformat],
-                                                 device,
-                                                 path_))
+        self.command('sudo mount -t %s %s %s' %
+                     (formats[pformat], device, path_))
 
     def host_unmount(self, path_):
         self.command('sudo umount %s' % (path_))
 
+
 class linux_image(image):
+
     def __init__(self, loader):
         super(linux_image, self).__init__(loader)
 
     def get_exes(self):
         exes = super(linux_image, self).get_exes()
-        return exes + ['losetup',
-                       'fdisk',
-                       'mkfs.fat',
-                       'mount',
-                       'umount']
+        return exes + ['losetup', 'fdisk', 'mkfs.fat', 'mount', 'umount']
 
     def host_image_create(self, path_, size, exists):
         img_size, img_units = _si_size_units(size)
-        self.command('dd if=/dev/zero of=%s bs=%s count=%d' % (path_,
-                                                               _si_units(img_units),
-                                                               img_size))
+        self.command('dd if=/dev/zero of=%s bs=%s count=%d' %
+                     (path_, _si_units(img_units), img_size))
+
     def host_image_attach(self, path_):
-        return self.command('sudo losetup --partscan --find --show %s' % (path_))
+        return self.command('sudo losetup --partscan --find --show %s' %
+                            (path_))
 
     def host_image_detach(self, device):
         self.command('sudo losetup --detach %s' % (device))
 
-    def host_partition(self, image_, device, ptype, plabel, pformat, psize, palign):
-        types = { 'MBR': 'MBR' }
-        formats = { 'fat16': '6',
-                    'fat32': 'b' }
+    def host_partition(self, image_, device, ptype, plabel, pformat, psize,
+                       palign):
+        types = {'MBR': 'MBR'}
+        formats = {'fat16': '6', 'fat32': 'b'}
         if ptype not in types:
             err = 'unknown type of partitioning: %s' % (ptype)
             raise error.general(err)
@@ -747,43 +747,44 @@ class linux_image(image):
         # This awkward exchange is needed to script fdisk, hmmm.
         #
         with tempfile.NamedTemporaryFile() as tmp:
-            s = os.linesep.join(['o',   # create a new empty part table
-                                 'n',   # add a new partition
-                                 'p',   # primary
-                                 '1',   # partition 1
-                                 '%d' % (_si_size(palign) / 512),
-                                 '%d' % (_si_size(psize) / 512),
-                                 't',   # change a partition type
-                                 '%s' % (formats[pformat]), # hex code
-                                 'a',   # toggle a bootable flag
-                                 'p',   # print
-                                 'w',   # write table to disk and exit
-                                 ''])
+            s = os.linesep.join([
+                'o',  # create a new empty part table
+                'n',  # add a new partition
+                'p',  # primary
+                '1',  # partition 1
+                '%d' % (_si_size(palign) / 512),
+                '%d' % (_si_size(psize) / 512),
+                't',  # change a partition type
+                '%s' % (formats[pformat]),  # hex code
+                'a',  # toggle a bootable flag
+                'p',  # print
+                'w',  # write table to disk and exit
+                ''
+            ])
             log.output('fdisk script:')
             log.output(s)
             tmp.write(s.encode())
             tmp.seek(0)
-            self.command('cat %s | fdisk -t %s %s' % (tmp.name,
-                                                      types[ptype],
-                                                      image_))
+            self.command('cat %s | fdisk -t %s %s' %
+                         (tmp.name, types[ptype], image_))
         return self.host_image_attach(image_)
 
     def host_format_partition(self, device, pformat, plabel):
-        formats = { 'fat16': ('mkfs.fat', '16'),
-                    'fat32': ('mkfs.fat', '32') }
+        formats = {'fat16': ('mkfs.fat', '16'), 'fat32': ('mkfs.fat', '32')}
         if pformat not in formats:
             raise error.general('unknown format: %s' % (pformat))
-        self.command('sudo %s -F %s -n %s %s' % (formats[pformat][0],
-                                                 formats[pformat][1],
-                                                 plabel,
-                                                 device))
+        self.command(
+            'sudo %s -F %s -n %s %s' %
+            (formats[pformat][0], formats[pformat][1], plabel, device))
 
     def host_device_partition(self, device, pindex):
         return '%sp%d' % (device, pindex)
 
     def host_mount(self, pformat, device, path_):
-        options = { 'fat16': '-o uid=%d' % (os.getuid()),
-                    'fat32': '-o uid=%d' % (os.getuid()) }
+        options = {
+            'fat16': '-o uid=%d' % (os.getuid()),
+            'fat32': '-o uid=%d' % (os.getuid())
+        }
         if pformat in options:
             opts = options[pformat]
         else:
@@ -793,7 +794,9 @@ class linux_image(image):
     def host_unmount(self, path_):
         self.command('sudo umount %s' % (path_))
 
+
 class darwin_image(image):
+
     def __init__(self, loader):
         super(darwin_image, self).__init__(loader)
         if not self.loader['output'].endswith('.img'):
@@ -803,23 +806,23 @@ class darwin_image(image):
 
     def get_exes(self):
         exes = super(darwin_image, self).get_exes()
-        return exes + ['hdiutil',
-                       'diskutil',
-                       'fdisk']
+        return exes + ['hdiutil', 'diskutil', 'fdisk']
 
     def host_image_attach(self, path_):
-        output = self.command('sudo hdiutil attach %s -nomount -nobrowse' % (path_))
-        if len(output.split(os.linesep)) != 1 or not output.startswith('/dev/'):
+        output = self.command('sudo hdiutil attach %s -nomount -nobrowse' %
+                              (path_))
+        if len(output.split(
+                os.linesep)) != 1 or not output.startswith('/dev/'):
             raise error.general('invalid hdiutil attach outputl; see log')
         return output.strip()
 
     def host_image_detach(self, device):
         self.command('sudo hdiutil detach %s' % (device))
 
-    def host_partition(self, image_, device, ptype, plabel, pformat, psize, palign):
-        types = { 'MBR': 'MBR' }
-        formats = { 'fat16': 'MS-DOS FAT16',
-                    'fat32': 'MS-DOS FAT32' }
+    def host_partition(self, image_, device, ptype, plabel, pformat, psize,
+                       palign):
+        types = {'MBR': 'MBR'}
+        formats = {'fat16': 'MS-DOS FAT16', 'fat32': 'MS-DOS FAT32'}
         if ptype not in types:
             err = 'unknown type of partitioning: %s' % (ptype)
             raise error.general(err)
@@ -828,7 +831,7 @@ class darwin_image(image):
         #
         # Align the parition by adding free space before. Sign.
         #
-        cmd  = "sudo diskutil partitionDisk %s 2 %s " % (device, types[ptype])
+        cmd = "sudo diskutil partitionDisk %s 2 %s " % (device, types[ptype])
         cmd += "'Free Space' '%%noformat%%' %s " % (palign)
         cmd += "'%s' %s %s" % (formats[pformat], plabel, psize)
         self.command(cmd)
@@ -841,11 +844,13 @@ class darwin_image(image):
         # This awkward exchange is needed to set the active bit.
         #
         with tempfile.NamedTemporaryFile() as tmp:
-            s = os.linesep.join(['f 1', # flag toggle on partition 1
-                                 'w',   # write
-                                 'p',   # print
-                                 'q',   # quit
-                                 ''])
+            s = os.linesep.join([
+                'f 1',  # flag toggle on partition 1
+                'w',  # write
+                'p',  # print
+                'q',  # quit
+                ''
+            ])
             tmp.write(s.encode())
             tmp.seek(0)
             self.command('cat %s | sudo fdisk -y -e %s' % (tmp.name, device))
@@ -863,65 +868,79 @@ class darwin_image(image):
     def host_unmount(self, path_):
         self.command('sudo diskutil unmount %s' % (path_))
 
+
 builders = {
     'freebsd': freebsd_image,
-    'linux'  : linux_image,
-    'darwin' : darwin_image
+    'linux': linux_image,
+    'darwin': darwin_image
 }
 
+
 def load_log(logfile):
-    log.default = log.log(streams = [logfile])
+    log.default = log.log(streams=[logfile])
+
 
 def log_default():
     return 'rtems-log-boot-image.txt'
 
+
 class valid_dir(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string = None):
+
+    def __call__(self, parser, namespace, values, option_string=None):
         if type(values) is not list:
             values = [values]
         for value in values:
             if not path.isdir(value):
-                raise argparse.ArgumentError(self,
-                                             'is not a valid directory: %s' % (value))
+                raise argparse.ArgumentError(
+                    self, 'is not a valid directory: %s' % (value))
             if not path.isreadable(value):
-                raise argparse.ArgumentError(self, 'is not readable: %s' % (value))
+                raise argparse.ArgumentError(self,
+                                             'is not readable: %s' % (value))
             if not path.iswritable(value):
-                raise argparse.ArgumentError(self, 'is not writeable: %s' % (value))
+                raise argparse.ArgumentError(self,
+                                             'is not writeable: %s' % (value))
             setattr(namespace, self.dest, value)
 
+
 class valid_file(argparse.Action):
-    def __call__(self, parser, namespace, value, option_string = None):
+
+    def __call__(self, parser, namespace, value, option_string=None):
         current = getattr(namespace, self.dest)
         if not isinstance(current, list) and current is not None:
-            raise argparse.ArgumentError(self,
-                                         ' already provided: %s, have %s' % (value,
-                                                                             current))
+            raise argparse.ArgumentError(
+                self, ' already provided: %s, have %s' % (value, current))
         if not path.isfile(value):
-            raise argparse.ArgumentError(self, 'is not a valid file: %s' % (value))
+            raise argparse.ArgumentError(self,
+                                         'is not a valid file: %s' % (value))
         if not path.isreadable(value):
             raise argparse.ArgumentError(self, 'is not readable: %s' % (value))
         if current is not None:
             value = current + [value]
         setattr(namespace, self.dest, value)
 
+
 class valid_file_if_exists(argparse.Action):
-    def __call__(self, parser, namespace, value, option_string = None):
+
+    def __call__(self, parser, namespace, value, option_string=None):
         current = getattr(namespace, self.dest)
         if not isinstance(current, list) and current is not None:
-            raise argparse.ArgumentError(self,
-                                         ' already provided: %s, have %s' % (value,
-                                                                             current))
+            raise argparse.ArgumentError(
+                self, ' already provided: %s, have %s' % (value, current))
         if path.exists(value):
             if not path.isfile(value):
-                raise argparse.ArgumentError(self, 'is not a valid file: %s' % (value))
+                raise argparse.ArgumentError(
+                    self, 'is not a valid file: %s' % (value))
             if not path.isreadable(value):
-                raise argparse.ArgumentError(self, 'is not readable: %s' % (value))
+                raise argparse.ArgumentError(self,
+                                             'is not readable: %s' % (value))
         if current is not None:
             value = current + [value]
         setattr(namespace, self.dest, value)
 
+
 class valid_paths(argparse.Action):
-    def __call__(self, parser, namespace, value, option_string = None):
+
+    def __call__(self, parser, namespace, value, option_string=None):
         current = getattr(namespace, self.dest)
         if current is None:
             current = []
@@ -934,68 +953,85 @@ class valid_paths(argparse.Action):
                 err = 'is not a valid file or directory: %s' % (value)
                 raise argparse.ArgumentError(self, err)
             if not path.isreadable(value):
-                raise argparse.ArgumentError(self, 'is not readable: %s' % (value))
+                raise argparse.ArgumentError(self,
+                                             'is not readable: %s' % (value))
             current += [value]
         setattr(namespace, self.dest, current)
 
+
 class valid_format(argparse.Action):
-    def __call__(self, parser, namespace, value, option_string = None):
+
+    def __call__(self, parser, namespace, value, option_string=None):
         current = getattr(namespace, self.dest)
         if not isinstance(current, list) and current is not None:
-            raise argparse.ArgumentError(self,
-                                         ' already provided: %s, have %s' % (value,
-                                                                             current))
+            raise argparse.ArgumentError(
+                self, ' already provided: %s, have %s' % (value, current))
         if value not in ['fat16', 'fat32']:
             raise argparse.ArgumentError(self, ' invalid format: %s' % (value))
         setattr(namespace, self.dest, value)
 
+
 class valid_si(argparse.Action):
-    def __call__(self, parser, namespace, value, option_string = None):
+
+    def __call__(self, parser, namespace, value, option_string=None):
         current = getattr(namespace, self.dest)
         units = len(value)
         if value[-1].isalpha():
             if value[-1] not in ['k', 'm', 'g']:
-                raise argparse.ArgumentError(self,
-                                             'invalid SI (k, m, g): %s' % (value[-1]))
+                raise argparse.ArgumentError(
+                    self, 'invalid SI (k, m, g): %s' % (value[-1]))
             units = -1
         if not value[:units].isdigit():
             raise argparse.ArgumentError(self, 'invalid SI size: %s' % (value))
         setattr(namespace, self.dest, value)
 
+
 class valid_ip(argparse.Action):
-    def __call__(self, parser, namespace, value, option_string = None):
+
+    def __call__(self, parser, namespace, value, option_string=None):
         current = getattr(namespace, self.dest)
         if current is not None:
-            raise argparse.ArgumentError(self,
-                                         ' already provided: %s, have %s' % (value,
-                                                                             current))
+            raise argparse.ArgumentError(
+                self, ' already provided: %s, have %s' % (value, current))
         setattr(namespace, self.dest, value)
 
-def run(args = sys.argv, command_path = None):
+
+def run(args=sys.argv, command_path=None):
     ec = 0
     notice = None
     builder = None
     try:
-        description  = 'Provide one path to a u-boot build or provide two '
+        description = 'Provide one path to a u-boot build or provide two '
         description += 'paths to the built the first and second stage loaders, '
         description += 'for example a first stage loader is \'MLO\' and a second '
         description += '\'u-boot.img\'. If converting a kernel only provide the '
         description += 'executable\'s path.'
 
-        argsp = argparse.ArgumentParser(prog = 'rtems-boot-image',
-                                        description = description)
-        argsp.add_argument('-l', '--log',
-                           help = 'log file (default: %(default)s).',
-                           type = str, default = log_default())
-        argsp.add_argument('-v', '--trace',
-                           help = 'enable trace logging for debugging.',
-                           action = 'store_true')
-        argsp.add_argument('-s', '--image-size',
-                           help = 'image size in mega-bytes (default: %(default)s).',
-                           type = str, action = valid_si, default = '64m')
-        argsp.add_argument('-F', '--fs-format',
-                           help = 'root file system format (default: %(default)s).',
-                           type = str, action = valid_format, default = 'fat16')
+        argsp = argparse.ArgumentParser(prog='rtems-boot-image',
+                                        description=description)
+        argsp.add_argument('-l',
+                           '--log',
+                           help='log file (default: %(default)s).',
+                           type=str,
+                           default=log_default())
+        argsp.add_argument('-v',
+                           '--trace',
+                           help='enable trace logging for debugging.',
+                           action='store_true')
+        argsp.add_argument(
+            '-s',
+            '--image-size',
+            help='image size in mega-bytes (default: %(default)s).',
+            type=str,
+            action=valid_si,
+            default='64m')
+        argsp.add_argument(
+            '-F',
+            '--fs-format',
+            help='root file system format (default: %(default)s).',
+            type=str,
+            action=valid_format,
+            default='fat16')
         argsp.add_argument('-S', '--fs-size',
                            help = 'root file system size in SI units ' + \
                                   '(default: %(default)s).',
@@ -1004,58 +1040,87 @@ def run(args = sys.argv, command_path = None):
                            help = 'root file system alignment in SI units ' + \
                                   '(default: %(default)s).',
                            type = str, action = valid_si, default = '1m')
-        argsp.add_argument('-k', '--kernel',
-                           help = 'install the kernel (default: %(default)r).',
-                           type = str, action = valid_file, default = None)
-        argsp.add_argument('-d', '--fdt',
-                           help = 'Flat device tree source/blob (default: %(default)r).',
-                           type = str, action = valid_file, default = None)
-        argsp.add_argument('-f', '--file',
-                           help = 'install the file (default: None).',
-                           type = str, action = valid_file, default = [])
+        argsp.add_argument('-k',
+                           '--kernel',
+                           help='install the kernel (default: %(default)r).',
+                           type=str,
+                           action=valid_file,
+                           default=None)
+        argsp.add_argument(
+            '-d',
+            '--fdt',
+            help='Flat device tree source/blob (default: %(default)r).',
+            type=str,
+            action=valid_file,
+            default=None)
+        argsp.add_argument('-f',
+                           '--file',
+                           help='install the file (default: None).',
+                           type=str,
+                           action=valid_file,
+                           default=[])
         argsp.add_argument('--net-boot',
                            help = 'configure a network boot using TFTP ' + \
                                   '(default: %(default)r).',
                            action = 'store_true')
-        argsp.add_argument('--net-boot-dhcp',
-                           help = 'network boot using dhcp (default: %(default)r).',
-                           action = 'store_true', default = False)
-        argsp.add_argument('--net-boot-ip',
-                           help = 'network boot IP address (default: %(default)r).',
-                           type = str, action = valid_ip, default = None)
+        argsp.add_argument(
+            '--net-boot-dhcp',
+            help='network boot using dhcp (default: %(default)r).',
+            action='store_true',
+            default=False)
+        argsp.add_argument(
+            '--net-boot-ip',
+            help='network boot IP address (default: %(default)r).',
+            type=str,
+            action=valid_ip,
+            default=None)
         argsp.add_argument('--net-boot-server',
                            help = 'network boot server IP address ' + \
                                   '(default: %(default)r).',
                            type = str, action = valid_ip, default = None)
         argsp.add_argument('--net-boot-file',
-                           help = 'network boot file (default: %(default)r).',
-                           type = str, default = 'rtems.img')
-        argsp.add_argument('--net-boot-fdt',
-                           help = 'network boot load a fdt file (default: %(default)r).',
-                           type = str, default = None)
+                           help='network boot file (default: %(default)r).',
+                           type=str,
+                           default='rtems.img')
+        argsp.add_argument(
+            '--net-boot-fdt',
+            help='network boot load a fdt file (default: %(default)r).',
+            type=str,
+            default=None)
         argsp.add_argument('-U', '--custom-uenv',
                            help = 'install the custom uEnv.txt file ' + \
                                   '(default: %(default)r).',
                            type = str, action = valid_file, default = None)
-        argsp.add_argument('-b', '--board',
-                           help = 'name of the board (default: %(default)r).',
-                           type = str, default = 'list')
+        argsp.add_argument('-b',
+                           '--board',
+                           help='name of the board (default: %(default)r).',
+                           type=str,
+                           default='list')
         argsp.add_argument('--convert-kernel',
                            help = 'convert a kernel to a bootoader image ' + \
                                   '(default: %(default)r).',
                            action = 'store_true', default = False)
-        argsp.add_argument('--build',
-                           help = 'set the build directory (default: %(default)r).',
-                           type = str, default = 'ribuild')
-        argsp.add_argument('--no-clean',
-                           help = 'do not clean when finished (default: %(default)r).',
-                           action = 'store_false', default = True)
-        argsp.add_argument('-o', '--output',
-                           help = 'image output file name',
-                           type = str, action = valid_file_if_exists, required = True)
-        argsp.add_argument('paths',
-                           help = 'files or paths, the number and type sets the mode.',
-                           nargs = '+', action = valid_paths)
+        argsp.add_argument(
+            '--build',
+            help='set the build directory (default: %(default)r).',
+            type=str,
+            default='ribuild')
+        argsp.add_argument(
+            '--no-clean',
+            help='do not clean when finished (default: %(default)r).',
+            action='store_false',
+            default=True)
+        argsp.add_argument('-o',
+                           '--output',
+                           help='image output file name',
+                           type=str,
+                           action=valid_file_if_exists,
+                           required=True)
+        argsp.add_argument(
+            'paths',
+            help='files or paths, the number and type sets the mode.',
+            nargs='+',
+            action=valid_paths)
 
         argopts = argsp.parse_args(args[1:])
 
@@ -1067,9 +1132,11 @@ def run(args = sys.argv, command_path = None):
         if argopts.net_boot_dhcp or \
            argopts.net_boot_ip is not None:
             if argopts.convert_kernel:
-                raise error.general('net boot options not valid with kernel convert.')
+                raise error.general(
+                    'net boot options not valid with kernel convert.')
             if argopts.custom_uenv is not None:
-                raise error.general('cannot set custom uenv and net boot options.')
+                raise error.general(
+                    'cannot set custom uenv and net boot options.')
 
         host.load()
 
@@ -1085,17 +1152,16 @@ def run(args = sys.argv, command_path = None):
                     log.notice('   ' + b)
             raise error.exit()
 
-        loader = uboot_bootloader(command_path,
-                                  argopts.build,
-                                  argopts.convert_kernel,
-                                  argopts.paths,
+        loader = uboot_bootloader(command_path, argopts.build,
+                                  argopts.convert_kernel, argopts.paths,
                                   argopts.board)
 
         loader.check_mandatory_configs()
 
         if loader.convert_kernel:
             if argopts.kernel is not None:
-                raise error.general('kernel convert does not use the kernel option.')
+                raise error.general(
+                    'kernel convert does not use the kernel option.')
             if len(argopts.paths) != 1:
                 raise error.general('kernel convert take a single path.')
             argopts.kernel = argopts.paths[0]
@@ -1127,7 +1193,8 @@ def run(args = sys.argv, command_path = None):
                     str(_si_size(loader['image_size']) - _si_size(loader['fs_align']))
             elif _si_size(loader['image_size']) < \
                  _si_size(loader['fs_align']) + _si_size(loader['fs_size']):
-                raise error.general('filesystem partition size larger than image size.')
+                raise error.general(
+                    'filesystem partition size larger than image size.')
 
         if host.name not in builders:
             err = 'no builder; platform not supported: %s' % (host.name)
@@ -1160,6 +1227,7 @@ def run(args = sys.argv, command_path = None):
     if notice is not None:
         log.stderr(notice)
     sys.exit(ec)
+
 
 if __name__ == "__main__":
     run()

@@ -48,6 +48,7 @@ from rtemstoolkit import execute
 from rtemstoolkit import host
 from rtemstoolkit import path
 
+
 class tty:
     juart_active = False
     trace = False
@@ -70,7 +71,8 @@ class tty:
         tty.juart_active = True
         tty.dev = dev
         tty.lock = threading.RLock()
-        tty.juart_thread = threading.Thread(target=self._juart_run, args=[tty.dev])
+        tty.juart_thread = threading.Thread(target=self._juart_run,
+                                            args=[tty.dev])
         tty.juart_thread.start()
 
     def __del__(self):
@@ -107,7 +109,7 @@ class tty:
         finally:
             self._unlock('_reader')
 
-    def _juart_quit(self, backtrace = False):
+    def _juart_quit(self, backtrace=False):
         self._lock('_juart_quit')
         try:
             tty.process.send_signal(signal.SIGTERM)
@@ -173,12 +175,14 @@ class tty:
         self._lock('_open')
         try:
             cmds = execute.arg_list(command)
-            tty.process = execute.execute(output = self._reader)
-            exec_thread = threading.Thread(target=self._execute_juart, args=[cmds])
+            tty.process = execute.execute(output=self._reader)
+            exec_thread = threading.Thread(target=self._execute_juart,
+                                           args=[cmds])
             exec_thread.start()
             self._monitor()
             if tty.ecode is not None and tty.ecode > 0:
-                raise error.general('juart exec: %s: %s' % (cmds[0], os.strerror(tty.ecode)))
+                raise error.general('juart exec: %s: %s' %
+                                    (cmds[0], os.strerror(tty.ecode)))
         finally:
             self._unlock('_open')
 
@@ -194,9 +198,9 @@ class tty:
     def read(self):
         try:
             self._lock('read')
-            outs = tty.output_buffer;
-            tty.output_buffer = '';
-            tty.output_length = 0;
+            outs = tty.output_buffer
+            tty.output_buffer = ''
+            tty.output_length = 0
             self._unlock('read')
         except:
             outs = ''
@@ -213,6 +217,7 @@ class tty:
             except:
                 if tty.trace:
                     print('stopping EXCEPTION')
+
 
 if __name__ == "__main__":
     if len(sys.argv) == 2:

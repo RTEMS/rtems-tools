@@ -36,6 +36,7 @@ from rtemstoolkit import execute
 from rtemstoolkit import log
 from rtemstoolkit import path
 
+
 class repo:
     """An object to manage a git repo."""
 
@@ -45,7 +46,7 @@ class repo:
             log.notice('git: output: ' + output)
             raise error.general('git command failed (%s): %d' % (self.git, ec))
 
-    def _run(self, args, check = False):
+    def _run(self, args, check=False):
         e = execute.capture_execution()
         if path.exists(self.path):
             cwd = self.path
@@ -53,13 +54,13 @@ class repo:
             cwd = None
         cmd = [self.git] + args
         log.trace('cmd: (%s) %s' % (str(cwd), ' '.join(cmd)))
-        exit_code, proc, output = e.spawn(cmd, cwd = path.host(cwd))
+        exit_code, proc, output = e.spawn(cmd, cwd=path.host(cwd))
         log.trace(output)
         if check:
             self._git_exit_code(exit_code, cmd, output)
         return exit_code, output
 
-    def __init__(self, _path, opts = None, macros = None):
+    def __init__(self, _path, opts=None, macros=None):
         self.path = _path
         self.opts = opts
         if macros is None and opts is not None:
@@ -75,7 +76,8 @@ class repo:
         ec, output = self._run(['--version'], True)
         gvs = output.split()
         if len(gvs) < 3:
-            raise error.general('invalid version string from git: %s' % (output))
+            raise error.general('invalid version string from git: %s' %
+                                (output))
         vs = gvs[2].split('.')
         if len(vs) == 4:
             return (int(vs[0]), int(vs[1]), int(vs[2]), int(vs[3]))
@@ -84,32 +86,32 @@ class repo:
         raise error.general('invalid version number from git: %s' % (gvs[2]))
 
     def clone(self, url, _path):
-        ec, output = self._run(['clone', url, path.host(_path)], check = True)
+        ec, output = self._run(['clone', url, path.host(_path)], check=True)
 
     def fetch(self):
-        ec, output = self._run(['fetch'], check = True)
+        ec, output = self._run(['fetch'], check=True)
 
     def merge(self):
-        ec, output = self._run(['merge'], check = True)
+        ec, output = self._run(['merge'], check=True)
 
     def pull(self):
-        ec, output = self._run(['pull'], check = True)
+        ec, output = self._run(['pull'], check=True)
 
     def reset(self, args):
         if type(args) == str:
             args = [args]
-        ec, output = self._run(['reset'] + args, check = True)
+        ec, output = self._run(['reset'] + args, check=True)
 
     def log(self, args):
         if type(args) == str:
             args = [args]
-        ec, output = self._run(['log'] + args, check = True)
+        ec, output = self._run(['log'] + args, check=True)
         return output
 
     def show(self, args):
         if type(args) == str:
             args = [args]
-        ec, output = self._run(['show'] + args, check = True)
+        ec, output = self._run(['show'] + args, check=True)
         return output
 
     def branch(self):
@@ -120,16 +122,17 @@ class repo:
                     return b[2:]
         return None
 
-    def checkout(self, branch = 'master'):
-        ec, output = self._run(['checkout', branch], check = True)
+    def checkout(self, branch='master'):
+        ec, output = self._run(['checkout', branch], check=True)
 
     def submodule(self, module):
-        ec, output = self._run(['submodule', 'update', '--init', module], check = True)
+        ec, output = self._run(['submodule', 'update', '--init', module],
+                               check=True)
 
-    def clean(self, args = []):
+    def clean(self, args=[]):
         if type(args) == str:
             args = [args]
-        ec, output = self._run(['clean'] + args, check = True)
+        ec, output = self._run(['clean'] + args, check=True)
 
     def status(self):
         _status = {}

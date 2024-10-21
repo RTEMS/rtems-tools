@@ -31,13 +31,14 @@
 import sys
 import traceback
 
+
 def trace():
     code = []
     for threadId, stack in sys._current_frames().items():
         code.append("\n# thread-id: %s" % threadId)
         for filename, lineno, name, line in traceback.extract_stack(stack):
-            code.append('file: "%s", line %d, in %s' % (filename, lineno, name))
+            code.append('file: "%s", line %d, in %s' %
+                        (filename, lineno, name))
             if line:
                 code.append("  %s" % (line.strip()))
     return '\n'.join(code)
-

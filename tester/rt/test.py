@@ -57,7 +57,9 @@ import tester.rt.options
 import tester.rt.report
 import tester.rt.coverage
 
+
 class log_capture(object):
+
     def __init__(self):
         self.log = []
         log.capture = self.capture
@@ -88,8 +90,11 @@ class log_capture(object):
                 s += [l]
         return s
 
+
 class test(object):
-    def __init__(self, index, total, report, executable, rtems_tools, bsp, bsp_config, opts):
+
+    def __init__(self, index, total, report, executable, rtems_tools, bsp,
+                 bsp_config, opts):
         self.index = index
         self.total = total
         self.report = report
@@ -104,11 +109,14 @@ class test(object):
             raise error.general('cannot find executable: %s' % (executable))
         self.opts.defaults['test_executable'] = executable
         if rtems_tools:
-            rtems_tools_bin = path.join(self.opts.defaults.expand(rtems_tools), 'bin')
+            rtems_tools_bin = path.join(self.opts.defaults.expand(rtems_tools),
+                                        'bin')
             if not path.isdir(rtems_tools_bin):
-                raise error.general('cannot find RTEMS tools path: %s' % (rtems_tools_bin))
+                raise error.general('cannot find RTEMS tools path: %s' %
+                                    (rtems_tools_bin))
             self.opts.defaults['rtems_tools'] = rtems_tools_bin
-        self.config = tester.rt.config.file(index, total, self.report, self.bsp_config, self.opts)
+        self.config = tester.rt.config.file(index, total, self.report,
+                                            self.bsp_config, self.opts)
 
     def run(self):
         if self.config:
@@ -118,8 +126,11 @@ class test(object):
         if self.config:
             self.config.kill()
 
+
 class test_run(object):
-    def __init__(self, index, total, report, executable, rtems_tools, bsp, bsp_config, opts):
+
+    def __init__(self, index, total, report, executable, rtems_tools, bsp,
+                 bsp_config, opts):
         self.test = None
         self.result = None
         self.start_time = None
@@ -137,9 +148,8 @@ class test_run(object):
         self.start_time = datetime.datetime.now()
         try:
             self.test = test(self.index, self.total, self.report,
-                             self.executable, self.rtems_tools,
-                             self.bsp, self.bsp_config,
-                             self.opts)
+                             self.executable, self.rtems_tools, self.bsp,
+                             self.bsp_config, self.opts)
             self.test.run()
         except KeyboardInterrupt:
             pass
@@ -149,8 +159,7 @@ class test_run(object):
 
     def run(self):
         name = 'test[%s]' % path.basename(self.executable)
-        self.thread = threading.Thread(target = self.runner,
-                                       name = name)
+        self.thread = threading.Thread(target=self.runner, name=name)
         self.thread.daemon = True
         self.thread.start()
 
@@ -165,19 +174,21 @@ class test_run(object):
         if self.test:
             self.test.kill()
 
+
 def find_executables(paths, glob):
     executables = []
     for p in paths:
         if path.isfile(p):
             executables += [p]
         elif path.isdir(p):
-            for root, dirs, files in os.walk(p, followlinks = True):
+            for root, dirs, files in os.walk(p, followlinks=True):
                 for f in files:
                     if fnmatch.fnmatch(f.lower(), glob):
                         executables += [path.join(root, f)]
     norun = re.compile('.*\.norun.*')
     executables = [e for e in executables if not norun.match(e)]
     return sorted(executables)
+
 
 def report_finished(reports, log_mode, reporting, finished, job_trace):
     processing = True
@@ -188,10 +199,9 @@ def report_finished(reports, log_mode, reporting, finished, job_trace):
             if tst not in reported and \
                     (reporting < 0 or tst.index == reporting):
                 if job_trace:
-                    log.notice('}} %*d: %s: %s (%d)' % (len(str(tst.total)), tst.index,
-                                                        path.basename(tst.executable),
-                                                        'reporting',
-                                                        reporting))
+                    log.notice('}} %*d: %s: %s (%d)' % (len(str(
+                        tst.total)), tst.index, path.basename(
+                            tst.executable), 'reporting', reporting))
                 processing = True
                 reports.log(tst.executable, log_mode)
                 reported += [tst]
@@ -205,14 +215,15 @@ def report_finished(reports, log_mode, reporting, finished, job_trace):
                     print('}} ', t.name)
     return reporting
 
+
 def _job_trace(tst, msg, total, exe, active, reporting):
     s = ''
     for a in active:
         s += ' %d:%s' % (a.index, path.basename(a.executable))
-    log.notice('}} %*d: %s: %s (%d %d %d%s)' % (len(str(tst.total)), tst.index,
-                                                path.basename(tst.executable),
-                                                msg,
-                                                reporting, total, exe, s))
+    log.notice('}} %*d: %s: %s (%d %d %d%s)' %
+               (len(str(tst.total)), tst.index, path.basename(
+                   tst.executable), msg, reporting, total, exe, s))
+
 
 def killall(tests):
     for test in tests:
@@ -253,18 +264,18 @@ def results_to_data(args, reports, start_time, end_time):
     return data
 
 
-def generate_json_report(args, reports, start_time, end_time,
-                         _total, json_file):
+def generate_json_report(args, reports, start_time, end_time, _total,
+                         json_file):
     import json
 
-    data = results_to_data(args, reports, start_time, end_time);
+    data = results_to_data(args, reports, start_time, end_time)
 
     with open(json_file, 'w') as outfile:
         json.dump(data, outfile, sort_keys=True, indent=4)
 
 
-def generate_junit_report(args, reports, start_time, end_time,
-                         total, junit_file):
+def generate_junit_report(args, reports, start_time, end_time, total,
+                          junit_file):
 
     from junit_xml import TestSuite, TestCase
     import sys
@@ -274,7 +285,7 @@ def generate_junit_report(args, reports, start_time, end_time,
     junit_prop['Command Line'] = ' '.join(args)
     junit_prop['Python'] = sys.version.replace('\n', '')
     junit_prop['test_groups'] = []
-    junit_prop['Host'] = host.label(mode = 'all')
+    junit_prop['Host'] = host.label(mode='all')
     junit_prop['passed_count'] = reports.passed
     junit_prop['failed_count'] = reports.failed
     junit_prop['user-input_count'] = reports.user_input
@@ -302,27 +313,29 @@ def generate_junit_report(args, reports, start_time, end_time,
         junit_result = TestCase(test_name.split('.')[0])
         junit_result.category = test_category
         if result_type == 'failed' or result_type == 'timeout':
-            junit_result.add_failure_info(None, reports.results[name]['output'], result_type)
+            junit_result.add_failure_info(None,
+                                          reports.results[name]['output'],
+                                          result_type)
 
         junit_log.append(junit_result)
 
     ts = TestSuite('RTEMS Test Suite', junit_log)
     ts.properties = junit_prop
-    ts.hostname = host.label(mode = 'all')
+    ts.hostname = host.label(mode='all')
 
     # write out junit log
     with open(junit_file, 'w') as f:
-        TestSuite.to_file(f, [ts], prettyprint = True)
+        TestSuite.to_file(f, [ts], prettyprint=True)
 
 
-def generate_yaml_report(args, reports, start_time, end_time,
-                         _total, yaml_file):
+def generate_yaml_report(args, reports, start_time, end_time, _total,
+                         yaml_file):
     """ Generates a YAML file containing information about the test run,
     including all test outputs """
 
     import yaml
 
-    data = results_to_data(args, reports, start_time, end_time);
+    data = results_to_data(args, reports, start_time, end_time)
 
     with open(yaml_file, 'w') as outfile:
         yaml.dump(data, outfile, default_flow_style=False, allow_unicode=True)
@@ -341,9 +354,9 @@ def get_hash512(exe):
 
 
 report_formatters = {
-        'json': generate_json_report,
-        'junit': generate_junit_report,
-        'yaml': generate_yaml_report
+    'json': generate_json_report,
+    'junit': generate_junit_report,
+    'yaml': generate_yaml_report
 }
 
 
@@ -352,14 +365,15 @@ def check_report_formats(report_formats, report_location):
         raise error.general('report base path missing')
     for report_format in report_formats:
         if report_format not in report_formatters:
-            raise error.general('invalid RTEMS report formatter: %s'
-                                % report_format)
+            raise error.general('invalid RTEMS report formatter: %s' %
+                                report_format)
         if report_format == 'yaml':
             try:
                 import yaml
             except ImportError:
-                raise error.general('Please install PyYAML module. HINT: You can '
-                                    'use pip to install it!')
+                raise error.general(
+                    'Please install PyYAML module. HINT: You can '
+                    'use pip to install it!')
 
 
 def run(args):
@@ -369,20 +383,33 @@ def run(args):
     opts = None
     default_exefilter = '*.exe'
     try:
-        optargs = { '--rtems-tools':    'The path to the RTEMS tools',
-                    '--rtems-bsp':      'The RTEMS BSP to run the test on',
-                    '--user-config':    'Path to your local user configuration INI file',
-                    '--report-path':    'Report output base path (file extension will be added)',
-                    '--report-format':  'Formats in which to report test results in addition to txt: json, yaml',
-                    '--log-mode':       'Reporting modes, failures (default),all,none',
-                    '--list-bsps':      'List the supported BSPs',
-                    '--debug-trace':    'Debug trace based on specific flags (console,gdb,output,cov)',
-                    '--filter':         'Glob that executables must match to run (default: ' +
-                              default_exefilter + ')',
-                    '--stacktrace':     'Dump a stack trace on a user termination (^C)',
-                    '--coverage':       'Perform coverage analysis of test executables.'}
+        optargs = {
+            '--rtems-tools':
+            'The path to the RTEMS tools',
+            '--rtems-bsp':
+            'The RTEMS BSP to run the test on',
+            '--user-config':
+            'Path to your local user configuration INI file',
+            '--report-path':
+            'Report output base path (file extension will be added)',
+            '--report-format':
+            'Formats in which to report test results in addition to txt: json, yaml',
+            '--log-mode':
+            'Reporting modes, failures (default),all,none',
+            '--list-bsps':
+            'List the supported BSPs',
+            '--debug-trace':
+            'Debug trace based on specific flags (console,gdb,output,cov)',
+            '--filter':
+            'Glob that executables must match to run (default: ' +
+            default_exefilter + ')',
+            '--stacktrace':
+            'Dump a stack trace on a user termination (^C)',
+            '--coverage':
+            'Perform coverage analysis of test executables.'
+        }
         mailer.append_options(optargs)
-        opts = tester.rt.options.load(args, optargs = optargs)
+        opts = tester.rt.options.load(args, optargs=optargs)
         mail = None
         output = None
         if opts.find_arg('--mail'):
@@ -417,14 +444,15 @@ def run(args):
         else:
             exe_filter = default_exefilter
         opts.log_info()
-        log.output('Host: ' + host.label(mode = 'all'))
+        log.output('Host: ' + host.label(mode='all'))
         executables = find_executables(opts.params(), exe_filter)
         debug_trace = opts.find_arg('--debug-trace')
         if debug_trace:
             if len(debug_trace) != 1:
                 debug_trace = debug_trace[1]
             else:
-                raise error.general('no debug flags, can be: console,gdb,output,cov')
+                raise error.general(
+                    'no debug flags, can be: console,gdb,output,cov')
         else:
             debug_trace = ''
         opts.defaults['exe_trace'] = debug_trace
@@ -445,16 +473,15 @@ def run(args):
         if coverage_enabled:
             cov_trace = 'cov' in debug_trace.split(',')
             if len(coverage_enabled) == 2:
-                coverage_runner = tester.rt.coverage.coverage_run(opts.defaults,
-                                                           executables,
-                                                           rtems_tools,
-                                                           symbol_set = coverage_enabled[1],
-                                                           trace = cov_trace)
+                coverage_runner = tester.rt.coverage.coverage_run(
+                    opts.defaults,
+                    executables,
+                    rtems_tools,
+                    symbol_set=coverage_enabled[1],
+                    trace=cov_trace)
             else:
-                coverage_runner = tester.rt.coverage.coverage_run(opts.defaults,
-                                                           executables,
-                                                           rtems_tools,
-                                                           trace = cov_trace)
+                coverage_runner = tester.rt.coverage.coverage_run(
+                    opts.defaults, executables, rtems_tools, trace=cov_trace)
         log_mode = opts.find_arg('--log-mode')
         if log_mode:
             if log_mode[1] != 'failures' and \
@@ -477,72 +504,64 @@ def run(args):
             jobs = len(executables)
         while exe < total or len(tests) > 0:
             if exe < total and len(tests) < jobs:
-                tst = test_run(exe + 1, total, reports,
-                               executables[exe],
-                               rtems_tools, bsp, bsp_config,
-                               opts)
+                tst = test_run(exe + 1, total, reports, executables[exe],
+                               rtems_tools, bsp, bsp_config, opts)
                 exe += 1
                 tests += [tst]
                 if job_trace:
-                    _job_trace(tst, 'create',
-                               total, exe, tests, reporting)
+                    _job_trace(tst, 'create', total, exe, tests, reporting)
                 tst.run()
             else:
                 dead = [t for t in tests if not t.is_alive()]
                 tests[:] = [t for t in tests if t not in dead]
                 for tst in dead:
                     if job_trace:
-                        _job_trace(tst, 'dead',
-                                   total, exe, tests, reporting)
+                        _job_trace(tst, 'dead', total, exe, tests, reporting)
                     finished += [tst]
                     tst.reraise()
                 del dead
                 if len(tests) >= jobs or exe >= total:
                     time.sleep(0.250)
                 if len(finished):
-                    reporting = report_finished(reports,
-                                                log_mode,
-                                                reporting,
-                                                finished,
-                                                job_trace)
+                    reporting = report_finished(reports, log_mode, reporting,
+                                                finished, job_trace)
         finished_time = datetime.datetime.now()
-        reporting = report_finished(reports, log_mode,
-                                    reporting, finished, job_trace)
+        reporting = report_finished(reports, log_mode, reporting, finished,
+                                    job_trace)
         if reporting < total:
             log.warning('finished jobs does match: %d' % (reporting))
             report_finished(reports, log_mode, -1, finished, job_trace)
         reports.summary()
         end_time = datetime.datetime.now()
-        average_time = 'Average test time: %s' % (str((end_time - start_time) / total))
+        average_time = 'Average test time: %s' % (str(
+            (end_time - start_time) / total))
         total_time = 'Testing time     : %s' % (str(end_time - start_time))
         log.notice(average_time)
         log.notice(total_time)
         for report_format in report_formats:
-            report_formatters[report_format](args, reports, start_time,
-                    end_time, total, '.'.join([report_location, report_format]))
+            report_formatters[report_format](
+                args, reports, start_time, end_time, total,
+                '.'.join([report_location, report_format]))
 
         if mail is not None and output is not None:
             m_arch = opts.defaults.expand('%{arch}')
             m_bsp = opts.defaults.expand('%{bsp}')
-            build = ' %s:' % (reports.get_config('build', not_found = ''))
-            subject = '[rtems-test] %s/%s:%s %s' % (m_arch,
-                                                    m_bsp,
-                                                    build,
-                                                    reports.score_card('short'))
+            build = ' %s:' % (reports.get_config('build', not_found=''))
+            subject = '[rtems-test] %s/%s:%s %s' % (
+                m_arch, m_bsp, build, reports.score_card('short'))
             np = 'Not present in test'
-            ver = reports.get_config('version', not_found = np)
-            build = reports.get_config('build', not_found = np)
-            tools = reports.get_config('tools', not_found = np)
-            body = [total_time, average_time,
-                    '', 'Host', '====', host.label(mode = 'all'),
-                    '', 'Configuration', '=============',
-                    'Version: %s' % (ver),
-                    'Build  : %s' % (build),
-                    'Tools  : %s' % (tools),
-                    '', 'Summary', '=======', '',
-                    reports.score_card(), '',
-                    reports.failures(),
-                    'Log', '===', ''] + output.get()
+            ver = reports.get_config('version', not_found=np)
+            build = reports.get_config('build', not_found=np)
+            tools = reports.get_config('tools', not_found=np)
+            body = [
+                total_time, average_time, '', 'Host', '====',
+                host.label(mode='all'), '', 'Configuration', '=============',
+                'Version: %s' % (ver),
+                'Build  : %s' % (build),
+                'Tools  : %s' % (tools), '', 'Summary', '=======', '',
+                reports.score_card(), '',
+                reports.failures(), 'Log', '===', ''
+            ] + output.get()
             mail.send(to_addr, subject, os.linesep.join(body))
         if coverage_enabled:
             coverage_runner.run()
@@ -567,6 +586,7 @@ def run(args):
     finally:
         tester.rt.console.restore(stdtty)
     sys.exit(0)
+
 
 if __name__ == "__main__":
     run()

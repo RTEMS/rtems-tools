@@ -32,6 +32,7 @@ from rtemstoolkit import error
 from rtemstoolkit import log
 from rtemstoolkit import path
 
+
 def list(opts):
     path_ = opts.defaults.expand('%%{_configdir}/bsps/*.ini')
     bsps = path.collect_files(path_)

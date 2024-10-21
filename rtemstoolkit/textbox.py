@@ -41,13 +41,15 @@ import os
 
 from rtemstoolkit import error
 
-def line(cols, line = '-', marker = '|', indent = 0, linesep = os.linesep):
+
+def line(cols, line='-', marker='|', indent=0, linesep=os.linesep):
     s = ' ' * indent + marker
     for c in cols:
         s += line[0] * int((c - 1)) + marker
     return s + linesep
 
-def row(cols, data, indent = 0, marker = '|', linesep = os.linesep):
+
+def row(cols, data, indent=0, marker='|', linesep=os.linesep):
     if len(cols) != len(data):
         raise error.internal('data size (%d) does not' \
                              ' match columns (%d)' % (len(data), len(cols)))
@@ -60,7 +62,8 @@ def row(cols, data, indent = 0, marker = '|', linesep = os.linesep):
         s += '%-*s%s' % (int(cols[c] - 1), str(data[c]), m)
     return s + linesep
 
-def even_columns(cols, width = 80):
+
+def even_columns(cols, width=80):
     per_col = int(width / cols)
     columns = [per_col for c in range(0, cols)]
     for remainder in range(0, int(width - (per_col * cols))):
@@ -69,6 +72,7 @@ def even_columns(cols, width = 80):
         else:
             columns[len(columns) - remainder] += 1
     return columns
+
 
 def merge_columns(columns):
     columns = copy.deepcopy(columns)

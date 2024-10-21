@@ -60,12 +60,14 @@ PIPE = subprocess.PIPE
 # Regular expression to find quotes.
 qstr = re.compile('[rR]?\'([^\\n\'\\\\]|\\\\.)*\'|[rR]?"([^\\n"\\\\]|\\\\.)*"')
 
+
 def check_type(command):
     """Checks the type of command we have. The types are spawn and
     shell."""
     if command in ['spawn', 'shell']:
         return True
     return False
+
 
 def arg_list(args):
     """Turn a string of arguments into a list suitable for
@@ -79,7 +81,7 @@ def arg_list(args):
         qs = qstr.search(argstr)
         if not qs:
             args.extend(argstr.split())
-            argstr= ''
+            argstr = ''
         else:
             # We have a quoted string. Get the string before
             # the quoted string and splt on white space then
@@ -91,6 +93,7 @@ def arg_list(args):
             argstr = argstr[qs.end():]
     return args
 
+
 def arg_subst(command, substs):
     """Substitute the %[0-9] in the command with the subst values."""
     args = arg_list(command)
@@ -100,17 +103,27 @@ def arg_subst(command, substs):
                 args[a] = re.compile(('%%%d' % (r))).sub(substs[r], args[a])
     return args
 
+
 def arg_subst_str(command, subst):
     cmd = arg_subst(command, subst)
-    def add(x, y): return x + ' ' + str(y)
+
+    def add(x, y):
+        return x + ' ' + str(y)
+
     return functools.reduce(add, cmd, '')
+
 
 class execute(object):
     """Execute commands or scripts. The 'output' is a funtion that handles the
     output from the process. The 'input' is a function that blocks and returns
     data to be written to stdin"""
-    def __init__(self, output = None, input = None, cleanup = None,
-                 error_prefix = '', verbose = False):
+
+    def __init__(self,
+                 output=None,
+                 input=None,
+                 cleanup=None,
+                 error_prefix='',
+                 verbose=False):
         self.lock = threading.Lock()
         self.output = output
         self.input = input
@@ -133,10 +146,11 @@ class execute(object):
             # Python older than 3.8 does not have shlex.join
             return ' '.join(elements)
 
-    def capture(self, proc, command = 'pipe', timeout = None):
+    def capture(self, proc, command='pipe', timeout=None):
         """Create 3 threads to read stdout and stderr and send to the output handler
         and call an input handler is provided. Based on the 'communicate' code
         in the subprocess module."""
+
         def _writethread(exe, fh, input):
             """Call the input handler and write it to the stdin. The input handler should
             block and return None or False if this thread is to exit and True if this
@@ -160,7 +174,8 @@ class execute(object):
                         print('execute:_writethread: call input', input)
                     lines = input()
                     if trace_threads:
-                        print('execute:_writethread: input returned:', type(lines))
+                        print('execute:_writethread: input returned:',
+                              type(lines))
                     if type(lines) in input_types:
                         try:
                             if encoding:
@@ -185,9 +200,10 @@ class execute(object):
             if trace_threads:
                 print('execute:_writethread: finished')
 
-        def _readthread(exe, fh, out, prefix = ''):
+        def _readthread(exe, fh, out, prefix=''):
             """Read from a file handle and write to the output handler
             until the file closes."""
+
             def _output_line(line, exe, prefix, out, count):
                 #exe.lock.acquire()
                 #exe.outputting = True
@@ -201,6 +217,7 @@ class execute(object):
                             log.flush()
                 except:
                     stacktraces.trace()
+
             if trace_threads:
                 print('execute:_readthread: start')
             count = 0
@@ -285,42 +302,36 @@ class execute(object):
         timeout_thread = None
 
         if proc.stdout:
-            stdout_thread = threading.Thread(target = _readthread,
-                                             name = '_stdout[%s]' % (name),
-                                             args = (self,
-                                                     io.open(proc.stdout.fileno(),
-                                                             mode = 'rb',
-                                                             closefd = False),
-                                                     self.output,
-                                                     ''))
+            stdout_thread = threading.Thread(
+                target=_readthread,
+                name='_stdout[%s]' % (name),
+                args=(self,
+                      io.open(proc.stdout.fileno(), mode='rb',
+                              closefd=False), self.output, ''))
             stdout_thread.daemon = True
             stdout_thread.start()
         if proc.stderr:
-            stderr_thread = threading.Thread(target = _readthread,
-                                             name = '_stderr[%s]' % (name),
-                                             args = (self,
-                                                     io.open(proc.stderr.fileno(),
-                                                             mode = 'rb',
-                                                             closefd = False),
-                                                     self.output,
-                                                     self.error_prefix))
+            stderr_thread = threading.Thread(
+                target=_readthread,
+                name='_stderr[%s]' % (name),
+                args=(self,
+                      io.open(proc.stderr.fileno(), mode='rb',
+                              closefd=False), self.output, self.error_prefix))
             stderr_thread.daemon = True
             stderr_thread.start()
         if self.input and proc.stdin:
-            stdin_thread = threading.Thread(target = _writethread,
-                                            name = '_stdin[%s]' % (name),
-                                            args = (self,
-                                                    proc.stdin,
-                                                    self.input))
+            stdin_thread = threading.Thread(target=_writethread,
+                                            name='_stdin[%s]' % (name),
+                                            args=(self, proc.stdin,
+                                                  self.input))
             stdin_thread.daemon = True
             stdin_thread.start()
         if timeout:
             self.timing_out = True
-            timeout_thread = threading.Thread(target = _timerthread,
-                                              name = '_timeout[%s]' % (name),
-                                              args = (self,
-                                                      timeout[0],
-                                                      timeout[1]))
+            timeout_thread = threading.Thread(target=_timerthread,
+                                              name='_timeout[%s]' % (name),
+                                              args=(self, timeout[0],
+                                                    timeout[1]))
             timeout_thread.daemon = True
             timeout_thread.start()
         try:
@@ -356,10 +367,16 @@ class execute(object):
                 stderr_thread.join(2)
         return exitcode
 
-    def open(self, command, capture = True, shell = False,
-             cwd = None, env = None,
-             stdin = None, stdout = None, stderr = None,
-             timeout = None):
+    def open(self,
+             command,
+             capture=True,
+             shell=False,
+             cwd=None,
+             env=None,
+             stdin=None,
+             stdout=None,
+             stderr=None,
+             timeout=None):
         """Open a command with arguments. Provide the arguments as a list or
         a string."""
         if self.output is None:
@@ -420,32 +437,39 @@ class execute(object):
             proc = None
             if len(pipe_commands) == 1:
                 cmd = pipe_commands[0]
-                proc = subprocess.Popen(
-                    cmd, shell = shell,
-                    cwd = cwd, env = env,
-                    stdin = stdin, stdout = stdout,
-                    stderr = stderr,
-                    close_fds = False)
+                proc = subprocess.Popen(cmd,
+                                        shell=shell,
+                                        cwd=cwd,
+                                        env=env,
+                                        stdin=stdin,
+                                        stdout=stdout,
+                                        stderr=stderr,
+                                        close_fds=False)
             else:
                 for i, cmd in enumerate(pipe_commands):
                     if i == 0:
-                        proc = subprocess.Popen(
-                            cmd, shell=shell,
-                            cwd=cwd, env=env,
-                            stdin=stdin, stdout=subprocess.PIPE)
+                        proc = subprocess.Popen(cmd,
+                                                shell=shell,
+                                                cwd=cwd,
+                                                env=env,
+                                                stdin=stdin,
+                                                stdout=subprocess.PIPE)
                     elif i == len(pipe_commands) - 1:
-                        proc = subprocess.Popen(
-                            cmd, shell=shell,
-                            cwd=cwd, env=env,
-                            stdin=proc.stdout,
-                            stdout=stdout, stderr=stderr,
-                            close_fds=False)
+                        proc = subprocess.Popen(cmd,
+                                                shell=shell,
+                                                cwd=cwd,
+                                                env=env,
+                                                stdin=proc.stdout,
+                                                stdout=stdout,
+                                                stderr=stderr,
+                                                close_fds=False)
                     else:
-                        proc = subprocess.Popen(
-                            cmd, shell=shell,
-                            cwd=cwd, env=env,
-                            stdin=proc.stdout,
-                            stdout=subprocess.PIPE)
+                        proc = subprocess.Popen(cmd,
+                                                shell=shell,
+                                                cwd=cwd,
+                                                env=env,
+                                                stdin=proc.stdout,
+                                                stdout=subprocess.PIPE)
             if not capture:
                 return (0, proc)
             if self.output is None:
@@ -459,27 +483,46 @@ class execute(object):
                 log.output('exit: ' + str(ose))
         return (exit_code, proc)
 
-    def spawn(self, command, capture = True, cwd = None, env = None,
-              stdin = None, stdout = None, stderr = None,
-              timeout = None):
+    def spawn(self,
+              command,
+              capture=True,
+              cwd=None,
+              env=None,
+              stdin=None,
+              stdout=None,
+              stderr=None,
+              timeout=None):
         """Spawn a command with arguments. Provide the arguments as a list or
         a string."""
-        return self.open(command, capture, False, cwd, env,
-                         stdin, stdout, stderr, timeout)
+        return self.open(command, capture, False, cwd, env, stdin, stdout,
+                         stderr, timeout)
 
-    def shell(self, command, capture = True, cwd = None, env = None,
-              stdin = None, stdout = None, stderr = None,
-              timeout = None):
+    def shell(self,
+              command,
+              capture=True,
+              cwd=None,
+              env=None,
+              stdin=None,
+              stdout=None,
+              stderr=None,
+              timeout=None):
         """Execute a command within a shell context. The command can contain
         argumments. The shell is specific to the operating system. For example
         it is cmd.exe on Windows XP."""
-        return self.open(command, capture, True, cwd, env,
-                         stdin, stdout, stderr, timeout)
+        return self.open(command, capture, True, cwd, env, stdin, stdout,
+                         stderr, timeout)
 
-    def command(self, command, args = None, capture = True, shell = False,
-                cwd = None, env = None,
-                stdin = None, stdout = None, stderr = None,
-                timeout = None):
+    def command(self,
+                command,
+                args=None,
+                capture=True,
+                shell=False,
+                cwd=None,
+                env=None,
+                stdin=None,
+                stdout=None,
+                stderr=None,
+                timeout=None):
         """Run the command with the args. The args can be a list
         or a string."""
         if args and not type(args) is list:
@@ -487,23 +530,40 @@ class execute(object):
         cmd = [command]
         if args:
             cmd.extend(args)
-        return self.open(cmd, capture = capture, shell = shell,
-                         cwd = cwd, env = env,
-                         stdin = stdin, stdout = stdout, stderr = stderr,
-                         timeout = timeout)
+        return self.open(cmd,
+                         capture=capture,
+                         shell=shell,
+                         cwd=cwd,
+                         env=env,
+                         stdin=stdin,
+                         stdout=stdout,
+                         stderr=stderr,
+                         timeout=timeout)
 
-    def command_subst(self, command, substs, capture = True, shell = False,
-                      cwd = None, env = None,
-                      stdin = None, stdout = None, stderr = None,
-                      timeout = None):
+    def command_subst(self,
+                      command,
+                      substs,
+                      capture=True,
+                      shell=False,
+                      cwd=None,
+                      env=None,
+                      stdin=None,
+                      stdout=None,
+                      stderr=None,
+                      timeout=None):
         """Run the command from the config data with the
         option format string subsituted with the subst variables."""
         args = arg_subst(command, substs)
-        return self.command(args[0], args[1:], capture = capture,
-                            shell = shell or self.shell_commands,
-                            cwd = cwd, env = env,
-                            stdin = stdin, stdout = stdout, stderr = stderr,
-                            timeout = timeout)
+        return self.command(args[0],
+                            args[1:],
+                            capture=capture,
+                            shell=shell or self.shell_commands,
+                            cwd=cwd,
+                            env=env,
+                            stdin=stdin,
+                            stdout=stdout,
+                            stderr=stderr,
+                            timeout=timeout)
 
     def set_shell(self, execute):
         """Set the shell to execute when issuing a shell command."""
@@ -568,11 +628,13 @@ class execute(object):
         finally:
             self.lock.release()
 
+
 class capture_execution(execute):
     """Capture all output as a string and return it."""
 
     class _output_snapper:
-        def __init__(self, log = None, dump = False):
+
+        def __init__(self, log=None, dump=False):
             self.output = ''
             self.log = log
             self.dump = dump
@@ -589,21 +651,37 @@ class capture_execution(execute):
             self.output = ''
             return text.strip()
 
-    def __init__(self, log = None, dump = False, error_prefix = '', verbose = False):
-        self.snapper = capture_execution._output_snapper(log = log, dump = dump)
-        execute.__init__(self, output = self.snapper.handler,
-                         error_prefix = error_prefix,
-                         verbose = verbose)
+    def __init__(self, log=None, dump=False, error_prefix='', verbose=False):
+        self.snapper = capture_execution._output_snapper(log=log, dump=dump)
+        execute.__init__(self,
+                         output=self.snapper.handler,
+                         error_prefix=error_prefix,
+                         verbose=verbose)
 
-    def open(self, command, capture = True, shell = False, cwd = None, env = None,
-             stdin = None, stdout = None, stderr = None, timeout = None):
+    def open(self,
+             command,
+             capture=True,
+             shell=False,
+             cwd=None,
+             env=None,
+             stdin=None,
+             stdout=None,
+             stderr=None,
+             timeout=None):
         if not capture:
-            raise error.general('output capture must be true; leave as default')
+            raise error.general(
+                'output capture must be true; leave as default')
         #self.snapper.get_and_clear()
-        exit_code, proc = execute.open(self, command, capture = True, shell = shell,
-                                       cwd = cwd, env = env,
-                                       stdin = stdin, stdout = stdout, stderr = stderr,
-                                       timeout = timeout)
+        exit_code, proc = execute.open(self,
+                                       command,
+                                       capture=True,
+                                       shell=shell,
+                                       cwd=cwd,
+                                       env=env,
+                                       stdin=stdin,
+                                       stdout=stdout,
+                                       stderr=stderr,
+                                       timeout=timeout)
         return (exit_code, proc, self.snapper.get_and_clear())
 
     def set_output(self, output):

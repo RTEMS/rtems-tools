@@ -51,6 +51,7 @@ from rtemstoolkit import log
 from rtemstoolkit import options
 from rtemstoolkit import path
 
+
 def _check_bool(value):
     if value.isdigit():
         if int(value) == 0:
@@ -61,10 +62,11 @@ def _check_bool(value):
         istrue = None
     return istrue
 
+
 class file(object):
     """Parse a config file."""
 
-    def __init__(self, name, opts, macros = None, directives = None, ignores = None):
+    def __init__(self, name, opts, macros=None, directives=None, ignores=None):
         self.opts = opts
         if macros is None:
             self.macros = opts.defaults
@@ -110,8 +112,8 @@ class file(object):
             '\nmacros:\n' + str(self.macros)
         return s
 
-    def _name_line_msg(self,  msg):
-        return '%s:%d: %s' % (path.basename(self.init_name), self.lc,  msg)
+    def _name_line_msg(self, msg):
+        return '%s:%d: %s' % (path.basename(self.init_name), self.lc, msg)
 
     def _output(self, text):
         if not self.opts.quiet():
@@ -143,7 +145,8 @@ class file(object):
         c = 0
         while c < len(s):
             if trace_me:
-                print('ms:', c, '"' + s[c:] + '"', has_braces, len(nesting), nesting)
+                print('ms:', c, '"' + s[c:] + '"', has_braces, len(nesting),
+                      nesting)
             #
             # We need to watch for shell type variables or the form '${var}' because
             # they can upset the brace matching.
@@ -156,7 +159,8 @@ class file(object):
                 #
                 # Do we have '%%' or '%(' or '$%' or '$(' or not '${' ?
                 #
-                if s[c] == '%' or s[c] == '(' or (start == '$' and s[c] != '{'):
+                if s[c] == '%' or s[c] == '(' or (start == '$'
+                                                  and s[c] != '{'):
                     continue
                 elif not s[c].isspace():
                     #
@@ -202,14 +206,16 @@ class file(object):
             e = execute.capture_execution()
             for s in sl:
                 if host.is_windows:
-                    cmd = '%s -c "%s"' % (self.macros.expand('%{__sh}'), s[2:-1])
+                    cmd = '%s -c "%s"' % (self.macros.expand('%{__sh}'),
+                                          s[2:-1])
                 else:
                     cmd = s[2:-1]
                 exit_code, proc, output = e.shell(cmd)
                 if exit_code == 0:
                     line = line.replace(s, output)
                 else:
-                    raise error.general('shell macro failed: %s:%d: %s' % (s, exit_code, output))
+                    raise error.general('shell macro failed: %s:%d: %s' %
+                                        (s, exit_code, output))
         return line
 
     def _expand(self, s):
@@ -286,7 +292,8 @@ class file(object):
                     colon = m[start:].find(':')
                     if colon < 0:
                         if not m.endswith('}'):
-                            log.warning("malformed conditional macro '%s'" % (m))
+                            log.warning("malformed conditional macro '%s'" %
+                                        (m))
                             mn = None
                         else:
                             mn = self._label(m[start:-1])
@@ -332,7 +339,8 @@ class file(object):
         else:
             if ls[1] == 'select':
                 self.macros.lock_read_map()
-                log.trace('config: %s: _disable_select: %s' % (self.init_name, ls[1]))
+                log.trace('config: %s: _disable_select: %s' %
+                          (self.init_name, ls[1]))
             else:
                 log.warning('invalid disable statement: %s' % (ls[1]))
 
@@ -383,13 +391,14 @@ class file(object):
                 this_isvalid = True
             else:
                 this_isvalid = False
-            r = self._parse(config, dir, info, roc = True, isvalid = this_isvalid)
+            r = self._parse(config, dir, info, roc=True, isvalid=this_isvalid)
             if r[0] == 'control':
                 if r[1] == '%end':
                     self._error(label + ' without %endif')
                     raise error.general('terminating build')
                 if r[1] == '%endif':
-                    log.trace('config: %s: _ifs: %s %s' % (self.init_name, r[1], this_isvalid))
+                    log.trace('config: %s: _ifs: %s %s' %
+                              (self.init_name, r[1], this_isvalid))
                     return data
                 if r[1] == '%else':
                     in_iftrue = False
@@ -398,7 +407,8 @@ class file(object):
                     if r[1] == '%include':
                         self.load(r[2][0])
                         continue
-                    dir, info, data = self._process_directive(r, dir, info, data)
+                    dir, info, data = self._process_directive(
+                        r, dir, info, data)
             elif r[0] == 'data':
                 if this_isvalid:
                     dir, info, data = self._process_data(r, dir, info, data)
@@ -407,7 +417,7 @@ class file(object):
 
         # @note is a directive extend missing
 
-    def _if(self, config, ls, isvalid, dir, info, invert = False):
+    def _if(self, config, ls, isvalid, dir, info, invert=False):
 
         def add(x, y):
             return x + ' ' + str(y)
@@ -431,13 +441,15 @@ class file(object):
                 else:
                     istrue = _check_bool(ifls[0])
                     if istrue == None:
-                        self._error('invalid if bool value: ' + functools.reduce(add, ls, ''))
+                        self._error('invalid if bool value: ' +
+                                    functools.reduce(add, ls, ''))
                         istrue = False
             elif len(ifls) == 2:
                 if ifls[0] == '!':
                     istrue = _check_bool(ifls[1])
                     if istrue == None:
-                        self._error('invalid if bool value: ' + functools.reduce(add, ls, ''))
+                        self._error('invalid if bool value: ' +
+                                    functools.reduce(add, ls, ''))
                         istrue = False
                     else:
                         istrue = not istrue
@@ -450,10 +462,11 @@ class file(object):
                     #
                     if ifls[1] == '==':
                         istrue = False
-                    elif  ifls[1] == '!=':
+                    elif ifls[1] == '!=':
                         istrue = True
                     else:
-                        self._error('invalid if bool operator: ' + functools.reduce(add, ls, ''))
+                        self._error('invalid if bool operator: ' +
+                                    functools.reduce(add, ls, ''))
             elif len(ifls) == 3:
                 if ifls[1] == '==':
                     if ifls[0] == ifls[2]:
@@ -486,12 +499,14 @@ class file(object):
                     else:
                         istrue = False
                 else:
-                    self._error('invalid %if operator: ' + functools.reduce(add, ls, ''))
+                    self._error('invalid %if operator: ' +
+                                functools.reduce(add, ls, ''))
             else:
                 self._error('malformed if: ' + functools.reduce(add, ls, ''))
             if invert:
                 istrue = not istrue
-            log.trace('config: %s: _if:  %s %s' % (self.init_name, ifls, str(istrue)))
+            log.trace('config: %s: _if:  %s %s' %
+                      (self.init_name, ifls, str(istrue)))
         return self._ifs(config, ls, '%if', istrue, isvalid, dir, info)
 
     def _ifos(self, config, ls, isvalid, dir, info):
@@ -516,7 +531,7 @@ class file(object):
             isarch = not isarch
         return self._ifs(config, ls, '%ifarch', isarch, isvalid, dir, info)
 
-    def _parse(self, config, dir, info, roc = False, isvalid = True):
+    def _parse(self, config, dir, info, roc=False, isvalid=True):
         # roc = return on control
 
         def _clean(line):
@@ -555,10 +570,13 @@ class file(object):
                         self._select(config, ls)
                 elif ls[0] == '%error':
                     if isvalid:
-                        return ('data', ['%%error %s' % (self._name_line_msg(l[7:]))])
+                        return ('data',
+                                ['%%error %s' % (self._name_line_msg(l[7:]))])
                 elif ls[0] == '%warning':
                     if isvalid:
-                        return ('data', ['%%warning %s' % (self._name_line_msg(l[9:]))])
+                        return ('data', [
+                            '%%warning %s' % (self._name_line_msg(l[9:]))
+                        ])
                 elif ls[0] == '%define' or ls[0] == '%global':
                     if isvalid:
                         self._define(config, ls)
@@ -573,7 +591,8 @@ class file(object):
                 elif ls[0] == '%ifn':
                     d = self._if(config, ls, isvalid, dir, info, True)
                     if len(d):
-                        log.trace('config: %s: %%ifn: %s' % (self.init_name, d))
+                        log.trace('config: %s: %%ifn: %s' %
+                                  (self.init_name, d))
                         return ('data', d)
                 elif ls[0] == '%ifos':
                     d = self._ifos(config, ls, isvalid, dir, info)
@@ -627,7 +646,8 @@ class file(object):
                 return ('data', [lo])
         return ('control', '%end', '%end')
 
-    def _parse_token(self, line, line_split, line_expanded, line_split_expanded):
+    def _parse_token(self, line, line_split, line_expanded,
+                     line_split_expanded):
         return None
 
     def _process_directive(self, results, directive, info, data):
@@ -635,7 +655,8 @@ class file(object):
         if results[1] == '%description':
             new_data = [' '.join(results[2])]
         else:
-            directive, into, data = self._directive_filter(results, directive, info, data)
+            directive, into, data = self._directive_filter(
+                results, directive, info, data)
         if directive and directive != results[1]:
             self._directive_extend(directive, data)
         directive = results[1]
@@ -668,7 +689,8 @@ class file(object):
                 else:
                     log.warning("invalid format: '%s'" % (info_data[:-1]))
             else:
-                log.trace('config: %s: _data: %s %s' % (self.init_name, l, new_data))
+                log.trace('config: %s: _data: %s %s' %
+                          (self.init_name, l, new_data))
                 new_data.append(l)
         return (directive, info, data + new_data)
 
@@ -747,10 +769,12 @@ class file(object):
                 raise error.general('no config file found: %s' % (cfgname))
 
         try:
-            log.trace('config: %s: _open: %s' % (self.init_name, path.host(configname)))
+            log.trace('config: %s: _open: %s' %
+                      (self.init_name, path.host(configname)))
             config = open(path.host(configname), 'r')
         except IOError as err:
-            raise error.general('error opening config file: %s' % (path.host(configname)))
+            raise error.general('error opening config file: %s' %
+                                (path.host(configname)))
         self.configpath += [configname]
 
         self._includes += [configname]
@@ -769,11 +793,13 @@ class file(object):
                     if r[1] == '%include':
                         self.load(r[2][0])
                         continue
-                    dir, info, data = self._process_directive(r, dir, info, data)
+                    dir, info, data = self._process_directive(
+                        r, dir, info, data)
                 elif r[0] == 'data':
                     dir, info, data = self._process_data(r, dir, info, data)
                 else:
-                    self._error("%d: invalid parse state: '%s" % (self.lc, r[0]))
+                    self._error("%d: invalid parse state: '%s" %
+                                (self.lc, r[0]))
             if dir is not None:
                 self._directive_extend(dir, data)
         except:
@@ -798,7 +824,8 @@ class file(object):
             if n in self.macros:
                 d = self.macros[n]
             else:
-                raise error.general('%d: macro "%s" not found' % (self.lc, name))
+                raise error.general('%d: macro "%s" not found' %
+                                    (self.lc, name))
         return self._expand(d)
 
     def set_define(self, name, value):

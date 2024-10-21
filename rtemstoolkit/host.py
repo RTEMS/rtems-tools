@@ -42,6 +42,7 @@ is_windows = False
 platform = None
 name = None
 
+
 def load():
 
     global is_windows
@@ -53,7 +54,8 @@ def load():
         is_windows = True
     elif os.name == 'posix':
         uname = os.uname()
-        if uname[0].startswith('MINGW64_NT') or uname[0].startswith('CYGWIN_NT'):
+        if uname[0].startswith('MINGW64_NT') or uname[0].startswith(
+                'CYGWIN_NT'):
             name = 'windows'
         elif uname[0] == 'Darwin':
             name = 'darwin'
@@ -82,19 +84,22 @@ def load():
     if platform is None:
         raise error.general('failed to load %s host support' % (name))
 
+
 def cpus():
     load()
     return platform.cpus()
+
 
 def overrides():
     load()
     return platform.overrides()
 
-def label(mode = 'all'):
+
+def label(mode='all'):
     import platform
     if mode == 'system':
         return platform.system()
-    compact = platform.platform(aliased = True)
+    compact = platform.platform(aliased=True)
     if mode == 'compact':
         return compact
     extended = ' '.join(platform.uname())

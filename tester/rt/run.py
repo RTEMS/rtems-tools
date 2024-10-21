@@ -48,8 +48,11 @@ import tester.rt.console
 import tester.rt.options
 import tester.rt.report
 
+
 class test(object):
-    def __init__(self, index, total, report, executable, rtems_tools, bsp, bsp_config, opts):
+
+    def __init__(self, index, total, report, executable, rtems_tools, bsp,
+                 bsp_config, opts):
         self.index = index
         self.total = total
         self.report = report
@@ -64,11 +67,14 @@ class test(object):
             raise error.general('cannot find executable: %s' % (executable))
         self.opts.defaults['test_executable'] = executable
         if rtems_tools:
-            rtems_tools_bin = path.join(self.opts.defaults.expand(rtems_tools), 'bin')
+            rtems_tools_bin = path.join(self.opts.defaults.expand(rtems_tools),
+                                        'bin')
             if not path.isdir(rtems_tools_bin):
-                raise error.general('cannot find RTEMS tools path: %s' % (rtems_tools_bin))
+                raise error.general('cannot find RTEMS tools path: %s' %
+                                    (rtems_tools_bin))
             self.opts.defaults['rtems_tools'] = rtems_tools_bin
-        self.config = tester.rt.config.file(index, total, self.report, self.bsp_config, self.opts, '')
+        self.config = tester.rt.config.file(index, total, self.report,
+                                            self.bsp_config, self.opts, '')
 
     def run(self):
         if self.config:
@@ -78,6 +84,7 @@ class test(object):
         if self.config:
             self.config.kill()
 
+
 def find_executables(files):
     executables = []
     for f in files:
@@ -85,6 +92,7 @@ def find_executables(files):
             raise error.general('executable is not a file: %s' % (f))
         executables += [f]
     return sorted(executables)
+
 
 def list_bsps(opts):
     path_ = opts.defaults.expand('%%{_configdir}/bsps/*.mc')
@@ -94,30 +102,34 @@ def list_bsps(opts):
         log.notice('  %s' % (path.basename(bsp[:-3])))
     raise error.exit()
 
+
 def run(args):
     tests = []
     stdtty = tester.rt.console.save()
     opts = None
     default_exefilter = '*.exe'
     try:
-        optargs = { '--rtems-tools': 'The path to the RTEMS tools',
-                    '--rtems-bsp':   'The RTEMS BSP to run the test on',
-                    '--user-config': 'Path to your local user configuration INI file',
-                    '--list-bsps':   'List the supported BSPs',
-                    '--debug-trace': 'Debug trace based on specific flags',
-                    '--stacktrace':  'Dump a stack trace on a user termination (^C)' }
-        opts = tester.rt.options.load(args, optargs = optargs)
+        optargs = {
+            '--rtems-tools': 'The path to the RTEMS tools',
+            '--rtems-bsp': 'The RTEMS BSP to run the test on',
+            '--user-config': 'Path to your local user configuration INI file',
+            '--list-bsps': 'List the supported BSPs',
+            '--debug-trace': 'Debug trace based on specific flags',
+            '--stacktrace': 'Dump a stack trace on a user termination (^C)'
+        }
+        opts = tester.rt.options.load(args, optargs=optargs)
         log.notice('RTEMS Testing - Run, %s' % (version.string()))
         if opts.find_arg('--list-bsps'):
             tester.rt.bsps.list(opts)
         opts.log_info()
-        log.output('Host: ' + host.label(mode = 'all'))
+        log.output('Host: ' + host.label(mode='all'))
         debug_trace = opts.find_arg('--debug-trace')
         if debug_trace:
             if len(debug_trace) != 1:
                 debug_trace = 'output,' + debug_trace[1]
             else:
-                raise error.general('no debug flags, can be: console,gdb,output')
+                raise error.general(
+                    'no debug flags, can be: console,gdb,output')
         else:
             debug_trace = 'output'
         opts.defaults['debug_trace'] = debug_trace
@@ -135,12 +147,14 @@ def run(args):
         bsp_config = opts.defaults.expand(opts.defaults['tester'])
         executables = find_executables(opts.params())
         if len(executables) != 1:
-            raise error.general('one executable required, found %d' % (len(executables)))
+            raise error.general('one executable required, found %d' %
+                                (len(executables)))
         opts.defaults['test_disable_header'] = '1'
         reports = tester.rt.report.report(1)
         start_time = datetime.datetime.now()
         opts.defaults['exe_trace'] = debug_trace
-        tst = test(1, 1, reports, executables[0], rtems_tools, bsp, bsp_config, opts)
+        tst = test(1, 1, reports, executables[0], rtems_tools, bsp, bsp_config,
+                   opts)
         tst.run()
         end_time = datetime.datetime.now()
         total_time = 'Run time     : %s' % (str(end_time - start_time))
@@ -165,6 +179,7 @@ def run(args):
     finally:
         tester.rt.console.restore(stdtty)
     sys.exit(0)
+
 
 if __name__ == "__main__":
     run()

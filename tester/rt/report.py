@@ -45,9 +45,8 @@ from rtemstoolkit import path
 #
 # Maybe this should be a configuration.
 #
-test_fail_excludes = [
-    'minimum'
-]
+test_fail_excludes = ['minimum']
+
 
 class report(object):
     '''RTEMS Testing report.'''
@@ -74,22 +73,36 @@ class report(object):
         self.name_max_len = 0
 
     def __str__(self):
-        msg  = 'Passed:        %*d%s' % (self.total_len, self.passed, os.linesep)
-        msg += 'Failed:        %*d%s' % (self.total_len, self.failed, os.linesep)
-        msg += 'User Input:    %*d%s' % (self.total_len, self.user_input, os.linesep)
-        msg += 'Expected Fail: %*d%s' % (self.total_len, self.expected_fail, os.linesep)
-        msg += 'Indeterminate: %*d%s' % (self.total_len, self.indeterminate, os.linesep)
-        msg += 'Benchmark:     %*d%s' % (self.total_len, self.benchmark, os.linesep)
-        msg += 'Timeout:       %*d%s' % (self.total_len, self.timeouts, os.linesep)
-        msg += 'Test too long: %*d%s' % (self.total_len, self.test_too_long, os.linesep)
-        msg += 'Invalid:       %*d%s' % (self.total_len, self.invalids, os.linesep)
-        msg += 'Wrong Version: %*d%s' % (self.total_len, self.wrong_version, os.linesep)
-        msg += 'Wrong Build:   %*d%s' % (self.total_len, self.wrong_build, os.linesep)
-        msg += 'Wrong Tools:   %*d%s' % (self.total_len, self.wrong_tools, os.linesep)
-        msg += 'Wrong Header:  %*d%s' % (self.total_len, self.wrong_header, os.linesep)
+        msg = 'Passed:        %*d%s' % (self.total_len, self.passed,
+                                        os.linesep)
+        msg += 'Failed:        %*d%s' % (self.total_len, self.failed,
+                                         os.linesep)
+        msg += 'User Input:    %*d%s' % (self.total_len, self.user_input,
+                                         os.linesep)
+        msg += 'Expected Fail: %*d%s' % (self.total_len, self.expected_fail,
+                                         os.linesep)
+        msg += 'Indeterminate: %*d%s' % (self.total_len, self.indeterminate,
+                                         os.linesep)
+        msg += 'Benchmark:     %*d%s' % (self.total_len, self.benchmark,
+                                         os.linesep)
+        msg += 'Timeout:       %*d%s' % (self.total_len, self.timeouts,
+                                         os.linesep)
+        msg += 'Test too long: %*d%s' % (self.total_len, self.test_too_long,
+                                         os.linesep)
+        msg += 'Invalid:       %*d%s' % (self.total_len, self.invalids,
+                                         os.linesep)
+        msg += 'Wrong Version: %*d%s' % (self.total_len, self.wrong_version,
+                                         os.linesep)
+        msg += 'Wrong Build:   %*d%s' % (self.total_len, self.wrong_build,
+                                         os.linesep)
+        msg += 'Wrong Tools:   %*d%s' % (self.total_len, self.wrong_tools,
+                                         os.linesep)
+        msg += 'Wrong Header:  %*d%s' % (self.total_len, self.wrong_header,
+                                         os.linesep)
         return msg
 
-    def start(self, index, total, name, executable, bsp_arch, bsp, show_header):
+    def start(self, index, total, name, executable, bsp_arch, bsp,
+              show_header):
         wrong = self.wrong_version + self.wrong_build + self.wrong_tools + self.wrong_header
         header = '[%*d/%*d] p:%-*d f:%-*d u:%-*d e:%-*d I:%-*d B:%-*d ' \
                  't:%-*d L:%-*d i:%-*d W:%-*d | %s/%s: %s' % \
@@ -112,19 +125,21 @@ class report(object):
         if name in self.results:
             self.lock.release()
             raise error.general('duplicate test: %s' % (name))
-        self.results[name] = { 'index': index,
-                               'bsp': bsp,
-                               'bsp_arch': bsp_arch,
-                               'exe': name,
-                               'start': datetime.datetime.now(),
-                               'end': None,
-                               'result': None,
-                               'output': None,
-                               'header': header }
+        self.results[name] = {
+            'index': index,
+            'bsp': bsp,
+            'bsp_arch': bsp_arch,
+            'exe': name,
+            'start': datetime.datetime.now(),
+            'end': None,
+            'result': None,
+            'output': None,
+            'header': header
+        }
 
         self.lock.release()
         if show_header:
-            log.notice(header, stdout_only = True)
+            log.notice(header, stdout_only=True)
 
     def end(self, name, output, output_prefix):
         start = False
@@ -169,10 +184,9 @@ class report(object):
             if self.results[name]['end'] is not None:
                 raise error.general('test already finished: %s' % (name))
             self.results[name]['end'] = datetime.datetime.now()
-            if state is not None and state not in ['BENCHMARK',
-                                                   'EXPECTED_FAIL',
-                                                   'INDETERMINATE',
-                                                   'USER_INPUT']:
+            if state is not None and state not in [
+                    'BENCHMARK', 'EXPECTED_FAIL', 'INDETERMINATE', 'USER_INPUT'
+            ]:
                 if version:
                     if 'version' not in self.config:
                         self.config['version'] = version
@@ -259,9 +273,10 @@ class report(object):
         return status
 
     def log(self, name, mode):
-        status_fails = ['failed', 'timeout', 'test-too-long', 'invalid',
-                        'wrong-version', 'wrong-build', 'wrong-tools',
-                        'wrong-header']
+        status_fails = [
+            'failed', 'timeout', 'test-too-long', 'invalid', 'wrong-version',
+            'wrong-build', 'wrong-tools', 'wrong-header'
+        ]
         if mode != 'none':
             self.lock.acquire()
             if name not in self.results:
@@ -271,12 +286,17 @@ class report(object):
             result = self.results[name]['result']
             time = self.results[name]['end'] - self.results[name]['start']
             failed = result in status_fails
-            out = ['Result: %-10s' % (result), 'Time: %s %s' % (str(time), exe)]
+            out = [
+                'Result: %-10s' % (result),
+                'Time: %s %s' % (str(time), exe)
+            ]
             if result.startswith('wrong-'):
                 what_is_wrong = result.split('-', 1)[1]
                 if what_is_wrong in ['version', 'build', 'tools']:
-                    out += ['Wrong %s: tested value: %s' % (what_is_wrong,
-                                                            self.config[what_is_wrong])]
+                    out += [
+                        'Wrong %s: tested value: %s' %
+                        (what_is_wrong, self.config[what_is_wrong])
+                    ]
             if mode != 'none':
                 header = self.results[name]['header']
             if mode == 'all' or failed:
@@ -290,12 +310,12 @@ class report(object):
                 log.output(out)
                 log.output(output)
 
-    def get_config(self, config, not_found = None):
+    def get_config(self, config, not_found=None):
         if config in self.config:
             return self.config[config]
         return not_found
 
-    def score_card(self, mode = 'full'):
+    def score_card(self, mode='full'):
         if mode == 'short':
             wrongs = self.wrong_version + self.wrong_build + self.wrong_tools + self.wrong_header
             return 'Passed:%d Failed:%d Timeout:%d Test-Too-long:%d Invalid:%d Wrong:%d' % \
@@ -322,12 +342,14 @@ class report(object):
         raise error.general('invalid socre card mode: %s' % (mode))
 
     def failures(self):
+
         def show_state(results, state, max_len):
             l = []
             for name in results:
                 if results[name]['result'] == state:
                     l += [' %s' % (path.basename(name))]
             return sorted(l)
+
         l = []
         if self.failed:
             l += ['Failures:']

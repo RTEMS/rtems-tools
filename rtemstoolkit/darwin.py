@@ -37,6 +37,7 @@ import os
 
 from rtemstoolkit import execute
 
+
 def cpus():
     sysctl = '/usr/sbin/sysctl '
     e = execute.capture_execution()
@@ -47,32 +48,34 @@ def cpus():
         ncpus = 1
     return ncpus
 
+
 def overrides():
     uname = os.uname()
     ncpus = '%d' % (cpus())
     defines = {
-        '_ncpus':         ('none',    'none',     ncpus),
-        '_os':            ('none',    'none',     'darwin'),
-        '_host':          ('triplet', 'required', uname[4] + '-apple-darwin' + uname[2]),
-        '_host_vendor':   ('none',    'none',     'apple'),
-        '_host_os':       ('none',    'none',     'darwin'),
-        '_host_cpu':      ('none',    'none',     uname[4]),
-        '_host_alias':    ('none',    'none',     '%{nil}'),
-        '_host_arch':     ('none',    'none',     uname[4]),
-        '_host_prefix':   ('dir',     'optional', '%{_usr}'),
-        '_usr':           ('dir',     'optional', '/usr/local'),
-        '_var':           ('dir',     'optional', '/usr/local/var'),
-        '__ldconfig':     ('exe',     'none',     ''),
-        '__xz':           ('exe',     'required', '%{_usr}/bin/xz'),
-        'with_zlib':      ('none',    'none',     '--with-zlib=no'),
-        '_forced_static': ('none',    'none',     '')
-        }
+        '_ncpus': ('none', 'none', ncpus),
+        '_os': ('none', 'none', 'darwin'),
+        '_host':
+        ('triplet', 'required', uname[4] + '-apple-darwin' + uname[2]),
+        '_host_vendor': ('none', 'none', 'apple'),
+        '_host_os': ('none', 'none', 'darwin'),
+        '_host_cpu': ('none', 'none', uname[4]),
+        '_host_alias': ('none', 'none', '%{nil}'),
+        '_host_arch': ('none', 'none', uname[4]),
+        '_host_prefix': ('dir', 'optional', '%{_usr}'),
+        '_usr': ('dir', 'optional', '/usr/local'),
+        '_var': ('dir', 'optional', '/usr/local/var'),
+        '__ldconfig': ('exe', 'none', ''),
+        '__xz': ('exe', 'required', '%{_usr}/bin/xz'),
+        'with_zlib': ('none', 'none', '--with-zlib=no'),
+        '_forced_static': ('none', 'none', '')
+    }
 
-    defines['_build']        = defines['_host']
+    defines['_build'] = defines['_host']
     defines['_build_vendor'] = defines['_host_vendor']
-    defines['_build_os']     = defines['_host_os']
-    defines['_build_cpu']    = defines['_host_cpu']
-    defines['_build_alias']  = defines['_host_alias']
-    defines['_build_arch']   = defines['_host_arch']
+    defines['_build_os'] = defines['_host_os']
+    defines['_build_cpu'] = defines['_host_cpu']
+    defines['_build_alias'] = defines['_host_alias']
+    defines['_build_arch'] = defines['_host_arch']
 
     return defines

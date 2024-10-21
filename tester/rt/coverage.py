@@ -49,6 +49,7 @@ from rtemstoolkit import version
 
 
 class summary:
+
     def __init__(self, p_summary_dir):
         self.summary_file_path = path.join(p_summary_dir, 'summary.txt')
         self.index_file_path = path.join(p_summary_dir, 'index.html')
@@ -67,22 +68,26 @@ class summary:
 
     def parse(self):
         if not path.exists(self.summary_file_path):
-            log.output('coverage: summary file %s does not exist!' % (self.summary_file_path))
+            log.output('coverage: summary file %s does not exist!' %
+                       (self.summary_file_path))
             self.is_failure = True
 
         with open(self.summary_file_path, 'r') as summary_file:
-           self.bytes_analyzed = self._get_next_with_colon(summary_file)
-           self.bytes_not_executed = self._get_next_with_colon(summary_file)
-           self.percentage_executed = self._get_next_with_colon(summary_file)
-           self.percentage_not_executed = self._get_next_with_colon(summary_file)
-           self.unreferenced_symbols = self._get_next_with_colon(summary_file)
-           self.ranges_uncovered = self._get_next_with_colon(summary_file)
-           summary_file.readline()
-           summary_file.readline()
-           self.branches_total = self._get_next_with_colon(summary_file)
-           self.branches_uncovered = self._get_next_with_colon(summary_file)
-           self.branches_always_taken = self._get_next_without_colon(summary_file)
-           self.branches_never_taken = self._get_next_without_colon(summary_file)
+            self.bytes_analyzed = self._get_next_with_colon(summary_file)
+            self.bytes_not_executed = self._get_next_with_colon(summary_file)
+            self.percentage_executed = self._get_next_with_colon(summary_file)
+            self.percentage_not_executed = self._get_next_with_colon(
+                summary_file)
+            self.unreferenced_symbols = self._get_next_with_colon(summary_file)
+            self.ranges_uncovered = self._get_next_with_colon(summary_file)
+            summary_file.readline()
+            summary_file.readline()
+            self.branches_total = self._get_next_with_colon(summary_file)
+            self.branches_uncovered = self._get_next_with_colon(summary_file)
+            self.branches_always_taken = self._get_next_without_colon(
+                summary_file)
+            self.branches_never_taken = self._get_next_without_colon(
+                summary_file)
         if len(self.branches_uncovered) > 0 and len(self.branches_total) > 0:
             self.percentage_branches_covered = \
                 1.0 - (float(self.branches_uncovered) / float(self.branches_total))
@@ -101,7 +106,9 @@ class summary:
         line = summary_file.readline()
         return line.strip().split(' ')[0]
 
+
 class report_gen_html:
+
     def __init__(self, symbol_sets, build_dir, rtdir, bsp):
         self.symbol_sets = symbol_sets
         self.build_dir = build_dir
@@ -181,9 +188,11 @@ class report_gen_html:
                     + '" max="100"></progress></td>' + os.linesep
             row += ' <td>' + summary.branches_uncovered + '</td>' + os.linesep
             row += ' <td>' + summary.branches_total + '</td>' + os.linesep
-            row += ' <td> {:.2%} </td>'.format(summary.percentage_branches_covered)
+            row += ' <td> {:.2%} </td>'.format(
+                summary.percentage_branches_covered)
             spbc = 100 * summary.percentage_branches_covered
-            row += ' <td><progress value="{:.3}" max="100"></progress></td>'.format(spbc)
+            row += ' <td><progress value="{:.3}" max="100"></progress></td>'.format(
+                spbc)
             row += '</tr>' + os.linesep
         return row
 
@@ -221,40 +230,43 @@ class report_gen_html:
         partial_reports = self._find_partial_reports()
         head_section = self._prepare_head_section()
         index_content = self._prepare_index_content(partial_reports)
-        self._create_index_file(head_section,index_content)
+        self._create_index_file(head_section, index_content)
 
     def add_covoar_css(self):
         table_js_path = path.join(self.covoar_src_path, 'table.js')
         covoar_css_path = path.join(self.covoar_src_path, 'covoar.css')
-        coverage_directory = path.join(self.build_dir,
-                                    self.bsp + '-coverage')
+        coverage_directory = path.join(self.build_dir, self.bsp + '-coverage')
         path.copy_tree(covoar_css_path, coverage_directory)
         path.copy_tree(table_js_path, coverage_directory)
 
     def add_dir_name(self):
         for symbol_set in self.symbol_sets:
-             symbol_set_dir = path.join(self.build_dir,
-                                        self.bsp + '-coverage', symbol_set)
-             html_files = path.listdir(symbol_set_dir)
-             for html_file in html_files:
-                 html_file = path.join(symbol_set_dir, html_file)
-                 if path.exists(html_file) and 'html' in html_file:
-                     with open(html_file, 'r') as f:
-                         file_data = f.read()
-                     text = file_data[file_data.find('<div class="heading-title">')\
-                                     +len('<div class="heading-title">') \
-                                     : file_data.find('</div')]
-                     file_data = file_data.replace(text, text + '<br>' + symbol_set)
-                     with open(html_file, 'w') as f:
-                         f.write(file_data)
+            symbol_set_dir = path.join(self.build_dir, self.bsp + '-coverage',
+                                       symbol_set)
+            html_files = path.listdir(symbol_set_dir)
+            for html_file in html_files:
+                html_file = path.join(symbol_set_dir, html_file)
+                if path.exists(html_file) and 'html' in html_file:
+                    with open(html_file, 'r') as f:
+                        file_data = f.read()
+                    text = file_data[file_data.find('<div class="heading-title">')\
+                                    +len('<div class="heading-title">') \
+                                    : file_data.find('</div')]
+                    file_data = file_data.replace(text,
+                                                  text + '<br>' + symbol_set)
+                    with open(html_file, 'w') as f:
+                        f.write(file_data)
+
 
 class build_path_generator(object):
     '''
     Generates the build path from the path to executables
     '''
+
     def __init__(self, executables, target):
         self.executables = executables
         self.target = target
+
     def run(self):
         build_path = '/'
         path_ = self.executables[0].split('/')
@@ -265,17 +277,14 @@ class build_path_generator(object):
                 build_path = path.join(build_path, p)
         return build_path
 
+
 class symbol_parser(object):
     '''
     Parse the symbol sets ini and create custom ini file for covoar
     '''
-    def __init__(self,
-                 symbol_config_path,
-                 symbol_select_path,
-                 symbol_set,
-                 build_dir,
-                 bsp_name,
-                 target):
+
+    def __init__(self, symbol_config_path, symbol_select_path, symbol_set,
+                 build_dir, bsp_name, target):
         self.symbol_select_file = symbol_select_path
         self.symbol_file = symbol_config_path
         self.build_dir = build_dir
@@ -318,23 +327,21 @@ class symbol_parser(object):
                 ]
                 config.set(sset, 'libraries', ','.join(object_paths))
             except:
-                raise error.general('symbol parser write failed for %s' % (sset))
+                raise error.general('symbol parser write failed for %s' %
+                                    (sset))
 
         config.set('symbol-sets', 'sets', ','.join(symbol_sets))
 
         with open(self.symbol_select_file, 'w') as conf:
             config.write(conf)
 
+
 class covoar(object):
     '''
     Covoar runner
     '''
-    def __init__(self,
-                 base_result_dir,
-                 config_dir,
-                 executables,
-                 trace,
-                 prefix,
+
+    def __init__(self, base_result_dir, config_dir, executables, trace, prefix,
                  covoar_cmd):
         self.base_result_dir = base_result_dir
         self.config_dir = config_dir
@@ -348,17 +355,19 @@ class covoar(object):
         covoar_exe = 'covoar'
         tester_dir = path.dirname(path.abspath(sys.argv[0]))
         base = path.dirname(tester_dir)
-        exe = path.join(self.prefix, 'share', 'rtems', 'tester', 'bin', covoar_exe)
+        exe = path.join(self.prefix, 'share', 'rtems', 'tester', 'bin',
+                        covoar_exe)
         if path.isfile(exe):
             return exe
         exe = path.join(base, 'build', 'tester', 'covoar', covoar_exe)
         if path.isfile(exe):
             return exe
-        raise error.general('coverage: %s not found'% (covoar_exe))
+        raise error.general('coverage: %s not found' % (covoar_exe))
 
     def run(self, symbol_file):
         if not path.exists(symbol_file):
-            raise error.general('coverage: no symbol set file: %s'% (symbol_file))
+            raise error.general('coverage: no symbol set file: %s' %
+                                (symbol_file))
         exe = self._find_covoar()
         # The order of these arguments matters. Command line options must come
         # before the executable path arguments because covoar uses getopt() to
@@ -371,28 +380,38 @@ class covoar(object):
         log.notice()
         log.notice('Running coverage analysis (%s)' % (self.base_result_dir))
         start_time = datetime.datetime.now()
-        executor = execute.execute(verbose = self.trace, output = self.output_handler)
+        executor = execute.execute(verbose=self.trace,
+                                   output=self.output_handler)
         exit_code = executor.shell(command, cwd=os.getcwd())
         if exit_code[0] != 0:
-            raise error.general('coverage: covoar failure:: %d' % (exit_code[0]))
+            raise error.general('coverage: covoar failure:: %d' %
+                                (exit_code[0]))
         end_time = datetime.datetime.now()
         log.notice('Coverage time: %s' % (str(end_time - start_time)))
 
     def output_handler(self, text):
         log.output('%s' % (text))
 
+
 class coverage_run(object):
     '''
     Coverage analysis support for rtems-test
     '''
-    def __init__(self, macros_, executables, prefix, symbol_set = None, trace = False):
+
+    def __init__(self,
+                 macros_,
+                 executables,
+                 prefix,
+                 symbol_set=None,
+                 trace=False):
         '''
         Constructor
         '''
         self.trace = trace
         self.macros = macros_
         self.build_dir = self.macros['_cwd']
-        self.test_dir = path.join(self.build_dir, self.macros['bsp'] + '-coverage')
+        self.test_dir = path.join(self.build_dir,
+                                  self.macros['bsp'] + '-coverage')
         if not path.exists(self.test_dir):
             path.mkdir(self.test_dir)
         self.rtdir = path.abspath(self.macros['_rtdir'])
@@ -400,7 +419,8 @@ class coverage_run(object):
         self.coverage_config_path = path.join(self.rtscripts, 'coverage')
         self.symbol_config_path = path.join(self.coverage_config_path,
                                             'symbol-sets.ini')
-        self.symbol_select_path = self.macros.expand(self.macros['bsp_symbol_path'])
+        self.symbol_select_path = self.macros.expand(
+            self.macros['bsp_symbol_path'])
         self.executables = executables
         self.symbol_sets = []
         self.no_clean = int(self.macros['_no_clean'])
@@ -411,39 +431,33 @@ class coverage_run(object):
         self.prefix = prefix
         self.macros.define('coverage')
         self.covoar_cmd = self.macros.expand(self.macros['bsp_covoar_cmd'])
-        self.covoar_cmd += ' -T ' + self.macros['arch'] + '-rtems' + str(version.version())
+        self.covoar_cmd += ' -T ' + self.macros['arch'] + '-rtems' + str(
+            version.version())
 
     def run(self):
         try:
             if self.executables is None:
                 raise error.general('no test executables provided.')
-            build_dir = build_path_generator(self.executables, self.target).run()
+            build_dir = build_path_generator(self.executables,
+                                             self.target).run()
             parser = symbol_parser(self.symbol_config_path,
-                                   self.symbol_select_path,
-                                   self.symbol_set,
-                                   build_dir,
-                                   self.bsp_name,
-                                   self.target)
+                                   self.symbol_select_path, self.symbol_set,
+                                   build_dir, self.bsp_name, self.target)
             symbol_sets = parser.parse()
             parser.write_ini(symbol_sets)
-            covoar_runner = covoar(self.test_dir,
-                                   self.symbol_select_path,
-                                   self.executables,
-                                   self.trace,
-                                   self.prefix,
+            covoar_runner = covoar(self.test_dir, self.symbol_select_path,
+                                   self.executables, self.trace, self.prefix,
                                    self.covoar_cmd)
             covoar_runner.run(self.symbol_select_path)
-            self._generate_reports(symbol_sets);
-            self._summarize();
+            self._generate_reports(symbol_sets)
+            self._summarize()
         finally:
-            self._cleanup();
+            self._cleanup()
 
     def _generate_reports(self, symbol_sets):
         log.notice('Coverage generating reports')
         if self.report_format == 'html':
-            report = report_gen_html(symbol_sets,
-                                     self.build_dir,
-                                     self.rtdir,
+            report = report_gen_html(symbol_sets, self.build_dir, self.rtdir,
                                      self.macros['bsp'])
             report.generate()
             report.add_covoar_css()

@@ -38,6 +38,7 @@ import os
 from rtemstoolkit import check
 from rtemstoolkit import execute
 
+
 def cpus():
     sysctl = '/sbin/sysctl '
     e = execute.capture_execution()
@@ -47,6 +48,7 @@ def cpus():
     else:
         ncpus = 1
     return ncpus
+
 
 def overrides():
     uname = os.uname()
@@ -59,30 +61,30 @@ def overrides():
     if version.find('-') > 0:
         version = version.split('-')[0]
     defines = {
-        '_ncpus':        ('none',    'none',     ncpus),
-        '_os':           ('none',    'none',     'freebsd'),
-        '_host':         ('triplet', 'required', cpu + '-freebsd' + version),
-        '_host_vendor':  ('none',    'none',     'pc'),
-        '_host_os':      ('none',    'none',     'freebsd'),
-        '_host_cpu':     ('none',    'none',     cpu),
-        '_host_alias':   ('none',    'none',     '%{nil}'),
-        '_host_arch':    ('none',    'none',     cpu),
-        '_usr':          ('dir',     'required', '/usr/local'),
-        '_var':          ('dir',     'optional', '/usr/local/var'),
-        '__bash':        ('exe',     'optional', '/usr/local/bin/bash'),
-        '__bison':       ('exe',     'required', '/usr/local/bin/bison'),
-        '__git':         ('exe',     'required', '/usr/local/bin/git'),
-        '__xz':          ('exe',     'optional', '/usr/bin/xz'),
-        '__make':        ('exe',     'required', 'gmake'),
-        '__patch_opts':  ('none',     'none',    '-E')
-        }
+        '_ncpus': ('none', 'none', ncpus),
+        '_os': ('none', 'none', 'freebsd'),
+        '_host': ('triplet', 'required', cpu + '-freebsd' + version),
+        '_host_vendor': ('none', 'none', 'pc'),
+        '_host_os': ('none', 'none', 'freebsd'),
+        '_host_cpu': ('none', 'none', cpu),
+        '_host_alias': ('none', 'none', '%{nil}'),
+        '_host_arch': ('none', 'none', cpu),
+        '_usr': ('dir', 'required', '/usr/local'),
+        '_var': ('dir', 'optional', '/usr/local/var'),
+        '__bash': ('exe', 'optional', '/usr/local/bin/bash'),
+        '__bison': ('exe', 'required', '/usr/local/bin/bison'),
+        '__git': ('exe', 'required', '/usr/local/bin/git'),
+        '__xz': ('exe', 'optional', '/usr/bin/xz'),
+        '__make': ('exe', 'required', 'gmake'),
+        '__patch_opts': ('none', 'none', '-E')
+    }
 
-    defines['_build']        = defines['_host']
+    defines['_build'] = defines['_host']
     defines['_build_vendor'] = defines['_host_vendor']
-    defines['_build_os']     = defines['_host_os']
-    defines['_build_cpu']    = defines['_host_cpu']
-    defines['_build_alias']  = defines['_host_alias']
-    defines['_build_arch']   = defines['_host_arch']
+    defines['_build_os'] = defines['_host_os']
+    defines['_build_cpu'] = defines['_host_cpu']
+    defines['_build_alias'] = defines['_host_alias']
+    defines['_build_arch'] = defines['_host_arch']
 
     for gv in ['47', '48', '49']:
         gcc = '%s-portbld-freebsd%s-gcc%s' % (cpu, version, gv)

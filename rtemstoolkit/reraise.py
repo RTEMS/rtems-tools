@@ -62,11 +62,10 @@ import sys
 
 PY3 = sys.version_info[0] == 3
 
-
 if PY3:
-# Not sure why this is here the default 'exec' in Python 3 will work fine
-# moves is an internal class to Six that we do not need.  It's also not used.
-#    exec_ = getattr(moves.builtins, "exec")
+    # Not sure why this is here the default 'exec' in Python 3 will work fine
+    # moves is an internal class to Six that we do not need.  It's also not used.
+    #    exec_ = getattr(moves.builtins, "exec")
 
     def reraise(tp, value, tb=None):
         try:
@@ -80,6 +79,7 @@ if PY3:
             tb = None
 
 else:
+
     def exec_(_code_, _globs_=None, _locs_=None):
         """Execute code in a namespace."""
         if _globs_ is None:
