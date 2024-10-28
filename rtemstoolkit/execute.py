@@ -48,6 +48,7 @@ import time
 import traceback
 
 from rtemstoolkit import error
+from rtemstoolkit import host
 from rtemstoolkit import log
 from rtemstoolkit import stacktraces
 
@@ -381,11 +382,13 @@ class execute(object):
         a string."""
         if self.output is None:
             raise error.general('capture needs an output handler')
+        if host.is_windows:
+            shell = True
+            command = 'sh -c "' + execute._shlex_join(command) +'"'
         # If a string split and not a shell command split
         if not shell and isinstance(command, str):
             command = shlex.split(command)
         if shell and isinstance(command, list):
-            command = execute._shlex_join(command)
             if self.shell_exe:
                 command = self.shell_exe + ' ' + command
         if isinstance(command, list):
