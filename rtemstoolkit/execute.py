@@ -389,6 +389,8 @@ class execute(object):
         if not shell and isinstance(command, str):
             command = shlex.split(command)
         if shell and isinstance(command, list):
+            if not host.is_windows:
+                command = execute._shlex_join(command)
             if self.shell_exe:
                 command = self.shell_exe + ' ' + command
         if isinstance(command, list):
