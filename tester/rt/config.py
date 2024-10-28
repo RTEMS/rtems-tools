@@ -530,7 +530,7 @@ def load(bsp, opts):
     ini_name = path.basename(path_)
     for p in path.dirname(path_).split(':'):
         if path.exists(path.join(p, ini_name)):
-            cfg.load(path.join(p, ini_name))
+            cfg.load(path.host(path.join(p, ini_name)))
             if not cfg.has_section(bsp):
                 raise error.general('bsp section not found in ini: [%s]' %
                                     (bsp))
