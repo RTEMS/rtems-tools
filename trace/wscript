@@ -102,6 +102,7 @@ def build(bld):
                           'record/record-text.c',
                           'record/record-client-base.cc',
                           'record/record-filter-base64.cc',
+                          'record/record-filter-log.cc',
                           'record/record-filter-zlib.cc',
                           'record/record-main-lttng.cc',
                           'record/inih/ini.c'],

@@ -1,7 +1,7 @@
 /* SPDX-License-Identifier: BSD-2-Clause */
 
 /*
- * Copyright (C) 2018, 2020 embedded brains GmbH & Co. KG
+ * Copyright (C) 2018, 2024 embedded brains GmbH & Co. KG
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -117,6 +117,47 @@ class Filter {
   virtual ~Filter() = default;
 
   virtual bool Run(void** buf, size_t* n) = 0;
+};
+
+class Client;
+
+class LogFilter : public Filter {
+ public:
+  LogFilter(Client& client)
+      : client_(client),
+        state_(kSearchBeginOfRecords),
+        sub_state_(kBeginOfRecords),
+        consumed_(0) {}
+
+  LogFilter(const LogFilter&) = default;
+
+  LogFilter& operator=(const LogFilter&) = default;
+
+  virtual ~LogFilter() = default;
+
+  virtual bool Run(void** buf, size_t* n);
+
+ private:
+  enum State {
+    kSearchBeginOfRecords,
+    kExpectBase64Begin,
+    kExpectBase64ZlibBegin,
+    kBase64Decoding,
+    kExpectEndOfRecords,
+    kDecodingDone
+  };
+
+  static const char kBeginOfRecords[];
+
+  Client& client_;
+
+  State state_ = kSearchBeginOfRecords;
+
+  const char* sub_state_ = kBeginOfRecords;
+
+  uint64_t consumed_;
+
+  bool Error(const char* message, void** buf, const char* in);
 };
 
 class Base64Filter : public Filter {

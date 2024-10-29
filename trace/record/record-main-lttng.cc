@@ -2,7 +2,7 @@
 
 /*
  * Copyright (c) 2019 Ravindra Kumar Meena <rmeena840@gmail.com>
- * Copyright (C) 2018, 2020 embedded brains GmbH & Co. KG
+ * Copyright (C) 2018, 2024 embedded brains GmbH & Co. KG
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -781,31 +781,45 @@ static const struct option kLongOpts[] = {
     {"defaults", 0, NULL, 'd'}, {NULL, 0, NULL, 0}};
 
 static void Usage(char** argv) {
-  std::cout << argv[0] << " [OPTION]... [INPUT-FILE]" << std::endl
-            << std::endl
-            << "Mandatory arguments to long options are mandatory for short "
-               "options too."
-            << std::endl
-            << "  -h, --help                 print this help text" << std::endl
-            << "  -H, --host=HOST            the host IPv4 address of the "
-               "record server"
-            << std::endl
-            << "  -p, --port=PORT            the TCP port of the record server"
-            << std::endl
-            << "  -l, --limit=LIMIT          limit in bytes to process"
-            << std::endl
-            << "  -b, --base64               input is base64 encoded"
-            << std::endl
-            << "  -z, --zlib                 input is zlib compressed"
-            << std::endl
-            << "  -e, --elf=ELF              the ELF executable file"
-            << std::endl
-            << "  -c, --config=CONFIG        an INI-style configuration file"
-            << std::endl
-            << "  -d, --defaults             print default values for "
-               "configuration file"
-            << std::endl
-            << "  INPUT-FILE                 the input file" << std::endl;
+  std::cout
+      << argv[0] << " [OPTION]... [INPUT-FILE]" << std::endl
+      << std::endl
+      << "Mandatory arguments to long options are mandatory for short "
+         "options too."
+      << std::endl
+      << "  -h, --help                 print this help text" << std::endl
+      << "  -H, --host=HOST            the host IPv4 address of the "
+         "record server"
+      << std::endl
+      << "  -p, --port=PORT            the TCP port of the record server"
+      << std::endl
+      << "  -l, --limit=LIMIT          limit in bytes to process" << std::endl
+      << "  -t, --log                  input is a log file with the"
+      << std::endl
+      << "                             following markers indicating blocks"
+      << std::endl
+      << "                             of base64 encoded and optionally"
+      << std::endl
+      << "                             zlib compressed records:" << std::endl
+      << std::endl
+      << "                             *** BEGIN OF RECORDS BASE64 ***"
+      << std::endl
+      << "                             *** END OF RECORDS BASE64 ***"
+      << std::endl
+      << "                             *** BEGIN OF RECORDS BASE64 ZLIB ***"
+      << std::endl
+      << "                             *** END OF RECORDS BASE64 ZLIB ***"
+      << std::endl
+      << std::endl
+      << "  -b, --base64               input is base64 encoded" << std::endl
+      << "  -z, --zlib                 input is zlib compressed" << std::endl
+      << "  -e, --elf=ELF              the ELF executable file" << std::endl
+      << "  -c, --config=CONFIG        an INI-style configuration file"
+      << std::endl
+      << "  -d, --defaults             print default values for "
+         "configuration file"
+      << std::endl
+      << "  INPUT-FILE                 the input file" << std::endl;
 }
 
 static void PrintDefaults() {
@@ -821,6 +835,7 @@ static void PrintDefaults() {
 int main(int argc, char** argv) {
   const char* host = "127.0.0.1";
   uint16_t port = 1234;
+  bool is_log_file = false;
   bool is_base64_encoded = false;
   bool is_zlib_compressed = false;
   const char* elf_file = nullptr;
@@ -829,7 +844,7 @@ int main(int argc, char** argv) {
   int opt;
   int longindex;
 
-  while ((opt = getopt_long(argc, argv, "hH:p:l:bze:c:d", &kLongOpts[0],
+  while ((opt = getopt_long(argc, argv, "hH:p:l:tbze:c:d", &kLongOpts[0],
                             &longindex)) != -1) {
     switch (opt) {
       case 'h':
@@ -843,6 +858,9 @@ int main(int argc, char** argv) {
         break;
       case 'l':
         client.set_limit(strtoull(optarg, NULL, 0));
+        break;
+      case 't':
+        is_log_file = true;
         break;
       case 'b':
         is_base64_encoded = true;
@@ -878,7 +896,17 @@ int main(int argc, char** argv) {
     return 1;
   }
 
+  if (is_log_file && (is_base64_encoded || is_zlib_compressed)) {
+    std::cerr << argv[0] << ": option -t cannot be used with -b or -z"
+              << std::endl;
+    return 1;
+  }
+
   try {
+    if (is_log_file) {
+      client.AddFilter(new LogFilter(client));
+    }
+
     if (is_base64_encoded) {
       client.AddFilter(new Base64Filter());
     }
