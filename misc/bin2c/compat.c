@@ -1,7 +1,7 @@
 /*
- * Copyright (c) 2014 embedded brains GmbH.  All rights reserved.
+ * Copyright (c) 2014 embedded brains GmbH & Co. KG
  *
- *  embedded brains GmbH
+ *  embedded brains GmbH & Co. KG
  *  Dornierstr. 4
  *  82178 Puchheim
  *  Germany
