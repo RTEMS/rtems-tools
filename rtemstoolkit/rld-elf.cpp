@@ -1167,28 +1167,25 @@ namespace rld
       };
       types_and_labels types_to_labels[] =
       {
-        { "aarch64", EM_AARCH64 },
-        { "arm",     EM_ARM },
-        { "avr",     EM_AVR },
-        { "bfin",    EM_BLACKFIN },
-        { "h8300",   EM_H8_300 },
-        { "i386",    EM_386 },
-     /* { "m32c",    EM_M32C }, Not in libelf I imported */
-        { "m32r",    EM_M32R },
-        { "m68k",    EM_68K },
-        { "m68k",    EM_COLDFIRE },
-        { "mips",    EM_MIPS },
-        { "powerpc", EM_PPC },
-        { "powerpc", EM_PPC64 },
+        { "aarch64",    EM_AARCH64 },
+        { "arm",        EM_ARM },
+        { "i386",       EM_386 },
+     /* { "m32c",       EM_M32C }, Not in libelf I imported */
+        { "m32r",       EM_M32R },
+        { "m68k",       EM_68K },
+        { "m68k",       EM_COLDFIRE },
+        { "mips",       EM_MIPS },
+        { "microblaze", EM_MICROBLAZE },
+        { "powerpc",    EM_PPC },
+        { "powerpc",    EM_PPC64 },
 #ifndef EM_RISCV
-        { "riscv",   243 }, /* If not in libelf yet */
+        { "riscv",      243 }, /* If not in libelf yet */
 #else
-        { "riscv",   EM_RISCV },
+        { "riscv",      EM_RISCV },
 #endif
-        { "sh",      EM_SH },
-        { "sparc",   EM_SPARC },
-        { "sparc64", EM_SPARC },
-        { 0,         EM_NONE }
+        { "sparc",      EM_SPARC },
+        { "sparc64",    EM_SPARC },
+        { 0,            EM_NONE }
       };
 
       int m = 0;
