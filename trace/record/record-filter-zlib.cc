@@ -33,21 +33,11 @@
 
 #include "client.h"
 
+#include <cstring>
+
 ZlibFilter::ZlibFilter() : buffer_(65536)
 {
-  stream_.next_in   = nullptr;
-  stream_.avail_in  = 0;
-  stream_.total_in  = 0;
-  stream_.next_out  = nullptr;
-  stream_.avail_out = 0;
-  stream_.total_out = 0;
-  stream_.msg       = nullptr;
-  stream_.zalloc    = nullptr;
-  stream_.zfree     = nullptr;
-  stream_.opaque    = nullptr;
-  stream_.data_type = 0;
-  stream_.adler     = 0;
-  stream_.reserved  = 0;
+  std::memset(&stream_, 0, sizeof(stream_));
   inflateInit(&stream_);
 }
 
