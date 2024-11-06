@@ -77,7 +77,7 @@ bool ZlibFilter::Run(void** buf, size_t* n) {
       buffer_.resize(buffer_size);
       stream_.next_out = reinterpret_cast<Bytef*>(&buffer_[chunk_size]);
       stream_.avail_out = chunk_size;
-      avail_out += chunk_size;
+      avail_out = chunk_size;
       continue;
     }
 
