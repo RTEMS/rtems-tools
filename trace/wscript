@@ -33,6 +33,14 @@ def options(opt):
 def configure(conf):
     conf.load('compiler_c')
     conf.load('compiler_cxx')
+    if conf.check_cxx(cxxflags='-std=c++20', mandatory=False, define_name="HAVE_STD_CXX20"):
+        conf.env.append_value('CXXFLAGS', '-std=c++20')
+    elif conf.check_cxx(cxxflags='-std=c++17', mandatory=False, define_name="HAVE_STD_CXX17"):
+        conf.env.append_value('CXXFLAGS', '-std=c++17')
+    elif conf.check_cxx(cxxflags='-std=c++14', mandatory=False, define_name="HAVE_STD_CXX14"):
+        conf.env.append_value('CXXFLAGS', '-std=c++14')
+    else:
+        conf.env.append_value('CXXFLAGS', '-std=c++11')
     try:
         cppflags = conf.cmd_and_log(['llvm-config', '--cppflags'])
         ldflags = conf.cmd_and_log(['llvm-config', '--ldflags'])
@@ -45,14 +53,6 @@ def configure(conf):
     if conf.check(header_name='zlib.h', features='cxx', mandatory=False):
         conf.check_cxx(lib = 'z')
     conf.check_cxx(lib = 'ws2_32', mandatory=False)
-    if conf.check_cxx(cxxflags='-std=c++20', mandatory=False, define_name="HAVE_STD_CXX20"):
-        conf.env.append_value('CXXFLAGS', '-std=c++20')
-    elif conf.check_cxx(cxxflags='-std=c++17', mandatory=False, define_name="HAVE_STD_CXX17"):
-        conf.env.append_value('CXXFLAGS', '-std=c++17')
-    elif conf.check_cxx(cxxflags='-std=c++14', mandatory=False, define_name="HAVE_STD_CXX14"):
-        conf.env.append_value('CXXFLAGS', '-std=c++14')
-    else:
-        conf.env.append_value('CXXFLAGS', '-std=c++11')
     conf.write_config_header('config.h')
 
 def build(bld):
