@@ -39,6 +39,7 @@
 #include <iostream>
 #include <list>
 #include <map>
+#include <memory>
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -156,6 +157,10 @@ class LogFilter : public Filter {
   const char* sub_state_ = kBeginOfRecords;
 
   uint64_t consumed_;
+
+  std::unique_ptr<Filter> base64_filter_;
+
+  std::unique_ptr<Filter> zlib_filter_;
 
   bool Error(const char* message, void** buf, const char* in);
 };

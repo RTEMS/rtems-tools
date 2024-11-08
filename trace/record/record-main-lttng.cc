@@ -41,6 +41,7 @@
 #include <cstring>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <string>
 #include <vector>
 
@@ -903,19 +904,25 @@ int main(int argc, char** argv) {
   }
 
   try {
+    std::unique_ptr<Filter> log_filter;
     if (is_log_file) {
-      client.AddFilter(new LogFilter(client));
+      log_filter.reset(new LogFilter(client));
+      client.AddFilter(log_filter.get());
     }
 
+    std::unique_ptr<Filter> base64_filter;
     if (is_base64_encoded) {
-      client.AddFilter(new Base64Filter());
+      base64_filter.reset(new Base64Filter());
+      client.AddFilter(base64_filter.get());
     }
 
-    if (is_zlib_compressed) {
 #ifdef HAVE_ZLIB_H
-      client.AddFilter(new ZlibFilter());
-#endif
+    std::unique_ptr<Filter> zlib_filter;
+    if (is_zlib_compressed) {
+      zlib_filter.reset(new ZlibFilter());
+      client.AddFilter(zlib_filter.get());
     }
+#endif
 
     client.ParseConfigFile(config_file);
     client.GenerateMetadata();

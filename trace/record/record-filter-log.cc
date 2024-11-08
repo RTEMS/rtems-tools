@@ -88,7 +88,8 @@ bool LogFilter::Run(void** buf, size_t* n) {
         if (*ss == '\0') {
           s = kBase64Decoding;
           ss = kEndOfRecordsBase64;
-          client_.AddFilter(new Base64Filter());
+          base64_filter_.reset(new Base64Filter());
+          client_.AddFilter(base64_filter_.get());
         } else if (*in == *ss) {
           ++ss;
           --m;
@@ -103,8 +104,10 @@ bool LogFilter::Run(void** buf, size_t* n) {
         if (*ss == '\0') {
           s = kBase64Decoding;
           ss = kEndOfRecordsBase64Zlib;
-          client_.AddFilter(new Base64Filter());
-          client_.AddFilter(new ZlibFilter());
+          base64_filter_.reset(new Base64Filter());
+          client_.AddFilter(base64_filter_.get());
+          zlib_filter_.reset(new ZlibFilter());
+          client_.AddFilter(zlib_filter_.get());
         } else if (*in == *ss) {
           ++ss;
           --m;
