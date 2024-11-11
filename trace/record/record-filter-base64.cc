@@ -29,32 +29,38 @@
 static const char base64[] =
     "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
 
-bool Base64Filter::DecodeChar(int c, char **target) {
+static bool Error(const char* message, char c) {
+  std::cerr << "base64 filter error: " << message << " for byte " << c
+            << std::endl;
+  return false;
+}
+
+bool Base64Filter::DecodeChar(int c, char** target) {
   char* s;
 
   if (seen_end_)
-    return false;
+    return Error("seen end", c);
   if ((s = std::strchr(const_cast<char*>(base64), c)) == NULL)
-    return false;
+    return Error("invalid char", c);
   val_[digits_++] = s - base64;
   if (digits_ == 4) {
     int n;
     unsigned char buf[3];
     if (val_[0] == 64 || val_[1] == 64)
-      return false;
+      return Error("decode val[0]", c);
     if (val_[2] == 64 && val_[3] != 64)
-      return false;
+      return Error("decode val[1]", c);
     /*
      * Check that bits that should be zero are.
      */
     if (val_[2] == 64 && (val_[1] & 0xf) != 0)
-      return false;
+      return Error("decode val[2]", c);
     /*
      * We don't need to test for val_[2] != 64 as
      * the bottom two bits of 64 are zero.
      */
     if (val_[3] == 64 && (val_[2] & 0x3) != 0)
-      return false;
+      return Error("decode val[3]", c);
     n = (val_[2] == 64) ? 1 : (val_[3] == 64) ? 2 : 3;
     if (n != 3) {
       seen_end_ = true;
@@ -66,7 +72,7 @@ bool Base64Filter::DecodeChar(int c, char **target) {
     buf[0] = (val_[0] << 2) | (val_[1] >> 4);
     buf[1] = (val_[1] << 4) | (val_[2] >> 2);
     buf[2] = (val_[2] << 6) | (val_[3]);
-    char *out = *target;
+    char* out = *target;
     for (int i = 0; i < n; ++i) {
       out[i] = buf[i];
     }
