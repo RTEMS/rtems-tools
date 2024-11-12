@@ -50,6 +50,12 @@
 #include <llvm/Support/Path.h>
 #endif
 
+#ifdef _WIN32
+#define PATH_SEPARATOR "\\"
+#else
+#define PATH_SEPARATOR "/"
+#endif
+
 #define CTF_MAGIC 0xC1FC1FC1
 #define TASK_RUNNING 0x0000
 #define TASK_IDLE 0x0402
@@ -167,6 +173,10 @@ class LTTNGClient : public Client {
     CloseStreamFiles();
   }
 
+  void SetOutputPath(const char *path) {
+    output_path_ = path;
+  }
+
  private:
   PerCPUContext per_cpu_[RTEMS_RECORD_CLIENT_MAXIMUM_CPU_COUNT];
 
@@ -186,6 +196,8 @@ class LTTNGClient : public Client {
   llvm::symbolize::LLVMSymbolizer symbolizer_;
 #endif
 
+  std::string output_path_ = ".";
+
   std::string elf_file_;
 
   bool resolve_address_ = false;
@@ -195,6 +207,10 @@ class LTTNGClient : public Client {
   AddressToLineMap address_to_line_;
 
   std::vector<std::string> event_to_name_;
+
+  std::string GetOutputFilePath(const char *filename) {
+    return output_path_ + PATH_SEPARATOR + filename;
+  }
 
   static rtems_record_client_status HandlerCaller(uint64_t bt,
                                                   uint32_t cpu,
@@ -577,7 +593,7 @@ void LTTNGClient::OpenStreamFiles(uint64_t data) {
   cpu_count_ = static_cast<size_t>(data) + 1;
 
   for (size_t i = 0; i < cpu_count_; ++i) {
-    std::string filename("stream_");
+    std::string filename(GetOutputFilePath("stream_"));
     filename += std::to_string(i);
     FILE* f = std::fopen(filename.c_str(), "wb");
     if (f == NULL) {
@@ -731,9 +747,10 @@ static const char kMetadata[] =
     "};\n";
 
 void LTTNGClient::GenerateMetadata() {
-  FILE* f = std::fopen("metadata", "w");
+  std::string filename(GetOutputFilePath("metadata"));
+  FILE* f = std::fopen(filename.c_str(), "w");
   if (f == NULL) {
-    throw ErrnoException("cannot create file 'metadata'");
+    throw ErrnoException("cannot create file '" + filename + "'");
   }
 
   std::fwrite(kMetadata, sizeof(kMetadata) - 1, 1, f);
@@ -847,7 +864,7 @@ int main(int argc, char** argv) {
   int opt;
   int longindex;
 
-  while ((opt = getopt_long(argc, argv, "hH:p:l:tbze:c:d", &kLongOpts[0],
+  while ((opt = getopt_long(argc, argv, "hH:p:l:tbze:c:do:", &kLongOpts[0],
                             &longindex)) != -1) {
     switch (opt) {
       case 'h':
@@ -880,6 +897,9 @@ int main(int argc, char** argv) {
       case 'd':
         PrintDefaults();
         return 0;
+      case 'o':
+        client.SetOutputPath(optarg);
+        break;
       default:
         return 1;
     }
