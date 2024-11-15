@@ -33,9 +33,10 @@
 
 import gdb
 
+
 class time():
 
-    def __init__(self, time_, ticks = False, scaler = 1000000000):
+    def __init__(self, time_, ticks=False, scaler=1000000000):
         self.ticks = ticks
         self.scaler = scaler
         if time_.type.code == gdb.TYPE_CODE_PTR:
@@ -54,7 +55,8 @@ class time():
 
     def get(self):
         if self.timespecs:
-            return (long(self.time['tv_sec']) * 1000000000) + long(self.time['tv_nsec'])
+            return (long(self.time['tv_sec']) * 1000000000) + long(
+                self.time['tv_nsec'])
         else:
             return long(self.time) * self.scaler
 

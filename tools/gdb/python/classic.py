@@ -44,67 +44,55 @@ import supercore
 import threads
 import watchdog
 
+
 class attribute:
     """The Classic API attribute."""
 
     groups = {
-        'none' : [],
-        'all' : ['scope',
-                 'priority',
-                 'fpu',
-                 'semaphore-type',
-                 'semaphore-pri',
-                 'semaphore-pri-ceiling',
-                 'barrier',
-                 'task'],
-        'task' : ['scope',
-                  'priority',
-                  'fpu',
-                  'task'],
-        'semaphore' : ['scope',
-                       'priority',
-                       'semaphore-type',
-                       'semaphore-pri',
-                       'semaphore-pri-ceiling'],
-        'barrier' : ['barrier'],
-        'message_queue' : ['priority',
-                           'scope'],
-        'partition' : ['scope'],
-        'region' : ['priority']
-        }
+        'none': [],
+        'all': [
+            'scope', 'priority', 'fpu', 'semaphore-type', 'semaphore-pri',
+            'semaphore-pri-ceiling', 'barrier', 'task'
+        ],
+        'task': ['scope', 'priority', 'fpu', 'task'],
+        'semaphore': [
+            'scope', 'priority', 'semaphore-type', 'semaphore-pri',
+            'semaphore-pri-ceiling'
+        ],
+        'barrier': ['barrier'],
+        'message_queue': ['priority', 'scope'],
+        'partition': ['scope'],
+        'region': ['priority']
+    }
 
     masks = {
-        'scope' : 0x00000002,
-        'priority' : 0x00000004,
-        'fpu' : 0x00000001,
-        'semaphore-type' : 0x00000030,
-        'semaphore-pri' : 0x00000040,
-        'semaphore-pri-ceiling' : 0x00000080,
-        'barrier' : 0x00000010,
-        'task' : 0x00008000
-        }
+        'scope': 0x00000002,
+        'priority': 0x00000004,
+        'fpu': 0x00000001,
+        'semaphore-type': 0x00000030,
+        'semaphore-pri': 0x00000040,
+        'semaphore-pri-ceiling': 0x00000080,
+        'barrier': 0x00000010,
+        'task': 0x00008000
+    }
 
     fields = {
-        'scope' : [(0x00000000, 'local'),
-                   (0x00000002, 'global')],
-        'priority' : [(0x00000000, 'fifo'),
-                      (0x00000004, 'pri')],
-        'fpu' : [(0x00000000, 'no-fpu'),
-                 (0x00000001, 'fpu')],
-        'semaphore-type' : [(0x00000000, 'count-sema'),
-                            (0x00000010, 'bin-sema'),
-                            (0x00000020, 'simple-bin-sema')],
-        'semaphore-pri' : [(0x00000000, 'no-inherit-pri'),
-                           (0x00000040, 'inherit-pri')],
-        'semaphore-pri-ceiling' : [(0x00000000, 'no-pri-ceiling'),
-                                   (0x00000080, 'pri-ceiling')],
-        'barrier' : [(0x00000010, 'barrier-auto-release'),
-                     (0x00000000, 'barrier-manual-release')],
-        'task' : [(0x00000000, 'app-task'),
-                  (0x00008000, 'sys-task')]
-        }
+        'scope': [(0x00000000, 'local'), (0x00000002, 'global')],
+        'priority': [(0x00000000, 'fifo'), (0x00000004, 'pri')],
+        'fpu': [(0x00000000, 'no-fpu'), (0x00000001, 'fpu')],
+        'semaphore-type': [(0x00000000, 'count-sema'),
+                           (0x00000010, 'bin-sema'),
+                           (0x00000020, 'simple-bin-sema')],
+        'semaphore-pri': [(0x00000000, 'no-inherit-pri'),
+                          (0x00000040, 'inherit-pri')],
+        'semaphore-pri-ceiling': [(0x00000000, 'no-pri-ceiling'),
+                                  (0x00000080, 'pri-ceiling')],
+        'barrier': [(0x00000010, 'barrier-auto-release'),
+                    (0x00000000, 'barrier-manual-release')],
+        'task': [(0x00000000, 'app-task'), (0x00008000, 'sys-task')]
+    }
 
-    def __init__(self, attr, attrtype = 'none'):
+    def __init__(self, attr, attrtype='none'):
         if attrtype not in self.groups:
             raise 'invalid attribute type'
         self.attrtype = attrtype
@@ -148,14 +136,15 @@ class semaphore:
     def show(self, from_tty):
         if self.object_control.id() != 0:
             print('     Name:', self.object_control.name())
-            print('       Id: 0x%08x (@ 0x%08x)' % (self.object_control.id(),
-                                                   self.reference))
+            print('       Id: 0x%08x (@ 0x%08x)' %
+                  (self.object_control.id(), self.reference))
             print('     Attr:', self.attr.to_string())
             if self.attr.test('semaphore-type', 'bin-sema') or \
                self.attr.test('semaphore-type', 'simple-bin-sema'):
-                core_mutex = mutex.control(self.object['Core_control']['mutex'])
+                core_mutex = mutex.control(
+                    self.object['Core_control']['mutex'])
                 print('  Nesting:', core_mutex.nest_count())
-                print('   Holder:',)
+                print('   Holder:', )
                 holder = core_mutex.holder()
                 if holder:
                     print('%s (id 0x%08x)' % (holder.brief(), holder.id()))
@@ -163,15 +152,17 @@ class semaphore:
                     print('no holder (unlocked)')
                 wait_queue = core_mutex.wait_queue()
                 tasks = wait_queue.tasks()
-                print('    Queue: len = %d, state = %s' % (len(tasks),
-                                                           wait_queue.state()))
+                print('    Queue: len = %d, state = %s' %
+                      (len(tasks), wait_queue.state()))
                 if len(tasks) > 0:
                     print('    Tasks:')
                     print('    Name (c:current, r:real), (id)')
                     for t in range(0, len(tasks)):
-                        print('      ', tasks[t].brief(), ' (%08x)' % (tasks[t].id()))
+                        print('      ', tasks[t].brief(),
+                              ' (%08x)' % (tasks[t].id()))
                 return True
         return False
+
 
 class task:
     "Print a classic task"
@@ -189,8 +180,8 @@ class task:
             cpu = self.task.executing()
             if cpu == -1:
                 cpu = 'not executing'
-            print('         Id:', '0x%08x (@ 0x%08x)' % (self.task.id(),
-                                                         self.task.reference))
+            print('         Id:',
+                  '0x%08x (@ 0x%08x)' % (self.task.id(), self.task.reference))
             print('       Name:', self.task.name())
             print(' Active CPU:', cpu)
             print('      State:', self.task.current_state())
@@ -207,6 +198,7 @@ class task:
             return True
         return False
 
+
 class message_queue:
     "Print classic messege queue"
 
@@ -219,13 +211,15 @@ class message_queue:
         self.wait_queue = threads.queue( \
             self.object['message_queue']['Wait_queue'])
 
-        self.core_control = supercore.message_queue(self.object['message_queue'])
+        self.core_control = supercore.message_queue(
+            self.object['message_queue'])
 
     def show(self, from_tty):
         print('     Name:', self.object_control.name())
         print('     Attr:', self.attr.to_string())
 
         self.core_control.show()
+
 
 class timer:
     '''Print a classic timer'''
@@ -239,6 +233,7 @@ class timer:
     def show(self, from_tty):
         print('     Name:', self.object_control.name())
         self.watchdog.show()
+
 
 class partition:
     ''' Print a rtems partition '''
@@ -261,6 +256,7 @@ class partition:
         print('   B Size:', self.buffer_size)
         print(' U Blocks:', self.used_blocks)
 
+
 class region:
     "prints a classic region"
 
@@ -279,6 +275,7 @@ class region:
         print('   Memory:')
         self.heap.show()
 
+
 class barrier:
     '''classic barrier abstraction'''
 
@@ -286,16 +283,16 @@ class barrier:
         self.reference = obj
         self.object = obj.dereference()
         self.object_control = objects.control(self.object['Object'])
-        self.attr = attribute(self.object['attribute_set'],'barrier')
+        self.attr = attribute(self.object['attribute_set'], 'barrier')
         self.core_b_control = supercore.barrier_control(self.object['Barrier'])
 
-    def show(self,from_tty):
-        print('     Name:',self.object_control.name())
-        print('     Attr:',self.attr.to_string())
+    def show(self, from_tty):
+        print('     Name:', self.object_control.name())
+        print('     Attr:', self.attr.to_string())
 
-        if self.attr.test('barrier','barrier-auto-release'):
+        if self.attr.test('barrier', 'barrier-auto-release'):
             max_count = self.core_b_control.max_count()
             print('Aut Count:', max_count)
 
-        print('  Waiting:',self.core_b_control.waiting_threads())
+        print('  Waiting:', self.core_b_control.waiting_threads())
         helper.tasks_printer_routine(self.core_b_control.tasks())

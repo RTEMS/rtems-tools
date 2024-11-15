@@ -5,18 +5,13 @@
 from helper import test_bit
 
 
-
 class register:
     '''SPARC Registers'''
 
     class psr:
         '''status register'''
 
-        sv_table = {
-            0 : 'user',
-            1 : 'superviser'
-        }
-
+        sv_table = {0: 'user', 1: 'superviser'}
 
         def __init__(self, psr):
             self.psr = psr
@@ -28,10 +23,10 @@ class register:
             return test_bit(self.psr, 5)
 
         def prev_superviser(self):
-            return int(test_bit(self.psr,6))
+            return int(test_bit(self.psr, 6))
 
         def superviser(self):
-            return int(test_bit(self.psr,7))
+            return int(test_bit(self.psr, 7))
 
         def interrupt_level(self):
             # bits 8 to 11
@@ -41,7 +36,7 @@ class register:
             return test_bit(self.psr, 12)
 
         def coproc_status(self):
-            return test_bit(self.psr,13)
+            return test_bit(self.psr, 13)
 
         def carry(self):
             return test_bit(self.psr, 20)
@@ -53,11 +48,11 @@ class register:
             return test_bit(self.psr, 22)
 
         def icc(self):
-            n = test_bit(self.psr,23)
-            z = test_bit(self.psr,22)
-            v = test_bit(self.psr,21)
-            c = test_bit(self.psr,20)
-            return (n,z,v,c)
+            n = test_bit(self.psr, 23)
+            z = test_bit(self.psr, 22)
+            v = test_bit(self.psr, 21)
+            c = test_bit(self.psr, 20)
+            return (n, z, v, c)
 
         def to_string(self):
             val = "     Status Register"
@@ -79,63 +74,63 @@ class register:
     def global_regs(self):
         val = [self.reg['g0_g1']]
 
-        for i in range(2,7):
-            val.append(int(self.reg['g'+str(i)]))
+        for i in range(2, 7):
+            val.append(int(self.reg['g' + str(i)]))
         return val
 
     def local_regs(self):
         val = []
 
-        for i in range(0,8):
-            val.append(self.reg['l'+str(i)])
+        for i in range(0, 8):
+            val.append(self.reg['l' + str(i)])
         return val
 
     def in_regs(self):
         val = []
 
-        for i in range(0,8):
-            if i==6:
+        for i in range(0, 8):
+            if i == 6:
                 val.append(self.reg['i6_fp'])
             else:
-                val.append(self.reg['i'+str(i)])
+                val.append(self.reg['i' + str(i)])
         return val
 
     def out_regs(self):
         val = []
 
-        for i in range(0,8):
-            if i==6:
+        for i in range(0, 8):
+            if i == 6:
                 val.append(self.reg['o6_sp'])
             else:
-                val.append(self.reg['o'+str(i)])
+                val.append(self.reg['o' + str(i)])
         return val
 
     def status(self):
         return self.psr(self.reg['psr'])
 
     def show(self):
-        print('         Global Regs:',)
-        print(' [',)
+        print('         Global Regs:', )
+        print(' [', )
         for i in self.global_regs():
-            print(str(i)+',',)
+            print(str(i) + ',', )
         print('\b\b ]')
 
-        print('          Local Regs:',)
-        print(' [',)
+        print('          Local Regs:', )
+        print(' [', )
         for i in self.local_regs():
-            print(str(i)+',',)
+            print(str(i) + ',', )
         print('\b\b ]')
 
-        print('             In Regs:',)
-        print(' [',)
+        print('             In Regs:', )
+        print(' [', )
         for i in self.in_regs():
-            print(str(i)+',',)
+            print(str(i) + ',', )
         print('\b\b ]')
 
-        print('            Out Regs:',)
-        print(' [',)
+        print('            Out Regs:', )
+        print(' [', )
         for i in self.out_regs():
-            print(str(i)+',',)
+            print(str(i) + ',', )
         print('\b\b ]')
 
         sr = self.status()

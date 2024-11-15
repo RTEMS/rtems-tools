@@ -36,6 +36,7 @@ import gdb
 rbt_left = 0
 rbt_right = 1
 
+
 def opp_dir(dir_):
     if dir_ == rbt_left:
         return rbt_right
@@ -49,7 +50,6 @@ class node:
         self.node_ptr = node_ptr
         self.node_val = None
         if node_ptr != 0:
-            print '}}}}'
             self.node_val = node_ptr.dereference()
 
     def __str__(self):
@@ -100,7 +100,8 @@ class node:
                 if self.parent():
                     # pn = *(node->parent) or pn = *parent
                     pn = node(self.parent())
-                    if pn.parent() and (self.pointer() == pn.child(opp_dir(dir_))):
+                    if pn.parent() and (self.pointer() == pn.child(
+                            opp_dir(dir_))):
                         next_ = self.parent()
                     else:
                         nn = self
@@ -138,10 +139,10 @@ class node:
     def to_string(self):
         if self.null():
             return 'NULL'
-        print ']]] here'
         return 'Parent:%s Child:%s Color:%s' % (self.node_val['parent'],
                                                 self.node_val['child'],
                                                 self.node_val['color'])
+
 
 class control:
     """Manage the RBTree_Control."""

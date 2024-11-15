@@ -34,6 +34,7 @@
 import threads
 import helper
 
+
 class time_of_day:
     '''Manage time of day object'''
 
@@ -71,10 +72,11 @@ class message_queue:
     def show(self):
         helper.tasks_printer_routine(self.wait_queue)
 
+
 class barrier_attributes:
     '''supercore bbarrier attribute'''
 
-    def __init__(self,attr):
+    def __init__(self, attr):
         self.attr = attr
 
     def max_count(self):
@@ -84,6 +86,7 @@ class barrier_attributes:
     def discipline(self):
         d = self.attr['discipline']
         return d
+
 
 class barrier_control:
     '''Manage a Supercore barrier'''

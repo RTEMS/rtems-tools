@@ -34,6 +34,7 @@ import objects
 import itertools
 import threads
 
+
 class id:
     """Print an object given the ID. Print using the struct display hint and an
     iterator."""
@@ -84,11 +85,12 @@ class id:
         return 'bad'
 
     def children(self):
-        counter = itertools.imap (self.key, itertools.count())
-        return itertools.izip (counter, self.iterator(self.id))
+        counter = itertools.imap(self.key, itertools.count())
+        return itertools.izip(counter, self.iterator(self.id))
 
-    def display_hint (self):
+    def display_hint(self):
         return 'struct'
+
 
 class name:
     """Pretty printer for an object's name. It has to guess the type as no
@@ -99,6 +101,7 @@ class name:
 
     def to_string(self):
         return str(self.name)
+
 
 class control:
 
@@ -140,10 +143,10 @@ class control:
         return 'bad'
 
     def children(self):
-        counter = itertools.imap (self.key, itertools.count())
-        return itertools.izip (counter, self.iterator(self.object))
+        counter = itertools.imap(self.key, itertools.count())
+        return itertools.izip(counter, self.iterator(self.object))
 
-    def display_hint (self):
+    def display_hint(self):
         return 'struct'
 
 
@@ -151,20 +154,26 @@ class state:
 
     def __init__(self, state):
         self.state = threads.state(state)
+
     def to_string(self):
         return self.state.to_string()
 
+
 class chains:
 
-    def __init__(self,chain):
+    def __init__(self, chain):
         self.chain = chains.control(chain)
 
     def to_string(self):
-        return "First:"+str(self.chain.first())+"\n Last:"+str(self.chain.last())
+        return "First:" + str(self.chain.first()) + "\n Last:" + str(
+            self.chain.last())
+
 
 class node:
+
     def __init__(self, node):
         self.node = chains.node(node)
 
     def to_string(self):
-        return "Node: "+str(self.node)+" Next: "+str(self.node.next())+" Prev: "+str(self.node.previous())
+        return "Node: " + str(self.node) + " Next: " + str(
+            self.node.next()) + " Prev: " + str(self.node.previous())

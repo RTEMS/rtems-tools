@@ -36,20 +36,17 @@ import gdb
 import chains
 import objects
 
+
 class state:
 
-    states = {
-        0: 'inactive',
-        1: 'being-inserted',
-        2: 'active',
-        3: 'remove-it'
-        }
+    states = {0: 'inactive', 1: 'being-inserted', 2: 'active', 3: 'remove-it'}
 
     def __init__(self, s):
         self.s = s
 
     def to_string(self):
         return self.states[self.s]
+
 
 class control:
 
@@ -82,7 +79,7 @@ class control:
         val = ""
         val += "     State:" + str(self.state())
         val += "\n     Intial Interval:" + str(self.initial())
-        val += "\n     Delta Interval:"+ str(self.delta_interval())
+        val += "\n     Delta Interval:" + str(self.delta_interval())
         val += "\n     Start time:" + str(self.start_time())
         val += "\n     Stop time:" + str(self.stop_time())
         val += "\n     WD Routine:" + str(self.routine())

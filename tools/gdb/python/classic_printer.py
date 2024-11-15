@@ -4,14 +4,16 @@
 import classic
 import gdb
 
+
 class attribute:
 
     def __init__(self, attribute):
         ''' ToDo: Verify - usage of all '''
-        self.attr = classic.attribute(attribute,'all')
+        self.attr = classic.attribute(attribute, 'all')
 
     def to_string(self):
         return gdb.Value(self.attr.to_string())
+
 
 class semaphore:
     """Print a Semaphore_Control object. Print using the struct display hint
@@ -33,8 +35,7 @@ class semaphore:
             if self.count == 1:
                 return self.semaphore['Object']
             elif self.count == 2:
-                attr = attribute(self.semaphore['attribute_set'],
-                                 'semaphore')
+                attr = attribute(self.semaphore['attribute_set'], 'semaphore')
                 return attr.to_string()
             elif self.count == 3:
                 return self.semaphore['Core_control']
@@ -57,8 +58,8 @@ class semaphore:
         return 'bad'
 
     def children(self):
-        counter = itertools.imap (self.key, itertools.count())
-        return itertools.izip (counter, self.iterator(self.semaphore))
+        counter = itertools.imap(self.key, itertools.count())
+        return itertools.izip(counter, self.iterator(self.semaphore))
 
-    def display_hint (self):
+    def display_hint(self):
         return 'struct'

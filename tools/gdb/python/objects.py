@@ -35,25 +35,26 @@ import gdb
 import itertools
 import re
 
+
 class infotables():
     """Manage the object information tables."""
 
     tables_types = {
-        'internal/time'          : ('TOD_Control',           '_TOD'),
-        'internal/wdticks'       : ('Chain_Control',        '_Watchdog_Ticks_chain'),
-        'internal/wdseconds'     : ('Chain_Control',        '_Watchdog_Seconds_chain'),
-
-        'classic/tasks'          : ('Thread_Control',        '_RTEMS_tasks_Information'),
-        'classic/timers'         : ('Timer_Control',         '_Timer_Information'),
-        'classic/semaphores'     : ('Semaphore_Control',     '_Semaphore_Information'),
-        'classic/message_queues' : ('Message_queue_Control', '_Message_queue_Information'),
-        'classic/partitions'     : ('Partition_Control',     '_Partition_Information'),
-        'classic/regions'        : ('Region_Control',        '_Region_Information'),
-        'classic/ports'          : ('Port_Control',          '_Port_Information'),
-        'classic/periods'        : ('Period_Control',        '_Period_Information'),
-        'classic/extensions'     : ('Extension_Control',     '_Extension_Information'),
-        'classic/barriers'       : ('Barrier_Control',       '_Barrier_Information')
-        }
+        'internal/time': ('TOD_Control', '_TOD'),
+        'internal/wdticks': ('Chain_Control', '_Watchdog_Ticks_chain'),
+        'internal/wdseconds': ('Chain_Control', '_Watchdog_Seconds_chain'),
+        'classic/tasks': ('Thread_Control', '_RTEMS_tasks_Information'),
+        'classic/timers': ('Timer_Control', '_Timer_Information'),
+        'classic/semaphores': ('Semaphore_Control', '_Semaphore_Information'),
+        'classic/message_queues':
+        ('Message_queue_Control', '_Message_queue_Information'),
+        'classic/partitions': ('Partition_Control', '_Partition_Information'),
+        'classic/regions': ('Region_Control', '_Region_Information'),
+        'classic/ports': ('Port_Control', '_Port_Information'),
+        'classic/periods': ('Period_Control', '_Period_Information'),
+        'classic/extensions': ('Extension_Control', '_Extension_Information'),
+        'classic/barriers': ('Barrier_Control', '_Barrier_Information')
+    }
 
     def __init__(self):
         self.invalidate()
@@ -114,7 +115,8 @@ class infotables():
             max = self.maximum(api, _class)
             if index > max:
                 raise IndexError('object index out of range (%d)' % (max))
-            expr = '(%s*) %s.local_table[%d]' % (table_type[0], table_type[1], index)
+            expr = '(%s*) %s.local_table[%d]' % (table_type[0], table_type[1],
+                                                 index)
         return gdb.parse_and_eval(expr)
 
     def is_string(self, api, _class):
@@ -125,67 +127,48 @@ class infotables():
                 return True
         return False
 
+
 #
 # Global info tables. These are global in the target.
 #
 information = infotables()
 
+
 class ident():
     "An RTEMS object id with support for its bit fields."
 
-    bits = [
-        { 'index': (0, 15),
-          'node':  (0, 0),
-          'api':   (8, 10),
-          'class': (11, 15) },
-        { 'index': (0, 15),
-          'node':  (16, 23),
-          'api':   (24, 26),
-          'class': (27, 31) }
-        ]
+    bits = [{
+        'index': (0, 15),
+        'node': (0, 0),
+        'api': (8, 10),
+        'class': (11, 15)
+    }, {
+        'index': (0, 15),
+        'node': (16, 23),
+        'api': (24, 26),
+        'class': (27, 31)
+    }]
 
     OBJECT_16_BITS = 0
     OBJECT_32_BITS = 1
 
-    api_labels = [
-        'none',
-        'internal',
-        'classic',
-        'posix'
-        ]
+    api_labels = ['none', 'internal', 'classic', 'posix']
 
     class_labels = {
-        'internal' : ('threads',
-                      'mutexes'),
-        'classic' : ('none',
-                     'tasks',
-                     'timers',
-                     'semaphores',
-                     'message_queues',
-                     'partitions',
-                     'regions',
-                     'ports',
-                     'periods',
-                     'extensions',
-                     'barriers'),
-        'posix' : ('none',
-                   'threads',
-                   'keys',
-                   'interrupts',
-                   'message_queue_fds',
-                   'message_queues',
-                   'mutexes',
-                   'semaphores',
-                   'condition_variables',
-                   'timers',
-                   'barriers',
-                   'spinlocks',
-                   'rwlocks'),
-        }
+        'internal': ('threads', 'mutexes'),
+        'classic': ('none', 'tasks', 'timers', 'semaphores', 'message_queues',
+                    'partitions', 'regions', 'ports', 'periods', 'extensions',
+                    'barriers'),
+        'posix':
+        ('none', 'threads', 'keys', 'interrupts', 'message_queue_fds',
+         'message_queues', 'mutexes', 'semaphores', 'condition_variables',
+         'timers', 'barriers', 'spinlocks', 'rwlocks'),
+    }
 
     def __init__(self, id):
         if type(id) != gdb.Value and type(id) != int and type(id) != unicode:
-            raise TypeError('%s: must be gdb.Value, int, unicoded int' % (type(id)))
+            raise TypeError('%s: must be gdb.Value, int, unicoded int' %
+                            (type(id)))
         if type(id) == int:
             id = gdb.Value(id)
         self.id = id
@@ -198,7 +181,8 @@ class ident():
         if field in self.bits[self.idSize]:
             bits = self.bits[self.idSize][field]
             if bits[1] > 0:
-                return (int(self.id) >> bits[0]) & ((1 << (bits[1] - bits[0] + 1)) - 1)
+                return (int(self.id) >> bits[0]) & (
+                    (1 << (bits[1] - bits[0] + 1)) - 1)
         return 0
 
     def value(self):
@@ -234,11 +218,12 @@ class ident():
     def valid(self):
         return self.api() != 'none' and self._class() != 'invalid'
 
+
 class name():
     """The Objects_Name can either be told what the name is or can take a
     guess."""
 
-    def __init__(self, name, is_string = None):
+    def __init__(self, name, is_string=None):
         self.name = name
         if is_string == None:
             self.is_string = 'auto'
@@ -278,14 +263,16 @@ class name():
             pass
         return None
 
+
 class control():
     """The Objects_Control structure."""
 
     def __init__(self, object):
         self.object = object
         self._id = ident(self.object['id'])
-        self._name = name(self.object['name'],
-                          information.is_string(self._id.api(), self._id._class()))
+        self._name = name(
+            self.object['name'],
+            information.is_string(self._id.api(), self._id._class()))
 
     def node(self):
         return self.object['Node']

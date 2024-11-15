@@ -33,78 +33,102 @@
 
 import gdb
 
+
 def _table():
     return gdb.parse_and_eval('Configuration')
+
 
 def fields():
     return [field.name for field in _table().type.fields()]
 
+
 def mp():
     return '_Configuration_MP_table' in fields()
+
 
 def smp():
     if 'smp_enabled' in fields():
         return int(_table()['smp_enabled']) != 0
     return False
 
+
 def maximum_processors():
     if smp():
         return int(_table()['maximum_processors'])
     return 1
 
+
 def work_space_size():
     return long(_table()['work_space_size'])
+
 
 def stack_space_size():
     return long(_table()['stack_space_size'])
 
+
 def maximum_extensions():
     return long(_table()['maximum_extensions'])
+
 
 def maximum_keys():
     return long(_table()['maximum_keys'])
 
+
 def maximum_key_value_pairs():
     return long(_table()['maximum_key_value_pairs'])
+
 
 def microseconds_per_tick():
     return long(_table()['microseconds_per_tick'])
 
+
 def nanoseconds_per_tick():
     return long(_table()['nanoseconds_per_tick'])
+
 
 def ticks_per_timeslice():
     return long(_table()['ticks_per_timeslice'])
 
+
 def idle_task():
     return long(_table()['idle_task'])
+
 
 def idle_task_stack_size():
     return long(_table()['idle_task_stack_size'])
 
+
 def interrupt_stack_size():
     return long(_table()['interrupt_stack_size'])
+
 
 def stack_allocate_init_hook():
     return long(_table()['stack_allocate_init_hook'])
 
+
 def stack_allocate_hook():
     return long(_table()['stack_allocate_hook'])
+
 
 def stack_free_hook():
     return long(_table()['stack_free_hook'])
 
+
 def do_zero_of_workspace():
     return int(_table()['do_zero_of_workspace']) != 0
+
 
 def unified_work_area():
     return int(_table()['unified_work_area']) != 0
 
+
 def stack_allocator_avoids_work_space():
     return long(_table()['stack_allocator_avoids_work_space'])
 
+
 def number_of_initial_extensions():
     return int(_table()['number_of_initial_extensions'])
+
 
 def user_extension_table():
     return _table()['User_extension_table']

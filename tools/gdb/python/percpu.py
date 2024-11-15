@@ -35,20 +35,24 @@ import gdb
 
 import configuration
 
+
 def _table(cpu):
     max_cpus = configuration.maximum_processors()
     if cpu >= max_cpus:
         raise IndexError('cpu index out of range (%d)' % (max_cpus))
     return gdb.parse_and_eval('_Per_CPU_Information[%d].per_cpu' % (cpu))
 
+
 def get(cpu):
     return _table(cpu)
+
 
 def thread_active(thread):
     for cpu in range(0, configuration.maximum_processors()):
         if thread == _table(cpu)['executing']:
             return cpu
     return -1
+
 
 def thread_heir(thread):
     for cpu in range(0, configuration.maximum_processors()):

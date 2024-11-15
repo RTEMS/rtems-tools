@@ -33,6 +33,7 @@
 
 import gdb
 
+
 class node:
     """Manage the Chain_Node."""
 
@@ -72,9 +73,9 @@ class node:
     def to_string(self):
         if self.null():
             return 'NULL'
-        return 'Node:%s Next:%s Prev:%s' % (self.reference,
-                                            self.node_val['next'],
-                                            self.node_val['previous'])
+        return 'Node:%s Next:%s Prev:%s' % (
+            self.reference, self.node_val['next'], self.node_val['previous'])
+
 
 class control:
     """Manage the Chain_Control."""

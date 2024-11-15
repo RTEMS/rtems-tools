@@ -39,6 +39,7 @@ import percpu
 import rbtrees
 import time
 
+
 def task_chain(chain):
     tasks = []
     if not chain.empty():
@@ -49,6 +50,7 @@ def task_chain(chain):
             node = node(node.next())
     return tasks
 
+
 def task_tree(tree):
     tasks = []
     node = tree.first(rbtrees.rbt_left)
@@ -56,6 +58,7 @@ def task_tree(tree):
         tasks.append(control(node.cast('Thread_Control')))
         node = node.next(rbtrees.rbt_left)
     return tasks
+
 
 class state():
 
@@ -102,27 +105,27 @@ class state():
         INTERRUPTIBLE_BY_SIGNAL
 
     masks = {
-        ALL_SET : 'all-set',
-        READY : 'ready',
-        DORMANT : 'dormant',
-        SUSPENDED : 'suspended',
-        TRANSIENT : 'transient',
-        DELAYING : 'delaying',
-        WAITING_FOR_TIME : 'waiting-for-time',
-        WAITING_FOR_BUFFER : 'waiting-for-buffer',
-        WAITING_FOR_SEGMENT : 'waiting-for-segment',
-        WAITING_FOR_MESSAGE : 'waiting-for-message',
-        WAITING_FOR_EVENT : 'waiting-for-event',
-        WAITING_FOR_SEMAPHORE : 'waiting-for-semaphore',
-        WAITING_FOR_MUTEX : 'waiting-for-mutex',
-        WAITING_FOR_CONDITION_VARIABLE : 'waiting-for-condition-variable',
-        WAITING_FOR_JOIN_AT_EXIT : 'waiting-for-join-at-exit',
-        WAITING_FOR_RPC_REPLY : 'waiting-for-rpc-reply',
-        WAITING_FOR_PERIOD : 'waiting-for-period',
-        WAITING_FOR_SIGNAL : 'waiting-for-signal',
-        WAITING_FOR_BARRIER : 'waiting-for-barrier',
-        WAITING_FOR_RWLOCK : 'waiting-for-rwlock'
-        }
+        ALL_SET: 'all-set',
+        READY: 'ready',
+        DORMANT: 'dormant',
+        SUSPENDED: 'suspended',
+        TRANSIENT: 'transient',
+        DELAYING: 'delaying',
+        WAITING_FOR_TIME: 'waiting-for-time',
+        WAITING_FOR_BUFFER: 'waiting-for-buffer',
+        WAITING_FOR_SEGMENT: 'waiting-for-segment',
+        WAITING_FOR_MESSAGE: 'waiting-for-message',
+        WAITING_FOR_EVENT: 'waiting-for-event',
+        WAITING_FOR_SEMAPHORE: 'waiting-for-semaphore',
+        WAITING_FOR_MUTEX: 'waiting-for-mutex',
+        WAITING_FOR_CONDITION_VARIABLE: 'waiting-for-condition-variable',
+        WAITING_FOR_JOIN_AT_EXIT: 'waiting-for-join-at-exit',
+        WAITING_FOR_RPC_REPLY: 'waiting-for-rpc-reply',
+        WAITING_FOR_PERIOD: 'waiting-for-period',
+        WAITING_FOR_SIGNAL: 'waiting-for-signal',
+        WAITING_FOR_BARRIER: 'waiting-for-barrier',
+        WAITING_FOR_RWLOCK: 'waiting-for-rwlock'
+    }
 
     def __init__(self, s):
         self.s = s
@@ -130,7 +133,8 @@ class state():
     def to_string(self):
         if (self.s & self.LOCALLY_BLOCKED) == self.LOCALLY_BLOCKED:
             return 'locally-blocked'
-        if (self.s & self.WAITING_ON_THREAD_QUEUE) == self.WAITING_ON_THREAD_QUEUE:
+        if (self.s &
+                self.WAITING_ON_THREAD_QUEUE) == self.WAITING_ON_THREAD_QUEUE:
             return 'waiting-on-thread-queue'
         if (self.s & self.BLOCKED) == self.BLOCKED:
             return 'blocked'
@@ -139,6 +143,7 @@ class state():
             if (self.s & m) == m:
                 s = self.masks[m] + ','
         return s[:-1]
+
 
 class cpu_usage():
 
@@ -150,6 +155,7 @@ class cpu_usage():
 
     def get(self):
         return self.time.get()
+
 
 class wait_info():
 
@@ -174,6 +180,7 @@ class wait_info():
     def queue(self):
         return task_chain(chains.control(self.info['queue']))
 
+
 class registers():
 
     def __init__(self, regs):
@@ -192,6 +199,7 @@ class registers():
         t = self.regs[reg].type
         if t in ['uint32_t', 'unsigned', 'unsigned long']:
             return '%08x (%d)' % (val)
+
 
 class control():
     '''
@@ -292,6 +300,7 @@ class control():
         return "'%s' (c:%d, r:%d)" % \
             (self.name(), self.current_priority(), self.real_priority())
 
+
 class queue():
     """Manage the Thread_queue_Control."""
 
@@ -307,7 +316,8 @@ class queue():
         return str(self.que['discipline']) == 'THREAD_QUEUE_DISCIPLINE_FIFO'
 
     def priority(self):
-        return str(self.que['discipline']) == 'THREAD_QUEUE_DISCIPLINE_PRIORITY'
+        return str(
+            self.que['discipline']) == 'THREAD_QUEUE_DISCIPLINE_PRIORITY'
 
     def state(self):
         return state(self.que['state']).to_string()
@@ -316,5 +326,5 @@ class queue():
         if self.fifo():
             t = task_chain(chains.control(self.que['Queues']['Fifo']))
         else:
-            t =  task_tree(rbtrees.control(self.que['Queues']['Priority']))
+            t = task_tree(rbtrees.control(self.que['Queues']['Priority']))
         return t

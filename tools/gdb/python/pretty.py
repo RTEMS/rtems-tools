@@ -38,18 +38,17 @@ import supercore_printer
 import classic_printer
 
 pretty_printer = {
-
-    '^rtems_id$'            : supercore_printer.id,
-    '^Objects_Id$'          : supercore_printer.id,
-    '^Objects_Name$'        : supercore_printer.name,
-    '^Objects_Control$'     : supercore_printer.control,
-    '^States_Control$'      : supercore_printer.state,
-    '^rtems_attribute$'     : classic_printer.attribute,
-    '^Semaphore_Control$'   : classic_printer.semaphore
+    '^rtems_id$': supercore_printer.id,
+    '^Objects_Id$': supercore_printer.id,
+    '^Objects_Name$': supercore_printer.name,
+    '^Objects_Control$': supercore_printer.control,
+    '^States_Control$': supercore_printer.state,
+    '^rtems_attribute$': classic_printer.attribute,
+    '^Semaphore_Control$': classic_printer.semaphore
 }
 
 
-def build_pretty_printer ():
+def build_pretty_printer():
     pp_dict = {}
 
     for name in pretty_printer:
@@ -57,7 +56,8 @@ def build_pretty_printer ():
 
     return pp_dict
 
-def lookup_function (val):
+
+def lookup_function(val):
     "Look-up and return a pretty-printer that can print val."
 
     global nesting
@@ -65,9 +65,9 @@ def lookup_function (val):
     typename = str(helper.type_from_value(val))
 
     for function in pp_dict:
-        if function.search (typename):
+        if function.search(typename):
             nesting += 1
-            result = pp_dict[function] (val)
+            result = pp_dict[function](val)
             nesting -= 1
             if nesting == 0:
                 objects.information.invalidate()
@@ -75,6 +75,7 @@ def lookup_function (val):
 
     # Cannot find a pretty printer.  Return None.
     return None
+
 
 # ToDo: properly document.
 nesting = 0

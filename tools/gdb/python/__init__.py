@@ -30,9 +30,11 @@
 import gdb
 import rtems
 
+
 def get_architure():
     frame = gdb.selected_frame()
     arch = frame.architecture()
     return arch.name()
+
 
 print('RTEMS GDB Support')

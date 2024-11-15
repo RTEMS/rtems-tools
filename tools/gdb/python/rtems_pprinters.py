@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2024-2024 Suraj Kumar 
+# Copyright 2024-2024 Suraj Kumar
 # All rights reserved.
 
 # This package is part of the RTEMS Tools Project.
@@ -19,14 +19,15 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 # This script contains the definitions to all pretty-printers written for RTEMS
-# kernel structures. 
+# kernel structures.
 
-# To add a pretty-printer for a structure: 
-#   1. Define a class for it and write the printer code 
+# To add a pretty-printer for a structure:
+#   1. Define a class for it and write the printer code
 #   2. Add the structure name along with the class name in the "printers"
-#      dictionary 
+#      dictionary
 
 import gdb.printing
+
 
 class BasePrettyPrinter:
 

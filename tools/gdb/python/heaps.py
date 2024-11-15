@@ -31,6 +31,7 @@
 # RTEMS heap
 #
 
+
 class block:
     '''Abstract a heap block structure'''
 
@@ -55,10 +56,11 @@ class block:
         if not self.null():
             self.block = self.block['prev']
 
+
 class stats:
     '''heap statistics'''
 
-    def __init__(self,stat):
+    def __init__(self, stat):
         self.stat = stat
 
     def inst(self):
@@ -73,11 +75,12 @@ class stats:
         return self.stat['free_size']
 
     def show(self):
-        print('  Instance:',self.inst())
-        print('     Avail:',self.avail())
-        print('      Free:',self.free())
+        print('  Instance:', self.inst())
+        print('     Avail:', self.avail())
+        print('      Free:', self.free())
 
     # ToDo : incorporate others
+
 
 class control:
     '''Abstract a heap control structure'''
