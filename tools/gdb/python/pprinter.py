@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: BSD-2-Clause
 
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2024-2024 Suraj Kumar 
+# Copyright 2024-2024 Suraj Kumar
 # All rights reserved.
 
 # This package is part of the RTEMS Tools Project.
@@ -19,17 +19,23 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 # This script is responsible for registering the pretty-printers provided and
-# maintained by GCC (present in stdcxx.py) 
+# maintained by GCC (present in stdcxx.py)
 # It also registers all RTEMS pretty-printers, maintained in rtems_pprinters.py
 
-from . import stdcxx
-import gdb.printing 
+import sys
+
+try:
+    from . import stdcxx
+except:
+    print("warning: no C++ pretty printers; invalid install", file=sys.stderr)
+
+import gdb.printing
 import rtems_pprinters as rtems_library
 
+
 def register_rtems_printers():
-    gdb.printing.register_pretty_printer(
-        gdb.current_objfile(), 
-        rtems_library.build_pretty_printer()
-        )
+    gdb.printing.register_pretty_printer(gdb.current_objfile(),
+                                         rtems_library.build_pretty_printer())
+
 
 register_rtems_printers()
