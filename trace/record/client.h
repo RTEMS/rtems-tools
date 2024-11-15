@@ -130,10 +130,6 @@ class LogFilter : public Filter {
         sub_state_(kBeginOfRecords),
         consumed_(0) {}
 
-  LogFilter(const LogFilter&) = default;
-
-  LogFilter& operator=(const LogFilter&) = default;
-
   virtual ~LogFilter() = default;
 
   virtual bool Run(void** buf, size_t* n);
