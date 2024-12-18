@@ -30,7 +30,6 @@ COMMON_OBJS= ConfigFile.o \
   TargetBase.o  \
   TargetFactory.o \
   Target_i386.o  \
-  Target_lm32.o  \
   Target_m68k.o  \
   Target_powerpc.o \
   Target_sparc.o \
@@ -131,9 +130,7 @@ SymbolTable.o: SymbolTable.cc SymbolTable.h
 Target_arm.o: Target_arm.cc Target_arm.h TargetBase.h
 TargetBase.o: TargetBase.cc TargetBase.h
 TargetFactory.o: TargetFactory.cc TargetFactory.h TargetBase.h Target_arm.h \
-  Target_i386.h Target_lm32.h Target_m68k.h Target_powerpc.h Target_sparc.h
 Target_i386.o: Target_i386.cc Target_i386.h TargetBase.h
-Target_lm32.o: Target_lm32.cc Target_lm32.h TargetBase.h
 Target_m68k.o: Target_m68k.cc Target_m68k.h TargetBase.h
 Target_powerpc.o: Target_powerpc.cc Target_powerpc.h TargetBase.h
 Target_sparc.o: Target_sparc.cc Target_sparc.h TargetBase.h

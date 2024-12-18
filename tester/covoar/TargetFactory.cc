@@ -22,7 +22,6 @@
 #include "Target_i386.h"
 #include "Target_m68k.h"
 #include "Target_powerpc.h"
-#include "Target_lm32.h"
 #include "Target_sparc.h"
 #include "Target_riscv.h"
 
@@ -53,7 +52,6 @@ namespace Target {
     { "aarch64", Target_aarch64_Constructor },
     { "arm",     Target_arm_Constructor },
     { "i386",    Target_i386_Constructor },
-    { "lm32",    Target_lm32_Constructor },
     { "m68k",    Target_m68k_Constructor },
     { "powerpc", Target_powerpc_Constructor },
     { "sparc",   Target_sparc_Constructor },

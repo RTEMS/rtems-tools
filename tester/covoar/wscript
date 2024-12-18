@@ -115,7 +115,6 @@ def build(bld):
                         'TargetBase.cc',
                         'TargetFactory.cc',
                         'Target_i386.cc',
-                        'Target_lm32.cc',
                         'Target_m68k.cc',
                         'Target_powerpc.cc',
                         'Target_sparc.cc',
