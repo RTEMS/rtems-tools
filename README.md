@@ -33,7 +33,7 @@ Building
 
 To build and install:
 
-```
+```shell
   # ./waf configure --prefix=$HOME/development/rtems/6
   # ./waf build install
 ```
@@ -43,7 +43,7 @@ Testing
 
 To run the tests first install pytest https://pytest.org/ and then:
 
-```
+```shell
   # ./waf configure
   # pytest -v
 ```
@@ -60,9 +60,11 @@ then python2 and finally python and use the first it finds.
 You can forced a specific version for testing by setting the environment
 variable 'RTEMS_PYTHON_OVERRIDE' to the python you want to use. For example:
 
- $ export RTEMS_PYTHON_OVERRIDE=python2
+```shell
+ # export RTEMS_PYTHON_OVERRIDE=python2
+```
 
-will use python2.
+Will use Python 2.
 
 
 Waf
@@ -71,3 +73,5 @@ Waf
 The Waf project can be found here:
 
   * https://waf.io/
+
+
