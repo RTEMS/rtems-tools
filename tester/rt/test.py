@@ -73,7 +73,7 @@ class log_capture(object):
     def get(self):
         s = []
         status = []
-        status_regx = re.compile('^\[\s*\d+/\s*\d+\] p:.+')
+        status_regx = re.compile('^\\[\\s*\\d+/\\s*\\d+\\] p:.+')
         for l in self.log:
             if status_regx.match(l):
                 status += [l]
@@ -185,7 +185,7 @@ def find_executables(paths, glob):
                 for f in files:
                     if fnmatch.fnmatch(f.lower(), glob):
                         executables += [path.join(root, f)]
-    norun = re.compile('.*\.norun.*')
+    norun = re.compile('.*\\.norun.*')
     executables = [e for e in executables if not norun.match(e)]
     return sorted(executables)
 
