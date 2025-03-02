@@ -40,6 +40,7 @@ sys.path = sys.path[0:1] + [rtems, base] + sys.path[1:]
 try:
     import tester.rt.run
     tester.rt.run.run(sys.argv)
-except ImportError:
-    print("Incorrect RTEMS Tools installation", file=sys.stderr)
+except ImportError as exception:
+    print("Incorrect RTEMS Tools installation:", file=sys.stderr)
+    print("%s" % str(exception), file=sys.stderr)
     sys.exit(1)
