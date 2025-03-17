@@ -11,17 +11,9 @@
  *
  * Subsequently modified by Joel Sherrill <joel.sherrill@oarcorp.com>
  * to add a number of capabilities not in the original.
- *
- * syntax:  bin2c [-c] [-z] <input_file> <output_file>
- *
- *    -c    do NOT add the "const" keyword to definition
- *    -s    add the "static" keywork to definition
- *    -v    verbose
- *    -z    terminate the array with a zero (useful for embedded C strings)
- *
- * examples:
- *     bin2c -c myimage.png myimage_png.cpp
- *     bin2c -z sometext.txt sometext_txt.cpp
+ * 
+ * Modified by Harinder Singh Dhanoa <hsd1807@proton.me>
+ * to add the feature to include license file support.
  *
  */
 
@@ -43,6 +35,7 @@ int zeroterminated = 0;
 int createC = 1;
 int createH = 1;
 unsigned int align = 0;
+char *licensefile = NULL;
 
 static void sanitize_file_name(char *p)
 {
@@ -61,6 +54,57 @@ int myfgetc(FILE *f)
     return 0;
   }
   return c;
+}
+
+char *read_license_file(const char *filename) {
+  FILE *file;
+  long length;
+  char *buffer;
+  size_t readsize;
+  
+  file = fopen(filename, "r");
+  if (!file) {
+    perror("error: could not open license file");
+    exit(1);
+  }
+
+  if (fseek(file, 0, SEEK_END) != 0) {
+    perror("error: could not seek to end of license file");
+    fclose(file);
+    exit(1);
+  }
+
+  length = ftell(file);
+  if (length == -1) {
+    perror("error: could not tell position in license file");
+    fclose(file);
+    exit(1);
+  }
+
+  if (fseek(file, 0, SEEK_SET) != 0) {
+    perror("error: could not seek to start of license file");
+    fclose(file);
+    exit(1);
+  }
+
+  buffer = malloc(length + 1);
+  if (!buffer) {
+    perror("error: could not allocate memory for license file");
+    fclose(file);
+    exit(1);
+  }
+
+  readsize = fread(buffer, 1, length, file);
+  if (readsize != (size_t) length) {
+    perror("error: could not read license file");
+    free(buffer);
+    fclose(file);
+    exit(1);
+  }
+  buffer[length] = '\0';
+
+  fclose(file);
+  return buffer;
 }
 
 void process(const char *ifname, const char *ofname, const char *forced_name)
@@ -127,6 +171,12 @@ void process(const char *ifname, const char *ofname, const char *forced_name)
       exit(1);
     }
   }
+  
+  /* Read license header if specified */
+  char *license_header = NULL;
+  if (licensefile) {
+    license_header = read_license_file(licensefile);
+  }
 
   /* find basename */
   char *ifbasename_to_free =
@@ -160,6 +210,12 @@ void process(const char *ifname, const char *ofname, const char *forced_name)
 
   if ( createC ) {
     /* print C file header */
+    if (license_header) {
+      fprintf(ocfile, "%s\n", license_header);
+      if (licensefile) {
+        free(license_header);
+      }
+    }
     fprintf(
       ocfile,
       "/*\n"
@@ -293,7 +349,7 @@ void usage(void)
 {
   fprintf(
      stderr,
-     "usage: bin2c [-csvzCH] [-N name] [-A alignment] <input_file> <output_file>\n"
+     "usage: bin2c [-csvzCH] [-N name] [-A alignment] [-l license_file] <input_file> <output_file>\n"
      "  <input_file> is the binary file to convert\n"
      "  <output_file> should not have a .c or .h extension\n"
      "\n"
@@ -305,6 +361,7 @@ void usage(void)
      "  -C - create c-source file only\n"
      "  -N - force name of data array\n"
      "  -A - add alignment - parameter can be a hexadecimal or decimal number\n"
+     "  -l - <license_file> - add the specified file as a license header\n"
     );
   exit(1);
 }
@@ -361,6 +418,16 @@ int main(int argc, char **argv)
         fprintf(stderr, "error: Couldn't convert argument of -A\n");
         usage();
       }
+      --argc;
+      ++argv;
+    } else if (!strcmp(argv[1], "-l")) {
+      --argc;
+      ++argv;
+      if (argc <= 1) {
+        fprintf(stderr, "error: -l needs a license file\n");
+        usage();
+      }
+      licensefile = argv[1];
       --argc;
       ++argv;
     } else {
