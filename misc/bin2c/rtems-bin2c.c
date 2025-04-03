@@ -107,6 +107,12 @@ char *read_license_file(const char *filename) {
   return buffer;
 }
 
+void free_license_header(char *license_header) {
+  if (license_header) {
+    free(license_header);
+  }
+}
+
 void process(const char *ifname, const char *ofname, const char *forced_name)
 {
   FILE *ifile, *ocfile, *ohfile;
@@ -186,6 +192,7 @@ void process(const char *ifname, const char *ofname, const char *forced_name)
     fclose(ifile);
     if ( createC ) { fclose(ocfile); }
     if ( createH ) { fclose(ohfile); }
+    free_license_header(license_header);
     exit(1);
   }
 
@@ -202,6 +209,8 @@ void process(const char *ifname, const char *ofname, const char *forced_name)
     fclose(ifile);
     if ( createC ) { fclose(ocfile); }
     if ( createH ) { fclose(ohfile); }
+    free(ifbasename_to_free);
+    free_license_header(license_header);
     exit(1);
   }
 
@@ -212,9 +221,6 @@ void process(const char *ifname, const char *ofname, const char *forced_name)
     /* print C file header */
     if (license_header) {
       fprintf(ocfile, "%s\n", license_header);
-      if (licensefile) {
-        free(license_header);
-      }
     }
     fprintf(
       ocfile,
@@ -343,6 +349,7 @@ void process(const char *ifname, const char *ofname, const char *forced_name)
   if ( createC ) { fclose(ocfile); }
   if ( createH ) { fclose(ohfile); }
   free(ifbasename_to_free);
+  free_license_header(license_header);
 }
 
 void usage(void)
