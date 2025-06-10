@@ -28,6 +28,7 @@ from __future__ import print_function
 
 import datetime
 import os
+import sys
 import threading
 import time
 
@@ -57,6 +58,7 @@ class exe(object):
         self.timeout = None
         self.test_too_long = None
         self.kill_good = True
+        self.result = None
 
     def _lock(self, msg):
         if self.lock_trace:
@@ -102,16 +104,19 @@ class exe(object):
     def _execute(self, args):
         '''Thread to execute the test and to wait for it to finish.'''
         # pylint: disable=unused-variable
-        cmds = args
-        if self.console is not None:
-            self.console('exe: %s' % (' '.join(cmds)))
-        ecode, proc = self.process.open(cmds)
-        if self.trace:
-            print('gdb done', ecode)
-        self._lock('_execute')
-        self.ecode = ecode
-        self.process = None
-        self._unlock('_execute')
+        try:
+            cmds = args
+            if self.console is not None:
+                self.console('exe: %s' % (' '.join(cmds)))
+                ecode, proc = self.process.open(cmds)
+            if self.trace:
+                print('exe done', ecode)
+            self._lock('_execute')
+            self.ecode = ecode
+            self.process = None
+            self._unlock('_execute')
+        except:
+            self.result = sys.exc_info()
 
     def _monitor(self, timeout):
         output_length = self.output_length
@@ -119,6 +124,8 @@ class exe(object):
         period = timeout[0] / step
         seconds = timeout[1] / step
         while self.process and period > 0 and seconds > 0:
+            if self.result is not None:
+                raise self.result[1]
             current_length = self.output_length
             if output_length != current_length:
                 period = timeout[0] / step

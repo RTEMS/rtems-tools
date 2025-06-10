@@ -62,6 +62,23 @@ quiet = False
 lock = threading.Lock()
 
 
+def safe_blocking_write(file_handle, out):
+    '''This is a bit of a hack to force the file handle back to
+        blocking. It seems for some cases stdio is being set to
+        non-blocking in some execute commands.
+    '''
+    writing = True
+    while writing:
+        try:
+            file_handle.write(out)
+            writing = False
+        except BlockingIOError as e:
+            import fcntl
+            flags = fcntl.fcntl(file_handle, fcntl.F_GETFL)
+            if flags & os.O_NONBLOCK != 0:
+                fcntl.fcntl(file_handle, fcntl.F_SETFL, flags & ~os.O_NONBLOCK)
+
+
 def info(args):
     s = [' Command Line: %s' % (' '.join(args))]
     if hasattr(os, 'uname'):
@@ -97,7 +114,7 @@ def _output(text=os.linesep, log=None):
     else:
         lock.acquire()
         for l in text.replace(chr(13), '').splitlines():
-            print(l)
+            safe_blocking_write(sys.stdout, l)
         lock.release()
     if capture is not None:
         lock.acquire()
@@ -108,7 +125,7 @@ def _output(text=os.linesep, log=None):
 def stderr(text=os.linesep, log=None):
     lock.acquire()
     for l in text.replace(chr(13), '').splitlines():
-        print(l, file=sys.stderr)
+        safe_blocking_write(sys.stderr, l)
     lock.release()
 
 
@@ -122,7 +139,7 @@ def notice(text=os.linesep, log=None, stdout_only=False):
             (default is not None and not default.has_stdout() or stdout_only):
         lock.acquire()
         for l in text.replace(chr(13), '').splitlines():
-            print(l)
+            safe_blocking_write(sys.stdout, l)
         lock.release()
     if not stdout_only:
         _output(text, log)
@@ -179,6 +196,7 @@ class log:
     def _tail(self, text):
         if type(text) is not list:
             text = text.splitlines()
+
         self.tail += text
         if len(self.tail) > self.tail_size:
             self.tail = self.tail[-self.tail_size:]
@@ -201,7 +219,7 @@ class log:
         try:
             for f in range(0, len(self.fhs)):
                 if self.fhs[f] is not None:
-                    self.fhs[f].write(out)
+                    safe_blocking_write(self.fhs[f], out)
             self.flush()
         except:
             raise

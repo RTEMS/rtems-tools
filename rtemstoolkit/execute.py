@@ -383,7 +383,7 @@ class execute(object):
             raise error.general('capture needs an output handler')
         if os.name == 'nt':
             shell = True
-            command = 'sh -c "' + execute._shlex_join(command) +'"'
+            command = 'sh -c "' + execute._shlex_join(command) + '"'
         # If a string split and not a shell command split
         if not shell and isinstance(command, str):
             command = shlex.split(command)
@@ -448,7 +448,8 @@ class execute(object):
                                         stdin=stdin,
                                         stdout=stdout,
                                         stderr=stderr,
-                                        close_fds=False)
+                                        close_fds=False,
+                                        text=False)
             else:
                 for i, cmd in enumerate(pipe_commands):
                     if i == 0:
@@ -457,7 +458,8 @@ class execute(object):
                                                 cwd=cwd,
                                                 env=env,
                                                 stdin=stdin,
-                                                stdout=subprocess.PIPE)
+                                                stdout=subprocess.PIPE,
+                                                text=False)
                     elif i == len(pipe_commands) - 1:
                         proc = subprocess.Popen(cmd,
                                                 shell=shell,
@@ -466,14 +468,16 @@ class execute(object):
                                                 stdin=proc.stdout,
                                                 stdout=stdout,
                                                 stderr=stderr,
-                                                close_fds=False)
+                                                close_fds=False,
+                                                text=False)
                     else:
                         proc = subprocess.Popen(cmd,
                                                 shell=shell,
                                                 cwd=cwd,
                                                 env=env,
                                                 stdin=proc.stdout,
-                                                stdout=subprocess.PIPE)
+                                                stdout=subprocess.PIPE,
+                                                text=False)
             if not capture:
                 return (0, proc)
             if self.output is None:

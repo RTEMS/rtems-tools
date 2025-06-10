@@ -774,7 +774,7 @@ class file(object):
             config = open(path.host(configname), 'r')
         except IOError as err:
             raise error.general('error opening config file: %s' %
-                                (path.host(configname)))
+                                (path.host(configname)) + ': ' + str(err))
         self.configpath += [configname]
 
         self._includes += [configname]

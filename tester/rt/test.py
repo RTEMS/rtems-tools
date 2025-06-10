@@ -45,7 +45,6 @@ from rtemstoolkit import host
 from rtemstoolkit import log
 from rtemstoolkit import path
 from rtemstoolkit import mailer
-from rtemstoolkit import reraise
 from rtemstoolkit import stacktraces
 from rtemstoolkit import version
 from rtemstoolkit import check
@@ -168,7 +167,7 @@ class test_run(object):
 
     def reraise(self):
         if self.result is not None:
-            reraise.reraise(*self.result)
+            raise self.result[1]
 
     def kill(self):
         if self.test:
