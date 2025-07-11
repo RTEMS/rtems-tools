@@ -261,6 +261,7 @@ struct output_sym
 {
   enum struct output_mode {
     symbol,
+    tls_count,
     tls_func,
     tls_call_table
   };
@@ -321,6 +322,11 @@ output_sym::operator ()(const rld::symbols::symtab::value_type& value)
         c.write_line ("\"  \" SYM_VALUE \" " + val + "\\n\"");
       }
       break;
+    case output_mode::tls_count:
+      if (sym.type () == STT_TLS) {
+        ++index;
+      }
+      break;
     case output_mode::tls_func:
       if (sym.type () == STT_TLS) {
         c.write_line ("#define RTEMS_TLS_INDEX_" + sym.name () + " " + std::to_string(index));
@@ -332,6 +338,7 @@ output_sym::operator ()(const rld::symbols::symtab::value_type& value)
         c.write_line ("}");
         c.write_line ("");
       }
+      ++index;
       break;
     case output_mode::tls_call_table:
       if (sym.type () == STT_TLS) {
@@ -340,7 +347,6 @@ output_sym::operator ()(const rld::symbols::symtab::value_type& value)
       }
       break;
   }
-  ++index;
 }
 
 static void
@@ -353,6 +359,13 @@ generate_c (rld::process::tempfile& c,
 
   c.open (true);
   temporary_file_paint (c, c_header);
+
+  /*
+   * Only create the TLS table if there are TLS symbols. This avoids
+   * creating an empty table that is referenced as that can produce a
+   * warning.
+   */
+  bool have_tls_symbols = false;
 
   /*
    * Add the symbols. The is the globals and the weak symbols that have been
@@ -373,19 +386,27 @@ generate_c (rld::process::tempfile& c,
     std::for_each (symbols.begin (),
                    symbols.end (),
                    output_sym (c, embed, false,
-                               output_sym::output_mode::tls_func, index));
-    temporary_file_paint (c, c_tls_call_table_start);
-    index = 0;
-    std::for_each (symbols.begin (),
-                   symbols.end (),
-                   output_sym (c, embed, false,
-                               output_sym::output_mode::tls_call_table, index));
-    temporary_file_paint (c, c_tls_call_table_end);
+                               output_sym::output_mode::tls_count, index));
+    if (index != 0) {
+      have_tls_symbols = true;
+      index = 0;
+      std::for_each (symbols.begin (),
+                     symbols.end (),
+                     output_sym (c, embed, false,
+                                 output_sym::output_mode::tls_func, index));
+      temporary_file_paint (c, c_tls_call_table_start);
+      index = 0;
+      std::for_each (symbols.begin (),
+                     symbols.end (),
+                     output_sym (c, embed, false,
+                                 output_sym::output_mode::tls_call_table, index));
+      temporary_file_paint (c, c_tls_call_table_end);
+    }
   }
 
   temporary_file_paint (c, c_trailer);
 
-  if (embed)
+  if (embed && have_tls_symbols)
     c_embedded_trailer (c);
   else
     c_constructor_trailer (c);
