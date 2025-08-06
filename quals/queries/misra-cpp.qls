@@ -1,0 +1,5 @@
+- qlpack: codeql/misra-cpp-coding-standards
+  version: 2.46.0
+- exclude:
+    id:
+      - cpp/misra/reads-and-writes-on-stream-not-separated-by-positioning

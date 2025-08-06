@@ -1,0 +1,2 @@
+- qlpack: codeql/autosar-cpp-coding-standards
+  version: 2.46.0

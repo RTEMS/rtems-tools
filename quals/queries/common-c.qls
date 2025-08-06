@@ -1,0 +1,2 @@
+- qlpack: codeql/common-c-coding-standards
+  version: 2.46.0

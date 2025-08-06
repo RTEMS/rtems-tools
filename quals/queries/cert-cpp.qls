@@ -1,0 +1,5 @@
+- qlpack: codeql/cert-cpp-coding-standards
+  version: 2.46.0
+- exclude:
+    id:
+      - cpp/cert/interleaved-input-output-without-position
