@@ -449,7 +449,7 @@ class execute(object):
                                         stdout=stdout,
                                         stderr=stderr,
                                         close_fds=False,
-                                        text=False)
+                                        universal_newlines=False)
             else:
                 for i, cmd in enumerate(pipe_commands):
                     if i == 0:
@@ -459,7 +459,7 @@ class execute(object):
                                                 env=env,
                                                 stdin=stdin,
                                                 stdout=subprocess.PIPE,
-                                                text=False)
+                                                universal_newlines=False)
                     elif i == len(pipe_commands) - 1:
                         proc = subprocess.Popen(cmd,
                                                 shell=shell,
@@ -469,7 +469,7 @@ class execute(object):
                                                 stdout=stdout,
                                                 stderr=stderr,
                                                 close_fds=False,
-                                                text=False)
+                                                universal_newlines=False)
                     else:
                         proc = subprocess.Popen(cmd,
                                                 shell=shell,
@@ -477,7 +477,7 @@ class execute(object):
                                                 env=env,
                                                 stdin=proc.stdout,
                                                 stdout=subprocess.PIPE,
-                                                text=False)
+                                                universal_newlines=False)
             if not capture:
                 return (0, proc)
             if self.output is None:
