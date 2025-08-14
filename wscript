@@ -84,10 +84,7 @@ def shutdown(ctx):
     pass
 
 def configure(ctx):
-    try:
-        ctx.load("doxygen", tooldir = 'linkers/waf-tools')
-    except:
-        pass
+    ctx.load("doxygen", tooldir = 'linkers/waf-tools')
     ctx.env.RTEMS_VERSION, ctx.env.RTEMS_RELEASE = get_version(ctx)
     ctx.start_msg('Version')
     ctx.end_msg('%s (%s)' % (ctx.env.RTEMS_RELEASE, ctx.env.RTEMS_VERSION))

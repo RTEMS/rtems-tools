@@ -41,9 +41,12 @@ def build(bld):
     # Build the doxygen documentation.
     #
     if bld.cmd == 'doxy':
-        bld(features = 'doxygen',
-            doxyfile = 'rtl-host.conf')
-        return
+        if bld.env.DOXYGEN:
+            bld(features = 'doxygen',
+                doxyfile = 'rtl-host.conf')
+            return
+        else:
+            bld.fatal("Doxygen not installed")
 
     #
     # The local configuration.
