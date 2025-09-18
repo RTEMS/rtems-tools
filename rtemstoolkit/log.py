@@ -70,7 +70,7 @@ def safe_blocking_write(file_handle, out):
     writing = True
     while writing:
         try:
-            file_handle.write(out)
+            file_handle.write(out + '\n')
             writing = False
         except BlockingIOError as e:
             import fcntl
