@@ -60,7 +60,8 @@ archs = {
     'sparc64': 11,
     'blackfin': 16,
     'arv32': 17,
-    'st200': 18
+    'st200': 18,
+    'arm64': 22
 }
 
 oss = {
