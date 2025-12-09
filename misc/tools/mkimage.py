@@ -33,6 +33,7 @@ from __future__ import print_function
 import argparse
 from struct import *
 import sys
+import os
 import os.path
 import time
 import binascii
@@ -219,6 +220,14 @@ while True:
 inputcrc = inputcrc & 0xffffffff
 
 timestamp = int(time.time())
+epoch_var_name = 'SOURCE_DATE_EPOCH'
+if epoch_var_name in os.environ:
+    epoch = os.environ[epoch_var_name]
+    try:
+        timestamp = int(epoch)
+    except ValueError as error:
+        print("%s present, but not a number: %s" % (epoch_var_name, epoch))
+        sys.exit(1)
 
 structdata = struct.pack(MAGIC, 0, timestamp, inputsize, int(options.addr, 16),
                          int(options.ep, 16), inputcrc, oss[options.os],
