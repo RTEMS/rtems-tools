@@ -70,7 +70,7 @@ def safe_blocking_write(file_handle, out):
     writing = True
     while writing:
         try:
-            file_handle.write(out + '\n')
+            file_handle.write(out)
             writing = False
         except BlockingIOError as e:
             import fcntl
@@ -114,7 +114,7 @@ def _output(text=os.linesep, log=None):
     else:
         lock.acquire()
         for l in text.replace(chr(13), '').splitlines():
-            safe_blocking_write(sys.stdout, l)
+            safe_blocking_write(sys.stdout, l + os.linesep)
         lock.release()
     if capture is not None:
         lock.acquire()
@@ -125,7 +125,7 @@ def _output(text=os.linesep, log=None):
 def stderr(text=os.linesep, log=None):
     lock.acquire()
     for l in text.replace(chr(13), '').splitlines():
-        safe_blocking_write(sys.stderr, l)
+        safe_blocking_write(sys.stderr, l + os.linesep)
     lock.release()
 
 
@@ -139,7 +139,7 @@ def notice(text=os.linesep, log=None, stdout_only=False):
             (default is not None and not default.has_stdout() or stdout_only):
         lock.acquire()
         for l in text.replace(chr(13), '').splitlines():
-            safe_blocking_write(sys.stdout, l)
+            safe_blocking_write(sys.stdout, l + os.linesep)
         lock.release()
     if not stdout_only:
         _output(text, log)
