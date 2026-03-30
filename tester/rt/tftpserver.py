@@ -218,6 +218,7 @@ class tftp_session(object):
         if self.block != 0:
             self.data_reader('close')
             self._reinit()
+        send_oack = False
         # Get the filename, mode and options
         self.filename = self.get_option('filename', data)
         if self.filename is None:
@@ -243,17 +244,25 @@ class tftp_session(object):
         if value is not None:
             oack_data += self._pack_bytes(['timeout', value])
             self.timeout = int(value)
+            send_oack = True
         value = self.get_option('blksize', data)
         if value is not None:
             oack_data += self._pack_bytes(['blksize', value])
             self.block_size = int(value)
+            send_oack = True
         else:
             self.block_size = 512
         value = self.get_option('tsize', data)
         if value is not None and tsize > 0:
             oack_data += self._pack_bytes(['tsize', str(tsize)])
-        # Send the options ack
-        return self._oack_response(oack_data)
+            send_oack = True
+        # Send the options ack if there are extra options or
+        # send the first block
+        if send_oack:
+            return self._oack_response(oack_data)
+        else:
+            return self._next_block(0)
+
 
     def _write_req(self):
         # WRQ is not supported
@@ -290,7 +299,7 @@ class tftp_session(object):
         # pylint: disable=too-many-branches
         out = ''
         dlen = len(data)
-        if dlen > 2:
+        if dlen >= 2:
             opcode = (data[0] << 8) | data[1]
             if 0 < opcode < len(self.opcodes):
                 if opcode in [self.OP_RRQ, self.OP_WRQ]:

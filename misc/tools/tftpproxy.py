@@ -97,7 +97,7 @@ class tftp_session(object):
     def decode(self, host, port, data):
         s = ''
         dlen = len(data)
-        if dlen > 2:
+        if dlen >= 2:
             opcode = (data[0] << 8) | data[1]
             if opcode < len(self.opcodes):
                 if opcode == 1 or opcode == 2:
@@ -145,7 +145,7 @@ class tftp_session(object):
             else:
                 s += 'E INV(%d)' % (opcode)
         else:
-            s += 'E INVALID LENGTH'
+            s += 'E INVALID LENGTH: ' + str(dlen)
         return s[:2] + '[%s:%d] ' % (host, port) + s[2:]
 
     def get_option(self, option, data):
@@ -240,7 +240,7 @@ class proxy_server(object):
 
     def __init__(self, config, host, port):
         self.lock = threading.Lock()
-        self.session_timeout = 10
+        self.session_timeout = 4
         self.host = host
         self.port = port
         self.server = None
