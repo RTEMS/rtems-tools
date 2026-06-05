@@ -51,6 +51,22 @@ test_fail_excludes = ['minimum']
 class report(object):
     '''RTEMS Testing report.'''
 
+    result_key = {
+        'passed': (0, 'p'),
+        'failed': (1, 'f'),
+        'user-input': (2, 'i'),
+        'expected-fail': (3, 'e'),
+        'indeterminate': (4, 'I'),
+        'benchmark': (5, 'B'),
+        'timeout': (6, 't'),
+        'test-too-long': (7, 'L'),
+        'invalid': (8, 'I'),
+        'wrong-version': (9, 'Wv'),
+        'wrong-build': (9, 'Wb'),
+        'wrong-tools': (9, 'Wt'),
+        'wrong-header': (9, 'Wh'),
+    }
+
     def __init__(self, total):
         self.lock = threading.Lock()
         self.total = total
@@ -68,6 +84,7 @@ class report(object):
         self.wrong_build = 0
         self.wrong_tools = 0
         self.wrong_header = 0
+        self.last_update = '.' * 11
         self.results = {}
         self.config = {}
         self.name_max_len = 0
@@ -101,11 +118,27 @@ class report(object):
                                          os.linesep)
         return msg
 
-    def start(self, index, total, name, executable, bsp_arch, bsp,
-              show_header):
+    def _set_result(self, what):
+        if what not in report.result_key:
+            raise error.internal('invalid result type: %s' % (what))
+        key = report.result_key[what]
+        sl = list(self.last_update)[:-1]
+        sl[-1] = '..'
+        sl[key[0]] = key[1]
+        self.last_update = ''.join(sl)
+
+    def _get_header(self,
+                    action,
+                    index,
+                    total,
+                    name,
+                    bsp_arch,
+                    bsp,
+                    output_length=0,
+                    seconds=0.0):
         wrong = self.wrong_version + self.wrong_build + self.wrong_tools + self.wrong_header
         header = '[%*d/%*d] p:%-*d f:%-*d u:%-*d e:%-*d I:%-*d B:%-*d ' \
-                 't:%-*d L:%-*d i:%-*d W:%-*d | %s/%s: %s' % \
+                 't:%-*d L:%-*d i:%-*d W:%-*d | %s %s o:%5d p:%7.3f | %s/%s: %s' % \
                  (len(str(total)), index,
                   len(str(total)), total,
                   len(str(total)), self.passed,
@@ -118,15 +151,26 @@ class report(object):
                   len(str(total)), self.test_too_long,
                   len(str(total)), self.invalids,
                   len(str(total)), wrong,
+                  action,
+                  self.last_update,
+                  output_length,
+                  seconds,
                   bsp_arch,
                   bsp,
                   path.basename(name))
+        self.last_update = '.' * 11
+        return header
+
+    def start(self, index, total, name, executable, bsp_arch, bsp, show_header,
+              show_failed_output):
         self.lock.acquire()
+        header = self._get_header('S', index, total, name, bsp_arch, bsp)
         if name in self.results:
             self.lock.release()
             raise error.general('duplicate test: %s' % (name))
         self.results[name] = {
             'index': index,
+            'total': total,
             'bsp': bsp,
             'bsp_arch': bsp_arch,
             'exe': name,
@@ -134,9 +178,8 @@ class report(object):
             'end': None,
             'result': None,
             'output': None,
-            'header': header
+            'show_failed_output': show_failed_output
         }
-
         self.lock.release()
         if show_header:
             log.notice(header, stdout_only=True)
@@ -152,33 +195,33 @@ class report(object):
         timeout = False
         test_too_long = False
         prefixed_output = []
-        for line in output:
-            if line[0] == output_prefix:
-                if line[1].startswith('*** '):
-                    banner = line[1][4:]
-                    if banner.startswith('BEGIN OF TEST '):
-                        start = True
-                    elif banner.startswith('END OF TEST '):
-                        end = True
-                    elif banner.startswith('FATAL'):
-                        fatal = True
-                    elif banner.startswith('TIMEOUT TIMEOUT'):
-                        timeout = True
-                    elif banner.startswith('TEST TOO LONG'):
-                        test_too_long = True
-                    elif banner.startswith('TEST VERSION:'):
-                        version = banner[13:].strip()
-                    elif banner.startswith('TEST STATE:'):
-                        # Depending on the RTESM version '-' or '_' is used in
-                        # test state strings.  Normalize it to '_'.
-                        state = banner[11:].strip().replace('-', '_')
-                    elif banner.startswith('TEST BUILD:'):
-                        build = ','.join(banner[11:].strip().split(' '))
-                    elif banner.startswith('TEST TOOLS:'):
-                        tools = banner[11:].strip()
-            prefixed_output += [line[0] + ' ' + line[1]]
         self.lock.acquire()
         try:
+            for line in output:
+                if line[0] == output_prefix:
+                    if line[1].startswith('*** '):
+                        banner = line[1][4:]
+                        if banner.startswith('BEGIN OF TEST '):
+                            start = True
+                        elif banner.startswith('END OF TEST '):
+                            end = True
+                        elif banner.startswith('FATAL'):
+                            fatal = True
+                        elif banner.startswith('TIMEOUT TIMEOUT'):
+                            timeout = True
+                        elif banner.startswith('TEST TOO LONG'):
+                            test_too_long = True
+                        elif banner.startswith('TEST VERSION:'):
+                            version = banner[13:].strip()
+                        elif banner.startswith('TEST STATE:'):
+                            # Depending on the RTESM version '-' or '_' is used in
+                            # test state strings.  Normalize it to '_'.
+                            state = banner[11:].strip().replace('-', '_')
+                        elif banner.startswith('TEST BUILD:'):
+                            build = ','.join(banner[11:].strip().split(' '))
+                        elif banner.startswith('TEST TOOLS:'):
+                            tools = banner[11:].strip()
+                prefixed_output += [line[0] + ' ' + line[1]]
             if name not in self.results:
                 raise error.general('test report missing: %s' % (name))
             if self.results[name]['end'] is not None:
@@ -210,60 +253,77 @@ class report(object):
                     if state is None or state == 'EXPECTED_PASS':
                         status = 'passed'
                         self.passed += 1
+                        self._set_result(status)
                 elif fatal:
                     status = 'fatal-error'
                     self.failed += 1
+                    self._set_result('failed')
                 elif timeout:
                     status = 'timeout'
                     self.timeouts += 1
+                    self._set_result(status)
                 elif test_too_long:
                     status = 'test-too-long'
                     self.test_too_long += 1
+                    self._set_result(status)
                 elif start:
                     if not end:
                         status = 'failed'
                         self.failed += 1
+                        self._set_result(status)
                 else:
                     exe_name = path.basename(name).split('.')[0]
                     if exe_name in test_fail_excludes:
                         status = 'passed'
                         self.passed += 1
+                        self._set_result(status)
                     else:
                         status = 'invalid'
                         self.invalids += 1
+                        self._set_result(status)
             else:
                 if state == 'EXPECTED_FAIL':
                     if start and end:
                         status = 'passed'
                         self.passed += 1
+                        self._set_result(status)
                     else:
                         status = 'expected-fail'
                         self.expected_fail += 1
+                        self._set_result(status)
                 elif state == 'USER_INPUT':
                     status = 'user-input'
                     self.user_input += 1
+                    self._set_result(status)
                 elif state == 'INDETERMINATE':
                     if start and end:
                         status = 'passed'
                         self.passed += 1
+                        self._set_result(status)
                     else:
                         status = 'indeterminate'
                         self.indeterminate += 1
+                        self._set_result(status)
                 elif state == 'BENCHMARK':
                     status = 'benchmark'
                     self.benchmark += 1
+                    self._set_result(status)
                 elif state == 'WRONG_VERSION':
                     status = 'wrong-version'
                     self.wrong_version += 1
+                    self._set_result(status)
                 elif state == 'WRONG_BUILD':
                     status = 'wrong-build'
                     self.wrong_build += 1
+                    self._set_result(status)
                 elif state == 'WRONG_TOOLS':
                     status = 'wrong-tools'
                     self.wrong_tools += 1
+                    self._set_result(status)
                 else:
                     status = 'wrong-header'
                     self.wrong_header += 1
+                    self._set_result(status)
             self.results[name]['result'] = status
             self.results[name]['output'] = prefixed_output
             if self.name_max_len < len(path.basename(name)):
@@ -298,8 +358,14 @@ class report(object):
                         (what_is_wrong, self.config[what_is_wrong])
                     ]
             if mode != 'none':
-                header = self.results[name]['header']
-            if mode == 'all' or failed:
+                header = self._get_header('E', self.results[name]['index'],
+                                          self.results[name]['total'], name,
+                                          self.results[name]['bsp_arch'],
+                                          self.results[name]['bsp'],
+                                          len(self.results[name]['output']),
+                                          time.total_seconds())
+            if mode == 'all' or (failed
+                                 and self.results[name]['show_failed_output']):
                 output = self.results[name]['output']
             else:
                 output = None

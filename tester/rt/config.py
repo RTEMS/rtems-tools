@@ -77,6 +77,7 @@ class file(config.file):
         self.console_trace = self.exe_trace('console')
         self.console_prefix = console_prefix
         self.show_header = not self.defined('test_disable_header')
+        self.show_failed_output = self.expand('%{target_show_failure}') == True
         self.process = None
         self.console = None
         self.output = None
@@ -126,6 +127,11 @@ class file(config.file):
             self.process.kill()
         except:
             pass
+
+    def _get_timeouts(self):
+        return (int(self.expand('%{timeout}')),
+                int(self.expand('%{max_test_period}')), self._timeout,
+                self._test_too_long)
 
     def _target_regex(self, label):
         regex = None
@@ -260,9 +266,7 @@ class file(config.file):
                     ignore_exit_code=self.defined('exe_ignore_ret'),
                     output=self.capture,
                     console=self.capture_console,
-                    timeout=(int(self.expand('%{timeout}')),
-                             int(self.expand('%{max_test_period}')),
-                             self._timeout, self._test_too_long))
+                    timeout=self._get_timeouts())
             if self.console:
                 self.console.close()
 
@@ -281,15 +285,12 @@ class file(config.file):
             if self.console:
                 self.console.open()
             if not self.opts.dry_run():
-                self.process.open(
-                    data[0],
-                    data[1],
-                    script=script,
-                    output=self.capture,
-                    gdb_console=self.capture_console,
-                    timeout=(int(self.expand('%{timeout}')),
-                             int(self.expand('%{max_test_period}')),
-                             self._timeout, self._test_too_long))
+                self.process.open(data[0],
+                                  data[1],
+                                  script=script,
+                                  output=self.capture,
+                                  gdb_console=self.capture_console,
+                                  timeout=self._get_timeouts())
             if self.console:
                 self.console.close()
 
@@ -313,14 +314,11 @@ class file(config.file):
             if not self.in_error:
                 if self.console:
                     self.console.open()
-                self.process.open(
-                    executable=exe,
-                    port=port,
-                    output_length=self._output_length,
-                    console=self.capture_console,
-                    timeout=(int(self.expand('%{timeout}')),
-                             int(self.expand('%{max_test_period}')),
-                             self._timeout, self._test_too_long))
+                self.process.open(executable=exe,
+                                  port=port,
+                                  output_length=self._output_length,
+                                  console=self.capture_console,
+                                  timeout=self._get_timeouts())
                 if self.console:
                     self.console.close()
 
@@ -335,12 +333,9 @@ class file(config.file):
             if not self.in_error:
                 if self.console:
                     self.console.open()
-                self.process.open(
-                    output_length=self._output_length,
-                    console=self.capture_console,
-                    timeout=(int(self.expand('%{timeout}')),
-                             int(self.expand('%{max_test_period}')),
-                             self._timeout, self._test_too_long))
+                self.process.open(output_length=self._output_length,
+                                  console=self.capture_console,
+                                  timeout=self._get_timeouts())
                 if self.console:
                     self.console.close()
 
@@ -368,7 +363,8 @@ class file(config.file):
                     bsp = self.expand('%{bsp}')
                     fexe = self._target_exe_filter(exe)
                     self.report.start(index, total, exe, fexe, bsp_arch, bsp,
-                                      self.show_header)
+                                      self.show_header,
+                                      self.show_failed_output)
                     if self.index == 1:
                         self._target_command('on', bsp_arch, bsp, exe, fexe)
                     self._target_command('pretest', bsp_arch, bsp, exe, fexe)

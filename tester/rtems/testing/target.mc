@@ -1,6 +1,6 @@
 #
 # RTEMS Tools Project (http://www.rtems.org/)
-# Copyright 2010-2014 Chris Johns (chrisj@rtems.org)
+# Copyright 2026 Chris Johns (chrisj@rtems.org)
 # All rights reserved.
 #
 # This file is part of the RTEMS Tools package in 'rtems-tools'.
@@ -46,25 +46,6 @@
 #
 [global]
 
-# Paths
-_rtbase:              none,    none,     '%{_rtdir}'
-_rtscripts:           none,    none,     '%{_rtbase}/rtems/testing'
-
 # Defaults
-timeout:              none,    none,     '180'  # seconds
-max_test_period:      none,    none,     '300'  # seconds
-max_restarts:         none,    none,     '3'
-
-# Tests detected as invalid that are valid
-invalid_tests:        none,    none,     '''minimum.exe'''
-
-# Coverage defaults
-cov_format:           none,    none,     'QEMU'
-cov_explanations:     none,    none,     '%{_rtscripts}/coverage/Explanations.txt'
-cov_extension:        none,    none,     'cov'
-cov_gcnos_file:       none,    none,     '%{_rtscripts}/coverage/rtems.gcnos'
-cov_exe_ext:          none,    none,     'exe'
-cov_report_format:    none,    none,     'html'
-
-# Include the default target macros.
-%include %{_rttesting}/target.mc
+target_reset_on_timeout:   none,    none,     '1'  # reset on timeout
+target_show_failure:       none,    none,     '0'  # reset on timeout
