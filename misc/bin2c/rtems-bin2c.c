@@ -11,7 +11,7 @@
  *
  * Subsequently modified by Joel Sherrill <joel.sherrill@oarcorp.com>
  * to add a number of capabilities not in the original.
- * 
+ *
  * Modified by Harinder Singh Dhanoa <hsd1807@proton.me>
  * to add the feature to include license file support.
  *
@@ -61,7 +61,7 @@ char *read_license_file(const char *filename) {
   long length;
   char *buffer;
   size_t readsize;
-  
+
   file = fopen(filename, "r");
   if (!file) {
     perror("error: could not open license file");
@@ -177,7 +177,7 @@ void process(const char *ifname, const char *ofname, const char *forced_name)
       exit(1);
     }
   }
-  
+
   /* Read license header if specified */
   char *license_header = NULL;
   if (licensefile) {
