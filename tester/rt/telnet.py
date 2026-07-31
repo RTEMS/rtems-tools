@@ -35,12 +35,12 @@
 import errno
 import os
 import sys
-import telnetlib
 import time
 
 from rtemstoolkit import error
 from rtemstoolkit import host
 from rtemstoolkit import path
+from tester.rt.contrib.telnetlib import telnetlib
 
 
 class tty:
