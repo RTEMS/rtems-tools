@@ -297,6 +297,18 @@ output_sym::operator ()(const rld::symbols::symtab::value_type& value)
   if (weak && sym.value () == 0)
     return;
 
+  /*
+   * LTO symbols to ignore
+   */
+  std::vector<std::string> lto_ignores = {
+    ".lto_priv", ".constprop", ".isra", ".cold", ".part"
+  };
+  for (auto& s : lto_ignores) {
+    if (sym.name ().find (s) != std::string::npos) {
+      return;
+    }
+  }
+
   switch (mode) {
     case output_mode::symbol:
     default:
