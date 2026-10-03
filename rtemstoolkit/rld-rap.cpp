@@ -1428,7 +1428,8 @@ namespace rld
                ++ri)
           {
             const relocation& reloc = *ri;
-            uint32_t          info = GELF_R_TYPE (reloc.info);
+            uint32_t          type = GELF_R_TYPE (reloc.info);
+            uint32_t          info = 0;
             uint32_t          offset;
             uint32_t          addend = reloc.addend;
             bool              write_addend = sec.rela;
@@ -1510,6 +1511,7 @@ namespace rld
               std::cout << "  " << std::setw (2) << sr << '/'
                         << std::setw (2) << rc
                         << std::hex << ": reloc: info=0x" << info << std::dec
+                        << " type=" << type
                         << " offset=" << offset;
               if (write_addend)
                 std::cout << " addend=" << addend;
@@ -1526,7 +1528,7 @@ namespace rld
                         << std::endl;
             }
 
-            comp << info << offset;
+            comp << info << type << offset;
 
             if (write_addend)
               comp << addend;
@@ -1727,7 +1729,9 @@ namespace rld
     {
       std::string header;
 
-      header = "RAP,00000000,0002,LZ77,00000000\n";
+      std::ostringstream version;
+      version << std::setfill ('0') << std::setw (4) << RAP_VERSION;
+      header = "RAP,00000000," + version.str () + ",LZ77,00000000\n";
       app.write (header.c_str (), header.size ());
 
       compress::compressor compressor (app, 2 * 1024);

@@ -42,6 +42,13 @@ namespace rld
      extern std::string rpath;
 
     /**
+     * The RAP file format version.  Version 3 adds the ELF relocation type as
+     * a word of its own after the info word of a relocation record.  Version 2
+     * holds the type in bits 7:0 of the info word.
+     */
+    #define RAP_VERSION 3
+
+    /**
      * The RAP relocation bit masks.
      */
     #define RAP_RELOC_RELA         (1UL << 31)

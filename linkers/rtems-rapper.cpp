@@ -76,6 +76,7 @@ namespace rap
   struct relocation
   {
     uint32_t    info;
+    uint32_t    type;
     uint32_t    offset;
     uint32_t    addend;
     std::string symname;
@@ -118,7 +119,7 @@ namespace rap
     ~section ();
 
     void load_data (rld::compress::compressor& comp);
-    void load_relocs (rld::compress::compressor& comp);
+    void load_relocs (rld::compress::compressor& comp, uint32_t version);
   };
 
   /**
@@ -282,6 +283,7 @@ namespace rap
 
   relocation::relocation ()
     : info (0),
+      type (0),
       offset (0),
       addend (0),
       rap_off (0)
@@ -293,6 +295,9 @@ namespace rap
   {
     std::cout << std::hex << std::setfill ('0')
               << "0x" << std::setw (8) << info
+              << std::dec << std::setfill (' ')
+              << " " << std::setw (4) << type
+              << std::hex << std::setfill ('0')
               << " 0x" << std::setw (8) << offset
               << " 0x" << std::setw(8) << addend
               << std::dec << std::setfill (' ')
@@ -329,7 +334,7 @@ namespace rap
   }
 
   void
-  section::load_relocs (rld::compress::compressor& comp)
+  section::load_relocs (rld::compress::compressor& comp, uint32_t version)
   {
     uint32_t header;
     comp >> header;
@@ -345,8 +350,14 @@ namespace rap
 
         reloc.rap_off = comp.offset ();
 
-        comp >> reloc.info
-             >> reloc.offset;
+        comp >> reloc.info;
+
+        if (version >= 3)
+          comp >> reloc.type;
+        else
+          reloc.type = reloc.info & 0xff;
+
+        comp >> reloc.offset;
 
         if (((reloc.info & RAP_RELOC_STRING) == 0) || rela)
           comp >> reloc.addend;
@@ -632,7 +643,7 @@ namespace rap
      */
     relocs_rap_off = comp.offset ();
     for (int s = 0; s < rld::rap::rap_secs; ++s)
-      secs[s].load_relocs (comp);
+      secs[s].load_relocs (comp, rhdr_version);
   }
 
   void
@@ -944,7 +955,7 @@ rap_show (rld::path::paths& raps,
         {
           const char* rela = r.secs[s].rela ? "(A)" : "   ";
           std::cout << std::setw (16) << r.secs[s].name
-                    << ": info       offset     addend "
+                    << ": info       type offset     addend "
                     << rela
                     << " symbol name" << std::endl;
           for (size_t f = 0; f < r.secs[s].relocs.size (); ++f)
@@ -1035,7 +1046,7 @@ rap_overlay (rld::path::paths& raps, bool warnings)
         if (sec.relocs.size ())
         {
           int count = 0;
-          std::cout << "     info       offset     addend     symbol name" << std::endl;
+          std::cout << "     info       type offset     addend     symbol name" << std::endl;
           for (size_t f = 0; f < r.secs[s].relocs.size (); ++f)
           {
             rap::relocation& reloc = r.secs[s].relocs[f];
