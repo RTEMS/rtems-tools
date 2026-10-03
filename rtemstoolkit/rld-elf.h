@@ -27,6 +27,7 @@
 
 #include <list>
 #include <map>
+#include <set>
 #include <vector>
 
 #include <rld.h>
@@ -704,6 +705,14 @@ namespace rld
        * @param where Where the check is performed.
        */
       void check_phdr (const char* where) const;
+
+      /**
+       * Get the indices of the symbols which the relocation records
+       * reference.
+       *
+       * @param indices The symbol indices found in the file.
+       */
+      void get_relocation_symbols (std::set<int>& indices);
 
       /**
        * Generate libelf error.

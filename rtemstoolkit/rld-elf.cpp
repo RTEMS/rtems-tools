@@ -848,6 +848,11 @@ namespace rld
 
       load_symbols ();
 
+      std::set<int> relocation_syms;
+
+      if (unresolved)
+        get_relocation_symbols (relocation_syms);
+
       filtered_syms.clear ();
 
       for (symbols::bucket::iterator si = symbols.begin ();
@@ -872,7 +877,12 @@ namespace rld
             (sbind == STB_GLOBAL) &&
             (sym.section_index () == SHN_UNDEF))
         {
-          if (unresolved)
+          /*
+           * An undefined symbol which no relocation record references needs
+           * no definition. The assembler adds _GLOBAL_OFFSET_TABLE_ to an
+           * object which uses a thread-local storage operator, for example.
+           */
+          if (unresolved && relocation_syms.count (sym.index ()) != 0)
             add = true;
         }
         else
@@ -906,6 +916,45 @@ namespace rld
 
       throw rld::error ("symbol index '" + rld::to_string (index) + "' not found",
                         "elf:file:get_symbol: " + name_);
+    }
+
+    void
+    file::get_relocation_symbols (std::set<int>& indices)
+    {
+      sections rel_secs;
+
+      get_sections (rel_secs, SHT_REL);
+      get_sections (rel_secs, SHT_RELA);
+
+      for (sections::iterator si = rel_secs.begin ();
+           si != rel_secs.end ();
+           ++si)
+      {
+        section& sec = *(*si);
+        int      rels = sec.entries ();
+
+        for (int r = 0; r < rels; ++r)
+        {
+          if (sec.type () == SHT_RELA)
+          {
+            elf_rela erela;
+
+            if (!::gelf_getrela (sec.data (), r, &erela))
+              error ("gelf_getrela");
+
+            indices.insert (GELF_R_SYM (erela.r_info));
+          }
+          else
+          {
+            elf_rel erel;
+
+            if (!::gelf_getrel (sec.data (), r, &erel))
+              error ("gelf_getrel");
+
+            indices.insert (GELF_R_SYM (erel.r_info));
+          }
+        }
+      }
     }
 
     void
