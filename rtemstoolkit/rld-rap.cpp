@@ -777,7 +777,13 @@ namespace rld
            ++fri, ++rc)
       {
         const files::relocation& freloc = *fri;
-        bool                     merge_reloc = machine_relocation_check (freloc);
+
+        /*
+         * A relocation without a symbol references the null symbol.  The
+         * null symbol has no section and no name.
+         */
+        bool merge_reloc = (freloc.symsect != 0 || !freloc.symname.empty ()) &&
+          machine_relocation_check (freloc);
 
         if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
           std::cout << " " << std::setw (2) << sec.relocs.size ()
@@ -1405,9 +1411,6 @@ namespace rld
             uint32_t          addend = reloc.addend;
             bool              write_addend = sec.rela;
             bool              write_symname = false;
-
-            if (reloc.symsect == 0)
-              continue;
 
             offset = sec.offset + reloc.offset;
 
