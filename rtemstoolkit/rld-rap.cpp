@@ -205,7 +205,7 @@ namespace rld
       uint32_t size (uint32_t offset = 0) const;
 
       /**
-       * The alignment of the first section.
+       * The largest alignment of the sections.
        */
       uint32_t alignment () const;
 
@@ -594,12 +594,14 @@ namespace rld
     uint32_t
     section::alignment () const
     {
-      if (!osindexes.empty ())
+      uint32_t align = 0;
+      for (size_t si = 0; si < osindexes.size (); ++si)
       {
-        const osection& osec = get_osection (osindexes[0]);
-        return osec.align;
+        const osection& osec = get_osection (osindexes[si]);
+        if (osec.align > align)
+          align = osec.align;
       }
-      return 0;
+      return align;
     }
 
     uint32_t
@@ -1010,7 +1012,8 @@ namespace rld
           {
             obj.secs[s].set_offset (pobj.secs[s]);
             sec_size[s] = obj.secs[s].offset + obj.secs[s].size ();
-            sec_align[s] = obj.secs[s].alignment ();
+            if (obj.secs[s].alignment () > sec_align[s])
+              sec_align[s] = obj.secs[s].alignment ();
             if (obj.secs[s].rela == true)
               sec_rela[s] = obj.secs[s].rela;
           }
@@ -1276,6 +1279,14 @@ namespace rld
       }
     }
 
+    static void
+    write_padding (compress::compressor& comp, uint32_t size)
+    {
+      char ee = '\xee';
+      for (uint32_t p = 0; p < size; ++p)
+        comp.write (&ee, 1);
+    }
+
     void
     image::write (compress::compressor&  comp,
                   files::object&         obj,
@@ -1283,6 +1294,7 @@ namespace rld
                   uint32_t&              offset)
     {
       uint32_t size = 0;
+      uint32_t align = 0;
 
       obj.open ();
 
@@ -1293,6 +1305,22 @@ namespace rld
         if (rld::verbose () >= RLD_VERBOSE_FULL_DEBUG)
           std::cout << "rap:write sections: " << obj.name ().full () << std::endl;
 
+        /*
+         * The layout aligns the object to the largest alignment of its
+         * sections.
+         */
+        for (files::sections::const_iterator si = secs.begin ();
+             si != secs.end ();
+             ++si)
+        {
+          if (si->alignment > align)
+            align = si->alignment;
+        }
+
+        uint32_t unaligned_start = offset;
+        offset = align_offset (offset, 0, align);
+        write_padding (comp, offset - unaligned_start);
+
         for (files::sections::const_iterator si = secs.begin ();
              si != secs.end ();
              ++si)
@@ -1301,13 +1329,7 @@ namespace rld
           uint32_t              unaligned_offset = offset + size;
 
           offset = align_offset (offset, size, sec.alignment);
-
-          if (offset != unaligned_offset)
-          {
-            char ee = '\xee';
-            for (uint32_t p = 0; p < (offset - unaligned_offset); ++p)
-              comp.write (&ee, 1);
-          }
+          write_padding (comp, offset - unaligned_offset);
 
           comp.write (obj, sec.offset, sec.size);
 
