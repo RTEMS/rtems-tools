@@ -258,6 +258,7 @@ class tftp(object):
             time.sleep(step)
             self._lock('_open: loop')
         self._trace('open: finished')
+        self.opened = False
         if not self.finished:
             if period == 0:
                 self._timeout()
