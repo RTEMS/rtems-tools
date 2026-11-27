@@ -37,6 +37,7 @@
 from __future__ import print_function
 
 import functools
+import codecs
 import io
 import os
 import re
@@ -220,6 +221,11 @@ class execute(object):
 
             if trace_threads:
                 print('execute:_readthread: start')
+            if sys.stdout.encoding is not None:
+                decoder = codecs.getincrementaldecoder(
+                    sys.stdout.encoding)(errors='replace')
+            else:
+                decoder = None
             count = 0
             line = ''
             try:
@@ -237,13 +243,15 @@ class execute(object):
                     if len(data) == 0:
                         if len(line) > 0:
                             _output_line(line + '\n', exe, prefix, out, count)
+                            line = ''
                         break
                     # str and bytes are the same type in Python2
-                    if type(data) is not str and type(data) is bytes:
-                        data = data.decode(sys.stdout.encoding)
+                    if decoder is not None and type(data) is not str and type(
+                            data) is bytes:
+                        data = decoder.decode(data)
                     last_ch = data[-1]
-                    sd = (line + data).split('\n')
-                    if last_ch != '\n':
+                    sd = (line + data).split(os.linesep)
+                    if last_ch != os.linesep:
                         line = sd[-1]
                     else:
                         line = ''
@@ -253,7 +261,8 @@ class execute(object):
                             if trace_threads:
                                 print('execute:_readthread: output-line:',
                                       count, type(l))
-                            _output_line(l + '\n', exe, prefix, out, count)
+                            _output_line(l + os.linesep, exe, prefix, out,
+                                         count)
                             count += 1
                         if count > 10:
                             count -= 10
@@ -383,7 +392,7 @@ class execute(object):
             raise error.general('capture needs an output handler')
         if os.name == 'nt':
             shell = True
-            command = 'sh -c "' + execute._shlex_join(command) +'"'
+            command = 'sh -c "' + execute._shlex_join(command) + '"'
         # If a string split and not a shell command split
         if not shell and isinstance(command, str):
             command = shlex.split(command)
@@ -448,7 +457,8 @@ class execute(object):
                                         stdin=stdin,
                                         stdout=stdout,
                                         stderr=stderr,
-                                        close_fds=False)
+                                        close_fds=False,
+                                        universal_newlines=False)
             else:
                 for i, cmd in enumerate(pipe_commands):
                     if i == 0:
@@ -457,7 +467,8 @@ class execute(object):
                                                 cwd=cwd,
                                                 env=env,
                                                 stdin=stdin,
-                                                stdout=subprocess.PIPE)
+                                                stdout=subprocess.PIPE,
+                                                universal_newlines=False)
                     elif i == len(pipe_commands) - 1:
                         proc = subprocess.Popen(cmd,
                                                 shell=shell,
@@ -466,14 +477,16 @@ class execute(object):
                                                 stdin=proc.stdout,
                                                 stdout=stdout,
                                                 stderr=stderr,
-                                                close_fds=False)
+                                                close_fds=False,
+                                                universal_newlines=False)
                     else:
                         proc = subprocess.Popen(cmd,
                                                 shell=shell,
                                                 cwd=cwd,
                                                 env=env,
                                                 stdin=proc.stdout,
-                                                stdout=subprocess.PIPE)
+                                                stdout=subprocess.PIPE,
+                                                universal_newlines=False)
             if not capture:
                 return (0, proc)
             if self.output is None:
